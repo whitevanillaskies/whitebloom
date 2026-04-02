@@ -4,11 +4,13 @@ import {
   Background,
   type Node as RFNode,
   type NodeChange,
-  applyNodeChanges
+  applyNodeChanges,
+  Panel
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useBoardStore } from '@renderer/stores/board'
 import { TextNode } from './TextNode'
+import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 
 const nodeTypes = { text: TextNode }
 
@@ -64,6 +66,9 @@ export function Canvas() {
       proOptions={{ hideAttribution: true }}
     >
       <Background gap={15} size={1} color="var(--color-secondary-fg)" />
+      <Panel position="bottom-center">
+        <CanvasToolbar />
+      </Panel>
     </ReactFlow>
   )
 }
