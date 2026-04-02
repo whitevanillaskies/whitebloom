@@ -389,6 +389,18 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
   }, [editing, measureAutoWidth, syncNodeDimensions, widthMode, wrapWidth])
 
   useEffect(() => {
+    if (editing || resizing) return
+    if (widthMode !== 'auto') return
+
+    const frame = window.requestAnimationFrame(() => {
+      syncNodeDimensions()
+      persistMeasuredSize()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [content, editing, persistMeasuredSize, resizing, syncNodeDimensions, widthMode])
+
+  useEffect(() => {
     if (editing) return
     syncNodeDimensions()
   }, [content, editing, syncNodeDimensions])
@@ -403,11 +415,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
         return { width: `${Math.max(1, wrapWidth ?? MIN_AUTO_WIDTH)}px`, height: 'auto' as const }
       }
 
-      if (size?.w) {
-        return { width: `${Math.max(1, size.w)}px`, height: 'auto' as const }
-      }
-
-      return undefined
+      return { width: 'max-content', maxWidth: 'none', height: 'auto' as const }
     }
 
     if (widthMode === 'fixed') {
@@ -419,7 +427,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     }
 
     return { width: `${editingWidth}px`, maxWidth: `${maxAutoWidth}px`, height: 'auto' as const }
-  }, [editing, editingWidth, maxAutoWidth, resizePreviewWidth, size?.w, widthMode, wrapWidth])
+  }, [editing, editingWidth, maxAutoWidth, resizePreviewWidth, widthMode, wrapWidth])
 
   const displayConfig = useMemo(
     () => ({

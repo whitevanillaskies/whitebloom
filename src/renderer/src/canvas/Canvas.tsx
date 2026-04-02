@@ -40,6 +40,7 @@ export function Canvas() {
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
+  const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const addNode = useBoardStore((s) => s.addNode)
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
   const loadBoard = useBoardStore((s) => s.loadBoard)
@@ -140,6 +141,20 @@ export function Canvas() {
         return
       }
 
+      if (event.key === 't' && (event.ctrlKey || event.metaKey)) {
+        if (isEditableTarget(event.target)) return
+        const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id))
+        const toSnug = boardNodes.filter(
+          (n) => selectedIds.has(n.id) && n.type === 'text' && n.widthMode === 'fixed'
+        )
+        if (toSnug.length === 0) return
+        event.preventDefault()
+        for (const node of toSnug) {
+          updateNodeText(node.id, { content: node.content ?? makeLexicalContent(''), widthMode: 'auto', wrapWidth: null })
+        }
+        return
+      }
+
       const isDeleteKey = event.key === 'Delete' || event.key === 'Backspace'
       if (!isDeleteKey) return
       if (isEditableTarget(event.target)) return
@@ -155,7 +170,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [deleteNodes, nodes, setActiveTool, setNodes])
+  }, [boardNodes, deleteNodes, nodes, setActiveTool, setNodes, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
