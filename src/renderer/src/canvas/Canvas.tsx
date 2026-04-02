@@ -16,14 +16,9 @@ import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import type { Tool } from './tools'
+import './Canvas.css'
 
 const nodeTypes = { text: TextNode }
-
-const cursorForTool: Record<Tool, string> = {
-  pointer: 'default',
-  hand: 'grab',
-  text: 'crosshair'
-}
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -90,6 +85,15 @@ export function Canvas() {
       return schemaNodes.map((n) => ({ ...n, selected: selectedIds.has(n.id) }))
     })
   }, [schemaNodes])
+
+  useEffect(() => {
+    if (activeTool === 'pointer') return
+
+    setNodes((prev) => {
+      if (!prev.some((n) => n.selected)) return prev
+      return prev.map((n) => ({ ...n, selected: false }))
+    })
+  }, [activeTool])
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -288,10 +292,12 @@ export function Canvas() {
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onPaneContextMenu={onPaneContextMenu}
+      className={`canvas--tool-${activeTool}`}
+      elementsSelectable={activeTool === 'pointer'}
       nodesDraggable={activeTool === 'pointer'}
+      nodesConnectable={activeTool === 'pointer'}
       selectionOnDrag={activeTool === 'pointer'}
       panOnDrag={panOnDragButtons}
-      style={{ cursor: cursorForTool[activeTool] }}
       fitView
       proOptions={{ hideAttribution: true }}
     >

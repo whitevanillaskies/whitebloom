@@ -1,0 +1,44 @@
+/* Hand tool: enforce grab cursor everywhere, overriding ReactFlow and node styles */
+.canvas--tool-hand,
+.canvas--tool-hand * {
+  cursor: grab !important;
+}
+
+.canvas--tool-hand.react-flow--dragging,
+.canvas--tool-hand.react-flow--dragging * {
+  cursor: grabbing !important;
+}
+
+/* Text tool: enforce crosshair cursor everywhere */
+.canvas--tool-text,
+.canvas--tool-text * {
+  cursor: crosshair !important;
+}
+
+/* Toolbars should always use normal system cursors regardless of active tool. */
+.canvas--tool-hand .canvas-toolbar,
+.canvas--tool-hand .canvas-toolbar *,
+.canvas--tool-hand .selection-toolbar,
+.canvas--tool-hand .selection-toolbar *,
+.canvas--tool-text .canvas-toolbar,
+.canvas--tool-text .canvas-toolbar *,
+.canvas--tool-text .selection-toolbar,
+.canvas--tool-text .selection-toolbar * {
+  cursor: auto !important;
+}
+
+/* Keep explicit button affordance on toolbar controls. */
+.canvas--tool-hand .canvas-toolbar__button,
+.canvas--tool-text .canvas-toolbar__button {
+  cursor: pointer !important;
+}
+
+/* Pointer tool: reset ReactFlow's node wrapper cursor (usually "pointer" or "grab") to default */
+.canvas--tool-pointer .react-flow__node {
+  cursor: default !important;
+}
+
+/* Pointer tool should show a standard arrow over the pane. */
+.canvas--tool-pointer .react-flow__pane {
+  cursor: default !important;
+}
