@@ -96,7 +96,7 @@ export const useBoardStore = create<BoardState>((set) => ({
 
   clearBoard: () =>
     set((state) => {
-      if (state.nodes.length === 0 && state.edges.length === 0) return state
+      if (state.nodes.length === 0 && state.edges.length === 0 && !state.isDirty) return state
       return { nodes: [], edges: [], isDirty: false }
     }),
 

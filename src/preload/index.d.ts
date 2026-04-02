@@ -4,8 +4,15 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: {
-      saveBoard: (json: string) => Promise<{ ok: boolean; filePath?: string }>
-      loadBoard: () => Promise<{ ok: boolean; json?: string }>
+      saveBoardAs: (
+        json: string,
+        currentFilePath?: string
+      ) => Promise<{ ok: boolean; filePath?: string }>
+      saveBoardToPath: (
+        filePath: string,
+        json: string
+      ) => Promise<{ ok: boolean; filePath?: string }>
+      loadBoard: () => Promise<{ ok: boolean; json?: string; filePath?: string }>
     }
   }
 }

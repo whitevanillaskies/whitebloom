@@ -2,9 +2,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 const api = {
-  saveBoard: (json: string): Promise<{ ok: boolean; filePath?: string }> =>
-    ipcRenderer.invoke('board:save', json),
-  loadBoard: (): Promise<{ ok: boolean; json?: string }> =>
+  saveBoardAs: (
+    json: string,
+    currentFilePath?: string
+  ): Promise<{ ok: boolean; filePath?: string }> =>
+    ipcRenderer.invoke('board:save-as', json, currentFilePath),
+  saveBoardToPath: (filePath: string, json: string): Promise<{ ok: boolean; filePath?: string }> =>
+    ipcRenderer.invoke('board:save-to-path', filePath, json),
+  loadBoard: (): Promise<{ ok: boolean; json?: string; filePath?: string }> =>
     ipcRenderer.invoke('board:load')
 }
 

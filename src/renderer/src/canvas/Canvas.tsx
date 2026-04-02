@@ -54,6 +54,7 @@ export function Canvas() {
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | null>(null)
+  const [currentBoardFilePath, setCurrentBoardFilePath] = useState<string | null>(null)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
 
@@ -130,10 +131,71 @@ export function Canvas() {
         widthMode: 'auto',
         wrapWidth: null
       })
+      setNodes((prev) => {
+        const clearedSelection = prev.map((node) => ({ ...node, selected: false }))
+        return [
+          ...clearedSelection,
+          {
+            id,
+            type: 'text',
+            position,
+            data: {
+              content: makeLexicalContent(''),
+              widthMode: 'auto',
+              wrapWidth: null,
+              size: { w: 200, h: 40 },
+              autoEditToken: nextToken
+            },
+            selected: true
+          }
+        ]
+      })
       setActiveTool('pointer')
     },
     [activeTool, screenToFlowPosition, addNode]
   )
+
+  const startNewBoard = useCallback(() => {
+    clearBoard()
+    setCurrentBoardFilePath(null)
+  }, [clearBoard])
+
+  const handleSave = useCallback(async () => {
+    const nodes = boardNodes.map((node) => {
+      if (node.type !== 'text') return node
+
+      const content = node.content ?? makeLexicalContent(node.label ?? '')
+      return {
+        ...node,
+        content,
+        plain: lexicalContentToPlainText(content)
+      }
+    })
+
+    const board: Board = { version, nodes, edges: boardEdges }
+    const payload = JSON.stringify(board, null, 2)
+
+    const result = currentBoardFilePath
+      ? await window.api.saveBoardToPath(currentBoardFilePath, payload)
+      : await window.api.saveBoardAs(payload)
+
+    if (result.ok) {
+      setCurrentBoardFilePath(result.filePath ?? currentBoardFilePath)
+      markSaved()
+    }
+  }, [version, boardNodes, boardEdges, currentBoardFilePath, markSaved])
+
+  const handleLoad = useCallback(async () => {
+    const result = await window.api.loadBoard()
+    if (!result.ok || !result.json) return
+    try {
+      const board: Board = JSON.parse(result.json)
+      loadBoard(board)
+      setCurrentBoardFilePath(result.filePath ?? null)
+    } catch {
+      console.error('Failed to parse board file')
+    }
+  }, [loadBoard])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -143,6 +205,20 @@ export function Canvas() {
         setActiveTool('pointer')
         blurToolbarButtonIfFocused()
         setNodes((nds) => nds.map((n) => ({ ...n, selected: false })))
+        return
+      }
+
+      if (
+        event.key.toLowerCase() === 't' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setActiveTool('text')
+        blurToolbarButtonIfFocused()
         return
       }
 
@@ -168,7 +244,13 @@ export function Canvas() {
           return
         }
 
-        clearBoard()
+        startNewBoard()
+        return
+      }
+
+      if (event.key.toLowerCase() === 's' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        void handleSave()
         return
       }
 
@@ -187,7 +269,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [boardNodes, clearBoard, deleteNodes, isDirty, nodes, setActiveTool, setNodes, updateNodeText])
+  }, [boardNodes, deleteNodes, handleSave, isDirty, nodes, setActiveTool, setNodes, startNewBoard, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -231,44 +313,14 @@ export function Canvas() {
     }
   }, [])
 
-  const handleSave = useCallback(async () => {
-    const nodes = boardNodes.map((node) => {
-      if (node.type !== 'text') return node
-
-      const content = node.content ?? makeLexicalContent(node.label ?? '')
-      return {
-        ...node,
-        content,
-        plain: lexicalContentToPlainText(content)
-      }
-    })
-
-    const board: Board = { version, nodes, edges: boardEdges }
-    const result = await window.api.saveBoard(JSON.stringify(board, null, 2))
-    if (result.ok) {
-      markSaved()
-    }
-  }, [version, boardNodes, boardEdges, markSaved])
-
-  const handleLoad = useCallback(async () => {
-    const result = await window.api.loadBoard()
-    if (!result.ok || !result.json) return
-    try {
-      const board: Board = JSON.parse(result.json)
-      loadBoard(board)
-    } catch {
-      console.error('Failed to parse board file')
-    }
-  }, [loadBoard])
-
   const handleNewBoardClick = useCallback(() => {
     if (isDirty) {
       setPendingDocumentAction('new')
       return
     }
 
-    clearBoard()
-  }, [clearBoard, isDirty])
+    startNewBoard()
+  }, [isDirty, startNewBoard])
 
   const handleLoadClick = useCallback(() => {
     if (isDirty) {
@@ -281,13 +333,13 @@ export function Canvas() {
 
   const handleConfirmDocumentAction = useCallback(() => {
     if (pendingDocumentAction === 'new') {
-      clearBoard()
+      startNewBoard()
     } else if (pendingDocumentAction === 'load') {
       void handleLoad()
     }
 
     setPendingDocumentAction(null)
-  }, [clearBoard, handleLoad, pendingDocumentAction])
+  }, [handleLoad, pendingDocumentAction, startNewBoard])
 
   const handleCancelDocumentAction = useCallback(() => {
     setPendingDocumentAction(null)

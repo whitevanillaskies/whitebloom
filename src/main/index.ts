@@ -53,6 +53,34 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.handle('board:save-as', async (_event, json: string, currentFilePath?: string) => {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Save board',
+      defaultPath: currentFilePath ?? 'board.wb.json',
+      filters: [{ name: 'Whitebloom board', extensions: ['wb.json'] }]
+    })
+    if (canceled || !filePath) return { ok: false }
+
+    try {
+      await writeFile(filePath, json, 'utf-8')
+      return { ok: true, filePath }
+    } catch {
+      return { ok: false }
+    }
+  })
+
+  ipcMain.handle('board:save-to-path', async (_event, filePath: string, json: string) => {
+    if (!filePath) return { ok: false }
+
+    try {
+      await writeFile(filePath, json, 'utf-8')
+      return { ok: true, filePath }
+    } catch {
+      return { ok: false }
+    }
+  })
+
+  // Backwards-compatible alias for save-as.
   ipcMain.handle('board:save', async (_event, json: string) => {
     const { filePath, canceled } = await dialog.showSaveDialog({
       title: 'Save board',
@@ -60,8 +88,13 @@ app.whenReady().then(() => {
       filters: [{ name: 'Whitebloom board', extensions: ['wb.json'] }]
     })
     if (canceled || !filePath) return { ok: false }
-    await writeFile(filePath, json, 'utf-8')
-    return { ok: true, filePath }
+
+    try {
+      await writeFile(filePath, json, 'utf-8')
+      return { ok: true, filePath }
+    } catch {
+      return { ok: false }
+    }
   })
 
   ipcMain.handle('board:load', async () => {
@@ -71,8 +104,14 @@ app.whenReady().then(() => {
       properties: ['openFile']
     })
     if (canceled || filePaths.length === 0) return { ok: false }
-    const json = await readFile(filePaths[0], 'utf-8')
-    return { ok: true, json }
+
+    try {
+      const filePath = filePaths[0]
+      const json = await readFile(filePath, 'utf-8')
+      return { ok: true, json, filePath }
+    } catch {
+      return { ok: false }
+    }
   })
 
   createWindow()
