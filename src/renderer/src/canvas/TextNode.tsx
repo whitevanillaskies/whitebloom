@@ -8,7 +8,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR } from 'lexical'
+import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR, type LexicalEditor } from 'lexical'
 import './TextNode.css'
 
 const SAFE_ZONE_FRACTION = 0.13
@@ -36,10 +36,15 @@ type TextEditorPluginsProps = {
   editing: boolean
   onCommit: () => void
   onCancel: () => void
+  onEditorReady: (editor: LexicalEditor) => void
 }
 
-function TextEditorPlugins({ editing, onCommit, onCancel }: TextEditorPluginsProps) {
+function TextEditorPlugins({ editing, onCommit, onCancel, onEditorReady }: TextEditorPluginsProps) {
   const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    onEditorReady(editor)
+  }, [editor, onEditorReady])
 
   useEffect(() => {
     if (!editing) return
@@ -115,6 +120,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
   const [resizePreviewWidth, setResizePreviewWidth] = useState<number | null>(null)
   const [resizing, setResizing] = useState(false)
   const draftContentRef = useRef(content)
+  const editorRef = useRef<LexicalEditor | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const sizeRef = useRef<{ w: number; h: number }>({ w: size?.w ?? 0, h: size?.h ?? 0 })
   const resizeSessionRef = useRef<ResizeSession | null>(null)
@@ -161,6 +167,22 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
       updateNodeText(id, { content: next, widthMode, wrapWidth })
     }
   }, [content, persistMeasuredSize, id, updateNodeText, widthMode, wrapWidth])
+
+  const focusEditor = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    window.requestAnimationFrame(() => {
+      editor.focus()
+    })
+  }, [])
+
+  const handleEditorBlur = useCallback(() => {
+    if (resizeSessionRef.current) {
+      focusEditor()
+      return
+    }
+    commitEdit()
+  }, [commitEdit, focusEditor])
 
   const syncNodeDimensions = useCallback(() => {
     const nodeEl = containerRef.current
@@ -348,6 +370,10 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
       setResizePreviewWidth(null)
       resizePreviewWidthRef.current = null
 
+      if (editing) {
+        focusEditor()
+      }
+
       if (!persist) return
 
       updateNodeText(id, {
@@ -362,7 +388,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
       updateNodeSize(id, finalWidth, measuredH)
       updateNodeInternals(id)
     },
-    [id, updateNodeInternals, updateNodePosition, updateNodeSize, updateNodeText]
+    [editing, focusEditor, id, updateNodeInternals, updateNodePosition, updateNodeSize, updateNodeText]
   )
 
   const onResizePointerUp = useCallback(() => {
@@ -372,13 +398,14 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
 
   const beginResize = useCallback(
     (edge: ResizeEdge) => (event: React.PointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0 || editing) return
+      if (event.button !== 0) return
 
       const nodeEl = containerRef.current
       if (!nodeEl) return
 
       event.preventDefault()
       event.stopPropagation()
+      event.currentTarget.setPointerCapture(event.pointerId)
 
       const startWidth = Math.max(MIN_WRAP_WIDTH, Math.round(nodeEl.offsetWidth))
       const startX = Number.isFinite(positionAbsoluteX) ? positionAbsoluteX : 0
@@ -402,7 +429,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
       window.addEventListener('pointermove', onResizePointerMove)
       window.addEventListener('pointerup', onResizePointerUp, { once: true })
     },
-    [editing, id, onResizePointerMove, onResizePointerUp, positionAbsoluteX, positionAbsoluteY, updateNodeInternals]
+    [id, onResizePointerMove, onResizePointerUp, positionAbsoluteX, positionAbsoluteY, updateNodeInternals]
   )
 
   useEffect(() => {
@@ -446,7 +473,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
                 contentEditable={
                   <ContentEditable
                     className="text-node__input"
-                    onBlur={commitEdit}
+                    onBlur={handleEditorBlur}
                     onPointerDown={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                   />
@@ -470,7 +497,14 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
                   }
                 }}
               />
-              <TextEditorPlugins editing={editing} onCommit={commitEdit} onCancel={cancelEdit} />
+              <TextEditorPlugins
+                editing={editing}
+                onCommit={commitEdit}
+                onCancel={cancelEdit}
+                onEditorReady={(editor) => {
+                  editorRef.current = editor
+                }}
+              />
             </div>
           </LexicalComposer>
         ) : (
@@ -493,7 +527,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
           </NodeToolbar>
         )}
 
-        {!editing && selected && !dragging && (
+        {selected && !dragging && (
           <>
             <div
               className="text-node__resize-zone text-node__resize-zone--left nodrag nopan"
