@@ -57,6 +57,13 @@ export function Canvas() {
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
 
+  const activeToolRef = useRef(activeTool)
+  useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
+
+  const spacebarModeRef = useRef<'idle' | 'pressing' | 'tap-held'>('idle')
+  const spacebarPreviousToolRef = useRef<Tool>('pointer')
+  const spacebarPressTimeRef = useRef(0)
+
   // Derive RF nodes from store
   const schemaNodes: RFNode[] = useMemo(
     () =>
@@ -146,6 +153,48 @@ export function Canvas() {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [deleteNodes, nodes, setActiveTool, setNodes])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== ' ') return
+      if (event.repeat) return
+      if (isEditableTarget(event.target)) return
+      event.preventDefault()
+
+      blurToolbarButtonIfFocused()
+
+      const mode = spacebarModeRef.current
+      if (mode === 'tap-held') {
+        setActiveTool(spacebarPreviousToolRef.current)
+        spacebarModeRef.current = 'idle'
+      } else if (mode === 'idle') {
+        spacebarPreviousToolRef.current = activeToolRef.current
+        spacebarPressTimeRef.current = Date.now()
+        spacebarModeRef.current = 'pressing'
+        setActiveTool('hand')
+      }
+    }
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== ' ') return
+      if (spacebarModeRef.current !== 'pressing') return
+
+      const held = Date.now() - spacebarPressTimeRef.current
+      if (held >= 200) {
+        setActiveTool(spacebarPreviousToolRef.current)
+        spacebarModeRef.current = 'idle'
+      } else {
+        spacebarModeRef.current = 'tap-held'
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [])
 
   const handleSave = useCallback(async () => {
     const board: Board = { version, nodes: boardNodes, edges: boardEdges }
