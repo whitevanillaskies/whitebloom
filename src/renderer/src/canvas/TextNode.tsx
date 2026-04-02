@@ -6,28 +6,36 @@ import './TextNode.css'
 type TextNodeData = { content: string }
 
 // ── Inline-editable text ─────────────────────────────────────────
-function EditableText({ value, onCommit }: { value: string; onCommit: (v: string) => void }) {
-  const [editing, setEditing] = useState(false)
+function EditableText({
+  value,
+  editing,
+  onEditingChange,
+  onCommit
+}: {
+  value: string
+  editing: boolean
+  onEditingChange: (editing: boolean) => void
+  onCommit: (v: string) => void
+}) {
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (editing) {
       inputRef.current?.focus()
-      inputRef.current?.select()
     }
   }, [editing])
 
   const confirm = useCallback(() => {
-    setEditing(false)
+    onEditingChange(false)
     const trimmed = draft.trim()
     if (trimmed && trimmed !== value) onCommit(trimmed)
-  }, [draft, value, onCommit])
+  }, [draft, value, onCommit, onEditingChange])
 
   const cancel = useCallback(() => {
-    setEditing(false)
+    onEditingChange(false)
     setDraft(value)
-  }, [value])
+  }, [value, onEditingChange])
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -42,17 +50,25 @@ function EditableText({ value, onCommit }: { value: string; onCommit: (v: string
     return (
       <input
         ref={inputRef}
-        className="text-node__input"
+        className="text-node__input nodrag nopan nowheel"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={confirm}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       />
     )
   }
 
   return (
-    <span className="text-node__content" onDoubleClick={() => { setDraft(value); setEditing(true) }}>
+    <span
+      className="text-node__content"
+      onDoubleClick={() => {
+        setDraft(value)
+        onEditingChange(true)
+      }}
+    >
       {value || ''}
     </span>
   )
@@ -62,6 +78,7 @@ function EditableText({ value, onCommit }: { value: string; onCommit: (v: string
 export function TextNode({ id, data, selected, dragging }: NodeProps) {
   const { content } = data as TextNodeData
   const updateNodeContent = useBoardStore((s) => s.updateNodeContent)
+  const [editing, setEditing] = useState(false)
 
   return (
     <>
@@ -71,8 +88,13 @@ export function TextNode({ id, data, selected, dragging }: NodeProps) {
         </div>
       </NodeToolbar>
 
-      <div className={`text-node${selected ? ' text-node--selected' : ''}`}>
-        <EditableText value={content} onCommit={(v) => updateNodeContent(id, v)} />
+      <div className={`text-node${selected ? ' text-node--selected' : ''}${editing ? ' nodrag nopan' : ''}`}>
+        <EditableText
+          value={content}
+          editing={editing}
+          onEditingChange={setEditing}
+          onCommit={(v) => updateNodeContent(id, v)}
+        />
         <Handle type="target" position={Position.Top} />
         <Handle type="target" position={Position.Left} />
         <Handle type="source" position={Position.Bottom} />
