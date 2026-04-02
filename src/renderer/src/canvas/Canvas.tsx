@@ -24,12 +24,22 @@ const cursorForTool: Record<Tool, string> = {
   text: 'crosshair'
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return target.isContentEditable || target.closest('input, textarea, [contenteditable="true"]') !== null
+}
+
+function isPaneTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && target.closest('.react-flow__pane') !== null
+}
+
 export function Canvas() {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const addNode = useBoardStore((s) => s.addNode)
+  const deleteNodes = useBoardStore((s) => s.deleteNodes)
   const loadBoard = useBoardStore((s) => s.loadBoard)
 
   const { screenToFlowPosition } = useReactFlow()
@@ -37,6 +47,7 @@ export function Canvas() {
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const autoEditSequenceRef = useRef(0)
+  const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
 
   // Derive RF nodes from store
   const schemaNodes: RFNode[] = useMemo(
@@ -100,6 +111,25 @@ export function Canvas() {
     [activeTool, screenToFlowPosition, addNode]
   )
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isDeleteKey = event.key === 'Delete' || event.key === 'Backspace'
+      if (!isDeleteKey) return
+      if (isEditableTarget(event.target)) return
+
+      const selectedIds = nodes.filter((node) => node.selected).map((node) => node.id)
+      if (selectedIds.length === 0) return
+
+      event.preventDefault()
+      deleteNodes(selectedIds)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [deleteNodes, nodes])
+
   const handleSave = useCallback(async () => {
     const board: Board = { version, nodes: boardNodes, edges: boardEdges }
     await window.api.saveBoard(JSON.stringify(board, null, 2))
@@ -116,14 +146,82 @@ export function Canvas() {
     }
   }, [loadBoard])
 
+  const panOnDragButtons = useMemo(() => {
+    if (activeTool === 'hand') return [0, 1, 2]
+    if (activeTool === 'pointer') return [1, 2]
+    return false
+  }, [activeTool])
+
+  const onMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (activeTool !== 'pointer') return
+      if (!isPaneTarget(event.target)) return
+      if (event.button !== 2) return
+
+      rightPointerStateRef.current = {
+        startX: event.clientX,
+        startY: event.clientY,
+        dragged: false
+      }
+    },
+    [activeTool]
+  )
+
+  const onMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (activeTool !== 'pointer') return
+      if (!isPaneTarget(event.target)) return
+
+      const state = rightPointerStateRef.current
+      if (!state) return
+
+      const movedFarEnough = Math.hypot(event.clientX - state.startX, event.clientY - state.startY) > 4
+      if (movedFarEnough && !state.dragged) {
+        rightPointerStateRef.current = { ...state, dragged: true }
+      }
+    },
+    [activeTool]
+  )
+
+  const onMouseUp = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (activeTool !== 'pointer') return
+      if (!isPaneTarget(event.target)) return
+      if (event.button !== 2) return
+
+      const state = rightPointerStateRef.current
+      if (!state) return
+
+      if (!state.dragged) {
+        // Reserved for a future custom context-menu trigger.
+      }
+
+      rightPointerStateRef.current = null
+    },
+    [activeTool]
+  )
+
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      if (activeTool !== 'pointer') return
+      event.preventDefault()
+    },
+    [activeTool]
+  )
+
   return (
     <ReactFlow
       nodes={nodes}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       onPaneClick={onPaneClick}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onPaneContextMenu={onPaneContextMenu}
       nodesDraggable={activeTool === 'pointer'}
-      panOnDrag={activeTool !== 'text'}
+      selectionOnDrag={activeTool === 'pointer'}
+      panOnDrag={panOnDragButtons}
       style={{ cursor: cursorForTool[activeTool] }}
       fitView
       proOptions={{ hideAttribution: true }}

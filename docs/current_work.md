@@ -1,24 +1,43 @@
 # Current Work
 
-Quality of life features for text editing, bug fixes, etc.
+Canvas-level floating selection toolbar, replacing per-node NodeToolbar instances.
 
-## Work Unit 1 - Add Text Jump To Editing
+## Phase 1 - Extract SelectionToolbar component
 
-When creating a new text node, jump straight into editing. Remove the default text. 
+Create `src/renderer/src/canvas/SelectionToolbar.tsx` as a standalone component.
+Move the placeholder toolbar content (currently duplicated in two places in `TextNode.tsx`) into it.
+The component receives `selectedNodes: RFNode[]` as its only prop for now.
+No positioning logic yet — just the component shell and content.
 
-## Work Unit 2 - Delete empty nodes
+## Phase 2 - Remove NodeToolbar from TextNode
 
-As an extension of WU1 and general housecleaning, whenever a text node is committed, check if it's empty. If it's empty, delete the node.
+Strip both `NodeToolbar` blocks from `TextNode.tsx`:
+- The one inside the editing branch (line 554)
+- The one in the non-editing selected branch (line 613)
 
-## Work Unit 3 - Deleting nodes
+Clean up any imports that are no longer needed (`NodeToolbar`, `Position` if unused).
 
-Support deletion of selected nodes, and their relationships eventually (we don't have relationships/edges yet)
+## Phase 3 - Bounding box positioning logic
 
-## Work Unit 4 - Pointer tool in CanvasToolbar
+Add a hook or utility `useSelectionBoundingBox(selectedNodes)` that:
+- Takes the selected nodes' `position` and `data.size` fields
+- Returns the flow-space bounding box (minX, minY, maxX, maxY)
+- Returns `null` when nothing is selected
 
-onToolChange('pointer') -> the behavior should be that dragging the left mouse button on the canvas creates a selection rectangle. Right now it's panning as if the hand tool was active. onToolChange('hand') is fine (pans even when dragging on top of nodes, which is what we want)
+Keep this pure/testable — no DOM or RF calls inside it.
 
-This selection set should also work with WU3 (deleting the whole set)
+## Phase 4 - Wire SelectionToolbar into Canvas
 
-When the pointer tool is selected, I believe both MMB and RMB should pan the canvas, however RMB should detect click vs drag, so that in the future we can add a context menu. 
+In `Canvas.tsx`:
+- Derive `selectedNodes` from the local `nodes` state
+- Render `<SelectionToolbar>` as a fixed-position overlay (not inside ReactFlow's node tree)
+- Use `useReactFlow().flowToScreenPosition` to convert the bounding box top-center to screen coordinates
+- Position the toolbar div via inline `style` (top/left with `transform: translateX(-50%)` for centering)
+- Hide when `selectedNodes` is empty or while dragging
 
+## Phase 5 - Polish and edge cases
+
+- Toolbar should not flicker when selection changes (verify no layout jumps)
+- Dragging nodes: toolbar should either hide or track smoothly — decide and implement
+- Verify toolbar does not intercept pointer events on the canvas (use `pointerEvents: 'none'` on wrapper, `'auto'` on the toolbar itself)
+- Verify single-select still looks correct (toolbar above single node)
