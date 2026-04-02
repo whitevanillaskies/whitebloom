@@ -73,6 +73,8 @@ plain-text-only configuration.
 
 #### Work Unit 1 - Data model and store contract
 
+STATUS: DONE.
+
 Define and persist text layout fields and content format in board state.
 
 - Change content storage from `string` to Lexical EditorState JSON.
