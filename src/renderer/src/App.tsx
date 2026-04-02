@@ -1,34 +1,36 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import { useEffect } from 'react'
+import { Canvas } from './canvas/Canvas'
+import { useBoardStore } from './stores/board'
 
 function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+  const addNode = useBoardStore((s) => s.addNode)
+  const nodes = useBoardStore((s) => s.nodes)
+
+  // Seed a couple of text nodes so the canvas isn't empty
+  useEffect(() => {
+    if (nodes.length > 0) return
+    addNode({
+      id: 'node-1',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 100, y: 100 },
+      size: { w: 200, h: 80 },
+      content: 'Hello Whitebloom'
+    })
+    addNode({
+      id: 'node-2',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 400, y: 250 },
+      size: { w: 200, h: 80 },
+      content: 'Drag me around'
+    })
+  }, [])
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <Canvas />
+    </div>
   )
 }
 

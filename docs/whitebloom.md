@@ -10,6 +10,27 @@ This process of showing a modal window from a node would be called blooming, as 
 Thus it's a whiteboard that blooms. Not everything has to bloom. A plain text node on the whiteboard is just a plain text node, like it's on Miro.
 
 
+## Philosophy: an OS for knowledge
+
+Whitebloom follows the Unix philosophy applied to knowledge work. The board is a filesystem. Each module is a small program that does one thing well to one asset type. Text is the universal primitive — the thing that makes assets diffable, portable, and readable by both humans and LLM agents.
+
+The core principles:
+
+- **Everything is a file.** Every asset on the board is a file on disk. No databases, no binary blobs, no opaque stores.
+- **One tool, one job.** A module handles exactly one asset type. Users compose their environment by choosing which modules handle which types, rather than depending on monolithic bundles.
+- **Text as the universal interface.** Assets are text files wherever possible. This is what makes Whitebloom meaningfully different from tools like Notion or Obsidian, which are databases dressed up as files.
+- **Symbiosis between human and machine.** Modules present two faces — one toward the human (the editor), one toward the agent (the shell). Both are native citizens operating on shared ground. Whitebloom is not a tool for humans that tolerates agents, or an agentic system with a human UI bolted on. It is an environment where both work as peers.
+- **Unknown is not broken.** If no editor is registered for an asset type, the node renders as a generic placeholder. If no shell is registered, agents skip the asset. Unknown types do not cause errors or corruption — they are simply unhandled. The board always remains valid.
+
+### Spec-native vs extern modules
+
+**Spec-native** modules treat the asset file as the source of truth. The file is a text file on disk — a `.md`, `.json`, or similar. These modules get the full guarantees: diffability, agent traversability, offline-first operation, no external dependencies.
+
+**Extern** modules treat the asset file as a pointer or stub — the real data lives elsewhere (a database, an API, a remote service). Extern modules opt out of the core guarantees explicitly. The `resource` field in the board schema still points to whatever the module needs — a file path, a connection string, a URI. The schema does not annotate the distinction; the module knows what its `resource` means, just as a Unix file path can point to a regular file, a socket, or a device without the directory entry saying which.
+
+Both are valid. The distinction lives in documentation and tooling, not in the schema.
+
+
 ## LLM friendly CoreData
 
 The CoreData is the foundation of Whitebloom. Everything else — editors, renderers, plugins — is replaceable. The data is not.
@@ -135,26 +156,38 @@ The board is a flat manifest. Leaves are inline. Buds are one hop away. No recur
 Agents can read freely. For writes, a lock mechanism prevents conflicts with the UI: the agent acquires a lock (e.g. `board.lock`), the UI enters read-only mode, the agent makes its changes and releases the lock. Stale locks expire after a timeout. This handles the cooperative case. The adversarial case (a rogue agent ignoring the lock) is mitigated the same way as any destructive human action: git.
 
 
-## Modular approach
+## Symbiotic modules
 
-Whitebloom is extended through **modules**. A module teaches the app how to handle one type of bud — how to create it, what icon to show on the board, and what editor to render when it blooms.
+Whitebloom is extended through **symbiotic modules**. A symbiotic module presents two independent interfaces for the same asset type — one for humans, one for agents — designed to work in concert. The name reflects the core design principle: human and machine working as one through a shared interface.
 
 ### Design
 
 The system follows the Maya/Blender model: on startup, a loader harvests all modules it can find (local project modules, user-installed modules, or modules discovered via a configurable path). Each module is instantiated, validated, and registered. Conflicts (two modules claiming the same type) are logged as warnings and resolved first-come-first-served. Future versions can surface conflicts to the user and let them choose.
 
-### Module contract (v1)
+**One module, one type.** A module handles exactly one bud type. This is a deliberate constraint. If a module bundled multiple types (e.g. markdown + code), a user who likes its markdown editor but prefers a different code editor is stuck. One-to-one mapping means users can swap any single type without friction.
 
-A module is a plain object. No base class, no framework coupling.
+### The symbiotic split
+
+A module has two independently resolvable halves:
+
+- **Editor** (`WhitebloomEditor<T>`) — the human interface. A UI component rendered inside the bloom modal when a user double-clicks a bud. Framework-specific (React, Svelte, etc.).
+- **Shell** (`WhitebloomShell`) — the agentic interface. Lenses, skills, and agent notes that tell an LLM how to perceive and operate on the asset. Pure data and logic — no framework dependency.
+
+Users can mix and match across developers for the same asset type. A project config might say: markdown assets use the editor from developer A, the shell from developer B, plus two community lenses and a custom skill the team wrote. All of that resolves independently.
+
+This separation means shell authors don't need to write UI, editor authors don't need to think about agents, and domain experts (a security researcher, a fintech analyst) can publish lenses and skills without touching either.
+
+### Editor contract (v1)
+
+The human-facing half. A plain object, no base class.
 
 ```ts
-type WhitebloomModule<T = unknown> = {
-  id: string              // Unique identifier, e.g. "com.whitebloom.markdown"
+type WhitebloomEditor<T = unknown> = {
+  id: string              // Unique identifier, e.g. "com.whitebloom.markdown.editor"
   name: string            // Human-readable name, e.g. "Markdown"
-  type: string            // The bud type this module handles, e.g. "markdown"
+  type: string            // The bud type this editor handles, e.g. "markdown"
   icon: string            // Icon identifier (name, path, or emoji for v1)
   fileExtension: string   // e.g. ".md", ".json"
-  // Optionally, a user-facing description in markdown or whatever (for v2, if we add a module settings window)
 
   createDefault(): T
   // Returns the default data written to disk when a new bud of this type
@@ -174,13 +207,107 @@ type BudEditorProps<T = unknown> = {
 }
 ```
 
-That's the entire surface area for v1. No lifecycle hooks, no service registry, no commands API.
+### Shell contract
 
-**One module, one type.** A module handles exactly one bud type. This is a deliberate constraint. If a module bundled multiple types (e.g. markdown + code), a user who likes its markdown editor but prefers a different code editor is stuck. One-to-one mapping means users can swap any single type without friction.
+The agentic half. A shell is a directory of files — no code required, no framework dependency. Shells are portable across domain bindings: a shell written for the web app works identically in a Rust app because there is nothing to port.
+
+```
+modules/markdown/
+  agents/
+    module_agents.md        # What this asset is, how agents should approach it
+    lenses/
+      default.lens.json     # General-purpose interpretive frame
+      outline.lens.json     # Reads the document as an argument structure
+    skills/
+      summarize.ts          # Generates a summary of the document
+      restructure.ts        # Reorganizes sections based on instructions
+```
+
+- `module_agents.md` — a plain markdown file describing the asset type, its conventions, and how an agent should interact with it. This is the agent's entry point for understanding the module.
+- `lenses/` — interpretive frames (see Lenses below).
+- `skills/` — operational tools (see Skills below).
+
+All three are optional. A module can ship just an editor, just a shell, or both.
+
+### Lenses
+
+A lens is an interpretive frame that shapes how an agent perceives an asset. It is not about readability — spec-native assets are already readable text. A lens is about *perspective*. It tells the agent what to look for, what vocabulary to use, what counts as good or bad.
+
+A database schema is readable as raw JSON. But a **data access lens** and a **data modeling lens** ask completely different questions of the same file — just as a DBA and a domain architect look at the same schema from different angles. Lenses let module authors (or users, or agents themselves) encode that expertise as named, invocable perspectives.
+
+#### Lens format
+
+```json
+{
+  "metadata": {
+    "name": "Data modeling lens",
+    "source": "internal",
+    "description": "Evaluates whether tables map cleanly to domain concepts"
+  },
+  "notes": "Look at the tables as domain concepts first. Does each table represent a real entity in the problem domain? Are there tables that exist only for implementation convenience? Is this standard practice for this domain? Focus on whether the schema makes sense for the problem it's trying to solve, not on query performance.",
+  "view": ""
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `metadata.name` | Human-readable name for the lens |
+| `metadata.source` | `"internal"` or `"extern"`. Internal means the agent should read the raw asset file directly — `view` may be empty. Extern means the raw asset is opaque (a URI, a connection string) — the agent should rely on `view` for data. |
+| `metadata.description` | What this lens is for, used by agents to decide which lens to apply |
+| `notes` | Instructions for the agent — the interpretive frame itself. Written in natural language. |
+| `view` | A text rendering of the asset data through this lens. Empty for internal modules (avoids duplication). For extern modules, this is the agent's only window into the data. |
+
+#### Key properties
+
+- **A lens is allowed to be lossy and partial.** Its job is to frame, not to faithfully reproduce.
+- **Lenses are just JSON files.** The barrier to authorship is zero. A user can open a lens file, rewrite the notes, and the agent reads the new perspective next time. An agent can rewrite a lens on request.
+- **Lenses compose with skills.** The natural workflow is: apply a lens to orient, then invoke a skill to act on what you found.
+- **Lenses are shareable across domain bindings.** They have no framework dependency.
+
+#### Example: user-authored lens
+
+A user on a fintech team writes a custom lens for their database schema module:
+
+```json
+{
+  "metadata": {
+    "name": "Multi-tenancy security audit",
+    "source": "internal",
+    "description": "Evaluates schema for tenant data isolation and access control"
+  },
+  "notes": "Focus on multi-tenancy security over speed of writes and reads. Look for: tables without tenant_id columns, foreign keys that cross tenant boundaries, missing row-level security policies, indexes that could leak tenant data through timing attacks. Money is involved — err on the side of flagging false positives.",
+  "view": ""
+}
+```
+
+No code. No API. No developer account. The agent reads it next time it opens that asset.
+
+### Skills
+
+A skill is an operational tool that an agent can invoke to act on an asset. Where lenses orient, skills operate.
+
+Skills are written by the module author in a way that they can be invoked by LLMs. By convention, a skill should only interact with the asset type its module handles. A skill that reaches into other asset types is operating outside the spec — the board has no way to detect or prevent this, and the consequences belong to the module.
+
+Skills are optional and additive. A module with no skills is still fully functional — the agent just can't perform surgical operations on the asset beyond raw file editing.
+
+### Resolution flow
+
+```
+user double-clicks bud (type: "markdown")
+  → editorRegistry.get("markdown")
+  → editor found → render editor.Editor in bloom modal
+  → editor not found → show "no editor installed for this type"
+
+agent encounters bud (type: "markdown")
+  → shellRegistry.get("markdown")
+  → shell found → read module_agents.md, list available lenses and skills
+  → shell not found, asset is internal → agent reads the raw file directly
+  → shell not found, asset is extern → agent skips the asset
+```
 
 ### What a module does NOT do in v1
 
-- **No custom thumbnails.** Buds render as a generic card with the module's icon and the node's label. A future `Thumbnail` component can be added to the contract without breaking existing modules.
+- **No custom thumbnails.** Buds render as a generic card with the module's icon and the node's label. A future `Thumbnail` component can be added to the editor contract without breaking existing modules.
 - **No commands or menus.** Modules cannot register keyboard shortcuts, toolbar buttons, or context menu items yet. The contract is designed to allow this in v2 via an optional `activate(api)` hook — similar to how Maya and Blender plugins start with a registration function and grow into richer API consumers.
 - **No inter-module communication.** Modules are isolated. They don't know about each other.
 
@@ -189,12 +316,14 @@ That's the entire surface area for v1. No lifecycle hooks, no service registry, 
 On startup, the loader:
 
 1. Scans known locations for modules (built-in modules ship with the app, user modules live in a configurable directory).
-2. Imports each module's entry point (e.g. `index.ts` exporting a `WhitebloomModule`).
-3. Validates the contract (all required fields present, `Editor` is a component, etc.).
-4. Registers the module in a `Map<string, WhitebloomModule>` keyed by `type`.
-5. If a type is already registered, the new module is skipped and a warning is logged.
+2. Imports each module's entry point (e.g. `index.ts` exporting a `WhitebloomEditor`).
+3. Scans for shell directories alongside editors (`agents/` directory).
+4. Validates the contracts (all required fields present, `Editor` is a component, etc.).
+5. Registers editors in a `Map<string, WhitebloomEditor>` keyed by `type`.
+6. Registers shells in a `Map<string, WhitebloomShell>` keyed by `type`.
+7. If a type is already registered, the new module is skipped and a warning is logged.
 
-The discovery path can be extended later (environment variable, manifest file, or a package manager) without changing the module contract.
+The discovery path can be extended later (environment variable, manifest file, or a package manager) without changing the module contracts.
 
 ### Example module
 
@@ -203,8 +332,8 @@ The discovery path can be extended later (environment variable, manifest file, o
 
 import { MarkdownEditor } from "./editor"
 
-export const module: WhitebloomModule = {
-  id: "com.whitebloom.markdown",
+export const editor: WhitebloomEditor<string> = {
+  id: "com.whitebloom.markdown.editor",
   name: "Markdown",
   type: "markdown",
   icon: "file-text",
@@ -221,7 +350,7 @@ export const module: WhitebloomModule = {
 ```tsx
 // modules/markdown/editor.tsx
 
-export function MarkdownEditor({ read, save }: BudEditorProps) {
+export function MarkdownEditor({ read, save }: BudEditorProps<string>) {
   const [text, setText] = useState("")
 
   useEffect(() => { read().then(setText) }, [])
@@ -235,16 +364,55 @@ export function MarkdownEditor({ read, save }: BudEditorProps) {
 }
 ```
 
+```
+// modules/markdown/agents/module_agents.md
+
+# Markdown module
+
+This module handles markdown documents (.md files). Assets are plain
+UTF-8 markdown files stored in blossoms/.
+
+## Reading
+The asset file is the source of truth. Read it directly.
+
+## Editing
+Edit the file as standard markdown. Preserve existing heading structure
+unless explicitly asked to reorganize.
+
+## Available lenses
+- default: General-purpose reading frame
+- outline: Treats the document as an argument map — focus on thesis,
+  evidence, and logical structure rather than prose quality
+```
+
 A real v1 would use CodeMirror or Tiptap inside that editor. The point is: the contract doesn't care. The module owns everything inside the bloom modal.
 
-### Resolution flow
+### Project config
 
+A `whitebloom.config.json` file at the project root controls which editors and shells handle which asset types. This is where users express their preferences for mixing and matching.
+
+```json
+{
+  "types": {
+    "markdown": {
+      "editor": "com.whitebloom.markdown.editor",
+      "shell": "com.community.markdown.shell"
+    },
+    "db-schema": {
+      "editor": "com.whitebloom.db-schema.editor",
+      "shell": "com.whitebloom.db-schema.shell",
+      "lenses": [
+        "community/security-audit.lens.json",
+        "community/normalization.lens.json"
+      ]
+    }
+  }
+}
 ```
-user double-clicks bud (type: "markdown")
-  → registry.get("markdown")
-  → module found → render module.Editor in bloom modal
-  → module not found → show "no module installed for this type"
-```
+
+The `lenses` array allows users to layer additional community or custom lenses on top of whatever the shell ships. These are resolved as paths relative to a configurable lens directory.
+
+When no config file exists, the app falls back to default resolution: the first registered editor and first registered shell for each type.
 
 ### Shared UI kit (`@whitebloom/ui`)
 
@@ -353,22 +521,33 @@ src/
       adapter.ts          # Domain model ↔ React Flow format
       nodes/              # Custom React Flow node components (BudNode, LeafNode, ImageNode)
     bloom/
-      BloomModal.tsx      # Modal shell — looks up module, renders Editor
+      BloomModal.tsx      # Modal shell — looks up editor, renders Editor component
     ui/                   # @whitebloom/ui — shared components + CSS variables
       variables.css
       Panel.tsx
       Button.tsx
       Tabs.tsx
       ...
-  modules/                # Built-in modules
+  modules/                # Built-in symbiotic modules
     markdown/
-      index.ts            # Exports WhitebloomModule<string>
-      editor.tsx           # Markdown editor component
+      index.ts            # Exports WhitebloomEditor<string>
+      editor.tsx          # Markdown editor component
+      agents/             # Shell — agentic interface
+        module_agents.md  # Agent-facing description
+        lenses/           # Interpretive frames
+          default.lens.json
+        skills/           # Operational tools
     db-schema/
       index.ts
       editor.tsx
+      agents/
+        module_agents.md
+        lenses/
+          modeling.lens.json
+          access.lens.json
+        skills/
   shared/
-    types.ts              # Board schema, WhitebloomModule<T>, BudEditorProps<T>
+    types.ts              # Board schema, WhitebloomEditor<T>, BudEditorProps<T>
     constants.ts          # File extensions, default sizes, etc.
 ```
 
@@ -418,9 +597,10 @@ This is a canvas-level concern — modules and bloom editors don't know about mu
 
 ### Future (v2+)
 
-- **Thumbnail providers.** Modules can register a `Thumbnail` component for richer board-level previews.
-- **Commands API.** An optional `activate(api)` hook where modules can register commands, shortcuts, and menu items — like Maya's `cmds` or Blender's `bpy.ops`.
+- **Thumbnail providers.** Editors can register a `Thumbnail` component for richer board-level previews.
+- **Commands API.** An optional `activate(api)` hook where editors can register commands, shortcuts, and menu items — like Maya's `cmds` or Blender's `bpy.ops`.
 - **Conflict resolution UI.** When two modules claim the same type, the user picks which one to use.
-- **Module marketplace.** Discovery from a remote registry.
-- **Leaf modules.** Same pattern, for custom leaf types.
+- **Module marketplace.** Discovery from a remote registry. Editors, shells, lenses, and skills are all independently publishable.
+- **Leaf modules.** Same symbiotic pattern, for custom leaf types.
+- **Shell SDK.** Tooling for shell authors — lens validation, skill testing, `module_agents.md` linting.
 
