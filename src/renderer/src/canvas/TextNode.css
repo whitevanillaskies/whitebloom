@@ -125,31 +125,53 @@
 
 /* ── Rich text block types ─────────────────────────────────────── */
 
+/* Collapse first/last block margins so they don't push against the node's padding */
+.text-node__input > *:first-child,
+.text-node__contentEditable > *:first-child {
+  margin-top: 0;
+}
+
+.text-node__input > *:last-child,
+.text-node__contentEditable > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Paragraph — reset browser default 1em margin */
+.text-node .tn-p {
+  margin: 0.1em 0;
+  padding: 0;
+}
+
+/* Headings — full UA reset then our sizing */
 .text-node .tn-h1 {
   font-size: 1.75em;
   font-weight: 700;
   line-height: 1.2;
-  margin: 0.15em 0;
+  margin: 0.35em 0 0.1em;
+  padding: 0;
 }
 
 .text-node .tn-h2 {
   font-size: 1.35em;
   font-weight: 600;
   line-height: 1.25;
-  margin: 0.15em 0;
+  margin: 0.3em 0 0.1em;
+  padding: 0;
 }
 
 .text-node .tn-h3 {
   font-size: 1.1em;
   font-weight: 600;
   line-height: 1.3;
-  margin: 0.15em 0;
+  margin: 0.25em 0 0.1em;
+  padding: 0;
 }
 
+/* Lists */
 .text-node .tn-ul,
 .text-node .tn-ol {
-  margin: 0.25em 0;
-  padding-left: 1.4em;
+  margin: 0.2em 0;
+  padding-left: 1.5em;
 }
 
 .text-node .tn-ul {
@@ -161,18 +183,31 @@
 }
 
 .text-node .tn-li {
+  display: list-item;
   margin: 0.1em 0;
+  padding: 0;
 }
 
 .text-node .tn-li-nested {
   list-style-type: circle;
 }
 
+/* Quote — reset blockquote UA defaults (margin: 1em 40px) then apply ours */
 .text-node .tn-quote {
+  margin: 0.3em 0;
+  padding: 0.1em 0 0.1em 0.75em;
+  border: none;
   border-left: 3px solid var(--color-secondary-fg);
-  margin: 0.25em 0;
-  padding-left: 0.75em;
   color: var(--color-secondary-fg);
+  font-style: italic;
+}
+
+/* Inline text formatting */
+.text-node .tn-bold {
+  font-weight: 700;
+}
+
+.text-node .tn-italic {
   font-style: italic;
 }
 

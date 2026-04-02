@@ -16,11 +16,13 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MoveHorizontal } from 'lucide-react'
 import { FormatToolbar } from './FormatToolbar'
+import { SlashCommandPlugin } from './SlashCommandPlugin'
 import './TextNode.css'
 
 const RICH_TEXT_NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode]
 
 const RICH_TEXT_THEME = {
+  paragraph: 'tn-p',
   heading: {
     h1: 'tn-h1',
     h2: 'tn-h2',
@@ -33,6 +35,10 @@ const RICH_TEXT_THEME = {
     nested: { listitem: 'tn-li-nested' },
   },
   quote: 'tn-quote',
+  text: {
+    bold: 'tn-bold',
+    italic: 'tn-italic',
+  },
 }
 
 const SAFE_ZONE_FRACTION = 0.13
@@ -612,6 +618,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
               />
               <ListPlugin />
               <HistoryPlugin />
+              <SlashCommandPlugin />
             </div>
           </LexicalComposer>
         ) : (
