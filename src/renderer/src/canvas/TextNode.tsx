@@ -18,18 +18,7 @@ type TextNodeData = {
   content: string // Lexical EditorState JSON
   widthMode: WidthMode
   wrapWidth: number | null
-}
-
-/** Extract plain text from Lexical EditorState JSON for temporary display until WU4. */
-function extractPlainText(lexicalJson: string): string {
-  try {
-    const state = JSON.parse(lexicalJson)
-    return (state.root.children as any[])
-      .flatMap((p) => (p.children as any[]).map((n) => n.text ?? ''))
-      .join('\n')
-  } catch {
-    return lexicalJson
-  }
+  size?: { w: number; h: number }
 }
 
 type TextEditorPluginsProps = {
@@ -101,7 +90,7 @@ function TextNodeToolbarContent() {
 
 // ── Text node ────────────────────────────────────────────────────
 export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: NodeProps) {
-  const { content, widthMode, wrapWidth } = data as TextNodeData
+  const { content, widthMode, wrapWidth, size } = data as TextNodeData
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
   const { getViewport, setViewport } = useReactFlow()
@@ -113,9 +102,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
   const [editingWidth, setEditingWidth] = useState<number | null>(null)
   const draftContentRef = useRef(content)
   const containerRef = useRef<HTMLDivElement>(null)
-  const lastPersistedSizeRef = useRef<{ w: number; h: number } | null>(null)
-
-  const plainText = extractPlainText(content)
+  const sizeRef = useRef<{ w: number; h: number }>({ w: size?.w ?? 0, h: size?.h ?? 0 })
 
   useEffect(() => {
     if (!editing) {
@@ -124,36 +111,47 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
     }
   }, [content, editing])
 
+  useEffect(() => {
+    if (!size) return
+    sizeRef.current = { w: size.w, h: size.h }
+  }, [size])
+
   const cancelEdit = useCallback(() => {
     setDraftContent(content)
     draftContentRef.current = content
     setEditing(false)
+    setEditingWidth(null)
   }, [content])
 
+  const persistMeasuredSize = useCallback(() => {
+    const nodeEl = containerRef.current
+    if (!nodeEl) return
+
+    const measuredW = Math.round(nodeEl.offsetWidth)
+    const measuredH = Math.round(nodeEl.offsetHeight)
+    const previous = sizeRef.current
+    if (previous.w === measuredW && previous.h === measuredH) return
+
+    sizeRef.current = { w: measuredW, h: measuredH }
+    updateNodeSize(id, measuredW, measuredH)
+  }, [id, updateNodeSize])
+
   const commitEdit = useCallback(() => {
+    persistMeasuredSize()
     setEditing(false)
     setEditingWidth(null)
     const next = draftContentRef.current
     if (next !== content) {
       updateNodeText(id, { content: next, widthMode, wrapWidth })
     }
-  }, [content, id, updateNodeText, widthMode, wrapWidth])
+  }, [content, persistMeasuredSize, id, updateNodeText, widthMode, wrapWidth])
 
   const syncNodeDimensions = useCallback(() => {
     const nodeEl = containerRef.current
     if (!nodeEl) return
     nodeEl.style.height = 'auto'
-    const measuredW = Math.round(nodeEl.offsetWidth)
-    const measuredH = Math.round(nodeEl.offsetHeight)
-
-    const previous = lastPersistedSizeRef.current
-    if (!previous || previous.w !== measuredW || previous.h !== measuredH) {
-      updateNodeSize(id, measuredW, measuredH)
-      lastPersistedSizeRef.current = { w: measuredW, h: measuredH }
-    }
-
     updateNodeInternals(id)
-  }, [id, updateNodeInternals, updateNodeSize])
+  }, [id, updateNodeInternals])
 
   const measureAutoWidth = useCallback(() => {
     const nodeEl = containerRef.current
@@ -250,7 +248,17 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
   }, [content, editing, syncNodeDimensions])
 
   const nodeStyle = useMemo(() => {
-    if (!editing) return undefined
+    if (!editing) {
+      if (widthMode === 'fixed') {
+        return { width: `${Math.max(1, wrapWidth ?? MIN_AUTO_WIDTH)}px`, height: 'auto' as const }
+      }
+
+      if (size?.w) {
+        return { width: `${Math.max(1, size.w)}px`, height: 'auto' as const }
+      }
+
+      return undefined
+    }
 
     if (widthMode === 'fixed') {
       return { width: `${Math.max(1, wrapWidth ?? MIN_AUTO_WIDTH)}px`, height: 'auto' as const }
@@ -261,7 +269,20 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
     }
 
     return { width: `${editingWidth}px`, maxWidth: `${maxAutoWidth}px`, height: 'auto' as const }
-  }, [editing, editingWidth, maxAutoWidth, widthMode, wrapWidth])
+  }, [editing, editingWidth, maxAutoWidth, size?.w, widthMode, wrapWidth])
+
+  const displayConfig = useMemo(
+    () => ({
+      namespace: `text-node-readonly-${id}`,
+      editable: false,
+      theme: {},
+      editorState: content,
+      onError: (error: Error) => {
+        throw error
+      }
+    }),
+    [content, id]
+  )
 
   return (
     <>
@@ -311,12 +332,15 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
             </div>
           </LexicalComposer>
         ) : (
-          <span
-            className="text-node__content"
-            onDoubleClick={openEditing}
-          >
-            {plainText || ''}
-          </span>
+          <div className="text-node__content" onDoubleClick={openEditing}>
+            <LexicalComposer key={content} initialConfig={displayConfig}>
+              <RichTextPlugin
+                contentEditable={<ContentEditable className="text-node__contentEditable" />}
+                placeholder={null}
+                ErrorBoundary={LexicalErrorBoundary}
+              />
+            </LexicalComposer>
+          </div>
         )}
 
         {!editing && selected && !dragging && (

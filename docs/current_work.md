@@ -111,6 +111,8 @@ Deliverable:
 
 #### Work Unit 3 - Viewport framing and auto-sizing
 
+STATUS: DONE.
+
 On edit entry, snap the viewport to frame (PAN only, no zoom) the node within a safe zone, then derive
 `maxAutoWidth` from that guaranteed position.
 
@@ -151,6 +153,8 @@ Deliverable:
 - Top-left anchor does not shift during editing.
 
 #### Work Unit 4 - Committed view via Lexical serialization
+
+STATUS: DONE.
 
 Render the committed node from the same serialized EditorState used during editing.
 Parity is guaranteed by construction: same data, same renderer.

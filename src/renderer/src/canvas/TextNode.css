@@ -16,8 +16,13 @@
 .text-node__content {
   display: block;
   cursor: default;
+}
+
+.text-node__contentEditable {
+  display: block;
   white-space: pre-wrap;
   word-break: break-word;
+  outline: none;
 }
 
 .text-node__input {

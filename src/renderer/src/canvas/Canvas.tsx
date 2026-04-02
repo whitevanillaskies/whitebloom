@@ -46,7 +46,8 @@ export function Canvas() {
         data: {
           content: n.content ?? makeLexicalContent(n.label ?? ''),
           widthMode: n.widthMode ?? 'auto',
-          wrapWidth: n.wrapWidth ?? null
+          wrapWidth: n.wrapWidth ?? null,
+          size: n.size
         }
       })),
     [boardNodes]
