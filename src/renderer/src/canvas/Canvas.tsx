@@ -34,6 +34,13 @@ function isPaneTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && target.closest('.react-flow__pane') !== null
 }
 
+function blurToolbarButtonIfFocused(): void {
+  const active = document.activeElement
+  if (!(active instanceof HTMLElement)) return
+  if (active.closest('.canvas-toolbar__button') === null) return
+  active.blur()
+}
+
 export function Canvas() {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
@@ -114,6 +121,15 @@ export function Canvas() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setActiveTool('pointer')
+        blurToolbarButtonIfFocused()
+        setNodes((nds) => nds.map((n) => ({ ...n, selected: false })))
+        return
+      }
+
       const isDeleteKey = event.key === 'Delete' || event.key === 'Backspace'
       if (!isDeleteKey) return
       if (isEditableTarget(event.target)) return
@@ -129,7 +145,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [deleteNodes, nodes])
+  }, [deleteNodes, nodes, setActiveTool, setNodes])
 
   const handleSave = useCallback(async () => {
     const board: Board = { version, nodes: boardNodes, edges: boardEdges }

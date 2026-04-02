@@ -1,43 +1,15 @@
 # Current Work
 
-Canvas-level floating selection toolbar, replacing per-node NodeToolbar instances.
+General Quality of Life work and small UI/UX improvements.
 
-## Phase 1 - Extract SelectionToolbar component
+## Work Unit 1 - Escape as general escape hatch
 
-Create `src/renderer/src/canvas/SelectionToolbar.tsx` as a standalone component.
-Move the placeholder toolbar content (currently duplicated in two places in `TextNode.tsx`) into it.
-The component receives `selectedNodes: RFNode[]` as its only prop for now.
-No positioning logic yet — just the component shell and content.
+Whenever the user doesn't know what to do (perhaps by choosing a tool they don't understand, etc.) they should be able to hit Esc to go back to a safe board state. In this case, it should be the pointer tool.
 
-## Phase 2 - Remove NodeToolbar from TextNode
+## Work Unit 2 - Dynamic Hand tool via spacebar
 
-Strip both `NodeToolbar` blocks from `TextNode.tsx`:
-- The one inside the editing branch (line 554)
-- The one in the non-editing selected branch (line 613)
+Spacebar should work like in Houdini. Tapping spacebar switches to hand mode (no edits, camera controls only). Holding spacebar switchins hand mode on temporarily, but releasing it restores previous tool.
 
-Clean up any imports that are no longer needed (`NodeToolbar`, `Position` if unused).
+## Work Unit 3 - Pointer Drag RMB bug
 
-## Phase 3 - Bounding box positioning logic
-
-Add a hook or utility `useSelectionBoundingBox(selectedNodes)` that:
-- Takes the selected nodes' `position` and `data.size` fields
-- Returns the flow-space bounding box (minX, minY, maxX, maxY)
-- Returns `null` when nothing is selected
-
-Keep this pure/testable — no DOM or RF calls inside it.
-
-## Phase 4 - Wire SelectionToolbar into Canvas
-
-In `Canvas.tsx`:
-- Derive `selectedNodes` from the local `nodes` state
-- Render `<SelectionToolbar>` as a fixed-position overlay (not inside ReactFlow's node tree)
-- Use `useReactFlow().flowToScreenPosition` to convert the bounding box top-center to screen coordinates
-- Position the toolbar div via inline `style` (top/left with `transform: translateX(-50%)` for centering)
-- Hide when `selectedNodes` is empty or while dragging
-
-## Phase 5 - Polish and edge cases
-
-- Toolbar should not flicker when selection changes (verify no layout jumps)
-- Dragging nodes: toolbar should either hide or track smoothly — decide and implement
-- Verify toolbar does not intercept pointer events on the canvas (use `pointerEvents: 'none'` on wrapper, `'auto'` on the toolbar itself)
-- Verify single-select still looks correct (toolbar above single node)
+When clicking and dragging MMB over a node, the canvas pans as required. However, holding and dragging RMB on a node doesn't do anything, when it should pan the canvas.
