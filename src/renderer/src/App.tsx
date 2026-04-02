@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { Canvas } from './canvas/Canvas'
 import { useBoardStore } from './stores/board'
+import { makeLexicalContent } from './shared/types'
 
 function App(): React.JSX.Element {
   const addNode = useBoardStore((s) => s.addNode)
@@ -16,7 +17,9 @@ function App(): React.JSX.Element {
       type: 'text',
       position: { x: 100, y: 100 },
       size: { w: 200, h: 80 },
-      content: 'Hello Whitebloom'
+      content: makeLexicalContent('Hello Whitebloom'),
+      widthMode: 'auto',
+      wrapWidth: null
     })
     addNode({
       id: 'node-2',
@@ -24,7 +27,9 @@ function App(): React.JSX.Element {
       type: 'text',
       position: { x: 400, y: 250 },
       size: { w: 200, h: 80 },
-      content: 'Drag me around'
+      content: makeLexicalContent('Drag me around'),
+      widthMode: 'auto',
+      wrapWidth: null
     })
   }, [])
 

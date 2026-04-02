@@ -13,6 +13,7 @@ import { useBoardStore } from '@renderer/stores/board'
 import { TextNode } from './TextNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import type { Board } from '@renderer/shared/types'
+import { makeLexicalContent } from '@renderer/shared/types'
 import type { Tool } from './tools'
 
 const nodeTypes = { text: TextNode }
@@ -42,7 +43,11 @@ export function Canvas() {
         id: n.id,
         type: n.type,
         position: { x: n.position.x, y: n.position.y },
-        data: { content: n.content ?? n.label ?? '' }
+        data: {
+          content: n.content ?? makeLexicalContent(n.label ?? ''),
+          widthMode: n.widthMode ?? 'auto',
+          wrapWidth: n.wrapWidth ?? null
+        }
       })),
     [boardNodes]
   )
@@ -78,7 +83,9 @@ export function Canvas() {
         type: 'text',
         position,
         size: { w: 200, h: 40 },
-        content: 'text'
+        content: makeLexicalContent('text'),
+        widthMode: 'auto',
+        wrapWidth: null
       })
       setActiveTool('pointer')
     },

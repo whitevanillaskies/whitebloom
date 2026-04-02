@@ -84,7 +84,7 @@ Define and persist text layout fields and content format in board state.
 Deliverable:
 
 - Board store can save and restore Lexical content and layout behavior without UI assumptions.
-- Plain text previously stored as strings can be loaded safely (migration shim if needed).
+- Do not concern with backward compatibility for previously saved files. Previous files are broken now, that's fine.
 
 #### Work Unit 2 - Lexical integration and keyboard contract
 

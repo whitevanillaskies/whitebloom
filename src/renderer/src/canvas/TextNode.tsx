@@ -1,9 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
+import { makeLexicalContent } from '@renderer/shared/types'
+import type { WidthMode } from '@renderer/shared/types'
 import './TextNode.css'
 
-type TextNodeData = { content: string }
+type TextNodeData = {
+  content: string // Lexical EditorState JSON
+  widthMode: WidthMode
+  wrapWidth: number | null
+}
+
+/** Extract plain text from Lexical EditorState JSON for temporary display until WU4. */
+function extractPlainText(lexicalJson: string): string {
+  try {
+    const state = JSON.parse(lexicalJson)
+    return (state.root.children as any[])
+      .flatMap((p) => (p.children as any[]).map((n) => n.text ?? ''))
+      .join('\n')
+  } catch {
+    return lexicalJson
+  }
+}
 
 // ── Inline-editable text ─────────────────────────────────────────
 function EditableText({
@@ -76,9 +94,11 @@ function EditableText({
 
 // ── Text node ────────────────────────────────────────────────────
 export function TextNode({ id, data, selected, dragging }: NodeProps) {
-  const { content } = data as TextNodeData
-  const updateNodeContent = useBoardStore((s) => s.updateNodeContent)
+  const { content, widthMode, wrapWidth } = data as TextNodeData
+  const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const [editing, setEditing] = useState(false)
+
+  const plainText = extractPlainText(content)
 
   return (
     <>
@@ -90,10 +110,10 @@ export function TextNode({ id, data, selected, dragging }: NodeProps) {
 
       <div className={`text-node${selected ? ' text-node--selected' : ''}${editing ? ' nodrag nopan' : ''}`}>
         <EditableText
-          value={content}
+          value={plainText}
           editing={editing}
           onEditingChange={setEditing}
-          onCommit={(v) => updateNodeContent(id, v)}
+          onCommit={(v) => updateNodeText(id, { content: makeLexicalContent(v), widthMode, wrapWidth })}
         />
         <Handle type="target" position={Position.Top} />
         <Handle type="target" position={Position.Left} />

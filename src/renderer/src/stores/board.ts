@@ -1,10 +1,16 @@
 import { create } from 'zustand'
-import type { Board, BoardNode, BoardEdge } from '@renderer/shared/types'
+import type { Board, BoardNode, WidthMode } from '@renderer/shared/types'
+
+type TextLayoutPatch = {
+  content: string
+  widthMode?: WidthMode
+  wrapWidth?: number | null
+}
 
 type BoardState = Board & {
   addNode: (node: BoardNode) => void
   updateNodePosition: (id: string, x: number, y: number) => void
-  updateNodeContent: (id: string, content: string) => void
+  updateNodeText: (id: string, patch: TextLayoutPatch) => void
   loadBoard: (board: Board) => void
 }
 
@@ -21,9 +27,9 @@ export const useBoardStore = create<BoardState>((set) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, position: { x, y } } : n))
     })),
 
-  updateNodeContent: (id, content) =>
+  updateNodeText: (id, patch) =>
     set((state) => ({
-      nodes: state.nodes.map((n) => (n.id === id ? { ...n, content } : n))
+      nodes: state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n))
     })),
 
   loadBoard: (board) =>
