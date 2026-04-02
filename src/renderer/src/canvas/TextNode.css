@@ -1,4 +1,5 @@
 .text-node {
+  position: relative;
   padding: 8px 12px;
   font-size: 14px;
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -11,6 +12,27 @@
 .text-node--selected {
   border-color: var(--color-accent-blue);
   box-shadow: 0 0 5px 3px rgba(30, 135, 255, 0.15);
+}
+
+.text-node--resizing {
+  cursor: ew-resize;
+}
+
+.text-node__resize-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 4;
+  cursor: ew-resize;
+}
+
+.text-node__resize-zone--left {
+  left: 0;
+}
+
+.text-node__resize-zone--right {
+  right: 0;
 }
 
 .text-node__content {

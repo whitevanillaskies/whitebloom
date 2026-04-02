@@ -8,6 +8,95 @@ Quality of life features for text editing, bug fixes, etc.
 
 ## Phase 3 - Improve text editing layout, wrapping, and commit consistency
 
+## Phase 3.5 - Parallel interaction track for width handles and drag ergonomics
+
+This phase runs in parallel with late Phase 3 polish and isolates interaction work that is
+too risky to deliver as a single one-shot change.
+
+### Goals
+
+- Introduce horizontal width handles on both left and right edges.
+- Keep text editing active while width is being adjusted.
+- Avoid gesture conflicts between text width resizing and future connection handles.
+- Preserve existing width model behavior (`auto` to `fixed`, persisted `wrapWidth`).
+
+### Parallel Workstreams
+
+#### Stream A - Dual-edge width resizing (LTR + RTL friendly)
+
+- Right edge drag: keep left edge fixed, grow/shrink width.
+- Left edge drag: keep right edge fixed by updating node x-position and width together.
+- Clamp to a minimum width so narrow drags remain usable.
+
+#### Stream B - Resize while editing
+
+- Allow resizing even when Lexical is focused.
+- Prevent blur-commit while a resize drag is active.
+- Keep live wrapping updates visible during drag and while typing.
+
+#### Stream C - Visual affordances and mode separation
+
+- Show horizontal-resize affordance when hovering node edges.
+- Add a Lucide-based resize cue near the active edge to make intent explicit.
+- Offset React Flow connection handles slightly outside the node edge (Miro-like spacing)
+  to reduce overlap/conflict with width-resize hit zones.
+
+### Technical Spec (Geometry and Interaction Priority)
+
+Use screen-space hit testing for pointer intent and convert deltas to flow units only when
+applying size/position updates.
+
+#### Constants (initial values, tune after QA)
+
+- `EDGE_RESIZE_ZONE_PX = 6` (inside node bounds on left/right edges)
+- `EDGE_ICON_OFFSET_PX = 10` (Lucide cue offset from active edge centerline)
+- `CONNECTION_HANDLE_OUTSET_PX = 8` (outside node bounds)
+- `MIN_WRAP_WIDTH = 120` (flow units)
+- `RESIZE_HOVER_DEBOUNCE_MS = 0` (no delay initially)
+
+#### Hitbox partition (per vertical edge)
+
+- Inner zone (inside edge): resize only.
+- Outer zone (outside edge, offset): connection handle only.
+- No overlap between zones; if overlap appears at small zoom, resize takes priority.
+
+#### Cursor and icon behavior
+
+- On resize-zone hover: show `ew-resize` cursor.
+- Show Lucide `MoveHorizontal` cue near hovered edge.
+- Icon appears only while selected or while actively resizing.
+- Hide connection handle visual when resize zone is actively hovered/dragged on that edge.
+
+#### Drag math
+
+- Let `deltaFlow = deltaScreen / viewport.zoom`.
+- Right edge drag:
+  - `newWidth = clamp(startWidth + deltaFlow, MIN_WRAP_WIDTH, maxAllowedWidth)`
+  - `x` unchanged.
+- Left edge drag:
+  - `newWidth = clamp(startWidth - deltaFlow, MIN_WRAP_WIDTH, maxAllowedWidth)`
+  - `newX = startRight - newWidth` (right edge remains fixed).
+
+#### Mode and persistence rules
+
+- First resize gesture in `auto` mode switches node to `fixed` immediately.
+- During drag: live-update width (and x for left edge) for instant visual feedback.
+- On pointer up: persist `widthMode='fixed'` and `wrapWidth=newWidth`.
+- If editing is active, text focus remains in Lexical after drag ends.
+
+#### Event priority
+
+- Edge resize pointerdown suppresses node drag/pan and does not trigger editor commit.
+- Connection handle pointerdown is allowed only in the outer offset zone.
+- Keyboard behavior remains unchanged (`Enter` newline, `Ctrl/Cmd+Enter` commit, `Escape` cancel).
+
+### Exit Criteria for Phase 3.5
+
+- User can resize from both edges reliably.
+- Editing session is not interrupted by resize gestures.
+- Edge hover clearly communicates horizontal resize intent.
+- Resize and connection interactions can coexist without accidental trigger conflicts.
+
 ### Problem Description
 
 Current inline editing uses a fixed-size single-line input, which creates several UX and
@@ -174,6 +263,10 @@ Respect user-resized width as a persistent layout constraint.
 
 - Hook width drag/resize events into node layout state.
 - On resize: set `widthMode = fixed`, persist `wrapWidth` from the dragged size.
+- Support drag from both left and right edges.
+- Show horizontal-resize affordance on edge hover (including Lucide icon cue).
+- Keep resize hit zones and connection handles spatially separated by offsetting
+  connection handles slightly outside the node edge.
 - Subsequent edits and display both use the fixed width until the user resizes again.
 
 Deliverable:
@@ -199,8 +292,10 @@ Deliverable:
 4. Implement viewport framing: on edit entry, snap to safe zone (fraction of window size), derive maxAutoWidth.
 5. Implement committed view: Lexical read-only renderer using stored JSON + same width logic.
 6. Integrate resize handle to set widthMode=fixed and persist wrapWidth.
-7. Add/adjust tests for model, keyboard behavior, and edit-commit parity.
-8. Run full QA pass on desktop flows:
+7. Add dual-edge behavior, edge-hover resize affordance (Lucide cue), and connection-handle
+  offset spacing to prevent interaction conflicts.
+8. Add/adjust tests for model, keyboard behavior, and edit-commit parity.
+9. Run full QA pass on desktop flows:
    - create new text node
    - long single line
    - explicit multiline (Enter key)

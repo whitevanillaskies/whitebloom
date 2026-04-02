@@ -13,6 +13,17 @@ import './TextNode.css'
 
 const SAFE_ZONE_FRACTION = 0.13
 const MIN_AUTO_WIDTH = 180
+const MIN_WRAP_WIDTH = 120
+
+type ResizeEdge = 'left' | 'right'
+
+type ResizeSession = {
+  edge: ResizeEdge
+  startClientX: number
+  startWidth: number
+  startRight: number
+  startY: number
+}
 
 type TextNodeData = {
   content: string // Lexical EditorState JSON
@@ -89,10 +100,11 @@ function TextNodeToolbarContent() {
 }
 
 // ── Text node ────────────────────────────────────────────────────
-export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: NodeProps) {
+export function TextNode({ id, data, selected, dragging, positionAbsoluteX, positionAbsoluteY }: NodeProps) {
   const { content, widthMode, wrapWidth, size } = data as TextNodeData
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
+  const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const { getViewport, setViewport } = useReactFlow()
   const updateNodeInternals = useUpdateNodeInternals()
   const [editing, setEditing] = useState(false)
@@ -100,9 +112,13 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
   const [editorSession, setEditorSession] = useState(0)
   const [maxAutoWidth, setMaxAutoWidth] = useState<number>(MIN_AUTO_WIDTH)
   const [editingWidth, setEditingWidth] = useState<number | null>(null)
+  const [resizePreviewWidth, setResizePreviewWidth] = useState<number | null>(null)
+  const [resizing, setResizing] = useState(false)
   const draftContentRef = useRef(content)
   const containerRef = useRef<HTMLDivElement>(null)
   const sizeRef = useRef<{ w: number; h: number }>({ w: size?.w ?? 0, h: size?.h ?? 0 })
+  const resizeSessionRef = useRef<ResizeSession | null>(null)
+  const resizePreviewWidthRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!editing) {
@@ -248,6 +264,10 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
   }, [content, editing, syncNodeDimensions])
 
   const nodeStyle = useMemo(() => {
+    if (resizePreviewWidth !== null) {
+      return { width: `${Math.max(1, resizePreviewWidth)}px`, height: 'auto' as const }
+    }
+
     if (!editing) {
       if (widthMode === 'fixed') {
         return { width: `${Math.max(1, wrapWidth ?? MIN_AUTO_WIDTH)}px`, height: 'auto' as const }
@@ -269,7 +289,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
     }
 
     return { width: `${editingWidth}px`, maxWidth: `${maxAutoWidth}px`, height: 'auto' as const }
-  }, [editing, editingWidth, maxAutoWidth, size?.w, widthMode, wrapWidth])
+  }, [editing, editingWidth, maxAutoWidth, resizePreviewWidth, size?.w, widthMode, wrapWidth])
 
   const displayConfig = useMemo(
     () => ({
@@ -284,11 +304,133 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
     [content, id]
   )
 
+  const onResizePointerMove = useCallback(
+    (event: PointerEvent) => {
+      const session = resizeSessionRef.current
+      if (!session) return
+
+      event.preventDefault()
+
+      const zoom = getViewport().zoom || 1
+      const deltaFlow = (event.clientX - session.startClientX) / zoom
+
+      let nextWidth = session.edge === 'right' ? session.startWidth + deltaFlow : session.startWidth - deltaFlow
+      nextWidth = Math.max(MIN_WRAP_WIDTH, Math.round(nextWidth))
+
+      setResizePreviewWidth(nextWidth)
+      resizePreviewWidthRef.current = nextWidth
+
+      if (session.edge === 'left') {
+        const nextX = session.startRight - nextWidth
+        updateNodePosition(id, nextX, session.startY)
+      }
+
+      updateNodeInternals(id)
+    },
+    [getViewport, id, updateNodeInternals, updateNodePosition]
+  )
+
+  const stopResize = useCallback(
+    (persist: boolean) => {
+      const session = resizeSessionRef.current
+      if (!session) return
+
+      resizeSessionRef.current = null
+      setResizing(false)
+
+      const finalWidth = Math.max(MIN_WRAP_WIDTH, Math.round(resizePreviewWidthRef.current ?? session.startWidth))
+      const finalX = session.edge === 'left' ? session.startRight - finalWidth : null
+
+      if (session.edge === 'left' && finalX !== null && Number.isFinite(finalX) && Number.isFinite(session.startY)) {
+        updateNodePosition(id, finalX, session.startY)
+      }
+
+      setResizePreviewWidth(null)
+      resizePreviewWidthRef.current = null
+
+      if (!persist) return
+
+      updateNodeText(id, {
+        content: draftContentRef.current,
+        widthMode: 'fixed',
+        wrapWidth: finalWidth
+      })
+
+      const nodeEl = containerRef.current
+      const measuredH = nodeEl ? Math.round(nodeEl.offsetHeight) : sizeRef.current.h
+      sizeRef.current = { w: finalWidth, h: measuredH }
+      updateNodeSize(id, finalWidth, measuredH)
+      updateNodeInternals(id)
+    },
+    [id, updateNodeInternals, updateNodePosition, updateNodeSize, updateNodeText]
+  )
+
+  const onResizePointerUp = useCallback(() => {
+    window.removeEventListener('pointermove', onResizePointerMove)
+    stopResize(true)
+  }, [onResizePointerMove, stopResize])
+
+  const beginResize = useCallback(
+    (edge: ResizeEdge) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0 || editing) return
+
+      const nodeEl = containerRef.current
+      if (!nodeEl) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const startWidth = Math.max(MIN_WRAP_WIDTH, Math.round(nodeEl.offsetWidth))
+      const startX = Number.isFinite(positionAbsoluteX) ? positionAbsoluteX : 0
+      const startY = Number.isFinite(positionAbsoluteY) ? positionAbsoluteY : 0
+
+      resizeSessionRef.current = {
+        edge,
+        startClientX: event.clientX,
+        startWidth,
+        startRight: startX + startWidth,
+        startY
+      }
+
+      setResizePreviewWidth(startWidth)
+      resizePreviewWidthRef.current = startWidth
+      setResizing(true)
+      updateNodeInternals(id)
+
+      window.removeEventListener('pointermove', onResizePointerMove)
+      window.removeEventListener('pointerup', onResizePointerUp)
+      window.addEventListener('pointermove', onResizePointerMove)
+      window.addEventListener('pointerup', onResizePointerUp, { once: true })
+    },
+    [editing, id, onResizePointerMove, onResizePointerUp, positionAbsoluteX, positionAbsoluteY, updateNodeInternals]
+  )
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('pointermove', onResizePointerMove)
+      window.removeEventListener('pointerup', onResizePointerUp)
+    }
+  }, [onResizePointerMove, onResizePointerUp])
+
+  useEffect(() => {
+    if (!resizing) return
+
+    const onWindowBlur = () => {
+      window.removeEventListener('pointermove', onResizePointerMove)
+      window.removeEventListener('pointerup', onResizePointerUp)
+      stopResize(false)
+    }
+    window.addEventListener('blur', onWindowBlur)
+    return () => {
+      window.removeEventListener('blur', onWindowBlur)
+    }
+  }, [onResizePointerMove, onResizePointerUp, resizing, stopResize])
+
   return (
     <>
       <div
         ref={containerRef}
-        className={`text-node${selected ? ' text-node--selected' : ''}${editing ? ' nodrag nopan' : ''}`}
+        className={`text-node${selected ? ' text-node--selected' : ''}${editing ? ' nodrag nopan' : ''}${resizing ? ' text-node--resizing nodrag nopan' : ''}`}
         style={nodeStyle}
       >
         {editing ? (
@@ -349,6 +491,27 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX }: No
               <span className="text-node-toolbar__placeholder">text</span>
             </div>
           </NodeToolbar>
+        )}
+
+        {!editing && selected && !dragging && (
+          <>
+            <div
+              className="text-node__resize-zone text-node__resize-zone--left nodrag nopan"
+              onPointerDownCapture={beginResize('left')}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            />
+            <div
+              className="text-node__resize-zone text-node__resize-zone--right nodrag nopan"
+              onPointerDownCapture={beginResize('right')}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            />
+          </>
         )}
 
         <Handle type="target" position={Position.Top} />
