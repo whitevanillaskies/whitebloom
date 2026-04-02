@@ -4,6 +4,8 @@ Quality of life (humans and agents)
 
 ## Work Unit 1 - Snug nodes
 
+DONE.
+
 Ctrl+T to trim the size of a text node to make it snugly fit the text content, if possible.
 
 

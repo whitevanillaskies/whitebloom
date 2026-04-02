@@ -14,6 +14,7 @@ import { TextNode } from './TextNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
+import { lexicalContentToPlainText } from '@renderer/shared/types'
 import type { Tool } from './tools'
 import './Canvas.css'
 
@@ -215,7 +216,18 @@ export function Canvas() {
   }, [])
 
   const handleSave = useCallback(async () => {
-    const board: Board = { version, nodes: boardNodes, edges: boardEdges }
+    const nodes = boardNodes.map((node) => {
+      if (node.type !== 'text') return node
+
+      const content = node.content ?? makeLexicalContent(node.label ?? '')
+      return {
+        ...node,
+        content,
+        plain: lexicalContentToPlainText(content)
+      }
+    })
+
+    const board: Board = { version, nodes, edges: boardEdges }
     await window.api.saveBoard(JSON.stringify(board, null, 2))
   }, [version, boardNodes, boardEdges])
 

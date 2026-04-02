@@ -10,6 +10,7 @@ export type BoardNode = {
   size: Size
   label?: string
   content?: string // Lexical EditorState JSON
+  plain?: string // Plain-text mirror of content for agents/LLMs
   widthMode?: WidthMode
   wrapWidth?: number | null
   resource?: string
@@ -59,6 +60,8 @@ type LexicalJsonNode = {
   children?: LexicalJsonNode[]
 }
 
+const BLOCK_NODE_TYPES = new Set(['paragraph', 'heading', 'quote', 'listitem'])
+
 function collectLexicalText(node: LexicalJsonNode | undefined): string {
   if (!node) return ''
 
@@ -71,6 +74,39 @@ function collectLexicalText(node: LexicalJsonNode | undefined): string {
   }
 
   return node.children.map((child) => collectLexicalText(child)).join('')
+}
+
+function collectLexicalPlainText(node: LexicalJsonNode | undefined): string {
+  if (!node) return ''
+
+  if (node.type === 'text') {
+    return node.text ?? ''
+  }
+
+  if (node.type === 'linebreak') {
+    return '\n'
+  }
+
+  if (!Array.isArray(node.children)) {
+    return ''
+  }
+
+  const text = node.children.map((child) => collectLexicalPlainText(child)).join('')
+  if (text.length === 0) return ''
+
+  return BLOCK_NODE_TYPES.has(node.type ?? '') ? `${text}\n` : text
+}
+
+/** Convert Lexical EditorState JSON into plain text for machine-friendly reading. */
+export function lexicalContentToPlainText(content: string): string {
+  try {
+    const parsed = JSON.parse(content) as { root?: LexicalJsonNode }
+    return collectLexicalPlainText(parsed.root)
+      .replace(/\n{3,}/g, '\n\n')
+      .trimEnd()
+  } catch {
+    return ''
+  }
 }
 
 /** Return true when a Lexical EditorState JSON has no non-whitespace text content. */
