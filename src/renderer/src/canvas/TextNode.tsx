@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
 import type { WidthMode } from '@renderer/shared/types'
+import { isLexicalContentEmpty } from '@renderer/shared/types'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -34,6 +35,7 @@ type TextNodeData = {
   widthMode: WidthMode
   wrapWidth: number | null
   size?: { w: number; h: number }
+  autoEditToken?: number
 }
 
 type TextEditorPluginsProps = {
@@ -149,10 +151,11 @@ function TextNodeToolbarContent() {
 
 // ── Text node ────────────────────────────────────────────────────
 export function TextNode({ id, data, selected, dragging, positionAbsoluteX, positionAbsoluteY }: NodeProps) {
-  const { content, widthMode, wrapWidth, size } = data as TextNodeData
+  const { content, widthMode, wrapWidth, size, autoEditToken } = data as TextNodeData
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
+  const deleteNode = useBoardStore((s) => s.deleteNode)
   const { getViewport, setViewport } = useReactFlow()
   const updateNodeInternals = useUpdateNodeInternals()
   const [editing, setEditing] = useState(false)
@@ -170,6 +173,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
   const resizeSessionRef = useRef<ResizeSession | null>(null)
   const resizePreviewWidthRef = useRef<number | null>(null)
   const pendingCaretClientPointRef = useRef<{ x: number; y: number } | null>(null)
+  const handledAutoEditTokenRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!editing) {
@@ -204,10 +208,19 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
   }, [id, updateNodeSize])
 
   const commitEdit = useCallback(() => {
+    const next = draftContentRef.current
+    const shouldDeleteNode = isLexicalContentEmpty(next)
+
+    if (shouldDeleteNode) {
+      setEditing(false)
+      setEditingWidth(null)
+      deleteNode(id)
+      return
+    }
+
     persistMeasuredSize()
     setEditing(false)
     setEditingWidth(null)
-    const next = draftContentRef.current
     const autoWrappedToSafetyLimit =
       widthMode === 'auto' && editingWidth !== null && editingWidth >= maxAutoWidth
     const nextWidthMode: WidthMode = autoWrappedToSafetyLimit ? 'fixed' : widthMode
@@ -224,6 +237,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     editingWidth,
     id,
     maxAutoWidth,
+    deleteNode,
     persistMeasuredSize,
     updateNodeText,
     widthMode,
@@ -328,6 +342,14 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     applyViewportFramingAndMaxWidth()
     setEditing(true)
   }, [applyViewportFramingAndMaxWidth, content])
+
+  useEffect(() => {
+    if (typeof autoEditToken !== 'number') return
+    if (handledAutoEditTokenRef.current === autoEditToken) return
+
+    handledAutoEditTokenRef.current = autoEditToken
+    openEditing()
+  }, [autoEditToken, openEditing])
 
   useEffect(() => {
     if (!editing) return

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -35,6 +35,8 @@ export function Canvas() {
   const { screenToFlowPosition } = useReactFlow()
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
+  const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
+  const autoEditSequenceRef = useRef(0)
 
   // Derive RF nodes from store
   const schemaNodes: RFNode[] = useMemo(
@@ -47,10 +49,11 @@ export function Canvas() {
           content: n.content ?? makeLexicalContent(n.label ?? ''),
           widthMode: n.widthMode ?? 'auto',
           wrapWidth: n.wrapWidth ?? null,
-          size: n.size
+          size: n.size,
+          autoEditToken: autoEditRequest?.id === n.id ? autoEditRequest.token : undefined
         }
       })),
-    [boardNodes]
+    [autoEditRequest, boardNodes]
   )
 
   // Local state so RF can update positions during drag
@@ -78,13 +81,17 @@ export function Canvas() {
     (e: React.MouseEvent) => {
       if (activeTool !== 'text') return
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const id = crypto.randomUUID()
+      const nextToken = autoEditSequenceRef.current + 1
+      autoEditSequenceRef.current = nextToken
+      setAutoEditRequest({ id, token: nextToken })
       addNode({
-        id: crypto.randomUUID(),
+        id,
         kind: 'leaf',
         type: 'text',
         position,
         size: { w: 200, h: 40 },
-        content: makeLexicalContent('text'),
+        content: makeLexicalContent(''),
         widthMode: 'auto',
         wrapWidth: null
       })

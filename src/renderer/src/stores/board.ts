@@ -9,6 +9,7 @@ type TextLayoutPatch = {
 
 type BoardState = Board & {
   addNode: (node: BoardNode) => void
+  deleteNode: (id: string) => void
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
@@ -21,6 +22,12 @@ export const useBoardStore = create<BoardState>((set) => ({
   edges: [],
 
   addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
+
+  deleteNode: (id) =>
+    set((state) => ({
+      nodes: state.nodes.filter((n) => n.id !== id),
+      edges: state.edges.filter((e) => e.from !== id && e.to !== id)
+    })),
 
   updateNodePosition: (id, x, y) =>
     set((state) => ({
