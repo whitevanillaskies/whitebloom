@@ -13,8 +13,40 @@
   box-shadow: 0 0 5px 3px rgba(30, 135, 255, 0.15);
 }
 
+.text-node__content {
+  display: block;
+  cursor: default;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.text-node__input {
+  display: block;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: inherit;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-width: 80px;
+  cursor: text;
+}
+
 .text-node .react-flow__handle {
   visibility: hidden;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-blue);
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.text-node--selected .react-flow__handle {
+  visibility: visible;
 }
 
 /* ── Node toolbar ── */
