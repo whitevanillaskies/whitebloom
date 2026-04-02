@@ -49,7 +49,12 @@ export function Canvas() {
 
   // Local state so RF can update positions during drag
   const [nodes, setNodes] = useState<RFNode[]>(schemaNodes)
-  useEffect(() => { setNodes(schemaNodes) }, [schemaNodes])
+  useEffect(() => {
+    setNodes((prev) => {
+      const selectedIds = new Set(prev.filter((n) => n.selected).map((n) => n.id))
+      return schemaNodes.map((n) => ({ ...n, selected: selectedIds.has(n.id) }))
+    })
+  }, [schemaNodes])
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -108,7 +113,7 @@ export function Canvas() {
       fitView
       proOptions={{ hideAttribution: true }}
     >
-      <Background gap={15} size={1} color="var(--color-secondary-fg)" />
+      <Background gap={25} size={1} color="var(--color-secondary-fg)" />
       <Panel position="bottom-center">
         <CanvasToolbar
           activeTool={activeTool}

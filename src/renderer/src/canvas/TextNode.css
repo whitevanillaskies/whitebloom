@@ -16,3 +16,27 @@
 .text-node .react-flow__handle {
   visibility: hidden;
 }
+
+/* ── Node toolbar ── */
+.text-node-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(252, 252, 252, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.text-node-toolbar__placeholder {
+  font-size: 11px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--color-secondary-fg);
+  padding: 2px 6px;
+  letter-spacing: 0.02em;
+}
