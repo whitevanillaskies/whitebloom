@@ -1,67 +1,46 @@
-:root {
-  --ev-c-white: #ffffff;
-  --ev-c-white-soft: #f8f8f8;
-  --ev-c-white-mute: #f2f2f2;
+@font-face{
+  font-family: "Source Code Pro";
+  font-style: normal;
+  font-weight: 200 900;
+  src: url("./fonts/SourceCodePro-VariableFont_wght.ttf") format("truetype");
+}
 
-  --ev-c-black: #1b1b1f;
-  --ev-c-black-soft: #222222;
-  --ev-c-black-mute: #282828;
+@font-face {
+  font-family: "DM Sans";
+  src: url("./fonts/DMSans-VariableFont_opsz,wght.ttf") format("truetype");
+  font-weight: 100 1000;
+  font-style: normal;
+}
 
-  --ev-c-gray-1: #515c67;
-  --ev-c-gray-2: #414853;
-  --ev-c-gray-3: #32363f;
+@font-face {
+  font-family: "DM Sans";
+  src: url("./fonts/DMSans-Italic-VariableFont_opsz,wght.ttf") format("truetype");
+  font-weight: 100 1000;
+  font-style: italic;
+}
 
-  --ev-c-text-1: rgba(255, 255, 245, 0.86);
-  --ev-c-text-2: rgba(235, 235, 245, 0.6);
-  --ev-c-text-3: rgba(235, 235, 245, 0.38);
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 200 900;
+  src: url("./fonts/SourceSerif4-VariableFont_opsz,wght.ttf") format("truetype");
+}
 
-  --ev-button-alt-border: transparent;
-  --ev-button-alt-text: var(--ev-c-text-1);
-  --ev-button-alt-bg: var(--ev-c-gray-3);
-  --ev-button-alt-hover-border: transparent;
-  --ev-button-alt-hover-text: var(--ev-c-text-1);
-  --ev-button-alt-hover-bg: var(--ev-c-gray-2);
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: italic;
+  font-weight: 200 900;
+  src: url("./fonts/SourceSerif4-Italic-VariableFont_opsz,wght.ttf") format("truetype");
 }
 
 :root {
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
+  --color-primary-bg: #fcfcfc;
+  --color-primary-fg: #1f1f1f;
+  --color-secondary-fg: #505050;
 
-  --color-text: var(--ev-c-text-1);
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  font-weight: normal;
-}
-
-ul {
-  list-style: none;
-}
-
-body {
-  min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-accent-pink: #ff285a;
+  --color-accent-blue: #1e87ff;
+  --color-accent-green: #30fa41;
+  --color-accent-red: #e90b3b;
+  --color-accent-purple: #7c35ff;
 }

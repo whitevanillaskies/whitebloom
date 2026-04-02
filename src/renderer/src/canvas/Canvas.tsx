@@ -63,7 +63,7 @@ export function Canvas() {
       fitView
       proOptions={{ hideAttribution: true }}
     >
-      <Background gap={20} size={1} color="#333" />
+      <Background gap={15} size={1} color="var(--color-secondary-fg)" />
     </ReactFlow>
   )
 }
