@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
+import { readFile, writeFile } from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -51,6 +52,28 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  ipcMain.handle('board:save', async (_event, json: string) => {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Save board',
+      defaultPath: 'board.wb.json',
+      filters: [{ name: 'Whitebloom board', extensions: ['wb.json'] }]
+    })
+    if (canceled || !filePath) return { ok: false }
+    await writeFile(filePath, json, 'utf-8')
+    return { ok: true, filePath }
+  })
+
+  ipcMain.handle('board:load', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: 'Open board',
+      filters: [{ name: 'Whitebloom board', extensions: ['wb.json'] }],
+      properties: ['openFile']
+    })
+    if (canceled || filePaths.length === 0) return { ok: false }
+    const json = await readFile(filePaths[0], 'utf-8')
+    return { ok: true, json }
+  })
 
   createWindow()
 

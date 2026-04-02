@@ -4,6 +4,7 @@ import type { Board, BoardNode, BoardEdge } from '@renderer/shared/types'
 type BoardState = Board & {
   addNode: (node: BoardNode) => void
   updateNodePosition: (id: string, x: number, y: number) => void
+  loadBoard: (board: Board) => void
 }
 
 export const useBoardStore = create<BoardState>((set) => ({
@@ -17,5 +18,8 @@ export const useBoardStore = create<BoardState>((set) => ({
   updateNodePosition: (id, x, y) =>
     set((state) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, position: { x, y } } : n))
-    }))
+    })),
+
+  loadBoard: (board) =>
+    set({ version: board.version, nodes: board.nodes, edges: board.edges })
 }))

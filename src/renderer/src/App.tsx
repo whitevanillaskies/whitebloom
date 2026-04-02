@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { ReactFlowProvider } from '@xyflow/react'
 import { Canvas } from './canvas/Canvas'
 import { useBoardStore } from './stores/board'
 
@@ -28,9 +29,11 @@ function App(): React.JSX.Element {
   }, [])
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <Canvas />
-    </div>
+    <ReactFlowProvider>
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <Canvas />
+      </div>
+    </ReactFlowProvider>
   )
 }
 
