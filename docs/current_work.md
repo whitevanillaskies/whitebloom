@@ -1,43 +1,55 @@
 # Current Work
 
-## Text node selection, framing, toolbars, handles, and inline editing
-
-### Phase 1 — Selection frame
-
-When a text node is selected, show a visible frame around it. No toolbar yet, no handles yet.
-
-React Flow already applies a `selected` prop to nodes. We use this to conditionally apply a CSS class on the TextNode wrapper that adds a border/outline. Style it to match the design language: thin, clean, not Fisher Price.
-
-**Files touched:** `TextNode.tsx`, `TextNode.css` (new)
+Quality of life features for text editing.
 
 ---
 
-### Phase 2 — NodeToolbar on selection
+## Phase 1 — Fix mouse interaction inside the editing input
 
-When a text node is selected, show a floating toolbar above it using React Flow's built-in `NodeToolbar`. For now it is empty (or has a placeholder label). The goal is to get the positioning and styling right.
+**Problem:** While editing a text node, mouse clicks inside the input are not recognized.
+The cursor can only be repositioned via keyboard arrows. This is likely ReactFlow
+intercepting pointer events on the node before they reach the input.
 
-**Files touched:** `TextNode.tsx`, `TextNode.css`
+One thing I notice is that nodes are draggable while text editing is on, which I think may be causing the issue. On editing one should not be able to drag the node, as the interactions conflict each other. In miro if you're editing, dragging the mouse across the text will select text, not drag the node.
 
----
-
-### Phase 3 — Connection handles on selection
-
-Show four connection handles (top, bottom, left, right) only when the node is selected. Handles are currently hidden (`visibility: hidden`). On selection, they become visible. Style to match design language: small, clean dots, accent color.
-
-No actual edge creation logic yet — just visual handles.
-
-**Files touched:** `TextNode.tsx`, `TextNode.css`
+**Fix:** Stop pointer event propagation on the input element (mousedown/pointerdown)
+so ReactFlow doesn't swallow clicks meant for the input.
 
 ---
 
-### Phase 4 — Inline text editing
+## Phase 2 — Fix text selection on double-click to edit
 
-Double-clicking a text node enters edit mode:
-- The text renders as a contenteditable or a textarea.
-- `Enter` commits the edit, writes the new content to the Zustand store.
-- `Escape` cancels and reverts to the original content.
-- Clicking outside the node also commits (blur).
+**Problem:** Double-clicking a node to enter edit mode calls `selectAll` on the input,
+wiping out the user's ability to click into a specific position. Expected behavior
+(per tools like Miro) is that the cursor is placed at the click position, not the
+whole text selected.
 
-Needs a `updateNodeContent(id, content)` action added to the store.
+**Fix:** Remove the `select()` call triggered on focus. The browser will naturally place
+the cursor where the user clicked if selection is not forced.
 
-**Files touched:** `TextNode.tsx`, `TextNode.css`, `stores/board.ts`
+---
+
+## Phase 3 — Auto-resize the editing area as the user types
+
+**Problem:** The editing input is a fixed-size `<input>`, so text overflows and becomes
+invisible while editing. After committing, the node resizes correctly via CSS, but
+during editing the overflow is hidden.
+
+**Fix:** Replace the `<input>` with a `<textarea>` (or a `contenteditable` element).
+Use a hidden mirror element or `scrollHeight` trick to grow the textarea to fit its
+content as the user types, so the editing surface always shows all text.
+
+---
+
+## Phase 4 — Constrain growth direction and support line breaks
+
+**Problem / goal:** When content grows during editing the node should only expand
+downward (top edge stays fixed). Also needs proper line-break support — currently
+`Enter` commits the edit, but multiline text should be supported.
+
+**Fix:**
+- Decide on commit gesture (e.g. `Escape` to cancel, `Ctrl+Enter` / click-away to commit,
+  plain `Enter` inserts a line break — matching Miro/FigJam conventions).
+- Ensure the node's ReactFlow position (which is the top-left corner) stays fixed while
+  height grows, so the node anchors at the top.
+- Verify that the committed content and node height stay in sync in the board store.
