@@ -9,11 +9,15 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR, type LexicalEditor } from 'lexical'
+import { MoveHorizontal } from 'lucide-react'
 import './TextNode.css'
 
 const SAFE_ZONE_FRACTION = 0.13
 const MIN_AUTO_WIDTH = 180
 const MIN_WRAP_WIDTH = 120
+const EDGE_RESIZE_ZONE_PX = 6
+const EDGE_ICON_OFFSET_PX = 10
+const CONNECTION_HANDLE_OUTSET_PX = 8
 
 type ResizeEdge = 'left' | 'right'
 
@@ -119,6 +123,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
   const [editingWidth, setEditingWidth] = useState<number | null>(null)
   const [resizePreviewWidth, setResizePreviewWidth] = useState<number | null>(null)
   const [resizing, setResizing] = useState(false)
+  const [resizeHoverEdge, setResizeHoverEdge] = useState<ResizeEdge | null>(null)
   const draftContentRef = useRef(content)
   const editorRef = useRef<LexicalEditor | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -359,6 +364,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
 
       resizeSessionRef.current = null
       setResizing(false)
+      setResizeHoverEdge(null)
 
       const finalWidth = Math.max(MIN_WRAP_WIDTH, Math.round(resizePreviewWidthRef.current ?? session.startWidth))
       const finalX = session.edge === 'left' ? session.startRight - finalWidth : null
@@ -418,6 +424,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
         startRight: startX + startWidth,
         startY
       }
+      setResizeHoverEdge(edge)
 
       setResizePreviewWidth(startWidth)
       resizePreviewWidthRef.current = startWidth
@@ -453,11 +460,13 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     }
   }, [onResizePointerMove, onResizePointerUp, resizing, stopResize])
 
+  const activeResizeEdge = resizeSessionRef.current?.edge ?? resizeHoverEdge
+
   return (
     <>
       <div
         ref={containerRef}
-        className={`text-node${selected ? ' text-node--selected' : ''}${editing ? ' nodrag nopan' : ''}${resizing ? ' text-node--resizing nodrag nopan' : ''}`}
+        className={`text-node${selected ? ' text-node--selected' : ''}${editing ? ' nodrag nopan' : ''}${resizing ? ' text-node--resizing nodrag nopan' : ''}${activeResizeEdge === 'left' ? ' text-node--resize-hover-left' : ''}${activeResizeEdge === 'right' ? ' text-node--resize-hover-right' : ''}`}
         style={nodeStyle}
       >
         {editing ? (
@@ -531,7 +540,14 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
           <>
             <div
               className="text-node__resize-zone text-node__resize-zone--left nodrag nopan"
+              style={{ width: EDGE_RESIZE_ZONE_PX }}
               onPointerDownCapture={beginResize('left')}
+              onPointerEnter={() => setResizeHoverEdge('left')}
+              onPointerLeave={() => {
+                if (!resizing) {
+                  setResizeHoverEdge((current) => (current === 'left' ? null : current))
+                }
+              }}
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -539,7 +555,14 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
             />
             <div
               className="text-node__resize-zone text-node__resize-zone--right nodrag nopan"
+              style={{ width: EDGE_RESIZE_ZONE_PX }}
               onPointerDownCapture={beginResize('right')}
+              onPointerEnter={() => setResizeHoverEdge('right')}
+              onPointerLeave={() => {
+                if (!resizing) {
+                  setResizeHoverEdge((current) => (current === 'right' ? null : current))
+                }
+              }}
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -548,10 +571,20 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
           </>
         )}
 
+        {(selected || resizing) && activeResizeEdge && (
+          <div
+            className={`text-node__resize-cue text-node__resize-cue--${activeResizeEdge}`}
+            style={activeResizeEdge === 'left' ? { left: EDGE_ICON_OFFSET_PX } : { right: EDGE_ICON_OFFSET_PX }}
+            aria-hidden="true"
+          >
+            <MoveHorizontal size={12} strokeWidth={2} />
+          </div>
+        )}
+
         <Handle type="target" position={Position.Top} />
-        <Handle type="target" position={Position.Left} />
+        <Handle type="target" position={Position.Left} style={{ left: -CONNECTION_HANDLE_OUTSET_PX }} />
         <Handle type="source" position={Position.Bottom} />
-        <Handle type="source" position={Position.Right} />
+        <Handle type="source" position={Position.Right} style={{ right: -CONNECTION_HANDLE_OUTSET_PX }} />
       </div>
     </>
   )

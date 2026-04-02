@@ -35,6 +35,38 @@
   right: 0;
 }
 
+.text-node__resize-cue {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  color: var(--color-accent-blue);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(30, 135, 255, 0.35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+}
+
+.text-node__resize-cue--left {
+  left: 10px;
+}
+
+.text-node__resize-cue--right {
+  right: 10px;
+}
+
+.text-node--resize-hover-left .react-flow__handle-left,
+.text-node--resize-hover-right .react-flow__handle-right {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .text-node__content {
   display: block;
   cursor: default;
