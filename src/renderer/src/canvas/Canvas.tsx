@@ -11,7 +11,6 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useBoardStore } from '@renderer/stores/board'
 import { TextNode } from './TextNode'
-import { SelectionToolbar } from './SelectionToolbar'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
@@ -279,10 +278,7 @@ export function Canvas() {
     [activeTool]
   )
 
-  const selectedNodes = nodes.filter((n) => n.selected)
-
   return (
-    <>
     <ReactFlow
       nodes={nodes}
       nodeTypes={nodeTypes}
@@ -311,7 +307,5 @@ export function Canvas() {
         />
       </Panel>
     </ReactFlow>
-    <SelectionToolbar selectedNodes={selectedNodes} />
-    </>
   )
 }

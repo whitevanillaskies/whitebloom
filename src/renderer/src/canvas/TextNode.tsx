@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Handle, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
+import { Handle, NodeToolbar, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
 import type { WidthMode } from '@renderer/shared/types'
 import { isLexicalContentEmpty } from '@renderer/shared/types'
@@ -10,8 +10,30 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR, type LexicalEditor } from 'lexical'
+import { HeadingNode, QuoteNode } from '@lexical/rich-text'
+import { ListNode, ListItemNode } from '@lexical/list'
+import { ListPlugin } from '@lexical/react/LexicalListPlugin'
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MoveHorizontal } from 'lucide-react'
+import { FormatToolbar } from './FormatToolbar'
 import './TextNode.css'
+
+const RICH_TEXT_NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode]
+
+const RICH_TEXT_THEME = {
+  heading: {
+    h1: 'tn-h1',
+    h2: 'tn-h2',
+    h3: 'tn-h3',
+  },
+  list: {
+    ul: 'tn-ul',
+    ol: 'tn-ol',
+    listitem: 'tn-li',
+    nested: { listitem: 'tn-li-nested' },
+  },
+  quote: 'tn-quote',
+}
 
 const SAFE_ZONE_FRACTION = 0.13
 const MIN_AUTO_WIDTH = 180
@@ -319,7 +341,8 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     () => ({
       namespace: `text-node-${id}-${editorSession}`,
       editable: true,
-      theme: {},
+      theme: RICH_TEXT_THEME,
+      nodes: RICH_TEXT_NODES,
       editorState: draftContent,
       onError: (error: Error) => {
         throw error
@@ -396,7 +419,8 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     () => ({
       namespace: `text-node-readonly-${id}`,
       editable: false,
-      theme: {},
+      theme: RICH_TEXT_THEME,
+      nodes: RICH_TEXT_NODES,
       editorState: content,
       onError: (error: Error) => {
         throw error
@@ -545,6 +569,9 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
       >
         {editing ? (
           <LexicalComposer initialConfig={editorConfig}>
+            <NodeToolbar isVisible position={Position.Top} offset={8}>
+              <FormatToolbar />
+            </NodeToolbar>
             <div className="text-node__editor nodrag nopan nowheel" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
               <RichTextPlugin
                 contentEditable={
@@ -583,6 +610,8 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
                   editorRef.current = editor
                 }}
               />
+              <ListPlugin />
+              <HistoryPlugin />
             </div>
           </LexicalComposer>
         ) : (

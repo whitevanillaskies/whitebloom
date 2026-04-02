@@ -123,3 +123,56 @@
   visibility: visible;
 }
 
+/* ── Rich text block types ─────────────────────────────────────── */
+
+.text-node .tn-h1 {
+  font-size: 1.75em;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0.15em 0;
+}
+
+.text-node .tn-h2 {
+  font-size: 1.35em;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0.15em 0;
+}
+
+.text-node .tn-h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.15em 0;
+}
+
+.text-node .tn-ul,
+.text-node .tn-ol {
+  margin: 0.25em 0;
+  padding-left: 1.4em;
+}
+
+.text-node .tn-ul {
+  list-style-type: disc;
+}
+
+.text-node .tn-ol {
+  list-style-type: decimal;
+}
+
+.text-node .tn-li {
+  margin: 0.1em 0;
+}
+
+.text-node .tn-li-nested {
+  list-style-type: circle;
+}
+
+.text-node .tn-quote {
+  border-left: 3px solid var(--color-secondary-fg);
+  margin: 0.25em 0;
+  padding-left: 0.75em;
+  color: var(--color-secondary-fg);
+  font-style: italic;
+}
+
