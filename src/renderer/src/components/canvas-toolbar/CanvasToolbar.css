@@ -60,6 +60,18 @@
 	background: var(--color-accent, #3b82f6);
 }
 
+.canvas-toolbar__button--dirty::before {
+	content: '';
+	position: absolute;
+	bottom: -3px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: var(--color-accent-red);
+}
+
 
 .canvas-toolbar__separator {
 	width: 1px;

@@ -42,3 +42,66 @@
 .canvas--tool-pointer .react-flow__pane {
   cursor: default !important;
 }
+
+.canvas-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.canvas-modal {
+  width: min(420px, calc(100vw - 32px));
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.9));
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+  padding: 18px;
+}
+
+.canvas-modal__title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-primary-fg);
+}
+
+.canvas-modal__body {
+  margin: 10px 0 0;
+  color: color-mix(in srgb, var(--color-primary-fg) 78%, black);
+  line-height: 1.45;
+}
+
+.canvas-modal__actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.canvas-modal__button {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 9px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--color-primary-fg);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.canvas-modal__button:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.canvas-modal__button--danger {
+  border-color: rgba(220, 38, 38, 0.42);
+  background: rgba(254, 242, 242, 0.92);
+  color: #b91c1c;
+}
+
+.canvas-modal__button--danger:hover {
+  background: rgba(254, 226, 226, 0.98);
+}

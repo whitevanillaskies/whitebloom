@@ -11,6 +11,8 @@ Ctrl+T to trim the size of a text node to make it snugly fit the text content, i
 
 ## Work Unit 2 - Plain data
 
+DONE.
+
 Add a plain data field to the json for the text node, for LLMs. I was reading the output of lexical and it's a bit hard to parse. This is only useful for agents, not for humans.
 
 

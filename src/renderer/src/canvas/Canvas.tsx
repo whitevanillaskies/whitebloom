@@ -40,16 +40,20 @@ export function Canvas() {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
+  const isDirty = useBoardStore((s) => s.isDirty)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const addNode = useBoardStore((s) => s.addNode)
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
+  const clearBoard = useBoardStore((s) => s.clearBoard)
+  const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
 
   const { screenToFlowPosition } = useReactFlow()
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
+  const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | null>(null)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
 
@@ -156,6 +160,18 @@ export function Canvas() {
         return
       }
 
+      if (event.key.toLowerCase() === 'n' && (event.ctrlKey || event.metaKey)) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        if (isDirty) {
+          setPendingDocumentAction('new')
+          return
+        }
+
+        clearBoard()
+        return
+      }
+
       const isDeleteKey = event.key === 'Delete' || event.key === 'Backspace'
       if (!isDeleteKey) return
       if (isEditableTarget(event.target)) return
@@ -171,7 +187,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [boardNodes, deleteNodes, nodes, setActiveTool, setNodes, updateNodeText])
+  }, [boardNodes, clearBoard, deleteNodes, isDirty, nodes, setActiveTool, setNodes, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -228,8 +244,11 @@ export function Canvas() {
     })
 
     const board: Board = { version, nodes, edges: boardEdges }
-    await window.api.saveBoard(JSON.stringify(board, null, 2))
-  }, [version, boardNodes, boardEdges])
+    const result = await window.api.saveBoard(JSON.stringify(board, null, 2))
+    if (result.ok) {
+      markSaved()
+    }
+  }, [version, boardNodes, boardEdges, markSaved])
 
   const handleLoad = useCallback(async () => {
     const result = await window.api.loadBoard()
@@ -241,6 +260,45 @@ export function Canvas() {
       console.error('Failed to parse board file')
     }
   }, [loadBoard])
+
+  const handleNewBoardClick = useCallback(() => {
+    if (isDirty) {
+      setPendingDocumentAction('new')
+      return
+    }
+
+    clearBoard()
+  }, [clearBoard, isDirty])
+
+  const handleLoadClick = useCallback(() => {
+    if (isDirty) {
+      setPendingDocumentAction('load')
+      return
+    }
+
+    void handleLoad()
+  }, [handleLoad, isDirty])
+
+  const handleConfirmDocumentAction = useCallback(() => {
+    if (pendingDocumentAction === 'new') {
+      clearBoard()
+    } else if (pendingDocumentAction === 'load') {
+      void handleLoad()
+    }
+
+    setPendingDocumentAction(null)
+  }, [clearBoard, handleLoad, pendingDocumentAction])
+
+  const handleCancelDocumentAction = useCallback(() => {
+    setPendingDocumentAction(null)
+  }, [])
+
+  const confirmDialogTitle = pendingDocumentAction === 'load' ? 'Load a document?' : 'Start a new document?'
+  const confirmDialogBody =
+    pendingDocumentAction === 'load'
+      ? 'You have unsaved changes. Do you want to discard them and load another document?'
+      : 'You have unsaved changes. Do you want to discard them and start fresh?'
+  const confirmDialogConfirmLabel = pendingDocumentAction === 'load' ? 'Load document' : 'Start new document'
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -306,33 +364,64 @@ export function Canvas() {
   )
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      nodeTypes={nodeTypes}
-      onNodesChange={onNodesChange}
-      onPaneClick={onPaneClick}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onPaneContextMenu={onPaneContextMenu}
-      className={`canvas--tool-${activeTool}`}
-      elementsSelectable={activeTool === 'pointer'}
-      nodesDraggable={activeTool === 'pointer'}
-      nodesConnectable={activeTool === 'pointer'}
-      selectionOnDrag={activeTool === 'pointer'}
-      panOnDrag={panOnDragButtons}
-      fitView
-      proOptions={{ hideAttribution: true }}
-    >
-      <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-      <Panel position="bottom-center">
-        <CanvasToolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          onSave={handleSave}
-          onLoad={handleLoad}
-        />
-      </Panel>
-    </ReactFlow>
+    <>
+      <ReactFlow
+        nodes={nodes}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onPaneClick={onPaneClick}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onPaneContextMenu={onPaneContextMenu}
+        className={`canvas--tool-${activeTool}`}
+        elementsSelectable={activeTool === 'pointer'}
+        nodesDraggable={activeTool === 'pointer'}
+        nodesConnectable={activeTool === 'pointer'}
+        selectionOnDrag={activeTool === 'pointer'}
+        panOnDrag={panOnDragButtons}
+        fitView
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+        <Panel position="bottom-center">
+          <CanvasToolbar
+            activeTool={activeTool}
+            hasUnsavedChanges={isDirty}
+            onToolChange={setActiveTool}
+            onNewBoard={handleNewBoardClick}
+            onSave={handleSave}
+            onLoad={handleLoadClick}
+          />
+        </Panel>
+      </ReactFlow>
+
+      {pendingDocumentAction ? (
+        <div className="canvas-modal__overlay" role="presentation" onClick={handleCancelDocumentAction}>
+          <div
+            className="canvas-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Unsaved changes"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="canvas-modal__title">{confirmDialogTitle}</h2>
+            <p className="canvas-modal__body">{confirmDialogBody}</p>
+            <div className="canvas-modal__actions">
+              <button type="button" className="canvas-modal__button" onClick={handleCancelDocumentAction}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="canvas-modal__button canvas-modal__button--danger"
+                onClick={handleConfirmDocumentAction}
+              >
+                {confirmDialogConfirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }

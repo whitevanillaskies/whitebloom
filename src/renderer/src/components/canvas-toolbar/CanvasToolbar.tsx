@@ -1,15 +1,24 @@
-import { ArrowDownFromLine, ArrowUpToLine, Hand, MousePointer2, Type } from 'lucide-react'
+import { ArrowDownFromLine, ArrowUpToLine, File, Hand, MousePointer2, Type } from 'lucide-react'
 import './CanvasToolbar.css'
 import type { Tool } from '@renderer/canvas/tools'
 
 type CanvasToolbarProps = {
     activeTool: Tool
+    hasUnsavedChanges: boolean
     onToolChange: (tool: Tool) => void
+    onNewBoard: () => void
     onSave: () => void
     onLoad: () => void
 }
 
-export default function CanvasToolbar({ activeTool, onToolChange, onSave, onLoad }: CanvasToolbarProps) {
+export default function CanvasToolbar({
+    activeTool,
+    hasUnsavedChanges,
+    onToolChange,
+    onNewBoard,
+    onSave,
+    onLoad
+}: CanvasToolbarProps) {
     const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
     }
@@ -45,7 +54,15 @@ export default function CanvasToolbar({ activeTool, onToolChange, onSave, onLoad
             </button>
 
             <div className="canvas-toolbar__separator" />
-
+            <button
+                type="button"
+                onMouseDown={preventMouseFocus}
+                onClick={onNewBoard}
+                className={`canvas-toolbar__button${hasUnsavedChanges ? ' canvas-toolbar__button--dirty' : ''}`}
+                aria-label="New Whiteboard"
+            >
+                <File size={16} strokeWidth={2} />
+            </button>
             <button
                 type="button"
                 onMouseDown={preventMouseFocus}
