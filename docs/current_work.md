@@ -90,6 +90,8 @@ Deliverable:
 
 #### Work Unit 2 - Lexical integration and keyboard contract
 
+STATUS: DONE.
+
 Replace the input element with a Lexical editor and wire interaction behavior.
 
 - Wrap `TextNode` in `LexicalComposer` so both the editor and the `NodeToolbar` share the
@@ -109,7 +111,7 @@ Deliverable:
 
 #### Work Unit 3 - Viewport framing and auto-sizing
 
-On edit entry, snap the viewport to frame the node within a safe zone, then derive
+On edit entry, snap the viewport to frame (PAN only, no zoom) the node within a safe zone, then derive
 `maxAutoWidth` from that guaranteed position.
 
 **Viewport framing:**

@@ -10,6 +10,7 @@ type TextLayoutPatch = {
 type BoardState = Board & {
   addNode: (node: BoardNode) => void
   updateNodePosition: (id: string, x: number, y: number) => void
+  updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
   loadBoard: (board: Board) => void
 }
@@ -19,12 +20,16 @@ export const useBoardStore = create<BoardState>((set) => ({
   nodes: [],
   edges: [],
 
-  addNode: (node) =>
-    set((state) => ({ nodes: [...state.nodes, node] })),
+  addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
 
   updateNodePosition: (id, x, y) =>
     set((state) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, position: { x, y } } : n))
+    })),
+
+  updateNodeSize: (id, w, h) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.id === id ? { ...n, size: { w, h } } : n))
     })),
 
   updateNodeText: (id, patch) =>
@@ -32,6 +37,5 @@ export const useBoardStore = create<BoardState>((set) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n))
     })),
 
-  loadBoard: (board) =>
-    set({ version: board.version, nodes: board.nodes, edges: board.edges })
+  loadBoard: (board) => set({ version: board.version, nodes: board.nodes, edges: board.edges })
 }))
