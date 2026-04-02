@@ -6,6 +6,14 @@
   box-sizing: border-box;
 }
 
+/* Strip React Flow's default selection outline — we draw our own per node type */
+.react-flow__node.selected,
+.react-flow__node:focus,
+.react-flow__node:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 html, body, #root {
   width: 100%;
   height: 100%;

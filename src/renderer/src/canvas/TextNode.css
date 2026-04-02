@@ -1,0 +1,18 @@
+.text-node {
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--color-primary-fg);
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  transition: border-color 80ms ease;
+}
+
+.text-node--selected {
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(30, 135, 255, 0.15);
+}
+
+.text-node .react-flow__handle {
+  visibility: hidden;
+}

@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "size": {
+        "w": 200,
+        "h": 80
+      },
+      "content": "Hello Whitebloom"
+    },
+    {
+      "id": "node-2",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 308.1218905472637,
+        "y": 169.47761194029854
+      },
+      "size": {
+        "w": 200,
+        "h": 80
+      },
+      "content": "Drag me around"
+    },
+    {
+      "id": "node-1",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "size": {
+        "w": 200,
+        "h": 80
+      },
+      "content": "Hello Whitebloom"
+    },
+    {
+      "id": "node-2",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 308.1218905472637,
+        "y": 169.47761194029854
+      },
+      "size": {
+        "w": 200,
+        "h": 80
+      },
+      "content": "Drag me around"
+    },
+    {
+      "id": "a7da493c-e55f-4edc-b62e-0ca5c0b38d13",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 194.97512437810946,
+        "y": 205.5771852830047
+      },
+      "size": {
+        "w": 200,
+        "h": 40
+      },
+      "content": "text"
+    },
+    {
+      "id": "0017e28e-2967-47f2-814c-b2c62023b1c4",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 315.7587064676617,
+        "y": 35.24136438748231
+      },
+      "size": {
+        "w": 200,
+        "h": 40
+      },
+      "content": "text"
+    }
+  ],
+  "edges": []
+}
