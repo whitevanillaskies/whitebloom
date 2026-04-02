@@ -41,9 +41,16 @@ type TextEditorPluginsProps = {
   onCommit: () => void
   onCancel: () => void
   onEditorReady: (editor: LexicalEditor) => void
+  initialCaretClientPoint: { x: number; y: number } | null
 }
 
-function TextEditorPlugins({ editing, onCommit, onCancel, onEditorReady }: TextEditorPluginsProps) {
+function TextEditorPlugins({
+  editing,
+  onCommit,
+  onCancel,
+  onEditorReady,
+  initialCaretClientPoint
+}: TextEditorPluginsProps) {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {
@@ -88,16 +95,48 @@ function TextEditorPlugins({ editing, onCommit, onCancel, onEditorReady }: TextE
     const frame = window.requestAnimationFrame(() => {
       const root = editor.getRootElement()
       if (!root) return
+
       const selection = window.getSelection()
       if (!selection) return
+
       const range = document.createRange()
-      range.selectNodeContents(root)
+
+      // Try to place the caret at the original double-click location.
+      // If browser hit-testing fails, default to end-of-text.
+      let placedAtPoint = false
+      const clickPoint = initialCaretClientPoint
+      if (clickPoint) {
+        const anyDocument = document as Document & {
+          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
+          caretRangeFromPoint?: (x: number, y: number) => Range | null
+        }
+
+        const caretPos = anyDocument.caretPositionFromPoint?.(clickPoint.x, clickPoint.y)
+        if (caretPos?.offsetNode && root.contains(caretPos.offsetNode)) {
+          range.setStart(caretPos.offsetNode, caretPos.offset)
+          range.collapse(true)
+          placedAtPoint = true
+        } else {
+          const caretRange = anyDocument.caretRangeFromPoint?.(clickPoint.x, clickPoint.y)
+          if (caretRange && root.contains(caretRange.startContainer)) {
+            range.setStart(caretRange.startContainer, caretRange.startOffset)
+            range.collapse(true)
+            placedAtPoint = true
+          }
+        }
+      }
+
+      if (!placedAtPoint) {
+        range.selectNodeContents(root)
+        range.collapse(false)
+      }
+
       selection.removeAllRanges()
       selection.addRange(range)
     })
 
     return () => window.cancelAnimationFrame(frame)
-  }, [editor, editing])
+  }, [editor, editing, initialCaretClientPoint])
 
   return null
 }
@@ -130,6 +169,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
   const sizeRef = useRef<{ w: number; h: number }>({ w: size?.w ?? 0, h: size?.h ?? 0 })
   const resizeSessionRef = useRef<ResizeSession | null>(null)
   const resizePreviewWidthRef = useRef<number | null>(null)
+  const pendingCaretClientPointRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!editing) {
@@ -168,10 +208,27 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     setEditing(false)
     setEditingWidth(null)
     const next = draftContentRef.current
-    if (next !== content) {
-      updateNodeText(id, { content: next, widthMode, wrapWidth })
+    const autoWrappedToSafetyLimit =
+      widthMode === 'auto' && editingWidth !== null && editingWidth >= maxAutoWidth
+    const nextWidthMode: WidthMode = autoWrappedToSafetyLimit ? 'fixed' : widthMode
+    const nextWrapWidth = autoWrappedToSafetyLimit
+      ? Math.max(MIN_WRAP_WIDTH, Math.round(maxAutoWidth))
+      : wrapWidth
+    const layoutChanged = nextWidthMode !== widthMode || nextWrapWidth !== wrapWidth
+
+    if (next !== content || layoutChanged) {
+      updateNodeText(id, { content: next, widthMode: nextWidthMode, wrapWidth: nextWrapWidth })
     }
-  }, [content, persistMeasuredSize, id, updateNodeText, widthMode, wrapWidth])
+  }, [
+    content,
+    editingWidth,
+    id,
+    maxAutoWidth,
+    persistMeasuredSize,
+    updateNodeText,
+    widthMode,
+    wrapWidth
+  ])
 
   const focusEditor = useCallback(() => {
     const editor = editorRef.current
@@ -263,7 +320,8 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
     [draftContent, editorSession, id]
   )
 
-  const openEditing = useCallback(() => {
+  const openEditing = useCallback((event?: React.MouseEvent<HTMLDivElement>) => {
+    pendingCaretClientPointRef.current = event ? { x: event.clientX, y: event.clientY } : null
     setDraftContent(content)
     draftContentRef.current = content
     setEditorSession((v) => v + 1)
@@ -510,6 +568,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
                 editing={editing}
                 onCommit={commitEdit}
                 onCancel={cancelEdit}
+                initialCaretClientPoint={pendingCaretClientPointRef.current}
                 onEditorReady={(editor) => {
                   editorRef.current = editor
                 }}
@@ -517,7 +576,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
             </div>
           </LexicalComposer>
         ) : (
-          <div className="text-node__content" onDoubleClick={openEditing}>
+          <div className="text-node__content" onDoubleClick={(event) => openEditing(event)}>
             <LexicalComposer key={content} initialConfig={displayConfig}>
               <RichTextPlugin
                 contentEditable={<ContentEditable className="text-node__contentEditable" />}

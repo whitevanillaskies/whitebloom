@@ -259,6 +259,8 @@ Deliverable:
 
 #### Work Unit 5 - Manual width constraint integration
 
+STATUS: DONE.
+
 Respect user-resized width as a persistent layout constraint.
 
 - Hook width drag/resize events into node layout state.

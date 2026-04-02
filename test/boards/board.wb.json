@@ -6,84 +6,80 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": -21.25732532083181,
-        "y": 53.01278643817767
+        "x": 738.2455234952276,
+        "y": 199.93675688474195
       },
       "size": {
-        "w": 200,
-        "h": 80
+        "w": 203,
+        "h": 36
       },
-      "content": "Hello Whitebloom"
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Hello Whitebloom\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 203
     },
     {
       "id": "node-2",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 391.935981977068,
-        "y": 131.9645954902689
+        "x": -283.65866025497496,
+        "y": -242.08071460855544
       },
       "size": {
-        "w": 200,
-        "h": 80
+        "w": 366,
+        "h": 126
       },
-      "content": "Drag me around"
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Drag me around hello this is working quite well. There is a new idea\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"hello? \",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"This seems to be working quite well.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 366
     },
     {
       "id": "node-1",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": -21.25732532083181,
-        "y": 53.01278643817767
+        "x": 738.2455234952276,
+        "y": 199.93675688474195
       },
       "size": {
-        "w": 200,
-        "h": 80
+        "w": 203,
+        "h": 36
       },
-      "content": "Hello Whitebloom"
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Hello Whitebloom\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 203
     },
     {
       "id": "node-2",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 391.935981977068,
-        "y": 131.9645954902689
+        "x": -283.65866025497496,
+        "y": -242.08071460855544
       },
       "size": {
-        "w": 200,
-        "h": 80
+        "w": 366,
+        "h": 126
       },
-      "content": "Drag me around"
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Drag me around hello this is working quite well. There is a new idea\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"hello? \",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"This seems to be working quite well.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 366
     },
     {
-      "id": "a7da493c-e55f-4edc-b62e-0ca5c0b38d13",
+      "id": "9ed609cb-b15f-4d76-8b99-e2f0922c1187",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 194.97512437810946,
-        "y": 205.5771852830047
+        "x": 223.31424020583438,
+        "y": 170.67152443703716
       },
       "size": {
-        "w": 200,
-        "h": 40
+        "w": 236,
+        "h": 54
       },
-      "content": "text"
-    },
-    {
-      "id": "0017e28e-2967-47f2-814c-b2c62023b1c4",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 242.3134575514336,
-        "y": -57.34004067753566
-      },
-      "size": {
-        "w": 200,
-        "h": 40
-      },
-      "content": "text this is a text and this kind of works too"
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"There's a problem? when asdasd\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 236
     }
   ],
   "edges": []
