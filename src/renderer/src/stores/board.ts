@@ -1,5 +1,10 @@
 import { create } from 'zustand'
-import type { Board, BoardNode, WidthMode } from '@renderer/shared/types'
+import {
+  CURRENT_BOARD_VERSION,
+  type Board,
+  type BoardNode,
+  type WidthMode
+} from '@renderer/shared/types'
 
 type TextLayoutPatch = {
   content: string
@@ -7,9 +12,12 @@ type TextLayoutPatch = {
   wrapWidth?: number | null
 }
 
+type BoardNodeDraft = Omit<BoardNode, 'created' | 'updatedAt'> &
+  Partial<Pick<BoardNode, 'created' | 'updatedAt'>>
+
 type BoardState = Board & {
   isDirty: boolean
-  addNode: (node: BoardNode) => void
+  addNode: (node: BoardNodeDraft) => void
   deleteNode: (id: string) => void
   deleteNodes: (ids: string[]) => void
   updateNodePosition: (id: string, x: number, y: number) => void
@@ -21,15 +29,43 @@ type BoardState = Board & {
   loadBoard: (board: Board) => void
 }
 
+function isValidIsoTimestamp(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0
+}
+
+function normalizeNodeTimestamps(node: BoardNodeDraft, fallbackTimestamp: string): BoardNode {
+  const created = isValidIsoTimestamp(node.created)
+    ? node.created
+    : isValidIsoTimestamp(node.updatedAt)
+      ? node.updatedAt
+      : fallbackTimestamp
+  const updatedAt = isValidIsoTimestamp(node.updatedAt) ? node.updatedAt : created
+
+  return { ...node, created, updatedAt }
+}
+
+function touchNode(node: BoardNode, timestamp: string): BoardNode {
+  const normalized = normalizeNodeTimestamps(node, timestamp)
+  if (normalized.updatedAt === timestamp) return normalized
+  return { ...normalized, updatedAt: timestamp }
+}
+
 export const useBoardStore = create<BoardState>((set) => ({
-  version: 1,
+  version: CURRENT_BOARD_VERSION,
   name: undefined,
   brief: undefined,
   nodes: [],
   edges: [],
   isDirty: false,
 
-  addNode: (node) => set((state) => ({ nodes: [...state.nodes, node], isDirty: true })),
+  addNode: (node) =>
+    set((state) => {
+      const timestamp = new Date().toISOString()
+      return {
+        nodes: [...state.nodes, normalizeNodeTimestamps(node, timestamp)],
+        isDirty: true
+      }
+    }),
 
   deleteNode: (id) =>
     set((state) => ({
@@ -51,11 +87,12 @@ export const useBoardStore = create<BoardState>((set) => ({
   updateNodePosition: (id, x, y) =>
     set((state) => {
       let changed = false
+      const timestamp = new Date().toISOString()
       const nodes = state.nodes.map((n) => {
         if (n.id !== id) return n
         if (n.position.x === x && n.position.y === y) return n
         changed = true
-        return { ...n, position: { x, y } }
+        return { ...touchNode(n, timestamp), position: { x, y } }
       })
       return changed ? { nodes, isDirty: true } : state
     }),
@@ -63,11 +100,12 @@ export const useBoardStore = create<BoardState>((set) => ({
   updateNodeSize: (id, w, h) =>
     set((state) => {
       let changed = false
+      const timestamp = new Date().toISOString()
       const nodes = state.nodes.map((n) => {
         if (n.id !== id) return n
         if (n.size.w === w && n.size.h === h) return n
         changed = true
-        return { ...n, size: { w, h } }
+        return { ...touchNode(n, timestamp), size: { w, h } }
       })
       return changed ? { nodes, isDirty: true } : state
     }),
@@ -75,6 +113,7 @@ export const useBoardStore = create<BoardState>((set) => ({
   updateNodeText: (id, patch) =>
     set((state) => {
       let changed = false
+      const timestamp = new Date().toISOString()
       const nodes = state.nodes.map((n) => {
         if (n.id !== id) return n
 
@@ -91,7 +130,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         }
 
         changed = true
-        return { ...n, ...patch }
+        return { ...touchNode(n, timestamp), ...patch, updatedAt: timestamp }
       })
 
       return changed ? { nodes, isDirty: true } : state
@@ -115,5 +154,15 @@ export const useBoardStore = create<BoardState>((set) => ({
   markSaved: () => set({ isDirty: false }),
 
   loadBoard: (board) =>
-    set({ version: board.version, name: board.name, brief: board.brief, nodes: board.nodes, edges: board.edges, isDirty: false })
+    set(() => {
+      const fallbackTimestamp = new Date().toISOString()
+      return {
+        version: CURRENT_BOARD_VERSION,
+        name: board.name,
+        brief: board.brief,
+        nodes: board.nodes.map((node) => normalizeNodeTimestamps(node, fallbackTimestamp)),
+        edges: board.edges,
+        isDirty: false
+      }
+    })
 }))
