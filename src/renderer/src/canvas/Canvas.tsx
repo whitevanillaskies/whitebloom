@@ -12,6 +12,8 @@ import '@xyflow/react/dist/style.css'
 import { useBoardStore } from '@renderer/stores/board'
 import { TextNode } from './TextNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
+import BoardTitle from '@renderer/components/board-title/BoardTitle'
+import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
@@ -40,6 +42,8 @@ export function Canvas() {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
+  const boardName = useBoardStore((s) => s.name)
+  const boardBrief = useBoardStore((s) => s.brief)
   const isDirty = useBoardStore((s) => s.isDirty)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
@@ -48,6 +52,7 @@ export function Canvas() {
   const clearBoard = useBoardStore((s) => s.clearBoard)
   const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
+  const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
 
   const { screenToFlowPosition } = useReactFlow()
 
@@ -55,6 +60,7 @@ export function Canvas() {
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | null>(null)
   const [currentBoardFilePath, setCurrentBoardFilePath] = useState<string | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
 
@@ -172,7 +178,13 @@ export function Canvas() {
       }
     })
 
-    const board: Board = { version, nodes, edges: boardEdges }
+    const board: Board = {
+      version,
+      ...(boardName?.trim() ? { name: boardName.trim() } : {}),
+      ...(boardBrief?.trim() ? { brief: boardBrief.trim() } : {}),
+      nodes,
+      edges: boardEdges
+    }
     const payload = JSON.stringify(board, null, 2)
 
     const result = currentBoardFilePath
@@ -183,7 +195,7 @@ export function Canvas() {
       setCurrentBoardFilePath(result.filePath ?? currentBoardFilePath)
       markSaved()
     }
-  }, [version, boardNodes, boardEdges, currentBoardFilePath, markSaved])
+  }, [version, boardName, boardBrief, boardNodes, boardEdges, currentBoardFilePath, markSaved])
 
   const handleLoad = useCallback(async () => {
     const result = await window.api.loadBoard()
@@ -202,6 +214,10 @@ export function Canvas() {
       if (event.key === 'Escape') {
         if (isEditableTarget(event.target)) return
         event.preventDefault()
+        if (settingsOpen) {
+          setSettingsOpen(false)
+          return
+        }
         setActiveTool('pointer')
         blurToolbarButtonIfFocused()
         setNodes((nds) => nds.map((n) => ({ ...n, selected: false })))
@@ -269,7 +285,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [boardNodes, deleteNodes, handleSave, isDirty, nodes, setActiveTool, setNodes, startNewBoard, updateNodeText])
+  }, [boardNodes, deleteNodes, handleSave, isDirty, nodes, settingsOpen, setActiveTool, setNodes, startNewBoard, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -436,6 +452,13 @@ export function Canvas() {
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+        <Panel position="top-left">
+          <BoardTitle
+            name={boardName}
+            onNameChange={(name) => updateBoardMeta({ name })}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        </Panel>
         <Panel position="bottom-center">
           <CanvasToolbar
             activeTool={activeTool}
@@ -447,6 +470,15 @@ export function Canvas() {
           />
         </Panel>
       </ReactFlow>
+
+      {settingsOpen && (
+        <SettingsModal
+          name={boardName}
+          brief={boardBrief}
+          onChange={updateBoardMeta}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       {pendingDocumentAction ? (
         <div className="canvas-modal__overlay" role="presentation" onClick={handleCancelDocumentAction}>

@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "5fc3f1b2-160d-435e-a3d6-e7d943dbd28a",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": -398.6908666564667,
+        "y": -334.8698180512177
+      },
+      "size": {
+        "w": 632,
+        "h": 151
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"WHITEBLOOM\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Whitebloom is a whiteboard. Whitebloom is an open specification. Whiteboard is an operating system for knowledge. Whiteboard is just a bunch of ascii files and a system to read them.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Whitebloom is a KOS (knowedge OS) built with agents as first class citizens. Every file can be inspected, reasoned about, and written by agents.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 632,
+      "plain": "WHITEBLOOM\nWhitebloom is a whiteboard. Whitebloom is an open specification. Whiteboard is an operating system for knowledge. Whiteboard is just a bunch of ascii files and a system to read them.\nWhitebloom is a KOS (knowedge OS) built with agents as first class citizens. Every file can be inspected, reasoned about, and written by agents."
+    },
+    {
+      "id": "97f6695b-1a73-4b41-8f51-79b12668ba8f",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": -464.05869904067407,
+        "y": -109.83213319234511
+      },
+      "size": {
+        "w": 336,
+        "h": 105
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Human UI\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"The human UI is part of the Domain Bindings. This is an implementation of the \",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":1,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Open Whitebloom\",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\" spec.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 336,
+      "plain": "Human UI\nThe human UI is part of the Domain Bindings. This is an implementation of the Open Whitebloom spec."
+    },
+    {
+      "id": "ae1b1476-e608-40ab-afb7-92842eeeb046",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": -24.265199269071616,
+        "y": -103.87086332615009
+      },
+      "size": {
+        "w": 349,
+        "h": 457
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Agentic Shell\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"The Agentic Shell is a set of tools meant for LLM agents to reason about the files that make up the whiteboard. Behind the Agentic Shell is a very simple principle, there are no binary blobs. Every file is stored in plain text following the UNIX philosophy of cat, sed, grep.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Lenses and Views\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h3\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Lenses tell the agents how to perceive certain data. Lenses are \\\"look at this from the perspective of a security auditor\\\" or \\\"look at this from the perspective of a fashion designer.\\\" Of course they would be more complex than that, but they are instructions for agents that they can use to interpret what they see.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Views are a bit of a more complex topic. Ideally all files are ascii and human readable, but due to the modular nature of whitebloom it's expected that some developers will write modules to handle binary blobs or extern resources. For those cases, views are optional tools or skills that agents can use to query the data.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 349,
+      "plain": "Agentic Shell\nThe Agentic Shell is a set of tools meant for LLM agents to reason about the files that make up the whiteboard. Behind the Agentic Shell is a very simple principle, there are no binary blobs. Every file is stored in plain text following the UNIX philosophy of cat, sed, grep.\nLenses and Views\nLenses tell the agents how to perceive certain data. Lenses are \"look at this from the perspective of a security auditor\" or \"look at this from the perspective of a fashion designer.\" Of course they would be more complex than that, but they are instructions for agents that they can use to interpret what they see.\nViews are a bit of a more complex topic. Ideally all files are ascii and human readable, but due to the modular nature of whitebloom it's expected that some developers will write modules to handle binary blobs or extern resources. For those cases, views are optional tools or skills that agents can use to query the data."
+    },
+    {
+      "id": "f673f821-de21-4ba5-b4c8-db3274ff8bc5",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 511.12064631611617,
+        "y": -289.75608151761355
+      },
+      "size": {
+        "w": 568,
+        "h": 195
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"The Blooming System\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Whitebloom works on a system of blossoms. The main entry point of the whiteboard is a main.wb.json file. But the unique thing is that we don't have just texts, pictures, etc. We also have arbitrary assets that can be embedded into the whiteboard. When you embed such a blossom into the whiteboard you do it via buds. A bud is a little node that, when opened, blooms into the full editor for the selected asset. Thus for example, an asset containing a database schema in a JSON file could be embedded as a bud inside the whiteboard, ready to bloom when the user selects it.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 568,
+      "plain": "The Blooming System\nWhitebloom works on a system of blossoms. The main entry point of the whiteboard is a main.wb.json file. But the unique thing is that we don't have just texts, pictures, etc. We also have arbitrary assets that can be embedded into the whiteboard. When you embed such a blossom into the whiteboard you do it via buds. A bud is a little node that, when opened, blooms into the full editor for the selected asset. Thus for example, an asset containing a database schema in a JSON file could be embedded as a bud inside the whiteboard, ready to bloom when the user selects it."
+    },
+    {
+      "id": "bb997518-5246-42ec-b2e6-021406f58cd7",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1505.7263463216934,
+        "y": -276.27919119728074
+      },
+      "size": {
+        "w": 409,
+        "h": 194
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Current Sprint\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"For V1, we're targeting the bare minimum whiteboard native assets before focusing on blossoms. We already have rich text working, and we're aiming to implement the following:\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Image embedding\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Relationships/edges between nodes\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Groups\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":3},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Video embedding\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":4}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 409,
+      "plain": "Current Sprint\nFor V1, we're targeting the bare minimum whiteboard native assets before focusing on blossoms. We already have rich text working, and we're aiming to implement the following:\nImage embedding\nRelationships/edges between nodes\nGroups\nVideo embedding"
+    },
+    {
+      "id": "7998a5d0-231c-4b67-96a8-696bfebf218c",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1593.1062770832834,
+        "y": -46.36114727964552
+      },
+      "size": {
+        "w": 571,
+        "h": 99
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Working on Now\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h3\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Right now we want to add a settings pane to the white board, names for boards, and a \\\"brief\\\" entry into the board's metadata for agents to read where the user writes context for agents reading the board (purpose, domain, constraints, preferences).\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 571,
+      "plain": "Working on Now\nRight now we want to add a settings pane to the white board, names for boards, and a \"brief\" entry into the board's metadata for agents to read where the user writes context for agents reading the board (purpose, domain, constraints, preferences)."
+    },
+    {
+      "id": "c7e2a1f5-3b8d-4c90-b6e1-9f2a5d8e3c7b",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 511.12064631611617,
+        "y": 200
+      },
+      "size": {
+        "w": 480,
+        "h": 180
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"A note from Claude\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"I wrote this node directly into your board file. No UI, no drag and drop — just a write to a plain JSON file. I read the other nodes, understood the context, and placed myself below the Blooming System node where it felt right. This is what the spec was designed for.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 480,
+      "plain": "A note from Claude\nI wrote this node directly into your board file. No UI, no drag and drop — just a write to a plain JSON file. I read the other nodes, understood the context, and placed myself below the Blooming System node where it felt right. This is what the spec was designed for."
+    }
+  ],
+  "edges": []
+}

@@ -25,6 +25,8 @@ export type BoardEdge = {
 
 export type Board = {
   version: number
+  name?: string
+  brief?: string
   nodes: BoardNode[]
   edges: BoardEdge[]
 }

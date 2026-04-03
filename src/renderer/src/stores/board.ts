@@ -15,6 +15,7 @@ type BoardState = Board & {
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
+  updateBoardMeta: (patch: { name?: string; brief?: string }) => void
   clearBoard: () => void
   markSaved: () => void
   loadBoard: (board: Board) => void
@@ -22,6 +23,8 @@ type BoardState = Board & {
 
 export const useBoardStore = create<BoardState>((set) => ({
   version: 1,
+  name: undefined,
+  brief: undefined,
   nodes: [],
   edges: [],
   isDirty: false,
@@ -94,14 +97,23 @@ export const useBoardStore = create<BoardState>((set) => ({
       return changed ? { nodes, isDirty: true } : state
     }),
 
+  updateBoardMeta: (patch) =>
+    set((state) => {
+      const updates: Partial<BoardState> = {}
+      if ('name' in patch && patch.name !== state.name) updates.name = patch.name
+      if ('brief' in patch && patch.brief !== state.brief) updates.brief = patch.brief
+      if (Object.keys(updates).length === 0) return state
+      return { ...updates, isDirty: true }
+    }),
+
   clearBoard: () =>
     set((state) => {
       if (state.nodes.length === 0 && state.edges.length === 0 && !state.isDirty) return state
-      return { nodes: [], edges: [], isDirty: false }
+      return { nodes: [], edges: [], name: undefined, brief: undefined, isDirty: false }
     }),
 
   markSaved: () => set({ isDirty: false }),
 
   loadBoard: (board) =>
-    set({ version: board.version, nodes: board.nodes, edges: board.edges, isDirty: false })
+    set({ version: board.version, name: board.name, brief: board.brief, nodes: board.nodes, edges: board.edges, isDirty: false })
 }))
