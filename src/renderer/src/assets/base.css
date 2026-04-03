@@ -44,4 +44,10 @@
   --color-accent-green: #30fa41;
   --color-accent-red: #ec164c;
   --color-accent-purple: #7c35ff;
+
+  --radius-border-frame: 6px;
+  --radius-border-inner: 4px;
+  --radius-blur-soft: 1px;
+  --radius-blur-medium: 2px;
+  --radius-blur-heavy: 4px;
 }

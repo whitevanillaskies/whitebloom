@@ -65,6 +65,8 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
 {
   "version": 1,
 
+  "brief": "A board for exploring perfume concepts for a spring/summer fashion campaign targeting physically active teens to young adults. Keep current teen trends in mind when suggesting directions.",
+
   "nodes": [
     {
       "id": "node-1",
@@ -127,6 +129,17 @@ The distinction in the schema is the `kind` field: `"bud"` or `"leaf"`.
 
 ### Field reference
 
+**Board-level fields**
+
+| Field     | Required | Description |
+|-----------|----------|-------------|
+| `version` | yes      | Schema version |
+| `brief`   | no       | Plain text context for agents — describes the board's purpose, domain, constraints, or preferences. Written by the user; read by agents as the first thing in the manifest. |
+| `nodes`   | yes      | Array of node objects |
+| `edges`   | yes      | Array of edge objects |
+
+**Node fields**
+
 | Field      | Required | Description |
 |------------|----------|-------------|
 | `id`       | yes      | Unique identifier for the node |
@@ -144,7 +157,7 @@ Edges have `id`, `from`, `to`, and an optional `label`.
 
 An agent can:
 
-1. `cat board.wb.json` to understand the full board: what exists, where it is, how things connect.
+1. `cat board.wb.json` to understand the full board: what exists, where it is, how things connect. The `brief` field (if present) appears near the top of the file and gives immediate context about the board's purpose and the user's intentions.
 2. Follow `resource` paths to read or edit specific assets.
 3. Grep `buds/` for content across all bloomable assets.
 4. Understand the topology from `edges` without opening any other file.

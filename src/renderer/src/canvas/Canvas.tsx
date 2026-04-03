@@ -350,7 +350,7 @@ export function Canvas() {
     pendingDocumentAction === 'load'
       ? 'You have unsaved changes. Do you want to discard them and load another document?'
       : 'You have unsaved changes. Do you want to discard them and start fresh?'
-  const confirmDialogConfirmLabel = pendingDocumentAction === 'load' ? 'Load document' : 'Start new document'
+  const confirmDialogConfirmLabel = pendingDocumentAction === 'load' ? 'Load document' : 'New Document'
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]

@@ -1,26 +1,9 @@
 # Current Work 
 
-Quality of life (humans and agents)
+## Work Unit 1 - Board brief
 
-## Work Unit 1 - Snug nodes
+Add a `brief` field to the `.wb.json` board schema — a plain text string where the user writes context for agents reading the board (purpose, domain, constraints, preferences). Optional field; omitting it leaves the board fully valid.
 
-DONE.
+UI: a small toolbar anchored to the bottom-right of the canvas (visually light, doesn't compete with the board). It shows the current filename and a button/icon to open a compact panel with a textarea for the brief. A `?` icon or tooltip on that control explains: *"A message for AI agents — describe what this board is for, what context they should keep in mind, or how you'd like them to help."*
 
-Ctrl+T to trim the size of a text node to make it snugly fit the text content, if possible.
-
-
-## Work Unit 2 - Plain data
-
-DONE.
-
-Add a plain data field to the json for the text node, for LLMs. I was reading the output of lexical and it's a bit hard to parse. This is only useful for agents, not for humans.
-
-
-## Work Unit 3 - Remove default testing nodes on startup
-
-Self explanatory, those were just to test the app.
-
-
-## Work Unit 4 - Blank page
-
-Add a new icon to the bottom toolbar to start a new document.
+CoreData: `brief` sits at the top level of the board file, right after `version`, so agents encounter it first when reading the manifest.
