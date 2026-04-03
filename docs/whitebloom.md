@@ -87,7 +87,7 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
 
 ```json
 {
-  "version": 1,
+  "version": 3,
 
   "brief": "A board for exploring perfume concepts for a spring/summer fashion campaign targeting physically active teens to young adults. Keep current teen trends in mind when suggesting directions.",
 
@@ -98,6 +98,10 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
       "type": "markdown",
       "position": { "x": 300, "y": 200 },
       "size": { "w": 320, "h": 200 },
+      "created": "2026-04-03T10:00:00.000Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T10:00:00.000Z",
+      "updatedBy": "anon",
       "label": "Research notes",
       "resource": "blossoms/research.md"
     },
@@ -107,6 +111,10 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
       "type": "db-schema",
       "position": { "x": 800, "y": 200 },
       "size": { "w": 280, "h": 180 },
+      "created": "2026-04-03T10:05:00.000Z",
+      "createdBy": "mae",
+      "updatedAt": "2026-04-03T10:08:00.000Z",
+      "updatedBy": "mae",
       "label": "Users table",
       "resource": "blossoms/schema-1.json"
     },
@@ -116,6 +124,10 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
       "type": "text",
       "position": { "x": 550, "y": 50 },
       "size": { "w": 200, "h": 80 },
+      "created": "2026-04-03T10:10:00.000Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T10:12:00.000Z",
+      "updatedBy": "claude",
       "content": "TODO: revisit this connection"
     },
     {
@@ -189,7 +201,7 @@ Two flows bring external assets onto the board:
 
 | Field     | Required | Description |
 |-----------|----------|-------------|
-| `version` | yes      | Schema version |
+| `version` | yes      | Schema version. Current version is `3`. |
 | `brief`   | no       | Plain text context for agents — describes the board's purpose, domain, constraints, or preferences. Written by the user; read by agents as the first thing in the manifest. |
 | `nodes`   | yes      | Array of node objects |
 | `edges`   | yes      | Array of edge objects |
@@ -203,11 +215,17 @@ Two flows bring external assets onto the board:
 | `type`     | yes      | Asset type (e.g. `"markdown"`, `"db-schema"`, `"text"`, `"image"`) |
 | `position` | yes      | `{ x, y }` coordinates on the board |
 | `size`     | yes      | `{ w, h }` bounding box |
+| `created`  | yes      | ISO timestamp for when the node first entered the board |
+| `createdBy`| yes      | Username that created the node. Defaults to `"anon"` when no app username is configured. |
+| `updatedAt`| yes      | ISO timestamp for the most recent node write |
+| `updatedBy`| yes      | Username that performed the most recent node write |
 | `label`    | no       | Display name on the board |
 | `content`  | no       | Inline content for leaves (e.g. sticky note text) |
 | `resource` | no       | Relative path to the asset file (required for buds, optional for leaves) |
 
 Edges have `id`, `from`, `to`, and an optional `label`.
+
+Authorship is intentionally lightweight in v3. The board file stores per-node provenance (`createdBy`, `updatedBy`), while the app stores the active username globally in app settings rather than embedding a full user profile in each board.
 
 ### Why this works for LLM agents
 

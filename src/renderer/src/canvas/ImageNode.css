@@ -1,0 +1,14 @@
+.image-node {
+  contain: layout paint;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.image-node__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}

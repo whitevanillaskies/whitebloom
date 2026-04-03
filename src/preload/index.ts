@@ -12,6 +12,7 @@ const api = {
     ipcRenderer.invoke('board:save-to-path', filePath, json),
   loadBoard: (): Promise<{ ok: boolean; json?: string; filePath?: string }> =>
     ipcRenderer.invoke('board:load'),
+  openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
     ipcRenderer.invoke('app-settings:save', settings)

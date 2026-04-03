@@ -1,9 +1,21 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { dirname, join } from 'path'
+import { app, shell, BrowserWindow, ipcMain, dialog, protocol } from 'electron'
+import { dirname, join, extname } from 'path'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { normalizeAppSettings, type AppSettings } from '../shared/app-settings'
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'wb-file',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true
+    }
+  }
+])
 
 function getAppSettingsPath(): string {
   return join(app.getPath('userData'), 'settings.json')
@@ -75,6 +87,28 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  protocol.handle('wb-file', async (request) => {
+    const requestUrl = new URL(request.url)
+    const filePath = requestUrl.searchParams.get('p')
+    if (!filePath) return new Response('Bad Request', { status: 400 })
+
+    try {
+      const data = await readFile(filePath)
+      const ext = extname(filePath).toLowerCase().slice(1)
+      const mimeTypes: Record<string, string> = {
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+        gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+        bmp: 'image/bmp', ico: 'image/x-icon', tiff: 'image/tiff', tif: 'image/tiff',
+        avif: 'image/avif'
+      }
+      const contentType = mimeTypes[ext] ?? 'application/octet-stream'
+      return new Response(data, { headers: { 'Content-Type': contentType } })
+    } catch (err) {
+      console.error('[wb-file] Failed to read file:', filePath, err)
+      return new Response('Not Found', { status: 404 })
+    }
+  })
+
   ipcMain.handle('board:save-as', async (_event, json: string, currentFilePath?: string) => {
     const { filePath, canceled } = await dialog.showSaveDialog({
       title: 'Save board',
@@ -139,6 +173,8 @@ app.whenReady().then(() => {
   ipcMain.handle('app-settings:get', async () => {
     return await readAppSettings()
   })
+
+  ipcMain.handle('file:open', (_event, filePath: string) => shell.openPath(filePath))
 
   ipcMain.handle('app-settings:save', async (_event, settings: AppSettings) => {
     try {

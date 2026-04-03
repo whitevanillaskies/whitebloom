@@ -34,8 +34,10 @@ The file format. What exists on disk and what it means.
 - **Inbox format.** `board.inbox.json` sits alongside `board.wb.json`. It is a queue of agent proposals, each containing a `description`, a `rationale`, an `atomic` flag, and an array of serialized commands. This file is part of the spec — any compliant implementation must be able to read and write it.
 - **Directory conventions.** `blossoms/` for assets whose primary creation and editing path is whitebloom (internal-default modules). `res/` for assets that originate outside whitebloom and open in native apps (external-default modules: images, video, spreadsheets, documents). One file per asset. `res/.thumbs/` and `res/.inbox-snapshots/` hold auto-generated content; they are not part of the spec and should not be committed.
 - **Node semantics.** Buds (bloomable, always have a `resource`) vs leaves (inline, do not bloom).
-- **Field reference.** `id`, `kind`, `type`, `position`, `size`, `label`, `content`, `resource`. Edge fields: `id`, `from`, `to`, `label`.
-- **Versioning.** Schema version in the board file. Changing the schema is a breaking change.
+- **Field reference.** Board fields: `version`, `name`, `brief`, `nodes`, `edges`. Node fields: `id`, `kind`, `type`, `position`, `size`, `created`, `createdBy`, `updatedAt`, `updatedBy`, `label`, `content`, `resource`. Edge fields: `id`, `from`, `to`, `label`.
+- **Versioning.** Schema version in the board file. Current board schema version is `3`. Changing the schema is a breaking change.
+
+The user model remains app-level, not board-level, in v3. The board stores only string provenance fields on nodes; richer user data such as avatars or email belongs in app settings or a future identity layer, not in the board manifest.
 
 This layer is inert data. Any tool that can read JSON and traverse a directory can consume it. No behavior, no runtime, no framework.
 

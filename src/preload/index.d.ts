@@ -14,6 +14,7 @@ declare global {
         json: string
       ) => Promise<{ ok: boolean; filePath?: string }>
       loadBoard: () => Promise<{ ok: boolean; json?: string; filePath?: string }>
+      openFile: (filePath: string) => Promise<void>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
     }
