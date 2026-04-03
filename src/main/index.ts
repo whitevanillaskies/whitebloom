@@ -1,8 +1,30 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join } from 'path'
-import { readFile, writeFile } from 'fs/promises'
+import { dirname, join } from 'path'
+import { mkdir, readFile, writeFile } from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { normalizeAppSettings, type AppSettings } from '../shared/app-settings'
+
+function getAppSettingsPath(): string {
+  return join(app.getPath('userData'), 'settings.json')
+}
+
+async function readAppSettings(): Promise<AppSettings> {
+  try {
+    const json = await readFile(getAppSettingsPath(), 'utf-8')
+    return normalizeAppSettings(JSON.parse(json))
+  } catch {
+    return normalizeAppSettings(undefined)
+  }
+}
+
+async function writeAppSettings(settings: AppSettings): Promise<AppSettings> {
+  const normalized = normalizeAppSettings(settings)
+  const filePath = getAppSettingsPath()
+  await mkdir(dirname(filePath), { recursive: true })
+  await writeFile(filePath, JSON.stringify(normalized, null, 2), 'utf-8')
+  return normalized
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -111,6 +133,19 @@ app.whenReady().then(() => {
       return { ok: true, json, filePath }
     } catch {
       return { ok: false }
+    }
+  })
+
+  ipcMain.handle('app-settings:get', async () => {
+    return await readAppSettings()
+  })
+
+  ipcMain.handle('app-settings:save', async (_event, settings: AppSettings) => {
+    try {
+      const savedSettings = await writeAppSettings(settings)
+      return { ok: true, settings: savedSettings }
+    } catch {
+      return { ok: false, settings: normalizeAppSettings(settings) }
     }
   })
 

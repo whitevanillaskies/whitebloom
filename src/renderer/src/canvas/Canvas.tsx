@@ -10,6 +10,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useBoardStore } from '@renderer/stores/board'
+import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { TextNode } from './TextNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardTitle from '@renderer/components/board-title/BoardTitle'
@@ -53,6 +54,9 @@ export function Canvas() {
   const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
+  const username = useAppSettingsStore((s) => s.user.username)
+  const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
+  const updateUsername = useAppSettingsStore((s) => s.updateUsername)
 
   const { screenToFlowPosition } = useReactFlow()
 
@@ -70,6 +74,10 @@ export function Canvas() {
   const spacebarModeRef = useRef<'idle' | 'pressing' | 'tap-held'>('idle')
   const spacebarPreviousToolRef = useRef<Tool>('pointer')
   const spacebarPressTimeRef = useRef(0)
+
+  useEffect(() => {
+    void loadAppSettings()
+  }, [loadAppSettings])
 
   // Derive RF nodes from store
   const schemaNodes: RFNode[] = useMemo(
@@ -475,7 +483,9 @@ export function Canvas() {
         <SettingsModal
           name={boardName}
           brief={boardBrief}
+          username={username}
           onChange={updateBoardMeta}
+          onUsernameChange={(nextUsername) => void updateUsername(nextUsername)}
           onClose={() => setSettingsOpen(false)}
         />
       )}

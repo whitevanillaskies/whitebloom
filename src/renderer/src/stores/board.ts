@@ -5,6 +5,7 @@ import {
   type BoardNode,
   type WidthMode
 } from '@renderer/shared/types'
+import { DEFAULT_USERNAME, normalizeUsername } from '../../../shared/app-settings'
 
 type TextLayoutPatch = {
   content: string
@@ -12,10 +13,11 @@ type TextLayoutPatch = {
   wrapWidth?: number | null
 }
 
-type BoardNodeDraft = Omit<BoardNode, 'created' | 'updatedAt'> &
-  Partial<Pick<BoardNode, 'created' | 'updatedAt'>>
+type BoardNodeDraft = Omit<BoardNode, 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'> &
+  Partial<Pick<BoardNode, 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'>>
 
 type BoardState = Board & {
+  activeUsername: string
   isDirty: boolean
   addNode: (node: BoardNodeDraft) => void
   deleteNode: (id: string) => void
@@ -24,6 +26,7 @@ type BoardState = Board & {
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
   updateBoardMeta: (patch: { name?: string; brief?: string }) => void
+  setActiveUsername: (username: string) => void
   clearBoard: () => void
   markSaved: () => void
   loadBoard: (board: Board) => void
@@ -33,21 +36,35 @@ function isValidIsoTimestamp(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0
 }
 
-function normalizeNodeTimestamps(node: BoardNodeDraft, fallbackTimestamp: string): BoardNode {
+function normalizeNodeMetadata(
+  node: BoardNodeDraft,
+  fallbackTimestamp: string,
+  fallbackUsername: string
+): BoardNode {
   const created = isValidIsoTimestamp(node.created)
     ? node.created
     : isValidIsoTimestamp(node.updatedAt)
       ? node.updatedAt
       : fallbackTimestamp
   const updatedAt = isValidIsoTimestamp(node.updatedAt) ? node.updatedAt : created
+  const createdBy =
+    typeof node.createdBy === 'string' && node.createdBy.trim().length > 0
+      ? normalizeUsername(node.createdBy)
+      : typeof node.updatedBy === 'string' && node.updatedBy.trim().length > 0
+        ? normalizeUsername(node.updatedBy)
+        : fallbackUsername
+  const updatedBy =
+    typeof node.updatedBy === 'string' && node.updatedBy.trim().length > 0
+      ? normalizeUsername(node.updatedBy)
+      : createdBy
 
-  return { ...node, created, updatedAt }
+  return { ...node, created, createdBy, updatedAt, updatedBy }
 }
 
-function touchNode(node: BoardNode, timestamp: string): BoardNode {
-  const normalized = normalizeNodeTimestamps(node, timestamp)
-  if (normalized.updatedAt === timestamp) return normalized
-  return { ...normalized, updatedAt: timestamp }
+function touchNode(node: BoardNode, timestamp: string, username: string): BoardNode {
+  const normalized = normalizeNodeMetadata(node, timestamp, username)
+  if (normalized.updatedAt === timestamp && normalized.updatedBy === username) return normalized
+  return { ...normalized, updatedAt: timestamp, updatedBy: username }
 }
 
 export const useBoardStore = create<BoardState>((set) => ({
@@ -56,13 +73,15 @@ export const useBoardStore = create<BoardState>((set) => ({
   brief: undefined,
   nodes: [],
   edges: [],
+  activeUsername: DEFAULT_USERNAME,
   isDirty: false,
 
   addNode: (node) =>
     set((state) => {
       const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
       return {
-        nodes: [...state.nodes, normalizeNodeTimestamps(node, timestamp)],
+        nodes: [...state.nodes, normalizeNodeMetadata(node, timestamp, username)],
         isDirty: true
       }
     }),
@@ -88,11 +107,12 @@ export const useBoardStore = create<BoardState>((set) => ({
     set((state) => {
       let changed = false
       const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
       const nodes = state.nodes.map((n) => {
         if (n.id !== id) return n
         if (n.position.x === x && n.position.y === y) return n
         changed = true
-        return { ...touchNode(n, timestamp), position: { x, y } }
+        return { ...touchNode(n, timestamp, username), position: { x, y } }
       })
       return changed ? { nodes, isDirty: true } : state
     }),
@@ -101,11 +121,12 @@ export const useBoardStore = create<BoardState>((set) => ({
     set((state) => {
       let changed = false
       const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
       const nodes = state.nodes.map((n) => {
         if (n.id !== id) return n
         if (n.size.w === w && n.size.h === h) return n
         changed = true
-        return { ...touchNode(n, timestamp), size: { w, h } }
+        return { ...touchNode(n, timestamp, username), size: { w, h } }
       })
       return changed ? { nodes, isDirty: true } : state
     }),
@@ -114,6 +135,7 @@ export const useBoardStore = create<BoardState>((set) => ({
     set((state) => {
       let changed = false
       const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
       const nodes = state.nodes.map((n) => {
         if (n.id !== id) return n
 
@@ -130,7 +152,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         }
 
         changed = true
-        return { ...touchNode(n, timestamp), ...patch, updatedAt: timestamp }
+        return { ...touchNode(n, timestamp, username), ...patch, updatedAt: timestamp }
       })
 
       return changed ? { nodes, isDirty: true } : state
@@ -144,6 +166,8 @@ export const useBoardStore = create<BoardState>((set) => ({
       if (Object.keys(updates).length === 0) return state
       return { ...updates, isDirty: true }
     }),
+
+  setActiveUsername: (username) => set({ activeUsername: normalizeUsername(username) }),
 
   clearBoard: () =>
     set((state) => {
@@ -160,7 +184,9 @@ export const useBoardStore = create<BoardState>((set) => ({
         version: CURRENT_BOARD_VERSION,
         name: board.name,
         brief: board.brief,
-        nodes: board.nodes.map((node) => normalizeNodeTimestamps(node, fallbackTimestamp)),
+        nodes: board.nodes.map((node) =>
+          normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME)
+        ),
         edges: board.edges,
         isDirty: false
       }

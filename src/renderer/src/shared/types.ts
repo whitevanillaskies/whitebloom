@@ -2,7 +2,7 @@ export type Position = { x: number; y: number }
 export type Size = { w: number; h: number }
 export type WidthMode = 'auto' | 'fixed'
 
-export const CURRENT_BOARD_VERSION = 2
+export const CURRENT_BOARD_VERSION = 3
 
 export type BoardNode = {
   id: string
@@ -11,7 +11,9 @@ export type BoardNode = {
   position: Position
   size: Size
   created: string
+  createdBy: string
   updatedAt: string
+  updatedBy: string
   label?: string
   content?: string // Lexical EditorState JSON
   plain?: string // Plain-text mirror of content for agents/LLMs

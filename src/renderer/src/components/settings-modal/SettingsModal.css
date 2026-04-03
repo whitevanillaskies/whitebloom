@@ -14,7 +14,7 @@
   position: relative;
   display: flex;
   width: min(600px, calc(100vw - 48px));
-  height: min(420px, calc(100vh - 80px));
+  height: min(460px, calc(100vh - 80px));
   border-radius: var(--radius-border-frame);
   border: 1px solid rgba(255, 255, 255, 0.36);
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.97), rgba(244, 244, 246, 0.94));

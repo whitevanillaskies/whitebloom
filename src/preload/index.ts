@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { AppSettings } from '../shared/app-settings'
 
 const api = {
   saveBoardAs: (
@@ -10,7 +11,10 @@ const api = {
   saveBoardToPath: (filePath: string, json: string): Promise<{ ok: boolean; filePath?: string }> =>
     ipcRenderer.invoke('board:save-to-path', filePath, json),
   loadBoard: (): Promise<{ ok: boolean; json?: string; filePath?: string }> =>
-    ipcRenderer.invoke('board:load')
+    ipcRenderer.invoke('board:load'),
+  loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
+  saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
+    ipcRenderer.invoke('app-settings:save', settings)
 }
 
 if (process.contextIsolated) {

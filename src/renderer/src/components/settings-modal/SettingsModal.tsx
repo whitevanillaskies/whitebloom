@@ -4,16 +4,28 @@ import './SettingsModal.css'
 type Props = {
   name: string | undefined
   brief: string | undefined
+  username: string
   onChange: (patch: { name?: string; brief?: string }) => void
+  onUsernameChange: (username: string) => void
   onClose: () => void
 }
 
-type Section = 'general'
+type Section = 'board' | 'app'
 
-const SECTIONS: { id: Section; label: string }[] = [{ id: 'general', label: 'General' }]
+const SECTIONS: { id: Section; label: string }[] = [
+  { id: 'board', label: 'Board' },
+  { id: 'app', label: 'App' }
+]
 
-export default function SettingsModal({ name, brief, onChange, onClose }: Props) {
-  const [activeSection, setActiveSection] = useState<Section>('general')
+export default function SettingsModal({
+  name,
+  brief,
+  username,
+  onChange,
+  onUsernameChange,
+  onClose
+}: Props) {
+  const [activeSection, setActiveSection] = useState<Section>('board')
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -39,7 +51,7 @@ export default function SettingsModal({ name, brief, onChange, onClose }: Props)
         className="settings-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Board settings"
+        aria-label="Settings"
       >
         <nav className="settings-modal__sidebar">
           <span className="settings-modal__sidebar-heading">Settings</span>
@@ -56,8 +68,9 @@ export default function SettingsModal({ name, brief, onChange, onClose }: Props)
         </nav>
 
         <div className="settings-modal__content">
-          {activeSection === 'general' && (
-            <GeneralSection name={name} brief={brief} onChange={onChange} />
+          {activeSection === 'board' && <BoardSection name={name} brief={brief} onChange={onChange} />}
+          {activeSection === 'app' && (
+            <AppSection username={username} onUsernameChange={onUsernameChange} />
           )}
         </div>
 
@@ -74,7 +87,7 @@ export default function SettingsModal({ name, brief, onChange, onClose }: Props)
   )
 }
 
-function GeneralSection({
+function BoardSection({
   name,
   brief,
   onChange
@@ -85,7 +98,7 @@ function GeneralSection({
 }) {
   return (
     <div className="settings-section">
-      <h2 className="settings-section__title">General</h2>
+      <h2 className="settings-section__title">Board</h2>
 
       <div className="settings-field">
         <label className="settings-field__label" htmlFor="settings-board-name">
@@ -116,6 +129,37 @@ function GeneralSection({
           placeholder="This board is for…"
           rows={6}
           onChange={(e) => onChange({ brief: e.target.value })}
+        />
+      </div>
+    </div>
+  )
+}
+
+function AppSection({
+  username,
+  onUsernameChange
+}: {
+  username: string
+  onUsernameChange: Props['onUsernameChange']
+}) {
+  return (
+    <div className="settings-section">
+      <h2 className="settings-section__title">App</h2>
+
+      <div className="settings-field">
+        <label className="settings-field__label" htmlFor="settings-app-username">
+          Username
+          <span className="settings-field__label-hint">
+            Stored once for the app and used for node authorship metadata across all boards.
+          </span>
+        </label>
+        <input
+          id="settings-app-username"
+          className="settings-field__input"
+          type="text"
+          value={username}
+          placeholder="anon"
+          onChange={(e) => onUsernameChange(e.target.value)}
         />
       </div>
     </div>
