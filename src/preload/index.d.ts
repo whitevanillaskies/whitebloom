@@ -17,6 +17,8 @@ declare global {
       openFile: (filePath: string) => Promise<void>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
+      onCloseRequested: (cb: () => void) => () => void
+      confirmClose: () => void
     }
   }
 }

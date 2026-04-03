@@ -56,6 +56,11 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  mainWindow.on('close', (e) => {
+    e.preventDefault()
+    mainWindow.webContents.send('app:close-requested')
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -183,6 +188,11 @@ app.whenReady().then(() => {
     } catch {
       return { ok: false, settings: normalizeAppSettings(settings) }
     }
+  })
+
+  ipcMain.on('app:confirm-close', () => {
+    const [win] = BrowserWindow.getAllWindows()
+    if (win) win.destroy()
   })
 
   createWindow()

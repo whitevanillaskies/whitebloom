@@ -121,7 +121,7 @@ export function Canvas() {
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
-  const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | null>(null)
+  const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | 'exit' | null>(null)
   const [currentBoardFilePath, setCurrentBoardFilePath] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [imageDropError, setImageDropError] = useState<string | null>(null)
@@ -138,6 +138,16 @@ export function Canvas() {
   useEffect(() => {
     void loadAppSettings()
   }, [loadAppSettings])
+
+  useEffect(() => {
+    return window.api.onCloseRequested(() => {
+      if (isDirty) {
+        setPendingDocumentAction('exit')
+      } else {
+        window.api.confirmClose()
+      }
+    })
+  }, [isDirty])
 
   // Derive RF nodes from store
   const schemaNodes: RFNode[] = useMemo(
@@ -430,6 +440,9 @@ export function Canvas() {
       startNewBoard()
     } else if (pendingDocumentAction === 'load') {
       void handleLoad()
+    } else if (pendingDocumentAction === 'exit') {
+      window.api.confirmClose()
+      return
     }
 
     setPendingDocumentAction(null)
@@ -439,12 +452,24 @@ export function Canvas() {
     setPendingDocumentAction(null)
   }, [])
 
-  const confirmDialogTitle = pendingDocumentAction === 'load' ? 'Load a document?' : 'Start a new document?'
+  const confirmDialogTitle =
+    pendingDocumentAction === 'load'
+      ? 'Load a document?'
+      : pendingDocumentAction === 'exit'
+        ? 'Exit without saving?'
+        : 'Start a new document?'
   const confirmDialogBody =
     pendingDocumentAction === 'load'
       ? 'You have unsaved changes. Do you want to discard them and load another document?'
-      : 'You have unsaved changes. Do you want to discard them and start fresh?'
-  const confirmDialogConfirmLabel = pendingDocumentAction === 'load' ? 'Load document' : 'New Document'
+      : pendingDocumentAction === 'exit'
+        ? 'You have unsaved changes. Do you want to discard them and exit?'
+        : 'You have unsaved changes. Do you want to discard them and start fresh?'
+  const confirmDialogConfirmLabel =
+    pendingDocumentAction === 'load'
+      ? 'Load document'
+      : pendingDocumentAction === 'exit'
+        ? 'Exit'
+        : 'New Document'
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]

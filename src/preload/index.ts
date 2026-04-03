@@ -15,7 +15,13 @@ const api = {
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
-    ipcRenderer.invoke('app-settings:save', settings)
+    ipcRenderer.invoke('app-settings:save', settings),
+  onCloseRequested: (cb: () => void): (() => void) => {
+    const listener = () => cb()
+    ipcRenderer.on('app:close-requested', listener)
+    return () => ipcRenderer.off('app:close-requested', listener)
+  },
+  confirmClose: (): void => ipcRenderer.send('app:confirm-close')
 }
 
 if (process.contextIsolated) {
