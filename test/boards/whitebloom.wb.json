@@ -92,41 +92,20 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1505.7263463216934,
-        "y": -276.27919119728074
+        "x": 1382.1081663336438,
+        "y": -236.23386528565905
       },
       "size": {
         "w": 409,
         "h": 175
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Current Sprint\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"For V1, we're targeting the bare minimum whiteboard native assets before focusing on blossoms. We already have rich text working, and we're aiming to implement the following:\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Image embedding\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Relationships/edges between nodes\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Groups\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":3}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Current Work\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"For V1, we're targeting the bare minimum whiteboard native assets before focusing on blossoms. We already have rich text working, and we're aiming to implement the following:\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Relationships/edges between nodes\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Groups\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "fixed",
       "wrapWidth": 409,
-      "plain": "Current Sprint\nFor V1, we're targeting the bare minimum whiteboard native assets before focusing on blossoms. We already have rich text working, and we're aiming to implement the following:\nImage embedding\nRelationships/edges between nodes\nGroups",
+      "plain": "Current Work\nFor V1, we're targeting the bare minimum whiteboard native assets before focusing on blossoms. We already have rich text working, and we're aiming to implement the following:\nRelationships/edges between nodes\nGroups",
       "created": "2026-04-03T14:04:13.382Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T14:05:01.459Z",
-      "updatedBy": "anon"
-    },
-    {
-      "id": "7998a5d0-231c-4b67-96a8-696bfebf218c",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 1593.1062770832834,
-        "y": -46.36114727964552
-      },
-      "size": {
-        "w": 571,
-        "h": 63
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Working on Now\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h3\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"App settings to the settings pane.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 571,
-      "plain": "Working on Now\nApp settings to the settings pane.",
-      "created": "2026-04-03T14:04:13.382Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-03T14:04:13.382Z",
+      "updatedAt": "2026-04-03T15:43:57.753Z",
       "updatedBy": "anon"
     },
     {
@@ -149,6 +128,237 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-03T14:04:13.382Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "c1044cdb-bcf8-4e05-a2cd-ef12830b9147",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1591.8134906412774,
+        "y": -10.553586971294692
+      },
+      "size": {
+        "w": 438,
+        "h": 663
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Ideas\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Comic book format support\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Comic book format support. I believe that there's a file format (I know, because I've used it, I just don't remember which) that bundles entire comics. Then we can show the cover page and double clicking opens it in the native system app\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Arbitrary Docs\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Not part of the module system. As part of the UI (Not the HEP), allow, for humans only, dropping unsupported assets (for example, .blend files). This creates a Document node. This is a native node that may not be usable by agents. This node either shows a file icon or just a generic document icon, it is not copied to the workspace, it's linked to wherever it is on disk, and the only functionality is double clicking to open in the native app. By wrapping it into a node what we can do is support grouping and edges (when we implement them).\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Tools palette\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Hitting tab on the canvas when not editing anything should bring up a palette with all the tools. This is required because if we were to support multiple modules as we want, then adding them all to a toolbar would be unwieldy. We could have an \\\"add tool to toolbar\\\" like the Apple bar at the bottom of the screen, but all tools should be accessible via the finder.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Native alerts\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Get claude to copy the chat over when session limits reset.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"IA Writer\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"A really minimal note asset that gets out of your way. Screen whites out, you only focus one paragraph at a time which is always centered. Previous paragraphs show up on top, somewhat greyed out, after hitting enter. No rich text. Could be diffed by highlighting AI additions.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 438,
+      "created": "2026-04-03T15:54:10.083Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:29:27.433Z",
+      "updatedBy": "anon",
+      "plain": "Ideas\nComic book format support\nComic book format support. I believe that there's a file format (I know, because I've used it, I just don't remember which) that bundles entire comics. Then we can show the cover page and double clicking opens it in the native system app\nArbitrary Docs\nNot part of the module system. As part of the UI (Not the HEP), allow, for humans only, dropping unsupported assets (for example, .blend files). This creates a Document node. This is a native node that may not be usable by agents. This node either shows a file icon or just a generic document icon, it is not copied to the workspace, it's linked to wherever it is on disk, and the only functionality is double clicking to open in the native app. By wrapping it into a node what we can do is support grouping and edges (when we implement them).\nTools palette\nHitting tab on the canvas when not editing anything should bring up a palette with all the tools. This is required because if we were to support multiple modules as we want, then adding them all to a toolbar would be unwieldy. We could have an \"add tool to toolbar\" like the Apple bar at the bottom of the screen, but all tools should be accessible via the finder.\nNative alerts\nGet claude to copy the chat over when session limits reset.\nIA Writer\nA really minimal note asset that gets out of your way. Screen whites out, you only focus one paragraph at a time which is always centered. Previous paragraphs show up on top, somewhat greyed out, after hitting enter. No rich text. Could be diffed by highlighting AI additions."
+    },
+    {
+      "id": "99853a14-bfa9-4665-b908-61a8a5243673",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2114.8135149650498,
+        "y": 20.508911089905023
+      },
+      "size": {
+        "w": 406,
+        "h": 93
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"UX bug (kind of). A large vertical note will get framed to the center, which sort of limits the total space. What we need to do is not count the top edge as part of the \\\"out of screen\\\" check\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 406,
+      "created": "2026-04-03T16:43:22.337Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T16:44:09.629Z",
+      "updatedBy": "anon",
+      "plain": "UX bug (kind of). A large vertical note will get framed to the center, which sort of limits the total space. What we need to do is not count the top edge as part of the \"out of screen\" check"
+    },
+    {
+      "id": "81fc666b-78d2-4fd0-932e-e3113883343f",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2164.0382291628,
+        "y": 230.45134129421396
+      },
+      "size": {
+        "w": 26,
+        "h": 19
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Groups and folders. Maybe groups are folders inside the filesystem?\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Also, maybe namespacing via intermediate dirs different asset /blossoms/db_schema/the_asset.json\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 439,
+      "created": "2026-04-03T17:29:28.854Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:30:23.712Z",
+      "updatedBy": "anon",
+      "plain": "Groups and folders. Maybe groups are folders inside the filesystem?\nAlso, maybe namespacing via intermediate dirs different asset /blossoms/db_schema/the_asset.json"
+    },
+    {
+      "id": "5ff7b388-07c0-4cc0-a01c-e27440d47c55",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2183.566101197749,
+        "y": 395.86390441378694
+      },
+      "size": {
+        "w": 26,
+        "h": 19
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Script/Story writing assets\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Something like Final Draft + Scrivener.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Screenplay assets shouldn't be that hard to do. They're fairly structured by design.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"The nice thing about Scrivener is the folders and arrangements, surely some self proclaimed \\\"operating system for knowledge\\\" should have a feature like that\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 419,
+      "created": "2026-04-03T17:30:42.888Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:31:58.434Z",
+      "updatedBy": "anon",
+      "plain": "Script/Story writing assets\nSomething like Final Draft + Scrivener.\nScreenplay assets shouldn't be that hard to do. They're fairly structured by design.\nThe nice thing about Scrivener is the folders and arrangements, surely some self proclaimed \"operating system for knowledge\" should have a feature like that"
+    },
+    {
+      "id": "76868900-a897-499c-9c8c-c491657b3f9a",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2196.944976107833,
+        "y": 630.8601242999521
+      },
+      "size": {
+        "w": 26,
+        "h": 19
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Install courier prime font, don't use courier new, and prime looks better than standard courier\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 466,
+      "created": "2026-04-03T17:33:26.699Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:33:40.975Z",
+      "updatedBy": "anon",
+      "plain": "Install courier prime font, don't use courier new, and prime looks better than standard courier"
+    },
+    {
+      "id": "ef501a7b-932e-4ae7-ac17-06957cff7638",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2700.067231353916,
+        "y": 431.9206965851114
+      },
+      "size": {
+        "w": 26,
+        "h": 19
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"The interesting thing is this: nodes/blooms (modules) can handle the same file format. There's really two primary formats: plain text, or formatted plain text (json). Think about this: we can have \\\"markdown:screenplay\\\" or \\\"markdown:code-review\\\". \",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 441,
+      "created": "2026-04-03T17:35:42.159Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:37:46.528Z",
+      "updatedBy": "anon",
+      "plain": "The interesting thing is this: nodes/blooms (modules) can handle the same file format. There's really two primary formats: plain text, or formatted plain text (json). Think about this: we can have \"markdown:screenplay\" or \"markdown:code-review\"."
+    },
+    {
+      "id": "065d3de2-3a3c-43ec-94cb-eea30b1ee03a",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2705.8107231289014,
+        "y": 575.5079909597406
+      },
+      "size": {
+        "w": 26,
+        "h": 19
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"For Scrivener stuff, each node can be a folder. The outline can be left empty and thus the node renders the first n characters of the content. If the outline is not empty the whiteboard node renders that (with a character limit like X)\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 417,
+      "created": "2026-04-03T17:36:58.306Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:37:48.260Z",
+      "updatedBy": "anon",
+      "plain": "For Scrivener stuff, each node can be a folder. The outline can be left empty and thus the node renders the first n characters of the content. If the outline is not empty the whiteboard node renders that (with a character limit like X)"
+    },
+    {
+      "id": "6c62444e-b722-40b2-8082-bc8dcf1ee861",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2686.282851093952,
+        "y": 43.66065259611372
+      },
+      "size": {
+        "w": 446,
+        "h": 346
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"On save (or as a background job while working, whatever is fastest), spatial clustering of nodes. A service scans the size of each node and how close other nodes are, and groups them into agentic clusters. This is all agentic metadata, just like the brief entry. So we could have spatial clusters as an array of arrays (each array a cluster). Alternatively, each cluster could be not an array but a JSON object with an array and metadata. Perhaps, \\\"what this cluster means to an LLM\\\". Another option is to have agentic and spatial clusters. Spatial clusters are simply \\\"these nodes are so close together that they may be related\\\" while agentic clusters are \\\"an agent looked at the board and figured out these groupings, for this reason\\\". The problem of agentic clusters is that they would require an actual agentic service to be connected. So even if we want to support this, it should be fully optional.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Ideally when an agent detects a cluster it could send a notification via the tool, \\\"I propose this cluster of information, does it align with your view of the data?\\\"\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 446,
+      "created": "2026-04-03T17:37:49.030Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:46:58.199Z",
+      "updatedBy": "anon",
+      "plain": "On save (or as a background job while working, whatever is fastest), spatial clustering of nodes. A service scans the size of each node and how close other nodes are, and groups them into agentic clusters. This is all agentic metadata, just like the brief entry. So we could have spatial clusters as an array of arrays (each array a cluster). Alternatively, each cluster could be not an array but a JSON object with an array and metadata. Perhaps, \"what this cluster means to an LLM\". Another option is to have agentic and spatial clusters. Spatial clusters are simply \"these nodes are so close together that they may be related\" while agentic clusters are \"an agent looked at the board and figured out these groupings, for this reason\". The problem of agentic clusters is that they would require an actual agentic service to be connected. So even if we want to support this, it should be fully optional.\nIdeally when an agent detects a cluster it could send a notification via the tool, \"I propose this cluster of information, does it align with your view of the data?\""
+    },
+    {
+      "id": "4a3eee4c-3061-44b9-a76e-6019257ef16b",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1948.7117945575176,
+        "y": 727.161510384342
+      },
+      "size": {
+        "w": 475,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Latex or just tex support, must have if we want adoption by scientists\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-03T17:53:02.142Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:53:16.516Z",
+      "updatedBy": "anon",
+      "plain": "Latex or just tex support, must have if we want adoption by scientists"
+    },
+    {
+      "id": "ebc0991d-51c2-4218-9df8-84333686116d",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 3189.605706989763,
+        "y": 224.38186209893405
+      },
+      "size": {
+        "w": 369,
+        "h": 78
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"If we were to embed an agent in the UI, I like of like pi.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"https://github.com/badlogic/pi-mono/tree/main\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-03T17:59:00.737Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T17:59:16.156Z",
+      "updatedBy": "anon",
+      "plain": "If we were to embed an agent in the UI, I like of like pi.\nhttps://github.com/badlogic/pi-mono/tree/main"
+    },
+    {
+      "id": "6181296f-7d0b-4735-9af0-2a72cea193b7",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1767.5028745980985,
+        "y": -1035.2149508856971
+      },
+      "size": {
+        "w": 446,
+        "h": 232
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Marketing / Publicity\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"I think to tell potential users about the software, what we could do is something like project-based tutorials. For example, something like:\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"School Project: how to use it to organize a project\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"News article: how to prepare a new article, research, write, etc.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Programming project\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":3},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Research project\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":4},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Managing clients\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":5}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 446,
+      "created": "2026-04-03T18:00:30.568Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-03T18:02:35.084Z",
+      "updatedBy": "anon",
+      "plain": "Marketing / Publicity\nI think to tell potential users about the software, what we could do is something like project-based tutorials. For example, something like:\nSchool Project: how to use it to organize a project\nNews article: how to prepare a new article, research, write, etc.\nProgramming project\nResearch project\nManaging clients"
     }
   ],
   "edges": []

@@ -6,7 +6,8 @@ import {
   type NodeChange,
   applyNodeChanges,
   Panel,
-  useReactFlow
+  useReactFlow,
+  MiniMap
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useBoardStore } from '@renderer/stores/board'
@@ -587,6 +588,7 @@ export function Canvas() {
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+        <MiniMap nodeStrokeWidth={1} zoomable pannable />
         <Panel position="top-left">
           <BoardTitle
             name={boardName}
