@@ -1,18 +1,16 @@
 .slash-menu {
   position: fixed;
   z-index: 9999;
-  min-width: 160px;
+  min-width: 135px;
   padding: 4px;
   border-radius: var(--radius-border-frame);
   border: 1px solid rgba(255, 255, 255, 0.24);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.82));
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(248, 250, 252, 0.36));
+  backdrop-filter: blur(5px) saturate(140%);
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.14),
     0 2px 6px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.52);
-  max-height: 260px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
