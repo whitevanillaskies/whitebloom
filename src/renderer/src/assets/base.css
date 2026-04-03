@@ -33,6 +33,34 @@
   src: url("./fonts/SourceSerif4-Italic-VariableFont_opsz,wght.ttf") format("truetype");
 }
 
+@font-face {
+  font-family: "Courier Prime";
+  src: url("./fonts/CourierPrime-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("./fonts/CourierPrime-Italic.ttf") format("truetype");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("./fonts/CourierPrime-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("./fonts/CourierPrime-BoldItalic.ttf") format("truetype");
+  font-weight: bold;
+  font-style: italic;
+}
+
 :root {
   --color-primary-bg: #fcfcfc;
   --color-primary-fg: #2b2b2b;
