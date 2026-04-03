@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "name": "my board",
+  "brief": "testing, that's it.",
   "nodes": [
     {
       "id": "3a0939f8-f468-43aa-9f4d-3e3828dc4875",

@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "name": "WHITEBLOOM",
+  "brief": "Eating my own dog food. This board will be used to develop the app with which we build the board. We use the app to design the app. I would like to ask you, the agent reading this, to think of features you'd like to have if you were to be tasked with reasoning about such a board. This brief is one such \"LLM agent as a first class citizen\" feature.",
   "nodes": [
     {
       "id": "5fc3f1b2-160d-435e-a3d6-e7d943dbd28a",

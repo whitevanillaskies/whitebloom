@@ -31,7 +31,7 @@ Whitebloom can be both an app and an open specification. The CoreData schema and
 The file format. What exists on disk and what it means.
 
 - **Board format.** The `.wb.json` schema: nodes, edges, version, field semantics.
-- **Directory conventions.** `blossoms/` for bloomable assets, `res/` for media. One file per asset.
+- **Directory conventions.** `blossoms/` for assets whose primary creation and editing path is whitebloom (internal-default modules). `res/` for assets that originate outside whitebloom and open in native apps (external-default modules: images, video, spreadsheets, documents). One file per asset. `res/.thumbs/` holds auto-generated previews; it is not part of the spec and should not be committed.
 - **Node semantics.** Buds (bloomable, always have a `resource`) vs leaves (inline, do not bloom).
 - **Field reference.** `id`, `kind`, `type`, `position`, `size`, `label`, `content`, `resource`. Edge fields: `id`, `from`, `to`, `label`.
 - **Versioning.** Schema version in the board file. Changing the schema is a breaking change.
@@ -59,7 +59,7 @@ interface HostEditorProtocol<T> {
 ### What HEP covers
 
 - **Read/save contract.** How a consumer reads bud data and writes it back. Serialization format per file extension.
-- **Watch/change notification.** How a consumer learns that an external actor modified a resource.
+- **Watch/change notification.** How a consumer learns that an external actor modified a resource. This is the coupling point between native apps and the board: when a user edits a `.xlsx` in Excel and saves, the file watcher fires, the board thumbnail refreshes, and agent shells pick up the change. Watch is not optional for external-default modules.
 - **Lock protocol.** How a consumer acquires exclusive write access. Stale lock expiry. Cooperative locking with git as the adversarial fallback.
 - **Type discovery.** How a consumer determines what type a bud is and whether a handler is available.
 - **Shell protocol.** How an agent discovers and consumes a module's agentic interface — reading `module_agents.md`, listing available lenses, invoking skills.
@@ -75,7 +75,8 @@ The framework-independent parts of a module belong here:
 - `id` — unique identifier (e.g. `"com.whitebloom.markdown"`)
 - `type` — the bud type this module handles
 - `fileExtension` — e.g. `.md`, `.json`
-- `createDefault()` — returns default data for a new bud of this type
+- `defaultRenderer` — `'internal'` or `'external'`. Declares whether the bloom action opens an in-app editor or the OS default app. Overridable per type in `whitebloom.config.json`.
+- `createDefault()` — returns default data for a new bud of this type. External modules may return `null` — they reference existing files rather than creating new ones.
 
 ### Shell contract
 
@@ -117,17 +118,24 @@ Binding specs are community-driven. Whoever builds a viewer for a new platform w
 A symbiotic module ships as a single package with layers separated:
 
 ```
-whitebloom-markdown/
+whitebloom-markdown/           # internal-default module
   core/         # createDefault, validation, schema — CoreData level
   agents/       # Shell — lenses, skills, module_agents.md — HEP level
   protocol/     # read/save handlers, transforms — HEP level
   react/        # Editor component — React binding
   svelte/       # Editor component — Svelte binding
+
+whitebloom-image/              # external-default module
+  core/         # defaultRenderer: 'external', fileExtension, validation
+  agents/       # Shell — lenses for agent image description, alt-text skill
+  protocol/     # read() returns parsed metadata; transforms .xlsx → JSON, etc.
+  # no react/ or svelte/ needed — bloom action calls openExternal
 ```
 
 - An LLM agent imports `core/`, `protocol/`, and `agents/`.
 - A React viewer imports `core/`, `protocol/`, `agents/`, and `react/`.
 - A Svelte viewer imports `core/`, `protocol/`, `agents/`, and `svelte/`.
+- An external-default module omits framework bindings entirely — the bloom action is handled by the host, not the module.
 
 Shared logic is not duplicated. UI is swappable. The shell (`agents/`) is universal.
 

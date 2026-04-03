@@ -7,6 +7,8 @@ The same can be done for a video node. Or a code node. The idea is that whiteblo
 
 This process of showing a modal window from a node would be called blooming, as in the node blooms into the modal.
 
+Not every bloom is an in-app editor. An image node blooms by opening the system photo viewer. A video node opens mpv or VLC. A spreadsheet opens Excel. Blooming routes to whatever handles the asset best — in-app when whitebloom has a meaningful editor, native when a dedicated external app wins. Users can override this per type. In all cases, whitebloom retains the organizational layer: the node on the board, its connections, its thumbnail, its place in the graph.
+
 Thus it's a whiteboard that blooms. Not everything has to bloom. A plain text node on the whiteboard is just a plain text node, like it's on Miro.
 
 
@@ -21,6 +23,7 @@ The core principles:
 - **Text as the universal interface.** Assets are text files wherever possible. This is what makes Whitebloom meaningfully different from tools like Notion or Obsidian, which are databases dressed up as files.
 - **Symbiosis between human and machine.** Modules present two faces — one toward the human (the editor), one toward the agent (the shell). Both are native citizens operating on shared ground. Whitebloom is not a tool for humans that tolerates agents, or an agentic system with a human UI bolted on. It is an environment where both work as peers.
 - **Unknown is not broken.** If no editor is registered for an asset type, the node renders as a generic placeholder. If no shell is registered, agents skip the asset. Unknown types do not cause errors or corruption — they are simply unhandled. The board always remains valid.
+- **Render is not edit.** Whitebloom always owns the board-level representation of an asset: the thumbnail, the preview, the node in the graph. Whitebloom does not have to own the edit action. A module declares whether it handles editing internally or delegates to a native app. The board preview is never delegated.
 
 ### Spec-native vs extern modules
 
@@ -29,6 +32,24 @@ The core principles:
 **Extern** modules treat the asset file as a pointer or stub — the real data lives elsewhere (a database, an API, a remote service). Extern modules opt out of the core guarantees explicitly. The `resource` field in the board schema still points to whatever the module needs — a file path, a connection string, a URI. The schema does not annotate the distinction; the module knows what its `resource` means, just as a Unix file path can point to a regular file, a socket, or a device without the directory entry saying which.
 
 Both are valid. The distinction lives in documentation and tooling, not in the schema.
+
+### Internal vs extern rendering
+
+Every module declares a `defaultRenderer`:
+
+- **`internal`** — the bloom action opens whitebloom's own editor in a modal. The module ships a UI component. Markdown, DB schemas, code, and other formats whitebloom curates are internal by default.
+- **`external`** — the bloom action opens the file in the OS default app for that type (`shell.openPath`). Images open in the system photo viewer. Videos open in the user's media player. Spreadsheets open in Excel or LibreOffice. No in-app editor is needed.
+
+Users can override `defaultRenderer` per type in their project config. A programmer who prefers vim for markdown flips it to `external` — they get vim on double-click. A notary who has Word installed leaves `.docx` as external. The default serves most users; the override serves everyone else.
+
+Right-clicking any node always shows **Open With Native Editor** in the context menu, regardless of `defaultRenderer`. This is an escape hatch — it never conflicts with the default, it just supplements it.
+
+The `blossoms/` and `res/` directories reflect this split at the filesystem level:
+
+- `blossoms/` contains assets whose primary creation and editing path is whitebloom. These are internal-by-default modules: markdown documents, DB schemas, structured data whitebloom defines.
+- `res/` contains assets that originate outside whitebloom and are referenced by nodes. Images dragged onto the board, videos linked from disk, spreadsheets, PDFs — all land in `res/`. Whitebloom reads and previews them; external apps edit them.
+
+A file's directory is determined by its module's `defaultRenderer`. Internal modules write to `blossoms/`. External modules copy to `res/`.
 
 
 ## LLM friendly CoreData
@@ -52,9 +73,10 @@ project/
     schema-1.json
     research.md
     procedure-1.json
-  res/                 # Media assets (images, videos, etc.)
-    diagram.png
+  res/                 # External assets — images, videos, spreadsheets, docs
+    diagram.png        # Files that originate outside whitebloom and open in native apps
     photo.jpg
+    .thumbs/           # Auto-generated low-res previews (internal, not committed)
 ```
 
 The `.wb.json` extension signals "Whitebloom board" while remaining parseable by any JSON tool. The `blossoms/` directory contains only assets that bloom into editors. The `res/` directory contains media referenced by nodes.
@@ -96,10 +118,11 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
     },
     {
       "id": "node-4",
-      "kind": "leaf",
+      "kind": "bud",
       "type": "image",
       "position": { "x": 550, "y": 500 },
       "size": { "w": 400, "h": 300 },
+      "label": "System diagram",
       "resource": "res/diagram.png"
     }
   ],
@@ -121,11 +144,42 @@ Type should be registered via the module system. A module should be able to hand
 
 ### Node types
 
-**Buds** bloom into full editors when double-clicked. They always have a `resource` pointing to an external file. On the board they show a compact representation (title, icon, thumbnail, or summary). Examples: markdown documents, DB schemas, procedures, code files.
+**Buds** bloom when double-clicked. They always have a `resource` pointing to an external file. On the board they show a compact representation (title, icon, thumbnail, or summary). The bloom action depends on the module's `defaultRenderer`:
 
-**Leaves** are simple board-level elements that do not bloom. They may have inline `content` (for text) or a `resource` (for images). They can have an expanded view but never inject a full editor. Examples: sticky notes, image thumbnails, labels.
+- **Internal buds** open whitebloom's editor in a modal. Examples: markdown documents, DB schemas, code files.
+- **External buds** open the OS default app for the file type. Examples: images (system photo viewer), videos (media player), spreadsheets (Excel/LibreOffice), PDFs (system reader). The node on the board is a thin wrapper — it stores only the `resource` path and display `size`. No asset data is embedded in the board JSON.
+
+**Leaves** are simple board-level elements that do not bloom. They may have inline `content` (for text). They can have an expanded view but never inject a full editor. Examples: sticky notes, labels.
 
 The distinction in the schema is the `kind` field: `"bud"` or `"leaf"`.
+
+### Media assets
+
+Image, video, and other external assets are stored in `res/` as ordinary files. The board JSON holds only the path and display size — never the asset data itself. This keeps the board file lean and fast regardless of how many or how large the assets are.
+
+```json
+{
+  "id": "node-4",
+  "kind": "bud",
+  "type": "image",
+  "resource": "res/photo.jpg",
+  "size": { "w": 400, "h": 300 }
+}
+```
+
+The node component renders the asset at the declared size. For images: `<img src={resolvedPath} style="width:100%;height:100%;object-fit:contain" />`. ReactFlow controls position, drag, and resize. The image module adds aspect-ratio lock to the resizer.
+
+**Thumbnails.** `res/.thumbs/` holds auto-generated low-resolution previews. The board displays the thumbnail at normal zoom and switches to full-resolution when zoomed in or the node is large. This directory is generated on demand and should not be committed to version control.
+
+**LLM readability.** Binary formats like `.xlsx` are not directly readable. The HEP `read()` implementation for those types runs a parse transform (e.g. SheetJS for spreadsheets) before handing data to any consumer. The LLM receives a JSON table, not a binary blob. For fully opaque formats (PDF, compiled binaries), the lens `view` field carries the agent-readable representation.
+
+### Drag and drop
+
+Two flows bring external assets onto the board:
+
+**OS-level drag.** The user drags a file from the OS file manager onto the canvas. The main process copies the file to `res/`, returns a relative path, and the renderer creates a new node at the drop position (converted from screen coordinates to canvas coordinates via ReactFlow's `screenToFlowPosition`).
+
+**Media library.** A sidebar panel lists all files in `res/` grouped by type (images, video, audio, documents). Dragging a thumbnail from the panel onto the canvas creates a node using the already-resident file. The library is a view over `res/` — no separate index.
 
 ### Field reference
 
@@ -201,16 +255,24 @@ type WhitebloomEditor<T = unknown> = {
   type: string            // The bud type this editor handles, e.g. "markdown"
   icon: string            // Icon identifier (name, path, or emoji for v1)
   fileExtension: string   // e.g. ".md", ".json"
+  defaultRenderer: 'internal' | 'external'
+  // 'internal' — bloom opens whitebloom's Editor component in a modal.
+  // 'external' — bloom opens the file in the OS default app (shell.openPath).
+  // Users can override this per type in whitebloom.config.json.
 
   createDefault(): T
   // Returns the default data written to disk when a new bud of this type
   // is created. For markdown, this might be "# Untitled\n". For a schema,
   // an empty JSON structure. The return value is serialized to a file
-  // in blossoms/ using the fileExtension.
+  // in blossoms/ using the fileExtension. External modules may return null
+  // here — they do not create assets, they reference existing ones.
 
-  Editor: React.ComponentType<BudEditorProps<T>>
+  Editor: React.ComponentType<BudEditorProps<T>> | null
   // The React component rendered inside the bloom modal when the user
-  // double-clicks this bud. Receives the asset data and a save callback.
+  // double-clicks this bud. null for external-default modules that have
+  // no in-app editor — the bloom action calls shell.openPath instead.
+  // Even external modules may provide an Editor as a fallback (shown when
+  // no native app is registered for the file type).
 }
 
 type BudEditorProps<T = unknown> = {
@@ -409,7 +471,8 @@ A `whitebloom.config.json` file at the project root controls which editors and s
   "types": {
     "markdown": {
       "editor": "com.whitebloom.markdown.editor",
-      "shell": "com.community.markdown.shell"
+      "shell": "com.community.markdown.shell",
+      "renderer": "external"
     },
     "db-schema": {
       "editor": "com.whitebloom.db-schema.editor",
@@ -418,6 +481,10 @@ A `whitebloom.config.json` file at the project root controls which editors and s
         "community/security-audit.lens.json",
         "community/normalization.lens.json"
       ]
+    },
+    "image": {
+      "editor": "com.whitebloom.image.editor",
+      "renderer": "external"
     }
   }
 }
@@ -481,6 +548,8 @@ Electron + React + TypeScript + Vite. Single package (not a monorepo) — `@whit
 │  readFile(path) → string                        │
 │  writeFile(path, data) → void                   │
 │  copyToRes(sourcePath) → relativePath           │
+│  openExternal(absolutePath) → void              │
+│  watchRes(path, cb) → Unsubscribe               │
 │  watchBoard(path) → change events               │
 │  showOpenDialog() → path                        │
 └────────────────────┬────────────────────────────┘
@@ -610,7 +679,8 @@ This is a canvas-level concern — modules and bloom editors don't know about mu
 
 ### Future (v2+)
 
-- **Thumbnail providers.** Editors can register a `Thumbnail` component for richer board-level previews.
+- **Thumbnail providers.** Editors can register a `Thumbnail` component for richer board-level previews. External modules (images, video) will generate thumbnails automatically into `res/.thumbs/`; the board switches between thumbnail and full-resolution based on zoom level.
+- **Media library panel.** A sidebar listing all `res/` assets grouped by type, with thumbnails. Supports drag-from-panel-to-canvas to create nodes from already-resident files.
 - **Commands API.** An optional `activate(api)` hook where editors can register commands, shortcuts, and menu items — like Maya's `cmds` or Blender's `bpy.ops`.
 - **Conflict resolution UI.** When two modules claim the same type, the user picks which one to use.
 - **Module marketplace.** Discovery from a remote registry. Editors, shells, lenses, and skills are all independently publishable.
