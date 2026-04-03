@@ -69,7 +69,8 @@ The CoreData is the foundation of Whitebloom. Everything else — editors, rende
 ```
 project/
   board.wb.json        # The board manifest — entry point for humans and agents
-  blossoms/              # Bloomable assets, one file each
+  board.inbox.json     # Agent proposal queue — reviewed and resolved by the user
+  blossoms/            # Bloomable assets, one file each
     schema-1.json
     research.md
     procedure-1.json
@@ -77,6 +78,7 @@ project/
     diagram.png        # Files that originate outside whitebloom and open in native apps
     photo.jpg
     .thumbs/           # Auto-generated low-res previews (internal, not committed)
+    .inbox-snapshots/  # Pre-edit snapshots for binary asset diffs (internal, not committed)
 ```
 
 The `.wb.json` extension signals "Whitebloom board" while remaining parseable by any JSON tool. The `blossoms/` directory contains only assets that bloom into editors. The `res/` directory contains media referenced by nodes.
@@ -218,9 +220,133 @@ An agent can:
 
 The board is a flat manifest. Leaves are inline. Buds are one hop away. No recursive directory scanning, no frontmatter parsing, no database queries.
 
-### Agent write access (future)
+### Agent write access — inbox system
 
-Agents can read freely. For writes, a lock mechanism prevents conflicts with the UI: the agent acquires a lock (e.g. `board.lock`), the UI enters read-only mode, the agent makes its changes and releases the lock. Stale locks expire after a timeout. This handles the cooperative case. The adversarial case (a rogue agent ignoring the lock) is mitigated the same way as any destructive human action: git.
+Agents never wait. Users never lose control of their board. Rather than a file lock, agent writes flow through a **proposal inbox**.
+
+**The double-buffer model**
+
+When an agent modifies a board node, it works from the board state at the time it began (t1). The user may continue editing in the meantime, producing t2. There is no conflict to detect or resolve — only a diff to review. The inbox records what the agent proposed based on t1; the diff window shows t2 (current) alongside the proposal, and the user decides.
+
+**Inbox file**
+
+`board.inbox.json` sits alongside `board.wb.json`. It is a queue of proposals, each wrapping one or more serialized commands.
+
+```json
+{
+  "version": 1,
+  "proposals": [
+    {
+      "id": "prop-1",
+      "agent": "claude",
+      "timestamp": "2026-04-03T10:00:00Z",
+      "description": "Added three concept nodes based on brief",
+      "rationale": "The brief mentions targeting physically active teens; these three directions are grounded in sport, recovery, and outdoor identity.",
+      "atomic": false,
+      "commands": [
+        {
+          "type": "add-node",
+          "node": { "id": "node-5", "kind": "bud", "type": "markdown" }
+        },
+        {
+          "type": "update-node",
+          "id": "node-1",
+          "before": { "label": "Research notes" },
+          "after":  { "label": "Research notes — reviewed" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Each proposal carries two distinct text fields: `description` (what the agent did — a machine-generated summary) and `rationale` (why — the agent's reasoning, the thing the user actually evaluates to decide). When `atomic` is true the proposal must be accepted or denied as a whole; individual commands cannot be split because they are logically dependent.
+
+**When the board is open**: the app polls the inbox ~1/sec. Proposed changes appear on the canvas as ghost elements (see visual treatment below). The user reviews and approves or denies in place.
+
+**When the board is closed**: proposals accumulate in the inbox. On next open, ghost elements appear for all pending proposals. Nothing is silently committed.
+
+A future "trusted agent" mode can commit directly to the board when it is closed, for automated pipelines where the user has explicitly opted out of review.
+
+**Visual treatment**
+
+| Element | Treatment |
+|---------|-----------|
+| Proposed new node | Dashed colored border, reduced opacity, glow |
+| Proposed edited node | Colored glow ring around the existing node |
+| Proposed deleted node | Red overlay, strikethrough label |
+| Proposed new edge | Dashed colored line |
+| Proposed deleted edge | Bold red dashed line; "DELETED ·" repeating along the stroke via SVG `textPath` |
+
+Proposed new nodes appear at the agent's suggested position but are not committed. On approval the node becomes a floating stamp — the user places it wherever they want. No coordinate negotiation.
+
+**Inbox review — keyboard flow**
+
+Pressing the inbox jump key activates review mode: the canvas gets a subtle vignette, and the following keys are captured.
+
+| Key | Action |
+|-----|--------|
+| A / D | Previous / next proposal, spatially ordered |
+| Q | Confirm (soft — undoable via Ctrl-Z) |
+| R | Deny |
+| Ctrl-Z / Ctrl-Y | Undo / redo a confirm or deny |
+
+Spatial ordering follows the board's reading direction, configurable per user:
+
+| Setting | Order |
+|---------|-------|
+| `ltr-ttb` | Left-to-right, top-to-bottom (default, Latin scripts) |
+| `rtl-ttb` | Right-to-left, top-to-bottom (Arabic, Hebrew) |
+| `ttb-ltr` | Top-to-bottom, left-to-right |
+| `ttb-rtl` | Top-to-bottom, right-to-left (Japanese, traditional Chinese) |
+
+A persistent badge in the canvas corner shows the pending count and the jump key hint, visible regardless of viewport position. Approving or denying auto-advances to the next proposal. Clicking an inbox item calls `fitView` on the affected nodes to frame them in context.
+
+For edges, approve/deny buttons sit at the midpoint of the proposed edge via React Flow's custom edge API.
+
+**Diff window**
+
+Double-clicking a glowing node opens the diff window:
+
+- **Left**: current node state (t2 — what the user has now)
+- **Right**: agent's proposal (what the agent produced from t1)
+
+For new nodes there is no before state; the window shows only approve/deny.
+
+For binary assets (images, video), the diff window is a swiper A/B between the current file and the proposed file. Snapshots for binary proposals are stored in `res/.inbox-snapshots/` keyed to the proposal ID and deleted on resolution.
+
+**Accept as clone**
+
+For text-based and diffable assets, a third option appears alongside approve/deny: **Accept as clone**. The current node (t2) is left untouched and a new sibling node is created containing the agent's proposed content. The user stamps it to a position. The sibling auto-labels as `(agent proposal)` and carries the proposal's `rationale` as a note. The user can then hand-merge, cannibalize, or discard at their own pace.
+
+This option is gated on `Diffable.canMerge` (see Diffable interface below). Binary assets, external modules, and anything where merging has no semantic meaning set `canMerge: false` and the option is not shown.
+
+**Diffable interface**
+
+Every CoreAsset (text node, image node, task list) implements `Diffable`. Third-party modules may optionally implement it. If a module does not, the diff window degrades gracefully to "Content changed" with approve/deny and no detail. Unknown is not broken.
+
+HEP layer — framework-independent data contract:
+
+```ts
+interface Diffable<T> {
+  diff(before: T, after: T): DiffResult   // pure data, serializable
+  canMerge: boolean
+}
+```
+
+React binding:
+
+```ts
+interface DiffableReact<T> extends Diffable<T> {
+  DiffView: React.ComponentType<{ before: T, after: T, diff: DiffResult }>
+}
+```
+
+CoreAssets implement `DiffableReact`. Modules implement `Diffable` at the HEP layer and optionally `DiffableReact` at the React binding layer. If only `Diffable` is present, the app renders `DiffResult` as generic text. The data contract lives at HEP; the view lives in the binding.
+
+**Why not a file lock**
+
+A lock serializes access by exclusion — it either blocks the agent (bad for async workflows) or forces the app into read-only mode (disruptive to the user). More fundamentally, the real problem between a human and an agent is not write contention but conflicting intent. A lock patches the symptom. The inbox surfaces it directly, turns agent writes into reviewable proposals with spatial context, and keeps the user in control without interrupting either party. The adversarial case (a rogue agent bypassing the inbox entirely and writing directly) is mitigated the same way as any destructive action: git.
 
 
 ## Symbiotic modules

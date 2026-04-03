@@ -31,7 +31,8 @@ Whitebloom can be both an app and an open specification. The CoreData schema and
 The file format. What exists on disk and what it means.
 
 - **Board format.** The `.wb.json` schema: nodes, edges, version, field semantics.
-- **Directory conventions.** `blossoms/` for assets whose primary creation and editing path is whitebloom (internal-default modules). `res/` for assets that originate outside whitebloom and open in native apps (external-default modules: images, video, spreadsheets, documents). One file per asset. `res/.thumbs/` holds auto-generated previews; it is not part of the spec and should not be committed.
+- **Inbox format.** `board.inbox.json` sits alongside `board.wb.json`. It is a queue of agent proposals, each containing a `description`, a `rationale`, an `atomic` flag, and an array of serialized commands. This file is part of the spec — any compliant implementation must be able to read and write it.
+- **Directory conventions.** `blossoms/` for assets whose primary creation and editing path is whitebloom (internal-default modules). `res/` for assets that originate outside whitebloom and open in native apps (external-default modules: images, video, spreadsheets, documents). One file per asset. `res/.thumbs/` and `res/.inbox-snapshots/` hold auto-generated content; they are not part of the spec and should not be committed.
 - **Node semantics.** Buds (bloomable, always have a `resource`) vs leaves (inline, do not bloom).
 - **Field reference.** `id`, `kind`, `type`, `position`, `size`, `label`, `content`, `resource`. Edge fields: `id`, `from`, `to`, `label`.
 - **Versioning.** Schema version in the board file. Changing the schema is a breaking change.
@@ -52,7 +53,7 @@ interface HostEditorProtocol<T> {
   read(resource: string): Promise<T>
   save(resource: string, data: T): Promise<void>
   watch(resource: string, cb: (data: T) => void): Unsubscribe
-  acquireLock(resource: string): Promise<Lock>
+  enqueueProposal(boardPath: string, proposal: Proposal): Promise<void>
 }
 ```
 
@@ -60,8 +61,9 @@ interface HostEditorProtocol<T> {
 
 - **Read/save contract.** How a consumer reads bud data and writes it back. Serialization format per file extension.
 - **Watch/change notification.** How a consumer learns that an external actor modified a resource. This is the coupling point between native apps and the board: when a user edits a `.xlsx` in Excel and saves, the file watcher fires, the board thumbnail refreshes, and agent shells pick up the change. Watch is not optional for external-default modules.
-- **Lock protocol.** How a consumer acquires exclusive write access. Stale lock expiry. Cooperative locking with git as the adversarial fallback.
+- **Proposal inbox protocol.** How an agent submits write proposals rather than writing directly. Agents call `enqueueProposal`, which appends to `board.inbox.json`. The app polls the inbox and surfaces proposals to the user as ghost elements on the canvas. See the inbox system section in `whitebloom.md` for the full proposal schema, visual treatment, keyboard review flow, and diff/clone semantics.
 - **Type discovery.** How a consumer determines what type a bud is and whether a handler is available.
+- **Diffable interface.** The framework-independent data contract (`Diffable<T>`) that CoreAssets and modules implement to enable structured diffs in the proposal review UI. `diff(before, after): DiffResult` is pure data; the view (`DiffView`) lives in the framework binding at Layer 3.
 - **Shell protocol.** How an agent discovers and consumes a module's agentic interface — reading `module_agents.md`, listing available lenses, invoking skills.
 
 ### Why this layer exists separately
