@@ -83,11 +83,15 @@ STATUS: DONE.
 
 ### 3.1 — Resize handle UI
 
+STATUS: DONE.
+
 Add corner drag handles (absolute-positioned `<div>` elements, 8×8px) to `ImageNode` at the four corners. Only the bottom-right corner is needed for proportional resize; optionally add all four for UX symmetry (each should resize toward the opposite corner as origin).
 
 CSS: handles are `position: absolute`, outside the image clip, visible only on node hover/select.
 
 ### 3.2 — Resize interaction
+
+STATUS: DONE.
 
 Track resize in local React state within `ImageNode` (do not write to the store on every pointer move — only on release):
 
