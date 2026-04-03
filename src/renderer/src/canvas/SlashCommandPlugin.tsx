@@ -91,9 +91,10 @@ type SlashMenuProps = {
   activeIndex: number
   position: { top: number; left: number }
   onSelect: (item: BlockDef) => void
+  onHover: (index: number) => void
 }
 
-function SlashMenu({ items, activeIndex, position, onSelect }: SlashMenuProps) {
+function SlashMenu({ items, activeIndex, position, onSelect, onHover }: SlashMenuProps) {
   const activeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -115,6 +116,7 @@ function SlashMenu({ items, activeIndex, position, onSelect }: SlashMenuProps) {
             ref={i === activeIndex ? activeRef : null}
             className={`slash-menu__item${i === activeIndex ? ' slash-menu__item--active' : ''}`}
             onClick={() => onSelect(item)}
+            onMouseEnter={() => onHover(i)}
             tabIndex={-1}
           >
             {item.label}
@@ -320,6 +322,7 @@ export function SlashCommandPlugin() {
       activeIndex={activeIndex}
       position={menuState.position}
       onSelect={applyBlock}
+      onHover={setActiveIndex}
     />,
     document.body
   )

@@ -3,7 +3,7 @@
   z-index: 9999;
   min-width: 160px;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--radius-border-frame);
   border: 1px solid rgba(255, 255, 255, 0.24);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.82));
   backdrop-filter: blur(20px) saturate(140%);
@@ -20,21 +20,19 @@
 .slash-menu__item {
   display: block;
   width: 100%;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 3px 5px;
+  border-radius: var(--radius-border-inner);
   border: none;
   background: transparent;
   color: var(--color-primary-fg);
   font-size: 13px;
   font-family: inherit;
   text-align: left;
-  cursor: pointer;
   transition: background 80ms ease;
 }
 
-.slash-menu__item:hover,
 .slash-menu__item--active {
-  background: rgba(30, 135, 255, 0.1);
+  background: rgb(255, 244, 146);
   color: var(--color-primary-fg);
 }
 
