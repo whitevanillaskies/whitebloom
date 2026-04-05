@@ -22,6 +22,7 @@ introduces the `wloc:` URI scheme, and gives the app a home screen.
 
 ### 1.2 URI resolver
 
+- UNIX paths internally. Resolve to system paths as needed, ideally using proper ts libs.
 - Utility function `resolveResource(uri: string, workspaceRoot: string): string` → absolute path.
   - `wloc:blossoms/foo.md` → `{workspaceRoot}/blossoms/foo.md`
   - `file:///C:/path/to/file` → `C:/path/to/file`
