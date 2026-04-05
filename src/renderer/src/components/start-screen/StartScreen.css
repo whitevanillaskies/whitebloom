@@ -5,7 +5,6 @@
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
   overflow: hidden;
-  background: linear-gradient(135deg, #f5f0ea 0%, #fbfbfa 45%, #eef4fb 100%);
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -15,7 +14,7 @@
   flex-direction: column;
   padding: 48px 0;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(248, 249, 250, 0.72);
+  background: var(--color-primary-bg);
 }
 
 .start-screen__logo {

@@ -299,6 +299,21 @@ Maybe taking the current confirm new document dialogue and have a Momo Modal. I 
 ```
 
 
+## Recent boards on the start screen
+
+A "recently opened" list on the start screen, similar to Photoshop's recent documents.
+
+**Storage.** A new `userData/recent-boards.json` file (separate from `settings.json` to avoid the renderer overwriting it on settings save). Each entry is `{ path: string, openedAt: string }`. Capped at 15 entries, deduplicated by path — reopening a board moves it to the front.
+
+**Recording.** The `board:open` IPC handler (main process) appends to the list on every successful open. This covers workspace boards, standalone `.wb.json` files, and promoted quickboards equally. Transient quickboards are intentionally excluded — they already appear as "Unsaved quickboards."
+
+**IPC.** A new `app:list-recent-boards` handler returns the list. Renderer calls it alongside `app:list-transient-boards` when landing on the start screen.
+
+**UI.** A "Recent boards" section in the start screen main area, above the existing "Unsaved quickboards" section. Each tile shows the board name (from filename), the containing directory, and a relative time ("2 days ago"). Clicking a tile calls the same `openBoardByPath` path as the transient board tiles — error handling if the file has moved or been deleted is already in place.
+
+**Key files to touch:** `src/main/services/recent-boards-store.ts` (new), `src/main/ipc/register-board-ipc.ts`, `src/main/ipc/register-app-ipc.ts`, `src/preload/index.ts`, `src/renderer/src/App.tsx`, `src/renderer/src/components/start-screen/StartScreen.tsx`.
+
+
 ## Leaf modules (third-party canvas widgets)
 
 Allow the module system to target leaf nodes, not just buds. A leaf module is a self-contained canvas widget with no backing file — a clock, a weather display, a countdown timer, a live feed. Whitebloom wouldn't ship these, but third parties should be able to.
