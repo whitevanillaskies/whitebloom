@@ -33,7 +33,7 @@ export default function BoardContextBar({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const overflowRef = useRef<HTMLDivElement>(null)
+  const overflowRef = useRef<HTMLButtonElement>(null)
 
   const displayName = name?.trim() || 'Untitled'
   const isUntitled = !name?.trim()
@@ -120,13 +120,12 @@ export default function BoardContextBar({
       />
 
       {/* Overflow — opens PetalMenu anchored to this button */}
-      <div ref={overflowRef} style={{ display: 'contents' }}>
-        <PetalToolbarButton
-          icon={<MoreHorizontal size={15} strokeWidth={2} />}
-          label="More actions"
-          onClick={handleOverflowClick}
-        />
-      </div>
+      <PetalToolbarButton
+        ref={overflowRef}
+        icon={<MoreHorizontal size={15} strokeWidth={2} />}
+        label="More actions"
+        onClick={handleOverflowClick}
+      />
     </div>
   )
 }
