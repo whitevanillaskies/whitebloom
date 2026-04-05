@@ -1,0 +1,61 @@
+.petal-toolbar-button {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary-fg);
+  font-family: "DM Sans";
+  cursor: pointer;
+  padding: 0;
+  transition: background 80ms ease;
+}
+
+.petal-toolbar-button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.petal-toolbar-button:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.petal-toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.petal-toolbar-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--color-accent-blue-rgb), 0.4);
+}
+
+/* Active tool state — blue bottom dot */
+
+.petal-toolbar-button--active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-accent-blue);
+}
+
+/* Dirty / pending indicator — pink top-right badge dot */
+
+.petal-toolbar-button--indicator::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent-pink);
+}

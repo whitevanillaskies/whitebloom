@@ -1,3 +1,6 @@
 export { default as PetalButton } from './PetalButton'
 export { default as PetalField } from './PetalField'
+export { default as PetalMenu } from './PetalMenu'
+export type { PetalMenuItem } from './PetalMenu'
 export { default as PetalPanel } from './PetalPanel'
+export { default as PetalToolbarButton } from './PetalToolbarButton'

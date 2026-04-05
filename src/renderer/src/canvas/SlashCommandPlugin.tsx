@@ -16,7 +16,7 @@ import {
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list'
-import './SlashCommandPlugin.css'
+import '../components/petal/PetalMenu.css'
 
 // ── Block definitions ─────────────────────────────────────────────
 
@@ -103,18 +103,18 @@ function SlashMenu({ items, activeIndex, position, onSelect, onHover }: SlashMen
 
   return (
     <div
-      className="slash-menu"
+      className="petal-menu"
       style={{ top: position.top, left: position.left }}
       onMouseDown={(e) => e.preventDefault()}
     >
       {items.length === 0 ? (
-        <div className="slash-menu__empty">No results</div>
+        <div className="petal-menu__empty">No results</div>
       ) : (
         items.map((item, i) => (
           <button
             key={item.id}
             ref={i === activeIndex ? activeRef : null}
-            className={`slash-menu__item${i === activeIndex ? ' slash-menu__item--active' : ''}`}
+            className={`petal-menu__item${i === activeIndex ? ' petal-menu__item--active' : ''}`}
             onClick={() => onSelect(item)}
             onMouseEnter={() => onHover(i)}
             tabIndex={-1}

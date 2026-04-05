@@ -1,9 +1,13 @@
+/* Code font (Source Code Pro) */
+
 @font-face{
   font-family: "Source Code Pro";
   font-style: normal;
   font-weight: 200 900;
   src: url("./fonts/SourceCodePro-VariableFont_wght.ttf") format("truetype");
 }
+
+/* Main system font (DM Sans) - also for user written text in the canvas, etc. */
 
 @font-face {
   font-family: "DM Sans";
@@ -19,6 +23,8 @@
   font-style: italic;
 }
 
+/* Source Serif 4 is the font for "book"-ish text, like anything that requires a more traditional serif typeface. */
+
 @font-face {
   font-family: "Source Serif 4";
   font-style: normal;
@@ -32,6 +38,8 @@
   font-weight: 200 900;
   src: url("./fonts/SourceSerif4-Italic-VariableFont_opsz,wght.ttf") format("truetype");
 }
+
+/* Use Courier Prime for typewriter text (Final Draft style, screenplays, focus typewriter, etc.) Dont use for code. Use Source Code Pro for code. */
 
 @font-face {
   font-family: "Courier Prime";

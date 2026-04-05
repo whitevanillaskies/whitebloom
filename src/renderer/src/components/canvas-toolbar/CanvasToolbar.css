@@ -60,23 +60,3 @@
 	background: var(--color-accent, #3b82f6);
 }
 
-.canvas-toolbar__button--dirty::before {
-	content: '';
-	position: absolute;
-	bottom: -3px;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 4px;
-	height: 4px;
-	border-radius: 50%;
-	background: var(--color-muted-fg);
-}
-
-
-.canvas-toolbar__separator {
-	width: 1px;
-	height: 20px;
-	background: rgba(0, 0, 0, 0.1);
-	margin: 0 2px;
-	align-self: center;
-}

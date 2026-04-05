@@ -20,17 +20,32 @@
 .canvas--tool-hand .canvas-toolbar *,
 .canvas--tool-hand .selection-toolbar,
 .canvas--tool-hand .selection-toolbar *,
+.canvas--tool-hand .board-context-bar,
+.canvas--tool-hand .board-context-bar *,
 .canvas--tool-text .canvas-toolbar,
 .canvas--tool-text .canvas-toolbar *,
 .canvas--tool-text .selection-toolbar,
-.canvas--tool-text .selection-toolbar * {
+.canvas--tool-text .selection-toolbar *,
+.canvas--tool-text .board-context-bar,
+.canvas--tool-text .board-context-bar * {
   cursor: auto !important;
 }
 
 /* Keep explicit button affordance on toolbar controls. */
 .canvas--tool-hand .canvas-toolbar__button,
-.canvas--tool-text .canvas-toolbar__button {
+.canvas--tool-text .canvas-toolbar__button,
+.canvas--tool-hand .petal-toolbar-button,
+.canvas--tool-text .petal-toolbar-button,
+.canvas--tool-hand .board-context-bar__identity--workspace,
+.canvas--tool-text .board-context-bar__identity--workspace,
+.canvas--tool-hand .board-context-bar__name,
+.canvas--tool-text .board-context-bar__name {
   cursor: pointer !important;
+}
+
+.canvas--tool-hand .board-context-bar__name,
+.canvas--tool-text .board-context-bar__name {
+  cursor: text !important;
 }
 
 /* Pointer tool: reset ReactFlow's node wrapper cursor (usually "pointer" or "grab") to default */
@@ -43,49 +58,4 @@
   cursor: default !important;
 }
 
-.canvas-shell-actions {
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.66));
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42);
-}
-
-.canvas-shell-actions__button {
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.26);
-  color: var(--color-primary-fg);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
-}
-
-.canvas-shell-actions__button:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.canvas-shell-actions__button:active:not(:disabled) {
-  transform: translateY(1px);
-  background: rgba(255, 255, 255, 0.58);
-}
-
-.canvas-shell-actions__button:disabled {
-  opacity: 0.65;
-  cursor: default;
-}
-
-.canvas-shell-actions__button--primary {
-  background: linear-gradient(180deg, rgba(30, 135, 255, 0.2), rgba(255, 255, 255, 0.58));
-}
 

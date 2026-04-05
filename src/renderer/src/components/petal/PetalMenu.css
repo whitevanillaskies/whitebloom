@@ -1,0 +1,68 @@
+.petal-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  padding: 4px;
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(248, 250, 252, 0.36));
+  backdrop-filter: blur(5px) saturate(140%);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.petal-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-border-inner);
+  border: none;
+  background: transparent;
+  color: var(--color-primary-fg);
+  font-family: "DM Sans";
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 60ms ease, color 60ms ease;
+}
+
+.petal-menu__item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.petal-menu__item--active {
+  background: rgba(var(--color-accent-blue-rgb), 0.1);
+  color: var(--color-accent-blue);
+}
+
+.petal-menu__item--destructive {
+  color: var(--color-accent-red);
+}
+
+.petal-menu__item--active.petal-menu__item--destructive {
+  /* background: rgba(255, 244, 146); */
+  background: rgba(var(--color-accent-red-rgb), 0.1);
+  color: var(--color-accent-red);
+}
+
+.petal-menu__item-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.petal-menu__empty {
+  padding: 6px 10px;
+  font-family: "DM Sans";
+  font-size: 0.82rem;
+  color: var(--color-secondary-fg);
+}

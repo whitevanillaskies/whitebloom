@@ -16,9 +16,11 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
 import { ImageNode } from './ImageNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
-import BoardTitle from '@renderer/components/board-title/BoardTitle'
+import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
-import { PetalButton, PetalPanel } from '@renderer/components/petal'
+import { FolderPlus, Settings2, Trash2 } from 'lucide-react'
+import { PetalButton, PetalMenu, PetalPanel } from '@renderer/components/petal'
+import type { PetalMenuItem } from '@renderer/components/petal'
 import { absolutePathToFileUri } from '@renderer/shared/resource-url'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
@@ -148,6 +150,7 @@ export function Canvas() {
   const [promoteInFlight, setPromoteInFlight] = useState(false)
   const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
   const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
+  const [overflowAnchor, setOverflowAnchor] = useState<{ x: number; y: number } | null>(null)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
   const transientAutosaveRef = useRef<string | null>(null)
@@ -740,43 +743,22 @@ export function Canvas() {
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
         <MiniMap nodeStrokeWidth={1} zoomable pannable />
         <Panel position="top-left">
-          <BoardTitle
+          <BoardContextBar
             name={boardName}
+            workspaceRoot={workspaceRoot}
+            isDirty={isDirty}
             onNameChange={(name) => updateBoardMeta({ name })}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onSave={() => void handleSave()}
+            onClose={handleCloseBoard}
+            onNewBoard={() => { /* TODO: workspace → CreateBoardModal; quickboard → new transient */ }}
+            onOverflow={setOverflowAnchor}
           />
         </Panel>
-        <Panel position="top-right">
-          <div className="canvas-shell-actions">
-            {workspaceRoot === null ? (
-              <button
-                type="button"
-                className="canvas-shell-actions__button canvas-shell-actions__button--primary"
-                onClick={() => void handlePromoteToWorkspace()}
-                disabled={promoteInFlight}
-              >
-                Promote to Workspace
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="canvas-shell-actions__button"
-              onClick={() => setTrashBoardConfirmOpen(true)}
-              disabled={trashBoardInFlight}
-            >
-              Move to Trash
-            </button>
-            <button type="button" className="canvas-shell-actions__button" onClick={handleCloseBoard}>
-              {workspaceRoot ? 'Workspace Home' : 'Close Board'}
-            </button>
-          </div>
-        </Panel>
+
         <Panel position="bottom-center">
           <CanvasToolbar
             activeTool={activeTool}
-            hasUnsavedChanges={isDirty}
             onToolChange={setActiveTool}
-            onSave={handleSave}
           />
         </Panel>
       </ReactFlow>
@@ -837,6 +819,41 @@ export function Canvas() {
           </div>
         </PetalPanel>
       ) : null}
+
+      {overflowAnchor ? (() => {
+        const items: PetalMenuItem[] = [
+          {
+            id: 'settings',
+            label: 'Board Settings',
+            icon: <Settings2 size={14} strokeWidth={1.8} />,
+            onActivate: () => setSettingsOpen(true)
+          },
+          ...(workspaceRoot === null
+            ? [{
+                id: 'promote',
+                label: 'Promote to Workspace',
+                icon: <FolderPlus size={14} strokeWidth={1.8} />,
+                onActivate: () => void handlePromoteToWorkspace(),
+                disabled: promoteInFlight
+              }]
+            : []),
+          {
+            id: 'trash',
+            label: 'Move to Trash',
+            icon: <Trash2 size={14} strokeWidth={1.8} />,
+            intent: 'destructive' as const,
+            onActivate: () => setTrashBoardConfirmOpen(true),
+            disabled: trashBoardInFlight
+          }
+        ]
+        return (
+          <PetalMenu
+            items={items}
+            anchor={overflowAnchor}
+            onClose={() => setOverflowAnchor(null)}
+          />
+        )
+      })() : null}
     </>
   )
 }
