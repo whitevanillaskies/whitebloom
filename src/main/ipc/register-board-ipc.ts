@@ -1,4 +1,5 @@
 import { dialog, ipcMain } from 'electron'
+import { mkdir, readFile, writeFile } from 'fs/promises'
 import { basename, dirname } from 'path'
 import type { MainProcessContext } from '../state/main-process-context'
 import {
@@ -15,6 +16,7 @@ import {
   readWorkspace,
   writeBoard
 } from '../services/workspace-files'
+import { resolveResource } from '../resource-uri'
 
 type WorkspaceOpenDialogResult = {
   ok: boolean
@@ -237,4 +239,31 @@ export function registerBoardIpc(context: MainProcessContext): void {
       return { ok: false }
     }
   })
+
+  ipcMain.handle(
+    'blossom:read',
+    async (_event, workspaceRoot: string, resource: string): Promise<string> => {
+      const absolutePath = resolveResource(resource, workspaceRoot)
+      return await readFile(absolutePath, 'utf-8')
+    }
+  )
+
+  ipcMain.handle(
+    'blossom:write',
+    async (
+      _event,
+      workspaceRoot: string,
+      resource: string,
+      data: string
+    ): Promise<{ ok: boolean }> => {
+      try {
+        const absolutePath = resolveResource(resource, workspaceRoot)
+        await mkdir(dirname(absolutePath), { recursive: true })
+        await writeFile(absolutePath, data, 'utf-8')
+        return { ok: true }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
 }

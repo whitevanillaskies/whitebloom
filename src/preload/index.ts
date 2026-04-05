@@ -95,6 +95,13 @@ const api = {
   createQuickboard: (): Promise<QuickboardCreateResult> => ipcRenderer.invoke('quickboard:create'),
   listTransientBoards: (): Promise<ListTransientBoardsResult> =>
     ipcRenderer.invoke('app:list-transient-boards'),
+  readBlossom: (workspaceRoot: string, resource: string): Promise<string> =>
+    ipcRenderer.invoke('blossom:read', workspaceRoot, resource),
+  writeBlossom: (
+    workspaceRoot: string,
+    resource: string,
+    data: string
+  ): Promise<{ ok: boolean }> => ipcRenderer.invoke('blossom:write', workspaceRoot, resource, data),
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>

@@ -310,11 +310,13 @@ loading yet, but the interface is compatible with it later.
 - If no module matches at all → create a void-typed bud (`type: null`), `UnknownBudNode` renders it.
 
 
-## Phase 4: Bloom modal
+## Phase 4: Bloom modal (DONE)
 
 The container that activates when a bud is double-clicked.
 
 ### 4.1 Bloom state
+
+STATUS: DONE.
 
 - Canvas holds `activeBloom: { nodeId: string, module: WhitebloomModule, resource: string } | null`.
 - `BudNode`'s `onBloom` callback sets this state.
@@ -322,11 +324,15 @@ The container that activates when a bud is double-clicked.
 
 ### 4.2 IPC: blossom read/write
 
+STATUS: DONE.
+
 - `blossom:read(workspaceRoot, resource)` — resolves `wloc:` URI, reads file, returns string.
 - `blossom:write(workspaceRoot, resource, data)` — resolves URI, writes file.
 - Both handlers live in the main process alongside workspace handlers.
 
 ### 4.3 Bloom modal shell
+
+STATUS: DONE.
 
 New component: `src/renderer/src/canvas/BloomModal.tsx`.
 

@@ -16,6 +16,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
 import { BudNode } from './BudNode'
 import { BloomContext, type ActiveBloom } from './BloomContext'
+import { BloomModal } from './BloomModal'
 import '../modules/index'
 import { dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
@@ -448,6 +449,11 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (isEditableTarget(event.target)) return
+        if (activeBloom !== null) {
+          event.preventDefault()
+          setActiveBloom(null)
+          return
+        }
         if (settingsOpen) {
           event.preventDefault()
           setSettingsOpen(false)
@@ -511,7 +517,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [boardNodes, deleteNodes, handleSave, nodes, settingsOpen, setActiveTool, setNodes, updateNodeText])
+  }, [activeBloom, boardNodes, deleteNodes, handleSave, nodes, settingsOpen, setActiveTool, setNodes, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -838,6 +844,14 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           </div>
         </PetalPanel>
       ) : null}
+
+      {activeBloom !== null && workspaceRoot !== null && (
+        <BloomModal
+          bloom={activeBloom}
+          workspaceRoot={workspaceRoot}
+          onClose={() => setActiveBloom(null)}
+        />
+      )}
 
       {overflowAnchor ? (() => {
         const items: PetalMenuItem[] = [

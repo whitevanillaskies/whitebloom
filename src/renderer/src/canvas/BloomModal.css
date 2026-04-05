@@ -1,0 +1,50 @@
+.bloom-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: var(--color-bg);
+}
+
+/* Loading — invisible by default; modules animate in as they like */
+.bloom-modal__loading {
+  flex: 1;
+}
+
+/* Error state */
+
+.bloom-modal__error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.bloom-modal__error-message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-secondary-fg);
+  max-width: 360px;
+  text-align: center;
+}
+
+.bloom-modal__error-close {
+  padding: 6px 16px;
+  border-radius: var(--radius-border-inner);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: transparent;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-secondary-fg);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.bloom-modal__error-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-primary-fg);
+}

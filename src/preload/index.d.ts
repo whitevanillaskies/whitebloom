@@ -87,6 +87,8 @@ declare global {
       ) => Promise<WorkspaceCopyToResResult>
       createQuickboard: () => Promise<QuickboardCreateResult>
       listTransientBoards: () => Promise<ListTransientBoardsResult>
+      readBlossom: (workspaceRoot: string, resource: string) => Promise<string>
+      writeBlossom: (workspaceRoot: string, resource: string, data: string) => Promise<{ ok: boolean }>
       openFile: (filePath: string) => Promise<void>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
