@@ -40,6 +40,11 @@ type QuickboardCreateDialogResult = {
   boardPath?: string
 }
 
+type WorkspaceCopyToResResult = {
+  ok: boolean
+  resource?: string
+}
+
 const api = {
   openWorkspaceDialog: (): Promise<WorkspaceOpenDialogResult> =>
     ipcRenderer.invoke('workspace:open-dialog'),
@@ -52,6 +57,11 @@ const api = {
     ipcRenderer.invoke('board:save', boardPath, json),
   createBoard: (workspaceRoot: string, name: string): Promise<BoardCreateResult> =>
     ipcRenderer.invoke('board:create', workspaceRoot, name),
+  copyWorkspaceResource: (
+    workspaceRoot: string,
+    srcPath: string
+  ): Promise<WorkspaceCopyToResResult> =>
+    ipcRenderer.invoke('workspace:copy-to-res', workspaceRoot, srcPath),
   createQuickboardDialog: (): Promise<QuickboardCreateDialogResult> =>
     ipcRenderer.invoke('quickboard:create-dialog'),
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),

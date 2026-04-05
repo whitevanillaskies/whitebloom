@@ -1,6 +1,6 @@
 import { constants } from 'fs'
-import { access, mkdir, readdir, readFile, writeFile } from 'fs/promises'
-import { basename, dirname, join } from 'path'
+import { access, copyFile, mkdir, readdir, readFile, writeFile } from 'fs/promises'
+import { basename, dirname, extname, join, parse } from 'path'
 
 export type WorkspaceConfig = {
   version: number
@@ -24,6 +24,7 @@ type EmptyBoard = {
 const WORKSPACE_CONFIG_FILENAME = '.wbconfig'
 const BOARD_FILE_SUFFIX = '.wb.json'
 const DEFAULT_BOARD_STEM = 'board'
+const RES_DIRECTORY_NAME = 'res'
 const CURRENT_WORKSPACE_CONFIG_VERSION = 1
 const CURRENT_BOARD_VERSION = 3
 
@@ -72,6 +73,19 @@ function sanitizeBoardStem(name: string): string {
   return candidate.length > 0 ? candidate : DEFAULT_BOARD_STEM
 }
 
+function sanitizeResourceFileName(fileName: string): string {
+  const parsed = parse(fileName)
+  const baseName = parsed.name
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^\.+/, '')
+    .replace(/[. ]+$/g, '')
+    .trim()
+  const extension = extname(fileName)
+
+  return `${baseName || 'resource'}${extension}`
+}
+
 async function pathExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath, constants.F_OK)
@@ -89,6 +103,20 @@ async function ensureUniqueBoardPath(workspaceRoot: string, boardStem: string): 
   while (await pathExists(candidatePath)) {
     suffix += 1
     candidatePath = join(workspaceRoot, `${normalizedStem} ${suffix}${BOARD_FILE_SUFFIX}`)
+  }
+
+  return candidatePath
+}
+
+async function ensureUniqueFilePath(directoryPath: string, fileName: string): Promise<string> {
+  const normalizedName = sanitizeResourceFileName(fileName)
+  const parsedName = parse(normalizedName)
+  let suffix = 1
+  let candidatePath = join(directoryPath, normalizedName)
+
+  while (await pathExists(candidatePath)) {
+    suffix += 1
+    candidatePath = join(directoryPath, `${parsedName.name} ${suffix}${parsedName.ext}`)
   }
 
   return candidatePath
@@ -148,6 +176,24 @@ export async function createBoard(workspaceRoot: string, name: string): Promise<
   const boardPath = await ensureUniqueBoardPath(workspaceRoot, name)
   await writeFile(boardPath, JSON.stringify(createEmptyBoard(name), null, 2), 'utf-8')
   return boardPath
+}
+
+export async function copyWorkspaceResource(
+  workspaceRoot: string,
+  sourcePath: string
+): Promise<string> {
+  const configPath = getWorkspaceConfigPath(workspaceRoot)
+  if (!(await pathExists(configPath))) {
+    throw new Error(`Workspace config not found: ${configPath}`)
+  }
+
+  const resourceDirectory = join(workspaceRoot, RES_DIRECTORY_NAME)
+  await mkdir(resourceDirectory, { recursive: true })
+
+  const targetPath = await ensureUniqueFilePath(resourceDirectory, basename(sourcePath))
+  await copyFile(sourcePath, targetPath)
+
+  return `wloc:${RES_DIRECTORY_NAME}/${basename(targetPath)}`
 }
 
 export async function createQuickboard(boardPath: string): Promise<void> {

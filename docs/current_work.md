@@ -7,6 +7,8 @@ no backwards compatibility.
 
 ## Phase 1: Workspace architecture
 
+STATUS: OK
+
 The foundation everything else depends on. Establishes the workspace as the top-level unit,
 introduces the `wloc:` URI scheme, and gives the app a home screen.
 
@@ -114,6 +116,8 @@ explicit path from `board.path`. No stored implicit paths anywhere.
 
 ### 1.6 App shell and workspace home UI
 
+STATUS: OK.
+
 - `App.tsx` becomes a shell that routes between three states:
   - **No workspace open** → `StartScreen` (open workspace / create workspace / new quickboard).
   - **Workspace open, no board** → `WorkspaceHome` (board list, new board, open board).
@@ -128,10 +132,26 @@ explicit path from `board.path`. No stored implicit paths anywhere.
 
 ### 1.7 Migrate image node to `wloc:`
 
-- Update `ImageNode` to use `wloc:` URIs resolved via the new protocol handler.
-- Update drag-and-drop: copy dropped file into workspace `res/` directory (via new IPC
-  handler `workspace:copy-to-res(workspaceRoot, srcPath)`), create `wloc:res/filename` URI.
+STATUS: OK.
+
+- Update `ImageNode` to use URIs resolved via the new protocol handler.
 - Drop the `measureDroppedImage` inline resource approach; resource is now a URI string.
+
+**Drag & drop mechanics.** Electron exposes `dataTransfer.files[i].path` in the renderer —
+this is the absolute filesystem path of the dropped file, not a buffer. Drops from a web
+browser do not produce a file path (`path` is empty); `dataTransfer.getData('text/uri-list')`
+gives the remote URL instead. The drop handler branches on context:
+
+- **Workspace, local file** (`workspace.root !== null`, `file.path` non-empty): call
+  `workspace:copy-to-res(workspaceRoot, srcPath)` to copy into `res/`; store
+  `wloc:res/filename` as the node's `resource`.
+- **Quickboard, local file** (`workspace.root === null`, `file.path` non-empty): store the
+  original path as a `file:///absolute/path` URI directly — no copy, no `wloc:`. Quickboards
+  are not portable by design; absolute paths are the expected consequence.
+- **Any context, browser drag** (`file.path` empty): show an error toast —
+  *"Can't embed web resources — save the image to your local drive first, then drop it."*
+  No node is created. A fuller solution (`wbhost:` inline bytebuffers) is tracked in
+  `deferred_work.md`.
 
 
 ## Phase 2: Module registry

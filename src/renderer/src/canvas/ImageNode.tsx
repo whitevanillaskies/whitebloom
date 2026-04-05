@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { type NodeProps, useStore, useUpdateNodeInternals, useViewport } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
+import { resourceToImageSrc } from '@renderer/shared/resource-url'
 import { NodeResizeHandles } from './NodeResizeHandles'
 import { useFixedCornerResize } from './useFixedCornerResize'
 import './ImageNode.css'
@@ -10,27 +11,6 @@ const MIN_SIZE = 80
 type ImageNodeData = {
   resource: string
   size: { w: number; h: number }
-}
-
-function toFileUrl(resourcePath: string): string {
-  const trimmed = resourcePath.trim()
-
-  if (trimmed.startsWith('wloc:')) {
-    return trimmed
-  }
-
-  if (trimmed.startsWith('file:///')) {
-    return `wloc://local?resource=${encodeURIComponent(trimmed)}`
-  }
-
-  const unixPath = trimmed.replace(/\\/g, '/')
-  const fileUri = /^[a-zA-Z]:\//.test(unixPath)
-    ? `file:///${encodeURI(unixPath)}`
-    : unixPath.startsWith('/')
-      ? `file://${encodeURI(unixPath)}`
-      : trimmed
-
-  return `wloc://local?resource=${encodeURIComponent(fileUri)}`
 }
 
 export function ImageNode({ id, data, selected, positionAbsoluteX, positionAbsoluteY }: NodeProps) {
@@ -44,6 +24,15 @@ export function ImageNode({ id, data, selected, positionAbsoluteX, positionAbsol
 
   const [isVisible, setIsVisible] = useState(true)
   const [localSize, setLocalSize] = useState({ w: size.w, h: size.h })
+  const [imageSrc, setImageSrc] = useState('')
+
+  useEffect(() => {
+    try {
+      setImageSrc(resourceToImageSrc(resource))
+    } catch {
+      setImageSrc('')
+    }
+  }, [resource])
 
   const handleResizePreview = useCallback(
     ({ position, size: nextSize }: { position: { x: number; y: number }; size: { w: number; h: number } }) => {
@@ -115,10 +104,10 @@ export function ImageNode({ id, data, selected, positionAbsoluteX, positionAbsol
         onDoubleClick={handleDoubleClick}
       >
         <div className="image-node__frame">
-          {isVisible ? (
+          {isVisible && imageSrc ? (
             <img
               className="image-node__img"
-              src={toFileUrl(resource)}
+              src={imageSrc}
               decoding="async"
               draggable={false}
             />

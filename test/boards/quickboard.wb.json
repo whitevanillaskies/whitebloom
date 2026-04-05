@@ -1,0 +1,45 @@
+{
+  "version": 3,
+  "nodes": [
+    {
+      "id": "cef9543a-2e4a-4cd7-83e7-48c9e625ab8e",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 100,
+        "y": 111.99999999999997
+      },
+      "size": {
+        "w": 444,
+        "h": 148
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"A problem with quickboards, forcing the user to save to file somewhat defeats the purpose of making them really \\\"quick\\\"\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"I think what we need is this: an app level store. It creates quickboard-timestamp.wb.json and sets a flag 'transient' - the boards are autosaved on changes. Clicking the save tool will see there's the transient flag on and will prompt for an actual path. The transient board is then deleted.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 444,
+      "created": "2026-04-05T16:33:05.157Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T16:34:56.823Z",
+      "updatedBy": "anon",
+      "plain": "A problem with quickboards, forcing the user to save to file somewhat defeats the purpose of making them really \"quick\"\nI think what we need is this: an app level store. It creates quickboard-timestamp.wb.json and sets a flag 'transient' - the boards are autosaved on changes. Clicking the save tool will see there's the transient flag on and will prompt for an actual path. The transient board is then deleted."
+    },
+    {
+      "id": "8e4233f1-410e-4fbe-ac3a-4a9adab54950",
+      "kind": "leaf",
+      "type": "image",
+      "position": {
+        "x": -282.97087735416625,
+        "y": 49.317866565923055
+      },
+      "size": {
+        "w": 354,
+        "h": 188
+      },
+      "resource": "file:///E:/Pictures/cute/1690551519254637.gif",
+      "created": "2026-04-05T16:36:43.212Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T16:36:44.130Z",
+      "updatedBy": "anon"
+    }
+  ],
+  "edges": []
+}

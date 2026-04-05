@@ -3,6 +3,54 @@
 Work that's not yet needed but it's worth keeping in mind.
 
 
+## `wbhost:` inline asset URIs
+
+A URI scheme for embedding binary assets directly inside the board JSON, intended primarily
+for quickboards where no workspace `res/` directory exists.
+
+**Motivation.** Drops from a web browser produce no filesystem path — only a remote URL or
+blob data. Storing a remote URL as `resource` is fragile (servers can refuse, go down, or
+require auth). For quickboards, copying to a local path is also unavailable. The current
+workaround (error toast, tell the user to save locally first) is acceptable for v1, but a
+proper solution should let quickboards carry self-contained assets.
+
+**Scheme.** `wbhost:<id>` points to a record in a top-level `hosted` map on the board JSON:
+
+```json
+{
+  "hosted": {
+    "img-1": { "mime": "image/png", "encoding": "base64", "data": "iVBORw0KGgo..." }
+  },
+  "nodes": [
+    { "id": "node-1", "resource": "wbhost:img-1", ... }
+  ]
+}
+```
+
+The renderer resolves `wbhost:` by reading from the in-memory board JSON directly — no IPC,
+no protocol handler needed. The URI resolver throws for `wbhost:` URIs in workspace context
+(they should have been promoted already).
+
+**Promotion on workspace conversion.** When a quickboard is promoted to a workspace, the
+promotion flow iterates `hosted`, writes each entry to `res/` as a real file, and rewrites
+the corresponding `resource` fields from `wbhost:<id>` to `wloc:res/<id>.<ext>`. The
+`hosted` map is then removed from the board JSON. This is the only mutation that touches
+`wbhost:` URIs.
+
+**Scope.** Applies to any dropped asset on a quickboard — browser drag (blob from
+`dataTransfer.items`), or a local file the user prefers to embed rather than link. Import
+vs. link (see below) would control whether a local file drop produces `file:///` or
+`wbhost:` on a quickboard; default would be embed (`wbhost:`).
+
+**Size concern.** Large images bloat the board JSON. A reasonable cap (e.g. 5 MB per asset,
+configurable) should be enforced at drop time, with a clear error if exceeded. Above the cap,
+fall back to the current error toast and tell the user to save locally. Max size should be configurable
+as an app-level setting. Another option is to have an app-level bucket. `wbapp` may point point
+to resources downloaded to an app bucket. This however losses the portability of the quickboard,
+but going from/to wbapp to wbhost is almost trivial. A user may select "export as standalone"
+to grab all resources and embed them. This would also work for workspaces, even.
+
+
 ## Workspace crates (`.wbcrate`)
 
 A portable, single-file format for sharing a complete workspace without requiring git or a hosting service. A `.wbcrate` is a zip archive of the workspace root, renamed.

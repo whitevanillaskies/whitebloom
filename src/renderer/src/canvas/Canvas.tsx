@@ -18,6 +18,7 @@ import { ImageNode } from './ImageNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardTitle from '@renderer/components/board-title/BoardTitle'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
+import { absolutePathToFileUri } from '@renderer/shared/resource-url'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
@@ -27,26 +28,7 @@ import './Canvas.css'
 const nodeTypes = { text: TextNode, image: ImageNode }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 
-function toFileUrl(resourcePath: string): string {
-  const trimmed = resourcePath.trim()
-
-  if (trimmed.startsWith('wloc:')) {
-    return trimmed
-  }
-
-  if (trimmed.startsWith('file:///')) {
-    return `wloc://local?resource=${encodeURIComponent(trimmed)}`
-  }
-
-  const unixPath = trimmed.replace(/\\/g, '/')
-  const fileUri = /^[a-zA-Z]:\//.test(unixPath)
-    ? `file:///${encodeURI(unixPath)}`
-    : unixPath.startsWith('/')
-      ? `file://${encodeURI(unixPath)}`
-      : trimmed
-
-  return `wloc://local?resource=${encodeURIComponent(fileUri)}`
-}
+const WEB_RESOURCE_DROP_ERROR = 'Can\'t embed web resources — save the image to your local drive first, then drop it.'
 
 function getDroppedFilePath(file: File & { path?: string }): string {
   try {
@@ -59,21 +41,22 @@ function getDroppedFilePath(file: File & { path?: string }): string {
   return typeof file.path === 'string' ? file.path : ''
 }
 
-function measureDroppedImage(file: File & { path?: string }): Promise<{ resource: string; size: { w: number; h: number } }> {
-  const resource = getDroppedFilePath(file)
-  if (!resource) {
-    return Promise.reject(new Error('Dropped image is missing a file path.'))
-  }
-
+function measureDroppedImage(file: File): Promise<{ size: { w: number; h: number } }> {
   return new Promise((resolve, reject) => {
     const image = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl)
+    }
 
     image.onload = () => {
       const naturalWidth = image.naturalWidth
       const naturalHeight = image.naturalHeight
 
       if (naturalWidth <= 0 || naturalHeight <= 0) {
-        reject(new Error(`Unable to read image dimensions for ${file.name || resource}.`))
+        cleanup()
+        reject(new Error(`Unable to read image dimensions for ${file.name || 'dropped image'}.`))
         return
       }
 
@@ -82,8 +65,8 @@ function measureDroppedImage(file: File & { path?: string }): Promise<{ resource
       const imageLongestSide = Math.max(naturalWidth, naturalHeight)
       const scale = imageLongestSide > maxLongestSide ? maxLongestSide / imageLongestSide : 1
 
+      cleanup()
       resolve({
-        resource,
         size: {
           w: Math.max(1, Math.round(naturalWidth * scale)),
           h: Math.max(1, Math.round(naturalHeight * scale))
@@ -92,11 +75,12 @@ function measureDroppedImage(file: File & { path?: string }): Promise<{ resource
     }
 
     image.onerror = () => {
-      reject(new Error(`Unable to load image ${file.name || resource} from ${resource}.`))
+      cleanup()
+      reject(new Error(`Unable to load image ${file.name || 'dropped image'}.`))
     }
 
     image.decoding = 'async'
-    image.src = toFileUrl(resource)
+    image.src = objectUrl
   })
 }
 
@@ -107,6 +91,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 function isPaneTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && target.closest('.react-flow__pane') !== null
+}
+
+function getBoardNameFromPath(boardPath: string): string {
+  const normalized = boardPath.replace(/\\/g, '/')
+  const fileName = normalized.slice(normalized.lastIndexOf('/') + 1)
+  return fileName.replace(/\.wb\.json$/i, '') || 'Board'
 }
 
 function blurToolbarButtonIfFocused(): void {
@@ -134,7 +124,6 @@ export function Canvas() {
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
-  const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace)
   const username = useAppSettingsStore((s) => s.user.username)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
   const updateUsername = useAppSettingsStore((s) => s.updateUsername)
@@ -143,9 +132,11 @@ export function Canvas() {
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
-  const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | 'exit' | null>(null)
+  const [pendingDocumentAction, setPendingDocumentAction] = useState<'close' | 'exit' | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [imageDropError, setImageDropError] = useState<string | null>(null)
+  const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
+  const [promoteInFlight, setPromoteInFlight] = useState(false)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
 
@@ -270,11 +261,7 @@ export function Canvas() {
     [activeTool, screenToFlowPosition, addNode]
   )
 
-  const startNewBoard = useCallback(() => {
-    clearBoard()
-  }, [clearBoard])
-
-  const handleSave = useCallback(async () => {
+  const buildBoardSnapshot = useCallback((): Board => {
     const nodes = boardNodes.map((node) => {
       if (node.type !== 'text') return node
 
@@ -286,51 +273,77 @@ export function Canvas() {
       }
     })
 
-    const board: Board = {
+    return {
       version,
       ...(boardName?.trim() ? { name: boardName.trim() } : {}),
       ...(boardBrief?.trim() ? { brief: boardBrief.trim() } : {}),
       nodes,
       edges: boardEdges
     }
-    const payload = JSON.stringify(board, null, 2)
+  }, [version, boardName, boardBrief, boardNodes, boardEdges])
 
+  const handleSave = useCallback(async () => {
     if (!boardPath) {
       console.error('Cannot save board without an explicit board path.')
       return
     }
 
-    const result = await window.api.saveBoard(boardPath, payload)
+    const result = await window.api.saveBoard(boardPath, JSON.stringify(buildBoardSnapshot(), null, 2))
 
     if (result.ok) {
       markSaved()
     }
-  }, [version, boardName, boardBrief, boardNodes, boardEdges, boardPath, markSaved])
+  }, [boardPath, buildBoardSnapshot, markSaved])
 
-  const handleLoad = useCallback(async () => {
-    const result = await window.api.openWorkspaceDialog()
-    if (!result.ok) return
-
-    if (result.workspaceRoot) {
-      const workspace = await window.api.readWorkspace(result.workspaceRoot)
-      loadWorkspace(workspace)
-    } else {
-      clearWorkspace()
-    }
-
-    if (!result.openBoardPath) {
-      clearBoard()
+  const handleCloseBoard = useCallback(() => {
+    if (isDirty) {
+      setPendingDocumentAction('close')
       return
     }
 
+    clearBoard()
+  }, [clearBoard, isDirty])
+
+  const handlePromoteToWorkspace = useCallback(async () => {
+    if (!boardPath || workspaceRoot !== null) return
+
+    setPromoteInFlight(true)
+    setWorkspaceActionError(null)
+
     try {
-      const json = await window.api.openBoard(result.openBoardPath)
-      const board: Board = JSON.parse(json)
-      loadBoard(board, result.openBoardPath)
-    } catch {
-      console.error('Failed to parse board file')
+      const createWorkspaceResult = await window.api.createWorkspaceDialog()
+      if (!createWorkspaceResult.ok || !createWorkspaceResult.workspaceRoot) return
+
+      const snapshot = buildBoardSnapshot()
+      const suggestedName = snapshot.name?.trim() || getBoardNameFromPath(boardPath)
+      const createBoardResult = await window.api.createBoard(
+        createWorkspaceResult.workspaceRoot,
+        suggestedName
+      )
+
+      if (!createBoardResult.ok || !createBoardResult.boardPath) {
+        throw new Error('Unable to create a workspace board.')
+      }
+
+      const saveResult = await window.api.saveBoard(
+        createBoardResult.boardPath,
+        JSON.stringify(snapshot, null, 2)
+      )
+      if (!saveResult.ok) {
+        throw new Error('Unable to write the promoted board into the new workspace.')
+      }
+
+      const workspace = await window.api.readWorkspace(createWorkspaceResult.workspaceRoot)
+      loadWorkspace(workspace)
+      loadBoard(snapshot, createBoardResult.boardPath)
+    } catch (error) {
+      setWorkspaceActionError(
+        error instanceof Error ? error.message : 'Unable to promote this quickboard into a workspace.'
+      )
+    } finally {
+      setPromoteInFlight(false)
     }
-  }, [clearBoard, clearWorkspace, loadBoard, loadWorkspace])
+  }, [boardPath, buildBoardSnapshot, loadBoard, loadWorkspace, workspaceRoot])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -375,18 +388,6 @@ export function Canvas() {
         return
       }
 
-      if (event.key.toLowerCase() === 'n' && (event.ctrlKey || event.metaKey)) {
-        if (isEditableTarget(event.target)) return
-        event.preventDefault()
-        if (isDirty) {
-          setPendingDocumentAction('new')
-          return
-        }
-
-        startNewBoard()
-        return
-      }
-
       if (event.key.toLowerCase() === 's' && (event.ctrlKey || event.metaKey)) {
         event.preventDefault()
         void handleSave()
@@ -408,7 +409,7 @@ export function Canvas() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [boardNodes, deleteNodes, handleSave, isDirty, nodes, settingsOpen, setActiveTool, setNodes, startNewBoard, updateNodeText])
+  }, [boardNodes, deleteNodes, handleSave, nodes, settingsOpen, setActiveTool, setNodes, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -452,59 +453,41 @@ export function Canvas() {
     }
   }, [])
 
-  const handleNewBoardClick = useCallback(() => {
-    if (isDirty) {
-      setPendingDocumentAction('new')
-      return
-    }
-
-    startNewBoard()
-  }, [isDirty, startNewBoard])
-
-  const handleLoadClick = useCallback(() => {
-    if (isDirty) {
-      setPendingDocumentAction('load')
-      return
-    }
-
-    void handleLoad()
-  }, [handleLoad, isDirty])
-
   const handleConfirmDocumentAction = useCallback(() => {
-    if (pendingDocumentAction === 'new') {
-      startNewBoard()
-    } else if (pendingDocumentAction === 'load') {
-      void handleLoad()
-    } else if (pendingDocumentAction === 'exit') {
+    if (pendingDocumentAction === 'exit') {
       window.api.confirmClose()
       return
     }
 
+    if (pendingDocumentAction === 'close') {
+      clearBoard()
+    }
+
     setPendingDocumentAction(null)
-  }, [handleLoad, pendingDocumentAction, startNewBoard])
+  }, [clearBoard, pendingDocumentAction])
 
   const handleCancelDocumentAction = useCallback(() => {
     setPendingDocumentAction(null)
   }, [])
 
   const confirmDialogTitle =
-    pendingDocumentAction === 'load'
-      ? 'Load a document?'
-      : pendingDocumentAction === 'exit'
+    pendingDocumentAction === 'exit'
         ? 'Exit without saving?'
-        : 'Start a new document?'
+        : workspaceRoot
+          ? 'Return to workspace home?'
+          : 'Close quickboard?'
   const confirmDialogBody =
-    pendingDocumentAction === 'load'
-      ? 'You have unsaved changes. Do you want to discard them and load another document?'
-      : pendingDocumentAction === 'exit'
+    pendingDocumentAction === 'exit'
         ? 'You have unsaved changes. Do you want to discard them and exit?'
-        : 'You have unsaved changes. Do you want to discard them and start fresh?'
+        : workspaceRoot
+          ? 'You have unsaved changes. Do you want to discard them and return to the workspace home screen?'
+          : 'You have unsaved changes. Do you want to discard them and close this quickboard?'
   const confirmDialogConfirmLabel =
-    pendingDocumentAction === 'load'
-      ? 'Load document'
-      : pendingDocumentAction === 'exit'
+    pendingDocumentAction === 'exit'
         ? 'Exit'
-        : 'New Document'
+        : workspaceRoot
+          ? 'Return to workspace'
+          : 'Close board'
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -584,15 +567,39 @@ export function Canvas() {
 
       event.preventDefault()
 
+      const browserDraggedUri = event.dataTransfer.getData('text/uri-list').trim()
+
       const imageFiles = Array.from(event.dataTransfer.files).filter((file) =>
         file.type.toLowerCase().startsWith('image/')
       )
-      if (imageFiles.length === 0) return
+      if (imageFiles.length === 0) {
+        if (browserDraggedUri) {
+          setImageDropError(WEB_RESOURCE_DROP_ERROR)
+        }
+        return
+      }
 
       const basePosition = screenToFlowPosition({ x: event.clientX, y: event.clientY })
 
       const measuredImages = await Promise.allSettled(
-        imageFiles.map((file) => measureDroppedImage(file as File & { path?: string }))
+        imageFiles.map(async (file) => {
+          const droppedFilePath = getDroppedFilePath(file as File & { path?: string })
+          if (!droppedFilePath) {
+            throw new Error(WEB_RESOURCE_DROP_ERROR)
+          }
+
+          const { size } = await measureDroppedImage(file)
+          if (workspaceRoot !== null) {
+            const copyResult = await window.api.copyWorkspaceResource(workspaceRoot, droppedFilePath)
+            if (!copyResult.ok || !copyResult.resource) {
+              throw new Error(`Unable to copy ${file.name || droppedFilePath} into workspace resources.`)
+            }
+
+            return { resource: copyResult.resource, size }
+          }
+
+          return { resource: absolutePathToFileUri(droppedFilePath), size }
+        })
       )
 
       let createdCount = 0
@@ -622,7 +629,7 @@ export function Canvas() {
         setImageDropError(firstFailure)
       }
     },
-    [activeTool, addNode, screenToFlowPosition]
+    [activeTool, addNode, screenToFlowPosition, workspaceRoot]
   )
 
   return (
@@ -656,14 +663,29 @@ export function Canvas() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </Panel>
+        <Panel position="top-right">
+          <div className="canvas-shell-actions">
+            {workspaceRoot === null ? (
+              <button
+                type="button"
+                className="canvas-shell-actions__button canvas-shell-actions__button--primary"
+                onClick={() => void handlePromoteToWorkspace()}
+                disabled={promoteInFlight}
+              >
+                Promote to Workspace
+              </button>
+            ) : null}
+            <button type="button" className="canvas-shell-actions__button" onClick={handleCloseBoard}>
+              {workspaceRoot ? 'Workspace Home' : 'Close Board'}
+            </button>
+          </div>
+        </Panel>
         <Panel position="bottom-center">
           <CanvasToolbar
             activeTool={activeTool}
             hasUnsavedChanges={isDirty}
             onToolChange={setActiveTool}
-            onNewBoard={handleNewBoardClick}
             onSave={handleSave}
-            onLoad={handleLoadClick}
           />
         </Panel>
       </ReactFlow>
@@ -692,6 +714,26 @@ export function Canvas() {
             <p className="canvas-modal__body">{imageDropError}</p>
             <div className="canvas-modal__actions">
               <button type="button" className="canvas-modal__button" onClick={() => setImageDropError(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {workspaceActionError ? (
+        <div className="canvas-modal__overlay" role="presentation" onClick={() => setWorkspaceActionError(null)}>
+          <div
+            className="canvas-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Workspace action failed"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="canvas-modal__title">Workspace action failed</h2>
+            <p className="canvas-modal__body">{workspaceActionError}</p>
+            <div className="canvas-modal__actions">
+              <button type="button" className="canvas-modal__button" onClick={() => setWorkspaceActionError(null)}>
                 Close
               </button>
             </div>

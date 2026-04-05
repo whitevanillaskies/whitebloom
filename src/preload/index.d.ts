@@ -39,6 +39,11 @@ type QuickboardCreateDialogResult = {
   boardPath?: string
 }
 
+type WorkspaceCopyToResResult = {
+  ok: boolean
+  resource?: string
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -49,6 +54,10 @@ declare global {
       openBoard: (boardPath: string) => Promise<string>
       saveBoard: (boardPath: string, json: string) => Promise<BoardSaveResult>
       createBoard: (workspaceRoot: string, name: string) => Promise<BoardCreateResult>
+      copyWorkspaceResource: (
+        workspaceRoot: string,
+        srcPath: string
+      ) => Promise<WorkspaceCopyToResResult>
       createQuickboardDialog: () => Promise<QuickboardCreateDialogResult>
       openFile: (filePath: string) => Promise<void>
       loadAppSettings: () => Promise<AppSettings>

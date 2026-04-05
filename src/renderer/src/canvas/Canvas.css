@@ -43,6 +43,52 @@
   cursor: default !important;
 }
 
+.canvas-shell-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.66));
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.canvas-shell-actions__button {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.26);
+  color: var(--color-primary-fg);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+
+.canvas-shell-actions__button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.canvas-shell-actions__button:active:not(:disabled) {
+  transform: translateY(1px);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.canvas-shell-actions__button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.canvas-shell-actions__button--primary {
+  background: linear-gradient(180deg, rgba(30, 135, 255, 0.2), rgba(255, 255, 255, 0.58));
+}
+
 .canvas-modal__overlay {
   position: fixed;
   inset: 0;

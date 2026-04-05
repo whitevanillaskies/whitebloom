@@ -4,6 +4,7 @@ import type { MainProcessContext } from '../state/main-process-context'
 import {
   createBoard,
   createQuickboard,
+  copyWorkspaceResource,
   createWorkspace,
   findWorkspaceRootForBoard,
   readBoard,
@@ -35,6 +36,11 @@ type BoardCreateResult = {
 type QuickboardCreateDialogResult = {
   ok: boolean
   boardPath?: string
+}
+
+type WorkspaceCopyToResResult = {
+  ok: boolean
+  resource?: string
 }
 
 export function registerBoardIpc(context: MainProcessContext): void {
@@ -123,6 +129,21 @@ export function registerBoardIpc(context: MainProcessContext): void {
         const boardPath = await createBoard(workspaceRoot, name)
         context.setActiveWorkspaceRoot(workspaceRoot)
         return { ok: true, boardPath }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'workspace:copy-to-res',
+    async (_event, workspaceRoot: string, srcPath: string): Promise<WorkspaceCopyToResResult> => {
+      if (!workspaceRoot || !srcPath) return { ok: false }
+
+      try {
+        const resource = await copyWorkspaceResource(workspaceRoot, srcPath)
+        context.setActiveWorkspaceRoot(workspaceRoot)
+        return { ok: true, resource }
       } catch {
         return { ok: false }
       }
