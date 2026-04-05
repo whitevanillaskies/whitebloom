@@ -1,4 +1,4 @@
-import { FilePlus, Home, MoreHorizontal, Save, Zap } from 'lucide-react'
+import { File, FilePlus, Home, MoreHorizontal, Save, Zap } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { PetalToolbarButton } from '../petal'
 import './BoardContextBar.css'
@@ -126,7 +126,7 @@ export default function BoardContextBar({
 
       {/* New board / New quickboard */}
       <PetalToolbarButton
-        icon={isWorkspace ? <FilePlus size={15} strokeWidth={2} /> : <Zap size={15} strokeWidth={2} />}
+        icon={isWorkspace ? <FilePlus size={15} strokeWidth={2} /> : <File size={15} strokeWidth={2} />}
         label={isWorkspace ? 'New board' : 'New quickboard'}
         onClick={onNewBoard}
       />

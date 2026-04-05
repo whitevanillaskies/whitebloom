@@ -274,6 +274,14 @@ function App(): React.JSX.Element {
     setView('start')
   }, [clearBoard, clearWorkspace])
 
+  const handleNewBoardFromCanvas = useCallback(() => {
+    if (workspaceRoot !== null) {
+      handleOpenCreateBoardModal()
+    } else {
+      void handleCreateQuickboard()
+    }
+  }, [workspaceRoot, handleOpenCreateBoardModal, handleCreateQuickboard])
+
   const handleGoHome = useCallback(() => setView('start'), [])
   const handleGoToWorkspaceHome = useCallback(() => setView('workspace-home'), [])
   const handleReturnToBoard = useCallback(() => setView('board'), [])
@@ -282,11 +290,26 @@ function App(): React.JSX.Element {
 
   if (view === 'board' && boardPath !== null) {
     return (
-      <ReactFlowProvider>
-        <div style={{ width: '100vw', height: '100vh' }}>
-          <Canvas onGoHome={handleGoHome} onGoToWorkspaceHome={handleGoToWorkspaceHome} />
-        </div>
-      </ReactFlowProvider>
+      <>
+        <ReactFlowProvider>
+          <div style={{ width: '100vw', height: '100vh' }}>
+            <Canvas
+              onGoHome={handleGoHome}
+              onGoToWorkspaceHome={handleGoToWorkspaceHome}
+              onNewBoard={handleNewBoardFromCanvas}
+            />
+          </div>
+        </ReactFlowProvider>
+        {isCreateBoardModalOpen ? (
+          <CreateBoardModal
+            boardName={newBoardName}
+            busy={busyAction === 'create-board'}
+            onBoardNameChange={setNewBoardName}
+            onClose={handleCloseCreateBoardModal}
+            onSubmit={() => void handleCreateWorkspaceBoard()}
+          />
+        ) : null}
+      </>
     )
   }
 

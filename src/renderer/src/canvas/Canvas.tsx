@@ -117,9 +117,10 @@ function blurToolbarButtonIfFocused(): void {
 type CanvasProps = {
   onGoHome: () => void
   onGoToWorkspaceHome: () => void
+  onNewBoard: () => void
 }
 
-export function Canvas({ onGoHome, onGoToWorkspaceHome }: CanvasProps) {
+export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProps) {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
@@ -148,7 +149,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome }: CanvasProps) {
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
-  const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | null>(null)
+  const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | 'newBoard' | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [imageDropError, setImageDropError] = useState<string | null>(null)
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
@@ -539,17 +540,31 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome }: CanvasProps) {
   const handleConfirmDocumentAction = useCallback(() => {
     if (pendingDocumentAction === 'exit') {
       window.api.confirmClose()
+    } else if (pendingDocumentAction === 'newBoard') {
+      onNewBoard()
     }
     setPendingDocumentAction(null)
-  }, [pendingDocumentAction])
+  }, [onNewBoard, pendingDocumentAction])
 
   const handleCancelDocumentAction = useCallback(() => {
     setPendingDocumentAction(null)
   }, [])
 
-  const confirmDialogTitle = 'Exit without saving?'
-  const confirmDialogBody = 'You have unsaved changes. Do you want to discard them and exit?'
-  const confirmDialogConfirmLabel = 'Exit'
+  const handleNewBoard = useCallback(() => {
+    if (isDirty) {
+      setPendingDocumentAction('newBoard')
+    } else {
+      onNewBoard()
+    }
+  }, [isDirty, onNewBoard])
+
+  const confirmDialogTitle = pendingDocumentAction === 'newBoard'
+    ? 'Discard unsaved changes?'
+    : 'Exit without saving?'
+  const confirmDialogBody = pendingDocumentAction === 'newBoard'
+    ? 'You have unsaved changes. Do you want to discard them and open a new board?'
+    : 'You have unsaved changes. Do you want to discard them and exit?'
+  const confirmDialogConfirmLabel = pendingDocumentAction === 'newBoard' ? 'Discard' : 'Exit'
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -714,6 +729,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome }: CanvasProps) {
         selectionOnDrag={activeTool === 'pointer'}
         panOnDrag={panOnDragButtons}
         fitView
+        fitViewOptions={{ padding: 0.25, maxZoom: 0.75 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
@@ -727,7 +743,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome }: CanvasProps) {
             onSave={() => void handleSave()}
             onGoHome={onGoHome}
             onGoToWorkspaceHome={onGoToWorkspaceHome}
-            onNewBoard={() => { /* TODO: workspace → CreateBoardModal; quickboard → new transient */ }}
+            onNewBoard={handleNewBoard}
             onOverflow={setOverflowAnchor}
           />
         </Panel>
