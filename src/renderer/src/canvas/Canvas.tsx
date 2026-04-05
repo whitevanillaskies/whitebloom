@@ -18,6 +18,7 @@ import { ImageNode } from './ImageNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardTitle from '@renderer/components/board-title/BoardTitle'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
+import { PetalButton, PetalPanel } from '@renderer/components/petal'
 import { absolutePathToFileUri } from '@renderer/shared/resource-url'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
@@ -428,11 +429,14 @@ export function Canvas() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (isEditableTarget(event.target)) return
-        event.preventDefault()
         if (settingsOpen) {
+          event.preventDefault()
           setSettingsOpen(false)
           return
         }
+        // Let PetalPanel handle Escape when any panel is open
+        if (imageDropError || workspaceActionError || pendingDocumentAction || trashBoardConfirmOpen) return
+        event.preventDefault()
         setActiveTool('pointer')
         blurToolbarButtonIfFocused()
         setNodes((nds) => nds.map((n) => ({ ...n, selected: false })))
@@ -789,108 +793,49 @@ export function Canvas() {
       )}
 
       {imageDropError ? (
-        <div className="canvas-modal__overlay" role="presentation" onClick={() => setImageDropError(null)}>
-          <div
-            className="canvas-modal"
-            role="alertdialog"
-            aria-modal="true"
-            aria-label="Image drop failed"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="canvas-modal__title">Image drop failed</h2>
-            <p className="canvas-modal__body">{imageDropError}</p>
-            <div className="canvas-modal__actions">
-              <button type="button" className="canvas-modal__button" onClick={() => setImageDropError(null)}>
-                Close
-              </button>
-            </div>
+        <PetalPanel title="Image drop failed" body={imageDropError} onClose={() => setImageDropError(null)}>
+          <div className="petal-panel__actions">
+            <PetalButton onClick={() => setImageDropError(null)}>Close</PetalButton>
           </div>
-        </div>
+        </PetalPanel>
       ) : null}
 
       {workspaceActionError ? (
-        <div className="canvas-modal__overlay" role="presentation" onClick={() => setWorkspaceActionError(null)}>
-          <div
-            className="canvas-modal"
-            role="alertdialog"
-            aria-modal="true"
-            aria-label="Workspace action failed"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="canvas-modal__title">Workspace action failed</h2>
-            <p className="canvas-modal__body">{workspaceActionError}</p>
-            <div className="canvas-modal__actions">
-              <button type="button" className="canvas-modal__button" onClick={() => setWorkspaceActionError(null)}>
-                Close
-              </button>
-            </div>
+        <PetalPanel title="Workspace action failed" body={workspaceActionError} onClose={() => setWorkspaceActionError(null)}>
+          <div className="petal-panel__actions">
+            <PetalButton onClick={() => setWorkspaceActionError(null)}>Close</PetalButton>
           </div>
-        </div>
+        </PetalPanel>
       ) : null}
 
       {pendingDocumentAction ? (
-        <div className="canvas-modal__overlay" role="presentation" onClick={handleCancelDocumentAction}>
-          <div
-            className="canvas-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Unsaved changes"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="canvas-modal__title">{confirmDialogTitle}</h2>
-            <p className="canvas-modal__body">{confirmDialogBody}</p>
-            <div className="canvas-modal__actions">
-              <button type="button" className="canvas-modal__button" onClick={handleCancelDocumentAction}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="canvas-modal__button canvas-modal__button--danger"
-                onClick={handleConfirmDocumentAction}
-              >
-                {confirmDialogConfirmLabel}
-              </button>
-            </div>
+        <PetalPanel title={confirmDialogTitle} body={confirmDialogBody} onClose={handleCancelDocumentAction}>
+          <div className="petal-panel__actions">
+            <PetalButton onClick={handleCancelDocumentAction}>Cancel</PetalButton>
+            <PetalButton intent="destructive" onClick={handleConfirmDocumentAction}>
+              {confirmDialogConfirmLabel}
+            </PetalButton>
           </div>
-        </div>
+        </PetalPanel>
       ) : null}
 
       {trashBoardConfirmOpen ? (
-        <div
-          className="canvas-modal__overlay"
-          role="presentation"
-          onClick={() => setTrashBoardConfirmOpen(false)}
+        <PetalPanel
+          title="Move board to trash?"
+          body="This moves the board file into wbapp:trash. Any unsaved in-memory edits will be lost."
+          onClose={() => setTrashBoardConfirmOpen(false)}
         >
-          <div
-            className="canvas-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Move board to trash"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="canvas-modal__title">Move board to trash?</h2>
-            <p className="canvas-modal__body">
-              This moves the board file into `wbapp:trash`. Any unsaved in-memory edits will be lost.
-            </p>
-            <div className="canvas-modal__actions">
-              <button
-                type="button"
-                className="canvas-modal__button"
-                onClick={() => setTrashBoardConfirmOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="canvas-modal__button canvas-modal__button--danger"
-                onClick={() => void handleTrashBoard()}
-                disabled={trashBoardInFlight}
-              >
-                Move to trash
-              </button>
-            </div>
+          <div className="petal-panel__actions">
+            <PetalButton onClick={() => setTrashBoardConfirmOpen(false)}>Cancel</PetalButton>
+            <PetalButton
+              intent="destructive"
+              onClick={() => void handleTrashBoard()}
+              disabled={trashBoardInFlight}
+            >
+              Move to trash
+            </PetalButton>
           </div>
-        </div>
+        </PetalPanel>
       ) : null}
     </>
   )

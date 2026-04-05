@@ -1,0 +1,67 @@
+.petal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  color: var(--color-primary-fg);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 80ms ease, border-color 80ms ease, box-shadow 80ms ease;
+}
+
+.petal-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.petal-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Primary — key action, maps to NSButton with keyEquivalent Return */
+
+.petal-button--primary {
+  background: var(--color-accent-blue);
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.petal-button--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent-blue) 88%, #000);
+  border-color: transparent;
+}
+
+/* Destructive — irreversible, maps to NSButton role .destructive */
+
+.petal-button--destructive {
+  background: transparent;
+  border-color: rgba(var(--color-accent-red-rgb), 0.22);
+  box-shadow: none;
+  color: var(--color-accent-red);
+}
+
+.petal-button--destructive:hover:not(:disabled) {
+  background: rgba(var(--color-accent-red-rgb), 0.06);
+  border-color: rgba(var(--color-accent-red-rgb), 0.36);
+}
+
+/* Small variant */
+
+.petal-button--sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}

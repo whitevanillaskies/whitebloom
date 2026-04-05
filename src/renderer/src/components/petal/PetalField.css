@@ -1,0 +1,59 @@
+.petal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.petal-field__label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-primary-fg);
+}
+
+.petal-field__hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--color-muted-fg);
+}
+
+.petal-field__input {
+  width: 100%;
+  padding: 0 10px;
+  height: 26px;
+  border-radius: var(--radius-border-inner);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary-fg);
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.petal-field__input::placeholder {
+  color: var(--color-muted-fg);
+}
+
+.petal-field__input:focus {
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-blue-rgb), 0.14);
+}
+
+.petal-field__input:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Textarea variant */
+
+.petal-field__input--textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 8px 10px;
+  resize: vertical;
+  line-height: 1.55;
+}

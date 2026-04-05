@@ -13,7 +13,7 @@ Reference `design_language.md` for the authoritative token and surface pattern r
 
 ## Active
 
-### 3. Petal — Shared UI Component System
+### 3. Petal — Shared UI Component System — DONE
 
 A minimal set of token-correct, reusable UI primitives that replace the six-plus hand-rolled
 modal implementations and inconsistent button/field patterns across the codebase. Named Petal
@@ -124,7 +124,7 @@ type PetalFieldProps = {
 
 ---
 
-### 4. `CreateBoardModal` — refactor as first Petal consumer
+### 4. `CreateBoardModal` — refactor as first Petal consumer — DONE
 
 Fix token violations and refactor to use Petal primitives. First real consumer validates
 the API before SettingsModal and the Canvas inline modals are touched.
@@ -148,7 +148,7 @@ color rules live in Petal.
 
 ---
 
-### 5. Backfill remaining callsites
+### 5. Backfill remaining callsites — DONE
 
 After CreateBoardModal proves the Petal API, refactor in order:
 

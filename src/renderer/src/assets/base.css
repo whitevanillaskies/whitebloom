@@ -69,8 +69,10 @@
 
   --color-accent-pink: #ff285a;
   --color-accent-blue: #1e87ff;
+  --color-accent-blue-rgb: 30, 135, 255;
   --color-accent-green: #30fa41;
   --color-accent-red: #ec164c;
+  --color-accent-red-rgb: 236, 22, 76;
   --color-accent-purple: #7c35ff;
 
   --radius-border-frame: 6px;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { PetalField } from '@renderer/components/petal'
 import './SettingsModal.css'
 
 type Props = {
@@ -99,32 +100,17 @@ function BoardSection({
   return (
     <div className="settings-section">
       <h2 className="settings-section__title">Board</h2>
-
-      <div className="settings-field">
-        <label className="settings-field__label" htmlFor="settings-board-name">
-          Board name
-        </label>
-        <input
-          id="settings-board-name"
-          className="settings-field__input"
-          type="text"
+      <div className="settings-section__fields">
+        <PetalField
+          label="Board name"
           value={name ?? ''}
           placeholder="Untitled"
           onChange={(e) => onChange({ name: e.target.value })}
         />
-      </div>
-
-      <div className="settings-field">
-        <label className="settings-field__label" htmlFor="settings-board-brief">
-          Brief
-          <span className="settings-field__label-hint">
-            A message for AI agents — describe what this board is for, what context they should keep
-            in mind, or how you'd like them to help.
-          </span>
-        </label>
-        <textarea
-          id="settings-board-brief"
-          className="settings-field__textarea"
+        <PetalField
+          as="textarea"
+          label="Brief"
+          hint="A message for AI agents — describe what this board is for, what context they should keep in mind, or how you'd like them to help."
           value={brief ?? ''}
           placeholder="This board is for…"
           rows={6}
@@ -145,18 +131,10 @@ function AppSection({
   return (
     <div className="settings-section">
       <h2 className="settings-section__title">App</h2>
-
-      <div className="settings-field">
-        <label className="settings-field__label" htmlFor="settings-app-username">
-          Username
-          <span className="settings-field__label-hint">
-            Stored once for the app and used for node authorship metadata across all boards.
-          </span>
-        </label>
-        <input
-          id="settings-app-username"
-          className="settings-field__input"
-          type="text"
+      <div className="settings-section__fields">
+        <PetalField
+          label="Username"
+          hint="Stored once for the app and used for node authorship metadata across all boards."
           value={username}
           placeholder="anon"
           onChange={(e) => onUsernameChange(e.target.value)}
