@@ -64,24 +64,35 @@ The CoreData is the foundation of Whitebloom. Everything else — editors, rende
 - **Renderer-agnostic.** The schema contains no UI framework metadata. No React Flow internals, no viewport state, no selection state. The CoreData could be consumed by a completely different third party platform, just like multiple apps can open .PSD or .FBX files.
 - **Stable across versions.** Changing the renderer is an x.5 upgrade. Changing the schema is a breaking change. Get this right first.
 
-### Directory structure
+### Workspace structure
+
+A **workspace** is a directory containing a `.wbconfig` file. The presence of `.wbconfig` is what makes a directory a workspace — it is the workspace root marker. Workspaces can contain any number of boards, or none at all.
 
 ```
-project/
-  board.wb.json        # The board manifest — entry point for humans and agents
-  board.inbox.json     # Agent proposal queue — reviewed and resolved by the user
-  blossoms/            # Bloomable assets, one file each
+my-project/
+  .wbconfig              # Workspace manifest — presence of this file defines the workspace root
+  research.wb.json       # A board (any name, any number of boards per workspace)
+  sprint-planning.wb.json
+  research.inbox.json    # Per-board agent proposal queue (sits alongside its board)
+  blossoms/              # Workspace-wide bloomable assets, shared across all boards
     schema-1.json
-    research.md
-    procedure-1.json
-  res/                 # External assets — images, videos, spreadsheets, docs
-    diagram.png        # Files that originate outside whitebloom and open in native apps
+    research-notes.md
+  res/                   # Workspace-wide external assets, shared across all boards
+    diagram.png
     photo.jpg
-    .thumbs/           # Auto-generated low-res previews (internal, not committed)
-    .inbox-snapshots/  # Pre-edit snapshots for binary asset diffs (internal, not committed)
+    .thumbs/             # Auto-generated low-res previews (internal, not committed)
+    .inbox-snapshots/    # Pre-edit snapshots for binary asset diffs (internal, not committed)
 ```
 
-The `.wb.json` extension signals "Whitebloom board" while remaining parseable by any JSON tool. The `blossoms/` directory contains only assets that bloom into editors. The `res/` directory contains media referenced by nodes.
+**Opening a workspace.** Two entry points, one app:
+- Open `.wbconfig` → load workspace, show workspace home (board list), no board open.
+- Open `*.wb.json` → find `.wbconfig` in the same directory, load workspace, open that board.
+
+An empty workspace (no boards) is a valid and intentional state — it is the default for a new workspace.
+
+**Inbox naming.** Each board has its own inbox: `<board-stem>.inbox.json` alongside its board file (e.g. `research.inbox.json` for `research.wb.json`).
+
+The `.wb.json` extension signals "Whitebloom board" while remaining parseable by any JSON tool. The `blossoms/` and `res/` directories are workspace-level — assets are shared across all boards in the workspace. A node on any board can reference any asset in the workspace.
 
 ### Board schema
 
@@ -103,7 +114,7 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
       "updatedAt": "2026-04-03T10:00:00.000Z",
       "updatedBy": "anon",
       "label": "Research notes",
-      "resource": "blossoms/research.md"
+      "resource": "wloc:blossoms/research.md"
     },
     {
       "id": "node-2",
@@ -116,7 +127,7 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
       "updatedAt": "2026-04-03T10:08:00.000Z",
       "updatedBy": "mae",
       "label": "Users table",
-      "resource": "blossoms/schema-1.json"
+      "resource": "wloc:blossoms/schema-1.json"
     },
     {
       "id": "node-3",
@@ -137,7 +148,7 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
       "position": { "x": 550, "y": 500 },
       "size": { "w": 400, "h": 300 },
       "label": "System diagram",
-      "resource": "res/diagram.png"
+      "resource": "wloc:res/diagram.png"
     }
   ],
 
@@ -176,7 +187,7 @@ Image, video, and other external assets are stored in `res/` as ordinary files. 
   "id": "node-4",
   "kind": "bud",
   "type": "image",
-  "resource": "res/photo.jpg",
+  "resource": "wloc:res/photo.jpg",
   "size": { "w": 400, "h": 300 }
 }
 ```
@@ -191,7 +202,7 @@ The node component renders the asset at the declared size. For images: `<img src
 
 Two flows bring external assets onto the board:
 
-**OS-level drag.** The user drags a file from the OS file manager onto the canvas. The main process copies the file to `res/`, returns a relative path, and the renderer creates a new node at the drop position (converted from screen coordinates to canvas coordinates via ReactFlow's `screenToFlowPosition`).
+**OS-level drag.** The user drags a file from the OS file manager onto the canvas. The main process copies the file to the workspace `res/` directory, returns a `wloc:res/filename` URI, and the renderer creates a new node at the drop position (converted from screen coordinates to canvas coordinates via ReactFlow's `screenToFlowPosition`).
 
 **Media library.** A sidebar panel lists all files in `res/` grouped by type (images, video, audio, documents). Dragging a thumbnail from the panel onto the canvas creates a node using the already-resident file. The library is a view over `res/` — no separate index.
 
@@ -212,7 +223,7 @@ Two flows bring external assets onto the board:
 |------------|----------|-------------|
 | `id`       | yes      | Unique identifier for the node |
 | `kind`     | yes      | `"bud"` or `"leaf"` |
-| `type`     | yes      | Asset type (e.g. `"markdown"`, `"db-schema"`, `"text"`, `"image"`) |
+| `type`     | yes      | For leaves: a short built-in type string (`"text"`). For buds created via the palette or claimed by a specific module on drag-and-drop: the claiming module's `id` (e.g. `"com.whitebloom.focus-writer"`). For void-typed buds whose handler is unresolved at import time: `null`. |
 | `position` | yes      | `{ x, y }` coordinates on the board |
 | `size`     | yes      | `{ w, h }` bounding box |
 | `created`  | yes      | ISO timestamp for when the node first entered the board |
@@ -221,7 +232,7 @@ Two flows bring external assets onto the board:
 | `updatedBy`| yes      | Username that performed the most recent node write |
 | `label`    | no       | Display name on the board |
 | `content`  | no       | Inline content for leaves (e.g. sticky note text) |
-| `resource` | no       | Relative path to the asset file (required for buds, optional for leaves) |
+| `resource` | no       | URI reference to the asset (required for buds, optional for leaves). Workspace-local files use `wloc:` (e.g. `wloc:blossoms/research.md`). External filesystem paths use `file:///absolute/path`. Web resources use `https://`. |
 
 Edges have `id`, `from`, `to`, and an optional `label`.
 
@@ -231,10 +242,12 @@ Authorship is intentionally lightweight in v3. The board file stores per-node pr
 
 An agent can:
 
-1. `cat board.wb.json` to understand the full board: what exists, where it is, how things connect. The `brief` field (if present) appears near the top of the file and gives immediate context about the board's purpose and the user's intentions.
-2. Follow `resource` paths to read or edit specific assets.
-3. Grep `buds/` for content across all bloomable assets.
-4. Understand the topology from `edges` without opening any other file.
+1. `cat .wbconfig` to understand the workspace: its name, brief, and module configuration.
+2. `ls *.wb.json` to discover all boards in the workspace.
+3. `cat research.wb.json` to understand a specific board: what exists, where it is, how things connect. The `brief` field (if present) appears near the top and gives immediate context about the board's purpose.
+4. Resolve `wloc:` URIs to workspace-local paths and follow them to read or edit specific assets.
+5. Grep `blossoms/` for content across all bloomable assets in the workspace.
+6. Understand the topology from `edges` without opening any other file.
 
 The board is a flat manifest. Leaves are inline. Buds are one hop away. No recursive directory scanning, no frontmatter parsing, no database queries.
 
@@ -248,7 +261,7 @@ When an agent modifies a board node, it works from the board state at the time i
 
 **Inbox file**
 
-`board.inbox.json` sits alongside `board.wb.json`. It is a queue of proposals, each wrapping one or more serialized commands.
+`<board-stem>.inbox.json` sits alongside its `*.wb.json` board file (e.g. `research.inbox.json` for `research.wb.json`). It is a queue of proposals, each wrapping one or more serialized commands.
 
 ```json
 {
@@ -373,9 +386,16 @@ Whitebloom is extended through **symbiotic modules**. A symbiotic module present
 
 ### Design
 
-The system follows the Maya/Blender model: on startup, a loader harvests all modules it can find (local project modules, user-installed modules, or modules discovered via a configurable path). Each module is instantiated, validated, and registered. Conflicts (two modules claiming the same type) are logged as warnings and resolved first-come-first-served. Future versions can surface conflicts to the user and let them choose.
+The system follows the Maya/Blender model: on startup, a loader harvests all modules it can find (local project modules, user-installed modules, or modules discovered via a configurable path). Each module is instantiated, validated, and registered.
 
-**One module, one type.** A module handles exactly one bud type. This is a deliberate constraint. If a module bundled multiple types (e.g. markdown + code), a user who likes its markdown editor but prefers a different code editor is stuck. One-to-one mapping means users can swap any single type without friction.
+**Extensions over semantic types.** A module declares the file extensions it handles — not a single semantic type. An image module can declare `.jpg`, `.jpeg`, `.png`, `.webp`, `.tga` and is still one module for one asset family. Multiple modules may handle the same extension — there is no exclusive ownership and no type conflict. Users can mix, swap, and layer handlers freely.
+
+**Generic vs specific modules.** The distinction is made via an optional `recognizes()` method:
+
+- **Generic modules** handle any file of their declared extensions. They do not stamp a type on the board node — the node is *void-typed*, and any generic handler that supports the extension can open it. A plain image viewer or a raw JSON inspector are generic.
+- **Specific modules** implement `recognizes(resource)`, which inspects the file content (minimally — a header, a top-level field, not a full parse) and returns `true` if the file belongs to their domain. On recognition, the module's `id` is stamped as the node `type`. A PostgreSQL schema editor that only fires on JSON files structured as its own schema format is specific.
+
+**Void-typed buds.** When no specific module claims a dropped file, the board node stores `type: null`. The resource URI and file extension are the sole identity. At open-time, all generic modules that handle the extension are available as handlers. The OS default app is always available as a fallback regardless of which modules are installed.
 
 ### The symbiotic split
 
@@ -394,22 +414,29 @@ The human-facing half. A plain object, no base class.
 
 ```ts
 type WhitebloomEditor<T = unknown> = {
-  id: string              // Unique identifier, e.g. "com.whitebloom.markdown.editor"
-  name: string            // Human-readable name, e.g. "Markdown"
-  type: string            // The bud type this editor handles, e.g. "markdown"
+  id: string              // Unique identifier, e.g. "com.whitebloom.focus-writer"
+                          // For specific modules, this is what gets stamped as the
+                          // board node's `type` when the module claims a file.
+  name: string            // Human-readable name, e.g. "Focus Writer"
+  extensions: string[]    // File extensions handled, e.g. [".jpg", ".jpeg", ".png"]
+                          // Multiple modules may declare the same extension.
   icon: string            // Icon identifier (name, path, or emoji for v1)
-  fileExtension: string   // e.g. ".md", ".json"
   defaultRenderer: 'internal' | 'external'
   // 'internal' — bloom opens whitebloom's Editor component in a modal.
   // 'external' — bloom opens the file in the OS default app (shell.openPath).
-  // Users can override this per type in whitebloom.config.json.
+  // Users can override this per type in .wbconfig.
 
-  createDefault(): T
-  // Returns the default data written to disk when a new bud of this type
-  // is created. For markdown, this might be "# Untitled\n". For a schema,
-  // an empty JSON structure. The return value is serialized to a file
-  // in blossoms/ using the fileExtension. External modules may return null
-  // here — they do not create assets, they reference existing ones.
+  recognizes?(resource: string): boolean | Promise<boolean>
+  // Optional. Marks this as a specific module. Called on drag-and-drop to test
+  // whether this module claims the dropped file. Implementations should inspect
+  // minimal data — a file header, a top-level JSON field — not parse the whole
+  // document. If absent, the module is generic and never stamps a type on nodes.
+
+  createDefault?(): T
+  // Optional. Returns the default data written to disk when a new bud of this
+  // type is created via the palette tool. For a focus document: "# Untitled\n".
+  // For a schema: an empty JSON structure. External-only modules that reference
+  // existing files may omit this entirely.
 
   Editor: React.ComponentType<BudEditorProps<T>> | null
   // The React component rendered inside the bloom modal when the user
@@ -511,18 +538,58 @@ Skills are optional and additive. A module with no skills is still fully functio
 
 ### Resolution flow
 
-```
-user double-clicks bud (type: "markdown")
-  → editorRegistry.get("markdown")
-  → editor found → render editor.Editor in bloom modal
-  → editor not found → show "no editor installed for this type"
+**Drag-and-drop import**
 
-agent encounters bud (type: "markdown")
-  → shellRegistry.get("markdown")
-  → shell found → read module_agents.md, list available lenses and skills
-  → shell not found, asset is internal → agent reads the raw file directly
-  → shell not found, asset is extern → agent skips the asset
 ```
+file dropped onto canvas
+  → collect all modules whose extensions[] include the file's extension
+  → run recognizes(resource) on all specific modules (those that implement it), in parallel
+  → zero specific modules recognize it  → create void-typed bud (type: null)
+  → exactly one recognizes it          → stamp module.id as type, create concrete bud
+  → multiple recognize it              → show picker ("two modules want to handle this file")
+                                          user selects one → stamp that module's id
+                                          (treat as a module bug; collision should be near-impossible)
+```
+
+**Palette creation**
+
+```
+user selects module from palette
+  → module.createDefault() is called
+  → new file written to blossoms/ (internal) or res/ (external)
+  → bud created with type: module.id — always concrete, no ambiguity
+```
+
+**Opening a bud**
+
+```
+user double-clicks bud (type: "com.whitebloom.focus-writer")
+  → editorRegistry.get("com.whitebloom.focus-writer")
+  → module found → render module.Editor in bloom modal
+  → module not found → show "no editor installed for this type"
+                        right-click always offers "Open with native app"
+
+user double-clicks void-typed bud (type: null)
+  → collect all generic modules whose extensions[] include the resource's extension
+  → if exactly one → open with that module's Editor (or openExternal if defaultRenderer: 'external')
+  → if multiple → show "Open With" picker (inline toolbar or small modal)
+  → if none → fall back to OS default app via shell.openPath
+
+agent encounters bud (type: "com.whitebloom.focus-writer")
+  → shellRegistry.get("com.whitebloom.focus-writer")
+  → shell found → read module_agents.md, list available lenses and skills
+  → shell not found, resource is text file → agent reads the raw file directly
+  → shell not found, resource is opaque binary → agent skips the asset
+
+agent encounters void-typed bud (type: null)
+  → look up generic shells by extension
+  → shell found → proceed as above
+  → no shell → read raw file if text, skip if binary
+```
+
+**Open With — secondary handlers**
+
+Any bud, regardless of type, can be opened with an alternative module. Right-clicking a bud (or using a keyboard shortcut on a selected bud) shows all modules whose `extensions[]` include the resource's extension, plus the OS default app. The primary handler (the stamped `type`) is shown first. Selecting a secondary handler opens the file in that module's Editor without changing the node's `type`.
 
 ### What a module does NOT do in v1
 
@@ -538,31 +605,39 @@ On startup, the loader:
 2. Imports each module's entry point (e.g. `index.ts` exporting a `WhitebloomEditor`).
 3. Scans for shell directories alongside editors (`agents/` directory).
 4. Validates the contracts (all required fields present, `Editor` is a component, etc.).
-5. Registers editors in a `Map<string, WhitebloomEditor>` keyed by `type`.
-6. Registers shells in a `Map<string, WhitebloomShell>` keyed by `type`.
-7. If a type is already registered, the new module is skipped and a warning is logged.
+5. Registers editors in two indexes: a `Map<string, WhitebloomEditor>` keyed by `id`, and a `Map<string, WhitebloomEditor[]>` keyed by extension (each extension maps to all modules that handle it, in registration order).
+6. Registers shells in a `Map<string, WhitebloomShell>` keyed by module `id`, and a `Map<string, WhitebloomShell[]>` keyed by extension for void-typed lookups.
+7. Multiple modules handling the same extension is normal and expected — no warnings, no skipping. Order determines the default when a picker is not shown.
 
 The discovery path can be extended later (environment variable, manifest file, or a package manager) without changing the module contracts.
 
 ### Example module
 
 ```ts
-// modules/markdown/index.ts
+// modules/focus-writer/index.ts
 
-import { MarkdownEditor } from "./editor"
+import { FocusWriterEditor } from "./editor"
 
 export const editor: WhitebloomEditor<string> = {
-  id: "com.whitebloom.markdown.editor",
-  name: "Markdown",
-  type: "markdown",
+  id: "com.whitebloom.focus-writer",
+  name: "Focus Writer",
+  extensions: [".md"],
   icon: "file-text",
-  fileExtension: ".md",
+  defaultRenderer: "internal",
+
+  // Specific module: claims .md files that look like plain markdown documents.
+  // Checks for a markdown heading or paragraph — avoids claiming frontmatter-heavy
+  // files that belong to a site generator module.
+  recognizes(resource) {
+    const content = readFileSync(resource, "utf8")
+    return /^#{1,6} |^[^\-{]/.test(content.trimStart().slice(0, 200))
+  },
 
   createDefault() {
     return "# Untitled\n"
   },
 
-  Editor: MarkdownEditor,
+  Editor: FocusWriterEditor,
 }
 ```
 
@@ -606,37 +681,40 @@ unless explicitly asked to reorganize.
 
 A real v1 would use CodeMirror or Tiptap inside that editor. The point is: the contract doesn't care. The module owns everything inside the bloom modal.
 
-### Project config
+### Workspace config (`.wbconfig`)
 
-A `whitebloom.config.json` file at the project root controls which editors and shells handle which asset types. This is where users express their preferences for mixing and matching.
+`.wbconfig` is a JSON file at the workspace root. Its presence is what makes a directory a workspace. It serves two purposes: workspace identity and per-workspace module configuration.
 
 ```json
 {
-  "types": {
-    "markdown": {
-      "editor": "com.whitebloom.markdown.editor",
-      "shell": "com.community.markdown.shell",
+  "version": 1,
+  "name": "Perfume Campaign SS26",
+  "brief": "Research and planning for the spring/summer 2026 campaign.",
+  "modules": {
+    "com.whitebloom.focus-writer": {
       "renderer": "external"
     },
-    "db-schema": {
-      "editor": "com.whitebloom.db-schema.editor",
-      "shell": "com.whitebloom.db-schema.shell",
+    "com.whitebloom.db-schema": {
+      "shell": "com.community.db-schema.shell",
       "lenses": [
         "community/security-audit.lens.json",
         "community/normalization.lens.json"
       ]
-    },
-    "image": {
-      "editor": "com.whitebloom.image.editor",
-      "renderer": "external"
     }
   }
 }
 ```
 
+| Field | Required | Description |
+|-------|----------|-------------|
+| `version` | yes | Config schema version. Current version is `1`. |
+| `name` | no | Human-readable workspace name. |
+| `brief` | no | Plain-text context for agents — describes the workspace's purpose, domain, and constraints. Distinct from any individual board's `brief`. |
+| `modules` | no | Per-module overrides, keyed by module `id`. Each entry can override `renderer`, `editor`, `shell`, or add extra `lenses`. |
+
 The `lenses` array allows users to layer additional community or custom lenses on top of whatever the shell ships. These are resolved as paths relative to a configurable lens directory.
 
-When no config file exists, the app falls back to default resolution: the first registered editor and first registered shell for each type.
+When `modules` is absent or a module has no entry, the app falls back to default resolution: the first registered editor and first registered shell for each type.
 
 ### Shared UI kit (`@whitebloom/ui`)
 
@@ -689,13 +767,15 @@ Electron + React + TypeScript + Vite. Single package (not a monorepo) — `@whit
 │  Main process                                   │
 │  Filesystem API only. No business logic.        │
 │                                                 │
-│  readFile(path) → string                        │
-│  writeFile(path, data) → void                   │
-│  copyToRes(sourcePath) → relativePath           │
-│  openExternal(absolutePath) → void              │
-│  watchRes(path, cb) → Unsubscribe               │
-│  watchBoard(path) → change events               │
-│  showOpenDialog() → path                        │
+│  openWorkspace(wbconfigPath) → WorkspaceMeta    │
+│  openBoard(wbJsonPath) → { workspace, board }   │
+│  resolveUri(workspaceRoot, uri) → absolutePath  │
+│  readFile(absolutePath) → string               │
+│  writeFile(absolutePath, data) → void          │
+│  copyToRes(workspaceRoot, src) → wlocUri        │
+│  openExternal(absolutePath) → void             │
+│  watchFile(absolutePath, cb) → Unsubscribe     │
+│  showOpenDialog(filters) → path               │
 └────────────────────┬────────────────────────────┘
                      │ IPC (contextBridge)
 ┌────────────────────▼────────────────────────────┐
@@ -739,13 +819,16 @@ src/
   preload/
     index.ts              # contextBridge exposing window.api
   renderer/
-    app.tsx               # Entry point
+    app.tsx               # Entry point — routes between workspace home and board canvas
     stores/
+      workspace.ts        # Zustand store — workspace meta, board list, open board
       board.ts            # Zustand store — board state, load/save
+    workspace/
+      WorkspaceHome.tsx   # Board list view — create, open, rename boards
     canvas/
       Canvas.tsx          # React Flow wrapper
       adapter.ts          # Domain model ↔ React Flow format
-      nodes/              # Custom React Flow node components (BudNode, LeafNode, ImageNode)
+      nodes/              # Custom React Flow node components (BudNode, LeafNode)
     bloom/
       BloomModal.tsx      # Modal shell — looks up editor, renders Editor component
     ui/                   # @whitebloom/ui — shared components + CSS variables
@@ -755,9 +838,9 @@ src/
       Tabs.tsx
       ...
   modules/                # Built-in symbiotic modules
-    markdown/
+    focus-writer/
       index.ts            # Exports WhitebloomEditor<string>
-      editor.tsx          # Markdown editor component
+      editor.tsx          # Focus writer editor component
       agents/             # Shell — agentic interface
         module_agents.md  # Agent-facing description
         lenses/           # Interpretive frames
@@ -773,7 +856,8 @@ src/
           access.lens.json
         skills/
   shared/
-    types.ts              # Board schema, WhitebloomEditor<T>, BudEditorProps<T>
+    types.ts              # Board schema, workspace types, WhitebloomEditor<T>, BudEditorProps<T>
+    uri.ts                # wloc: URI resolution — resolveUri(workspaceRoot, uri) → absolutePath
     constants.ts          # File extensions, default sizes, etc.
 ```
 
@@ -816,8 +900,10 @@ This is a canvas-level concern — modules and bloom editors don't know about mu
 
 ### Key decisions
 
+- **Workspace root is load-bearing.** The app never holds a board path without a resolved workspace root. Opening a `*.wb.json` always locates `.wbconfig` in the same directory first. A board opened outside a workspace is an error, not a degraded mode.
+- **URI resolution is centralized.** All `wloc:` URIs pass through a single `resolveUri(workspaceRoot, uri)` function in `shared/uri.ts`. No component or store constructs absolute paths directly — they pass URIs to IPC calls and let the resolver handle them. This keeps workspace-awareness out of business logic.
 - **Modules are statically imported for v1.** A `modules/index.ts` barrel file imports all built-in modules and registers them at startup. No dynamic `import()`, no filesystem scanning. User-installable modules are a v2 concern.
-- **One Zustand store.** Board state (nodes, edges, viewport) lives in a single store. No per-module state management — modules receive `read`/`save` callbacks and manage their own editor state internally.
+- **Two Zustand stores.** Workspace state (name, brief, board list, active board path) lives in `workspace.ts`. Board state (nodes, edges) lives in `board.ts`. The workspace store is always loaded; the board store is populated when a board is opened and cleared when returning to the workspace home.
 - **The adapter is a pure function.** `toReactFlow(board: Board): { nodes: RFNode[], edges: RFEdge[] }`. No side effects, easy to test, easy to replace.
 - **Path aliases.** `@whitebloom/ui` → `src/renderer/ui`, `@whitebloom/shared` → `src/shared`. Configured in `tsconfig.json` and `vite.config.ts`.
 

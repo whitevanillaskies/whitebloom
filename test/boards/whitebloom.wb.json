@@ -134,8 +134,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1591.8134906412774,
-        "y": -10.553586971294692
+        "x": 1668.1428597442582,
+        "y": 12.418888263992585
       },
       "size": {
         "w": 438,
@@ -146,7 +146,7 @@
       "wrapWidth": 438,
       "created": "2026-04-03T15:54:10.083Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:29:27.433Z",
+      "updatedAt": "2026-04-03T19:49:03.973Z",
       "updatedBy": "anon",
       "plain": "Ideas\nComic book format support\nComic book format support. I believe that there's a file format (I know, because I've used it, I just don't remember which) that bundles entire comics. Then we can show the cover page and double clicking opens it in the native system app\nArbitrary Docs\nNot part of the module system. As part of the UI (Not the HEP), allow, for humans only, dropping unsupported assets (for example, .blend files). This creates a Document node. This is a native node that may not be usable by agents. This node either shows a file icon or just a generic document icon, it is not copied to the workspace, it's linked to wherever it is on disk, and the only functionality is double clicking to open in the native app. By wrapping it into a node what we can do is support grouping and edges (when we implement them).\nTools palette\nHitting tab on the canvas when not editing anything should bring up a palette with all the tools. This is required because if we were to support multiple modules as we want, then adding them all to a toolbar would be unwieldy. We could have an \"add tool to toolbar\" like the Apple bar at the bottom of the screen, but all tools should be accessible via the finder.\nNative alerts\nGet claude to copy the chat over when session limits reset.\nIA Writer\nA really minimal note asset that gets out of your way. Screen whites out, you only focus one paragraph at a time which is always centered. Previous paragraphs show up on top, somewhat greyed out, after hitting enter. No rich text. Could be diffed by highlighting AI additions."
     },
@@ -155,8 +155,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 2114.8135149650498,
-        "y": 20.508911089905023
+        "x": 2172.898121902953,
+        "y": 21.632176667564757
       },
       "size": {
         "w": 406,
@@ -167,7 +167,7 @@
       "wrapWidth": 406,
       "created": "2026-04-03T16:43:22.337Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T16:44:09.629Z",
+      "updatedAt": "2026-04-03T19:48:38.590Z",
       "updatedBy": "anon",
       "plain": "UX bug (kind of). A large vertical note will get framed to the center, which sort of limits the total space. What we need to do is not count the top edge as part of the \"out of screen\" check"
     },
@@ -176,8 +176,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 2164.0382291628,
-        "y": 230.45134129421396
+        "x": 2173.5698995114026,
+        "y": 226.8769649134879
       },
       "size": {
         "w": 26,
@@ -188,7 +188,7 @@
       "wrapWidth": 439,
       "created": "2026-04-03T17:29:28.854Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:30:23.712Z",
+      "updatedAt": "2026-04-03T19:48:10.694Z",
       "updatedBy": "anon",
       "plain": "Groups and folders. Maybe groups are folders inside the filesystem?\nAlso, maybe namespacing via intermediate dirs different asset /blossoms/db_schema/the_asset.json"
     },
@@ -197,8 +197,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 2183.566101197749,
-        "y": 395.86390441378694
+        "x": 2172.8429720555714,
+        "y": 387.5236928587596
       },
       "size": {
         "w": 26,
@@ -209,37 +209,16 @@
       "wrapWidth": 419,
       "created": "2026-04-03T17:30:42.888Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:31:58.434Z",
+      "updatedAt": "2026-04-03T19:48:13.271Z",
       "updatedBy": "anon",
       "plain": "Script/Story writing assets\nSomething like Final Draft + Scrivener.\nScreenplay assets shouldn't be that hard to do. They're fairly structured by design.\nThe nice thing about Scrivener is the folders and arrangements, surely some self proclaimed \"operating system for knowledge\" should have a feature like that"
-    },
-    {
-      "id": "76868900-a897-499c-9c8c-c491657b3f9a",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 2196.944976107833,
-        "y": 630.8601242999521
-      },
-      "size": {
-        "w": 26,
-        "h": 19
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Install courier prime font, don't use courier new, and prime looks better than standard courier\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 466,
-      "created": "2026-04-03T17:33:26.699Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:33:40.975Z",
-      "updatedBy": "anon",
-      "plain": "Install courier prime font, don't use courier new, and prime looks better than standard courier"
     },
     {
       "id": "ef501a7b-932e-4ae7-ac17-06957cff7638",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 2700.067231353916,
+        "x": 2699.164274438048,
         "y": 431.9206965851114
       },
       "size": {
@@ -251,7 +230,7 @@
       "wrapWidth": 441,
       "created": "2026-04-03T17:35:42.159Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:37:46.528Z",
+      "updatedAt": "2026-04-03T19:48:25.328Z",
       "updatedBy": "anon",
       "plain": "The interesting thing is this: nodes/blooms (modules) can handle the same file format. There's really two primary formats: plain text, or formatted plain text (json). Think about this: we can have \"markdown:screenplay\" or \"markdown:code-review\"."
     },
@@ -260,8 +239,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 2705.8107231289014,
-        "y": 575.5079909597406
+        "x": 2698.587067801955,
+        "y": 574.6050340438723
       },
       "size": {
         "w": 26,
@@ -272,7 +251,7 @@
       "wrapWidth": 417,
       "created": "2026-04-03T17:36:58.306Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:37:48.260Z",
+      "updatedAt": "2026-04-03T19:48:27.230Z",
       "updatedBy": "anon",
       "plain": "For Scrivener stuff, each node can be a folder. The outline can be left empty and thus the node renders the first n characters of the content. If the outline is not empty the whiteboard node renders that (with a character limit like X)"
     },
@@ -281,8 +260,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 2686.282851093952,
-        "y": 43.66065259611372
+        "x": 2696.652664244013,
+        "y": 19.49104082439078
       },
       "size": {
         "w": 446,
@@ -293,7 +272,7 @@
       "wrapWidth": 446,
       "created": "2026-04-03T17:37:49.030Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:46:58.199Z",
+      "updatedAt": "2026-04-03T19:48:40.780Z",
       "updatedBy": "anon",
       "plain": "On save (or as a background job while working, whatever is fastest), spatial clustering of nodes. A service scans the size of each node and how close other nodes are, and groups them into agentic clusters. This is all agentic metadata, just like the brief entry. So we could have spatial clusters as an array of arrays (each array a cluster). Alternatively, each cluster could be not an array but a JSON object with an array and metadata. Perhaps, \"what this cluster means to an LLM\". Another option is to have agentic and spatial clusters. Spatial clusters are simply \"these nodes are so close together that they may be related\" while agentic clusters are \"an agent looked at the board and figured out these groupings, for this reason\". The problem of agentic clusters is that they would require an actual agentic service to be connected. So even if we want to support this, it should be fully optional.\nIdeally when an agent detects a cluster it could send a notification via the tool, \"I propose this cluster of information, does it align with your view of the data?\""
     },
@@ -302,8 +281,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1948.7117945575176,
-        "y": 727.161510384342
+        "x": 2172.7060477496816,
+        "y": 698.5664993385338
       },
       "size": {
         "w": 475,
@@ -314,7 +293,7 @@
       "wrapWidth": null,
       "created": "2026-04-03T17:53:02.142Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:53:16.516Z",
+      "updatedAt": "2026-04-03T19:48:16.930Z",
       "updatedBy": "anon",
       "plain": "Latex or just tex support, must have if we want adoption by scientists"
     },
@@ -323,8 +302,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 3189.605706989763,
-        "y": 224.38186209893405
+        "x": 3173.352482504133,
+        "y": 23.478905183065905
       },
       "size": {
         "w": 369,
@@ -335,7 +314,7 @@
       "wrapWidth": null,
       "created": "2026-04-03T17:59:00.737Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-03T17:59:16.156Z",
+      "updatedAt": "2026-04-03T19:48:46.076Z",
       "updatedBy": "anon",
       "plain": "If we were to embed an agent in the UI, I like of like pi.\nhttps://github.com/badlogic/pi-mono/tree/main"
     },

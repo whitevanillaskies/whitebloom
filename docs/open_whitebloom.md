@@ -30,14 +30,16 @@ Whitebloom can be both an app and an open specification. The CoreData schema and
 
 The file format. What exists on disk and what it means.
 
-- **Board format.** The `.wb.json` schema: nodes, edges, version, field semantics.
-- **Inbox format.** `board.inbox.json` sits alongside `board.wb.json`. It is a queue of agent proposals, each containing a `description`, a `rationale`, an `atomic` flag, and an array of serialized commands. This file is part of the spec — any compliant implementation must be able to read and write it.
-- **Directory conventions.** `blossoms/` for assets whose primary creation and editing path is whitebloom (internal-default modules). `res/` for assets that originate outside whitebloom and open in native apps (external-default modules: images, video, spreadsheets, documents). One file per asset. `res/.thumbs/` and `res/.inbox-snapshots/` hold auto-generated content; they are not part of the spec and should not be committed.
+- **Workspace format.** A workspace is a directory containing a `.wbconfig` JSON file. `.wbconfig` holds workspace identity (`name`, `brief`) and per-workspace module overrides. Its presence is the workspace root marker. Empty workspaces (no boards) are valid. Current `.wbconfig` schema version is `1`.
+- **Board format.** Any `*.wb.json` file in the workspace root is a board. The schema: `version`, `name`, `brief`, `nodes`, `edges`. Boards are independent — any board can reference any workspace asset. Current board schema version is `3`.
+- **Inbox format.** `<board-stem>.inbox.json` sits alongside its `*.wb.json` board file. It is a queue of agent proposals, each containing a `description`, a `rationale`, an `atomic` flag, and an array of serialized commands. This file is part of the spec — any compliant implementation must be able to read and write it.
+- **Directory conventions.** `blossoms/` for assets whose primary creation and editing path is whitebloom (internal-default modules). `res/` for assets that originate outside whitebloom and open in native apps (external-default modules: images, video, spreadsheets, documents). Both directories are workspace-level — shared across all boards in the workspace. One file per asset. `res/.thumbs/` and `res/.inbox-snapshots/` hold auto-generated content; they are not part of the spec and should not be committed.
+- **Resource URI scheme.** The `resource` field on a node is a URI string, not a raw path. Three schemes are defined: `wloc:` for workspace-local files (e.g. `wloc:blossoms/research.md`, resolved relative to the workspace root); `file:///` for absolute filesystem paths to files outside the workspace; `https://` for web resources (future). The `wloc:` scheme has no authority component — the path follows the colon directly.
 - **Node semantics.** Buds (bloomable, always have a `resource`) vs leaves (inline, do not bloom).
-- **Field reference.** Board fields: `version`, `name`, `brief`, `nodes`, `edges`. Node fields: `id`, `kind`, `type`, `position`, `size`, `created`, `createdBy`, `updatedAt`, `updatedBy`, `label`, `content`, `resource`. Edge fields: `id`, `from`, `to`, `label`.
-- **Versioning.** Schema version in the board file. Current board schema version is `3`. Changing the schema is a breaking change.
+- **Field reference.** Board fields: `version`, `name`, `brief`, `nodes`, `edges`. Node fields: `id`, `kind`, `type`, `position`, `size`, `created`, `createdBy`, `updatedAt`, `updatedBy`, `label`, `content`, `resource`. Edge fields: `id`, `from`, `to`, `label`. The `type` field on a bud is the claiming module's `id` (e.g. `"com.whitebloom.focus-writer"`) for concrete-typed buds, or `null` for void-typed buds whose handler is resolved at open-time from the file extension.
+- **Versioning.** Two independent version fields: `version` in `.wbconfig` (workspace schema version, currently `1`) and `version` in `*.wb.json` (board schema version, currently `3`). Changing either schema is a breaking change.
 
-The user model remains app-level, not board-level, in v3. The board stores only string provenance fields on nodes; richer user data such as avatars or email belongs in app settings or a future identity layer, not in the board manifest.
+The user model remains app-level, not board-level or workspace-level, in v3. The board stores only string provenance fields on nodes; richer user data such as avatars or email belongs in app settings or a future identity layer, not in the board or workspace manifest.
 
 This layer is inert data. Any tool that can read JSON and traverse a directory can consume it. No behavior, no runtime, no framework.
 
@@ -63,7 +65,7 @@ interface HostEditorProtocol<T> {
 
 - **Read/save contract.** How a consumer reads bud data and writes it back. Serialization format per file extension.
 - **Watch/change notification.** How a consumer learns that an external actor modified a resource. This is the coupling point between native apps and the board: when a user edits a `.xlsx` in Excel and saves, the file watcher fires, the board thumbnail refreshes, and agent shells pick up the change. Watch is not optional for external-default modules.
-- **Proposal inbox protocol.** How an agent submits write proposals rather than writing directly. Agents call `enqueueProposal`, which appends to `board.inbox.json`. The app polls the inbox and surfaces proposals to the user as ghost elements on the canvas. See the inbox system section in `whitebloom.md` for the full proposal schema, visual treatment, keyboard review flow, and diff/clone semantics.
+- **Proposal inbox protocol.** How an agent submits write proposals rather than writing directly. Agents call `enqueueProposal`, which appends to the board's `<board-stem>.inbox.json` file alongside the board. The app polls the inbox and surfaces proposals to the user as ghost elements on the canvas. See the inbox system section in `whitebloom.md` for the full proposal schema, visual treatment, keyboard review flow, and diff/clone semantics.
 - **Type discovery.** How a consumer determines what type a bud is and whether a handler is available.
 - **Diffable interface.** The framework-independent data contract (`Diffable<T>`) that CoreAssets and modules implement to enable structured diffs in the proposal review UI. `diff(before, after): DiffResult` is pure data; the view (`DiffView`) lives in the framework binding at Layer 3.
 - **Shell protocol.** How an agent discovers and consumes a module's agentic interface — reading `module_agents.md`, listing available lenses, invoking skills.
@@ -76,11 +78,11 @@ Without HEP as its own layer, the read/save contract lives inside a framework-sp
 
 The framework-independent parts of a module belong here:
 
-- `id` — unique identifier (e.g. `"com.whitebloom.markdown"`)
-- `type` — the bud type this module handles
-- `fileExtension` — e.g. `.md`, `.json`
-- `defaultRenderer` — `'internal'` or `'external'`. Declares whether the bloom action opens an in-app editor or the OS default app. Overridable per type in `whitebloom.config.json`.
-- `createDefault()` — returns default data for a new bud of this type. External modules may return `null` — they reference existing files rather than creating new ones.
+- `id` — unique identifier (e.g. `"com.whitebloom.focus-writer"`). For specific modules, this is what gets stamped as the board node's `type` when the module claims a file on drag-and-drop or creates a bud via the palette.
+- `extensions` — array of file extensions handled, e.g. `[".jpg", ".jpeg", ".png", ".webp"]`. Multiple modules may declare the same extensions — there is no exclusive ownership.
+- `defaultRenderer` — `'internal'` or `'external'`. Declares whether the bloom action opens an in-app editor or the OS default app. Overridable per module in `.wbconfig`.
+- `recognizes?(resource)` — optional. When present, marks the module as *specific*: it inspects the file on drag-and-drop (minimally — a header, a top-level field) and returns `true` if the file belongs to its domain. On a `true` result, the module's `id` is stamped as the board node's `type`. When absent, the module is *generic*: it handles any file of its declared extensions, but never stamps a type. Void-typed buds (`type: null`) are opened by generic modules.
+- `createDefault?()` — optional. Returns default data for a new bud created via the palette. External modules that reference existing files omit this.
 
 ### Shell contract
 
@@ -122,17 +124,18 @@ Binding specs are community-driven. Whoever builds a viewer for a new platform w
 A symbiotic module ships as a single package with layers separated:
 
 ```
-whitebloom-markdown/           # internal-default module
-  core/         # createDefault, validation, schema — CoreData level
+whitebloom-focus-writer/       # internal-default, specific module
+  core/         # extensions: [".md"], recognizes(), createDefault() — CoreData level
   agents/       # Shell — lenses, skills, module_agents.md — HEP level
-  protocol/     # read/save handlers, transforms — HEP level
+  protocol/     # read/save handlers — HEP level
   react/        # Editor component — React binding
   svelte/       # Editor component — Svelte binding
 
-whitebloom-image/              # external-default module
-  core/         # defaultRenderer: 'external', fileExtension, validation
+whitebloom-image/              # external-default, generic module
+  core/         # extensions: [".jpg",".jpeg",".png",".webp",...], no recognizes()
+                # defaultRenderer: 'external' — generic handler, no type stamped
   agents/       # Shell — lenses for agent image description, alt-text skill
-  protocol/     # read() returns parsed metadata; transforms .xlsx → JSON, etc.
+  protocol/     # read() returns parsed metadata (dimensions, EXIF, etc.)
   # no react/ or svelte/ needed — bloom action calls openExternal
 ```
 

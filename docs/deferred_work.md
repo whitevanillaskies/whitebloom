@@ -3,6 +3,19 @@
 Work that's not yet needed but it's worth keeping in mind.
 
 
+## Workspace crates (`.wbcrate`)
+
+A portable, single-file format for sharing a complete workspace without requiring git or a hosting service. A `.wbcrate` is a zip archive of the workspace root, renamed.
+
+**Export.** Zip the workspace directory — `.wbconfig`, all `*.wb.json` boards, `blossoms/`, `res/` — into a single `.wbcrate` file. Exclude generated content that can be reconstructed: `res/.thumbs/` and `res/.inbox-snapshots/`. Pending inbox files (`*.inbox.json`) should be included by default so the recipient sees any unreviewed agent proposals.
+
+**Import.** Unzip into a user-selected target directory. The result is a normal workspace, openable via `.wbconfig`. No special runtime handling — just files on disk.
+
+**"Use without unpacking" is a non-starter for Whitebloom.** File watchers, native app opens (`shell.openPath`), and agent filesystem access all require real files at real paths. A virtual filesystem layer would buy nothing except complexity. Always unpack on import.
+
+**Implementation notes.** Node's built-in `zlib` handles zip at the stream level; for a friendlier API, `archiver` (write) and `unzipper` or `adm-zip` (read) are the standard Electron-compatible choices. The export dialog should let the user pick destination and filename. Import should warn if the target directory is non-empty.
+
+
 ## File handling: import vs link, handler resolution, unknown type dialog
 
 A unified system for how any file enters the board — whether dropped from the OS, referenced by a module, or of an unknown type.
@@ -21,12 +34,12 @@ This chain covers the `markdown:subtype` convention automatically. A generic mar
 
 Every module exposes an **Import / Link** setting, per type, in the settings panel. The distinction:
 
-- **Import** — file is copied into the project (`res/` for external assets, `blossoms/` for internal ones). `resource` is a project-relative path. Safe for agents, safe against moves.
-- **Link** — file stays on disk at its current location. `resource` is a `file://` URI. The spec treats any `file://` URI in `resource` as a linked (non-copied) asset — no schema flag needed. The app warns: *"Linked files may not be readable by LLMs. If the file moves or is renamed, the node will break."*
+- **Import** — file is copied into the workspace (`res/` for external assets, `blossoms/` for internal ones). `resource` is a `wloc:` URI (e.g. `wloc:res/photo.jpg`). Safe for agents, safe against moves.
+- **Link** — file stays on disk at its current location. `resource` is a `file:///absolute/path` URI. The spec treats any `file:///` URI in `resource` as a linked (non-copied) asset — no schema flag needed. The app warns: *"Linked files may not be readable by LLMs. If the file moves or is renamed, the node will break."*
 
 Import is the default for all modules. Link exists for assets too heavy to copy, or assets that need to stay where they are (project files, shared team resources, .blend files).
 
-**Import to Local** is a right-click action (deferred): copies the linked file to `res/`, rewrites `resource` from the `file://` URI to a relative path. The only mutation that changes a `resource` path without changing node content.
+**Import to Local** is a right-click action (deferred): copies the linked file to `res/`, rewrites `resource` from the `file:///` URI to a `wloc:res/filename` URI. The only mutation that changes a `resource` URI without changing node content.
 
 ### Unknown type dialog
 
@@ -45,13 +58,13 @@ The dialog's "default action" setting (per file extension) also drives the per-m
 
 A native, canvas-level `kind: "leaf"`, `type: "alert"` node. No module, no external resource — all data is inline. Fields: `label`, `deadline` (ISO timestamp), `description`, and optional `remindBefore` (integer days before deadline).
 
-When `remindBefore` is set, the app writes a notification item to the inbox at `deadline - remindBefore` days. The inbox is generalized from the current agent-proposal-only `board.inbox.json` to a multi-type queue using a `type` discriminator (`"agent-proposal"` | `"alert"` | ...). Alert inbox items carry a `nodeId` and `boardPath` so a future cross-board notification panel can link back to the source node.
+When `remindBefore` is set, the app writes a notification item to the inbox at `deadline - remindBefore` days. The inbox is generalized from the current agent-proposal-only `<board-stem>.inbox.json` to a multi-type queue using a `type` discriminator (`"agent-proposal"` | `"alert"` | ...). Alert inbox items carry a `nodeId` and `boardPath` so a future cross-board notification panel can link back to the source node.
 
 Double-clicking an inbox alert notification frames (zooms to and highlights) the alert node on the canvas. Double-clicking the alert node on the canvas opens its expanded detail card — not a full bloom, just the leaf expanded view.
 
 Reminder fires once and persists in the inbox as `status: "unread"` until the user dismisses it. A `deadline`-only alert (no `remindBefore`) is a valid calendar marker with no notification behavior. `remindBefore` without `deadline` is invalid.
 
-Open question before implementing: whether the inbox lives at board level (`board.inbox.json`, keeps projects self-contained) or app level (single `~/.whitebloom/inbox.json`, enables unified cross-board notifications). The `boardPath` field on alert items is designed to support either model.
+Open question before implementing: whether the inbox lives at board level (`<board-stem>.inbox.json`, keeps workspaces self-contained) or app level (single `~/.whitebloom/inbox.json`, enables unified cross-board notifications). The `boardPath` field on alert items is designed to support either model.
 
 Alert nodes connect to other nodes via edges when edges are implemented. The alert carries the *when*, the edge carries the relationship, the target node carries the *what*.
 
@@ -86,7 +99,7 @@ Surface as `File > Export > JSON Canvas (.canvas)`. The implementation is a sing
 
 ## Groups as filesystem directories
 
-Groups on the board map to subdirectories inside `blossoms/`. A node in the "concept-maps" group has `resource: "blossoms/concept-maps/schema.json"`. The directory IS the group — no separate group record in the board manifest is needed for buds.
+Groups on the board map to subdirectories inside `blossoms/`. A node in the "concept-maps" group has `resource: "wloc:blossoms/concept-maps/schema.json"`. The directory IS the group — no separate group record in the board manifest is needed for buds.
 
 The unresolved tension: leaf nodes have no `resource` and no file on disk. They can't live in a directory. Resolution options:
 
@@ -109,9 +122,9 @@ Fits naturally alongside `createdBy`/`updatedBy` as lightweight per-node metadat
 Agents should log a skip notice rather than silently ignoring flagged nodes, so the user can verify the flag is being honored.
 
 
-## board.questions.json
+## `<board-stem>.questions.json`
 
-An async clarification channel, parallel to `board.inbox.json` but directionally reversed. An agent reads a node, encounters genuine ambiguity, and writes a question rather than guessing or staying silent.
+An async clarification channel, parallel to `<board-stem>.inbox.json` but directionally reversed. An agent reads a node, encounters genuine ambiguity, and writes a question rather than guessing or staying silent.
 
 ```json
 {
@@ -140,12 +153,12 @@ This keeps the board clean (no provisional answer nodes cluttering the canvas) a
 
 Module lenses are discoverable via `module_agents.md`. User-authored lenses — custom perspectives that don't belong to any module — have no canonical home in the current spec.
 
-Proposal: a `lenses/` directory at project root (sibling to `board.wb.json`), with a `lenses/manifest.json` listing available lenses by name, path, and which asset types they apply to. Agents scan the manifest once on startup.
+Proposal: a `lenses/` directory at the workspace root (sibling to `.wbconfig`), with a `lenses/manifest.json` listing available lenses by name, path, and which asset types they apply to. Agents scan the manifest once on startup.
 
 ```
-project/
-  board.wb.json
-  board.inbox.json
+my-project/
+  .wbconfig
+  research.wb.json
   lenses/
     manifest.json        # [{name, path, types, description}]
     security-audit.lens.json
