@@ -13,7 +13,24 @@ type ImageNodeData = {
 }
 
 function toFileUrl(resourcePath: string): string {
-  return `wb-file://local?p=${encodeURIComponent(resourcePath)}`
+  const trimmed = resourcePath.trim()
+
+  if (trimmed.startsWith('wloc:')) {
+    return trimmed
+  }
+
+  if (trimmed.startsWith('file:///')) {
+    return `wloc://local?resource=${encodeURIComponent(trimmed)}`
+  }
+
+  const unixPath = trimmed.replace(/\\/g, '/')
+  const fileUri = /^[a-zA-Z]:\//.test(unixPath)
+    ? `file:///${encodeURI(unixPath)}`
+    : unixPath.startsWith('/')
+      ? `file://${encodeURI(unixPath)}`
+      : trimmed
+
+  return `wloc://local?resource=${encodeURIComponent(fileUri)}`
 }
 
 export function ImageNode({ id, data, selected, positionAbsoluteX, positionAbsoluteY }: NodeProps) {

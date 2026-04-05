@@ -17,6 +17,7 @@ type BoardNodeDraft = Omit<BoardNode, 'created' | 'createdBy' | 'updatedAt' | 'u
   Partial<Pick<BoardNode, 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'>>
 
 type BoardState = Board & {
+  path: string | null
   activeUsername: string
   isDirty: boolean
   addNode: (node: BoardNodeDraft) => void
@@ -27,9 +28,10 @@ type BoardState = Board & {
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
   updateBoardMeta: (patch: { name?: string; brief?: string }) => void
   setActiveUsername: (username: string) => void
+  setBoardPath: (path: string | null) => void
   clearBoard: () => void
   markSaved: () => void
-  loadBoard: (board: Board) => void
+  loadBoard: (board: Board, path: string) => void
 }
 
 function isValidIsoTimestamp(value: unknown): value is string {
@@ -69,6 +71,7 @@ function touchNode(node: BoardNode, timestamp: string, username: string): BoardN
 
 export const useBoardStore = create<BoardState>((set) => ({
   version: CURRENT_BOARD_VERSION,
+  path: null,
   name: undefined,
   brief: undefined,
   nodes: [],
@@ -169,19 +172,43 @@ export const useBoardStore = create<BoardState>((set) => ({
 
   setActiveUsername: (username) => set({ activeUsername: normalizeUsername(username) }),
 
+  setBoardPath: (path) =>
+    set((state) => {
+      if (state.path === path) return state
+      return { path }
+    }),
+
   clearBoard: () =>
     set((state) => {
-      if (state.nodes.length === 0 && state.edges.length === 0 && !state.isDirty) return state
-      return { nodes: [], edges: [], name: undefined, brief: undefined, isDirty: false }
+      if (
+        state.path === null &&
+        state.nodes.length === 0 &&
+        state.edges.length === 0 &&
+        state.name === undefined &&
+        state.brief === undefined &&
+        !state.isDirty
+      ) {
+        return state
+      }
+
+      return {
+        path: null,
+        nodes: [],
+        edges: [],
+        name: undefined,
+        brief: undefined,
+        isDirty: false
+      }
     }),
 
   markSaved: () => set({ isDirty: false }),
 
-  loadBoard: (board) =>
+  loadBoard: (board, path) =>
     set(() => {
       const fallbackTimestamp = new Date().toISOString()
       return {
         version: CURRENT_BOARD_VERSION,
+        path,
         name: board.name,
         brief: board.brief,
         nodes: board.nodes.map((node) =>

@@ -2,7 +2,26 @@ export type Position = { x: number; y: number }
 export type Size = { w: number; h: number }
 export type WidthMode = 'auto' | 'fixed'
 
+export const CURRENT_WORKSPACE_CONFIG_VERSION = 1
 export const CURRENT_BOARD_VERSION = 3
+
+/**
+ * Canonical workspace-local URI form is `wloc:resource/path`.
+ * Other supported URI families are `file:///absolute/path` and `https://...`.
+ */
+export type ResourceUri = string
+
+export type WorkspaceConfig = {
+  version: number
+  name?: string
+  brief?: string
+}
+
+export type Workspace = {
+  config: WorkspaceConfig
+  rootPath: string
+  boards: string[]
+}
 
 export type BoardNode = {
   id: string
@@ -31,7 +50,9 @@ export type BoardEdge = {
 
 export type Board = {
   version: number
+  // Board-scoped display label (distinct from WorkspaceConfig.name).
   name?: string
+  // Board-scoped agent context (distinct from WorkspaceConfig.brief).
   brief?: string
   nodes: BoardNode[]
   edges: BoardEdge[]

@@ -12,6 +12,8 @@ introduces the `wloc:` URI scheme, and gives the app a home screen.
 
 ### 1.1 Types and schema
 
+STATUS: OK.
+
 - Add `WorkspaceConfig` type to `src/renderer/src/shared/types.ts`:
   `{ version: number, name?: string, brief?: string }`. Current version: 1.
   `name` here is the workspace/project name. `brief` is agent context for the project as a whole ("what I'm working on").
@@ -24,7 +26,11 @@ introduces the `wloc:` URI scheme, and gives the app a home screen.
   no prefixing (`boardName`, `boardBrief`) needed.
 - Add `Workspace` runtime type: `{ config: WorkspaceConfig, rootPath: string, boards: string[] }`.
 
+Note: in the future, the settings modal will need to distinguish between app settings, workspace settings, and board settings.
+
 ### 1.2 URI resolver
+
+STATUS: OK.
 
 - UNIX paths internally. Resolve to system paths as needed, ideally using proper ts libs.
 - Utility function `resolveResource(uri: string, workspaceRoot: string): string` → absolute path.
@@ -37,44 +43,88 @@ introduces the `wloc:` URI scheme, and gives the app a home screen.
 
 ### 1.3 Main process: workspace IPC
 
+STATUS: OK.
+
 Replace the current board-centric IPC handlers with workspace-aware ones.
 
 New handlers:
 - `workspace:open-dialog` — file picker accepting `.wbconfig` or `*.wb.json`.
-  If `.wb.json` is chosen, walk up to find `.wbconfig` in the same directory.
-  Returns `{ ok, workspaceRoot, openBoardPath? }`.
+  If `.wb.json` is chosen, checks for `.wbconfig` in the same directory: found → workspace
+  board, not found → quickboard. Returns `{ ok, workspaceRoot?, openBoardPath? }`.
 - `workspace:create-dialog` — directory picker; writes a `.wbconfig` with defaults;
   returns `{ ok, workspaceRoot }`.
 - `workspace:read(workspaceRoot)` — reads `.wbconfig` and lists `*.wb.json` files;
   returns `Workspace`.
-- `board:open(boardPath)` — reads and returns the board JSON.
-- `board:save(boardPath, json)` — writes board JSON to the given path.
-- `board:create(workspaceRoot, name)` — writes an empty `*.wb.json`, returns its path.
+- `board:open(boardPath)` — reads and returns the board JSON. Works for both workspace
+  boards and quickboards; caller determines context from whether `workspaceRoot` is known.
+- `board:save(boardPath, json)` — writes board JSON to the given explicit path. Used for
+  both workspace boards and quickboards. This is the primary save mechanism going forward.
+- `board:create(workspaceRoot, name)` — writes an empty `*.wb.json` inside a workspace,
+  returns its path. Workspace boards only.
+- `quickboard:create-dialog` — file-save dialog to pick a location and filename; writes
+  an empty `*.wb.json` at that path (no `.wbconfig` created); returns `{ ok, boardPath }`.
 
-Remove: `board:save-as`, `board:save-to-path`, `board:save` (legacy), `board:load`.
+Remove (truly legacy — no new equivalent):
+- `board:save-as` — old "save as" dialog that both prompted for a path and wrote the file.
+  Superseded by the workspace-driven create flows and explicit `board:save`.
+- `board:save-to-path` — old explicit-path save with a different signature. Superseded by
+  `board:save(boardPath, json)`.
+- `board:load` — old load handler that used an internally stored path. Superseded by
+  `board:open(boardPath)` with explicit path.
+
+Note: the old `board:save` (no path argument, used stored internal path) is also removed.
+The new `board:save(boardPath, json)` is not legacy — it is the canonical save handler.
 
 ### 1.4 Preload and renderer API surface
+
+STATUS: OK.
 
 - Update `preload/index.ts` to expose the new workspace IPC surface.
 - Remove old board API from `window.api`.
 
 ### 1.5 Board store: workspace awareness
 
-- Replace `currentBoardFilePath` Canvas state with `workspaceRoot` + `boardPath` in the board
-  store (or a new workspace store — decide during implementation).
-- Save and load actions use `board:save` and `board:open` with explicit paths.
-- The store exposes the active `workspaceRoot` so the URI resolver and future IPC calls can
-  use it without prop-drilling.
+STATUS: OK.
+
+Two Zustand stores, not one.
+
+**`workspace.ts`** — workspace-level context. Populated when a workspace is open; all fields
+null when no workspace is active (including quickboard mode).
+- `root: string | null` — absolute path to the workspace directory
+- `config: WorkspaceConfig | null` — parsed `.wbconfig` contents
+- `boards: string[]` — list of `*.wb.json` paths in the workspace
+
+**`board.ts`** — active board state. Populated when any board is open (workspace or quickboard);
+cleared when returning to workspace home or start screen.
+- `path: string | null` — absolute path to the open `*.wb.json`
+- `nodes`, `edges` — board data
+- `isDirty: boolean` — unsaved changes flag
+
+**Routing.** `App.tsx` reads both stores to determine which screen to render:
+- `workspace.root === null && board.path === null` → `StartScreen`
+- `workspace.root !== null && board.path === null` → `WorkspaceHome`
+- `board.path !== null` → `Canvas` (workspace board if `workspace.root` is set, quickboard if not)
+
+**URI resolution.** The URI resolver reads `workspace.root`. For quickboards this is `null`,
+so any `wloc:` URI throws — the quickboard constraint is enforced automatically without
+special-casing in the resolver.
+
+**Save and load.** Both use `board:save(boardPath, json)` and `board:open(boardPath)` with the
+explicit path from `board.path`. No stored implicit paths anywhere.
 
 ### 1.6 App shell and workspace home UI
 
-- `App.tsx` becomes a shell that routes between two states:
-  - **No workspace open** → `StartScreen` (open workspace / create workspace buttons).
+- `App.tsx` becomes a shell that routes between three states:
+  - **No workspace open** → `StartScreen` (open workspace / create workspace / new quickboard).
   - **Workspace open, no board** → `WorkspaceHome` (board list, new board, open board).
-  - **Board open** → `Canvas` (existing board editor).
+  - **Board open** → `Canvas` (existing board editor, workspace or standalone).
 - `WorkspaceHome`: lists all `*.wb.json` files in the workspace, click to open, button to
   create a new board, workspace name/brief display.
-- `StartScreen`: minimal — two actions, no clutter.
+- `StartScreen`: minimal — three actions. "New Quickboard" calls `quickboard:create-dialog`
+  to create a `*.wb.json` at a user-chosen location without creating a workspace.
+- Standalone boards open directly into `Canvas`. The canvas header/toolbar should surface
+  a "Promote to Workspace" action when a standalone board is open. No workspace home is
+  shown for standalone boards — there is no workspace to browse.
 
 ### 1.7 Migrate image node to `wloc:`
 
@@ -158,8 +208,14 @@ loading yet, but the interface is compatible with it later.
   - Looks up the module from the registry by `type`
   - Renders `module.NodeComponent`
   - Handles double-click → calls `onBloom` → sets bloom state in Canvas
-- Unknown bud type (module not registered) → `UnknownBudNode` placeholder (name + question mark icon).
-  Board remains valid; no errors thrown.
+- Unknown bud type (module not registered) → `UnknownBudNode` placeholder (label + question mark icon).
+  Board remains valid; no errors thrown. This is a quiescent state — the node will render
+  correctly once the module is installed.
+- Render failure (file missing, module crash, unresolvable URI) → `ErrorNode` placeholder
+  (label + error icon + short reason string). Same position and size as the original node.
+  Board data is unchanged — `ErrorNode` is a runtime UI state, never written to disk.
+  Distinct from `UnknownBudNode`: unknown type = module not present; error = module tried
+  and failed (or resource is inaccessible).
 
 ### 2.5 Drag-and-drop module dispatch
 

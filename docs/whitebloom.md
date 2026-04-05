@@ -22,7 +22,7 @@ The core principles:
 - **One tool, one job.** A module handles exactly one asset type. Users compose their environment by choosing which modules handle which types, rather than depending on monolithic bundles.
 - **Text as the universal interface.** Assets are text files wherever possible. This is what makes Whitebloom meaningfully different from tools like Notion or Obsidian, which are databases dressed up as files.
 - **Symbiosis between human and machine.** Modules present two faces — one toward the human (the editor), one toward the agent (the shell). Both are native citizens operating on shared ground. Whitebloom is not a tool for humans that tolerates agents, or an agentic system with a human UI bolted on. It is an environment where both work as peers.
-- **Unknown is not broken.** If no editor is registered for an asset type, the node renders as a generic placeholder. If no shell is registered, agents skip the asset. Unknown types do not cause errors or corruption — they are simply unhandled. The board always remains valid.
+- **Unknown is not broken.** If no editor is registered for an asset type, the node renders as a generic placeholder. If no shell is registered, agents skip the asset. Unknown types do not cause errors or corruption — they are simply unhandled. The board always remains valid. When a node fails to render at runtime (missing file, module crash, bad URI), the canvas shows a generic error node in its place — same position, same size, no data lost, recoverable without touching the board file.
 - **Render is not edit.** Whitebloom always owns the board-level representation of an asset: the thumbnail, the preview, the node in the graph. Whitebloom does not have to own the edit action. A module declares whether it handles editing internally or delegates to a native app. The board preview is never delegated.
 
 ### Spec-native vs extern modules
@@ -91,6 +91,29 @@ my-project/
 An empty workspace (no boards) is a valid and intentional state — it is the default for a new workspace.
 
 **Inbox naming.** Each board has its own inbox: `<board-stem>.inbox.json` alongside its board file (e.g. `research.inbox.json` for `research.wb.json`).
+
+### Standalone boards (quickboards)
+
+Not every board needs a workspace. A `*.wb.json` file that lives in a directory without a `.wbconfig` is a **standalone board** — informally a *quickboard*. This is the scratchpad mode: open the app, start a new board, draw some things, write some notes, and move on. No workspace setup required.
+
+**Detection.** When the app opens a `*.wb.json`, it checks for `.wbconfig` in the same directory. Present → workspace board. Absent → quickboard. No field in the board file marks the mode; the directory context is the entire signal.
+
+**What works in quickboards.** The board file format is identical to a workspace board. Leaves (text, sticky notes) work without restriction — they carry inline `content` and need no external files. External assets can be linked via `file:///` absolute paths or `https://` URIs on drop.
+
+**What doesn't.** Quickboards do not support `wloc:` URIs — there is no workspace root to resolve them against. Blossoms are not available. Drag-and-drop links files in place (by absolute path) rather than copying them into a `res/` directory. Quickboards have no inbox — there is no agent proposal queue, no ghost elements, no review flow. The inbox is a workspace-level collaboration contract between the user and agents operating on a sustained project; it has no place on a fire-and-forget board.
+
+**Portability tradeoff.** Standalone boards with `file:///` assets are not portable: move the board file or open it on another machine and those links break. This is expected — the user chose not to use a workspace, and absolute paths are the consequence. It is the right tradeoff for ephemeral boards and no tradeoff at all for boards that never move.
+
+**Promoting to a workspace.** A standalone board can be promoted to a full workspace at any time via *Promote to Workspace*. The app:
+1. Asks the user to choose or confirm a target directory.
+2. Writes `.wbconfig` in that directory.
+3. For each `file:///` asset referenced by the board: copies the file into `res/` (or `blossoms/` if the module's `defaultRenderer` is `internal`) and rewrites the node's `resource` field to the corresponding `wloc:` URI.
+4. Moves or saves the board file into the new workspace directory.
+5. Opens the promoted workspace.
+
+Filename collisions during asset import (two linked files with the same name from different source directories) are resolved by appending a numeric suffix before the extension. The original files are not modified.
+
+**Promotion is one-way.** A workspace board cannot be demoted back to a standalone board. `wloc:` URIs cannot survive without a workspace root, assets in `blossoms/` or `res/` may be shared across multiple boards, and the workspace `name`/`brief` would be silently discarded. The transformation is lossy and has no unambiguous inverse. If a user wants a portable snapshot of a single board, they export it — they do not un-workspace it.
 
 The `.wb.json` extension signals "Whitebloom board" while remaining parseable by any JSON tool. The `blossoms/` and `res/` directories are workspace-level — assets are shared across all boards in the workspace. A node on any board can reference any asset in the workspace.
 
@@ -178,6 +201,20 @@ Type should be registered via the module system. A module should be able to hand
 **Leaves** are simple board-level elements that do not bloom. They may have inline `content` (for text). They can have an expanded view but never inject a full editor. Examples: sticky notes, labels.
 
 The distinction in the schema is the `kind` field: `"bud"` or `"leaf"`.
+
+### Error nodes
+
+Any node can fail to render correctly — the linked file may be missing, corrupted, or on a network drive that went offline. When a node cannot be rendered, the canvas replaces it with a generic **error node** in place. The error node:
+
+- Occupies the same position and size as the original node so the layout is preserved
+- Shows an error icon, the node's `label` (or filename if no label), and a short reason (e.g. "File not found", "Module failed to load", "URI could not be resolved")
+- Does not crash the board or invalidate any other node
+- Retains the original node data — nothing is overwritten or deleted
+- Can be retried (re-attempt to load the resource) or dismissed (collapse to a minimal tombstone that stays in the graph)
+
+Error nodes are a runtime UI state, not a schema concept. The board JSON is unchanged; the error is in the rendering layer only. An agent or CLI tool reading the board sees the original node data and should not infer anything from the fact that the app showed an error node.
+
+**Distinction from unknown type.** An unknown-type node (`type` field references a module that is not registered) is a normal, valid state — the board is intact and the node will render correctly once the module is installed. An error node means a registered module tried to render and failed, or the underlying resource is inaccessible. These are different problems with different recovery paths: unknown type → install the module; error node → fix the file or the path.
 
 ### Media assets
 

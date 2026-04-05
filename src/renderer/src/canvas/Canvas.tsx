@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useBoardStore } from '@renderer/stores/board'
 import { useAppSettingsStore } from '@renderer/stores/app-settings'
+import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
 import { ImageNode } from './ImageNode'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
@@ -27,7 +28,24 @@ const nodeTypes = { text: TextNode, image: ImageNode }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 
 function toFileUrl(resourcePath: string): string {
-  return `wb-file://local?p=${encodeURIComponent(resourcePath)}`
+  const trimmed = resourcePath.trim()
+
+  if (trimmed.startsWith('wloc:')) {
+    return trimmed
+  }
+
+  if (trimmed.startsWith('file:///')) {
+    return `wloc://local?resource=${encodeURIComponent(trimmed)}`
+  }
+
+  const unixPath = trimmed.replace(/\\/g, '/')
+  const fileUri = /^[a-zA-Z]:\//.test(unixPath)
+    ? `file:///${encodeURI(unixPath)}`
+    : unixPath.startsWith('/')
+      ? `file://${encodeURI(unixPath)}`
+      : trimmed
+
+  return `wloc://local?resource=${encodeURIComponent(fileUri)}`
 }
 
 function getDroppedFilePath(file: File & { path?: string }): string {
@@ -102,6 +120,7 @@ export function Canvas() {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
+  const boardPath = useBoardStore((s) => s.path)
   const boardName = useBoardStore((s) => s.name)
   const boardBrief = useBoardStore((s) => s.brief)
   const isDirty = useBoardStore((s) => s.isDirty)
@@ -113,6 +132,9 @@ export function Canvas() {
   const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
+  const workspaceRoot = useWorkspaceStore((s) => s.root)
+  const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
+  const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace)
   const username = useAppSettingsStore((s) => s.user.username)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
   const updateUsername = useAppSettingsStore((s) => s.updateUsername)
@@ -122,7 +144,6 @@ export function Canvas() {
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'new' | 'load' | 'exit' | null>(null)
-  const [currentBoardFilePath, setCurrentBoardFilePath] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [imageDropError, setImageDropError] = useState<string | null>(null)
   const autoEditSequenceRef = useRef(0)
@@ -251,7 +272,6 @@ export function Canvas() {
 
   const startNewBoard = useCallback(() => {
     clearBoard()
-    setCurrentBoardFilePath(null)
   }, [clearBoard])
 
   const handleSave = useCallback(async () => {
@@ -275,27 +295,42 @@ export function Canvas() {
     }
     const payload = JSON.stringify(board, null, 2)
 
-    const result = currentBoardFilePath
-      ? await window.api.saveBoardToPath(currentBoardFilePath, payload)
-      : await window.api.saveBoardAs(payload)
+    if (!boardPath) {
+      console.error('Cannot save board without an explicit board path.')
+      return
+    }
+
+    const result = await window.api.saveBoard(boardPath, payload)
 
     if (result.ok) {
-      setCurrentBoardFilePath(result.filePath ?? currentBoardFilePath)
       markSaved()
     }
-  }, [version, boardName, boardBrief, boardNodes, boardEdges, currentBoardFilePath, markSaved])
+  }, [version, boardName, boardBrief, boardNodes, boardEdges, boardPath, markSaved])
 
   const handleLoad = useCallback(async () => {
-    const result = await window.api.loadBoard()
-    if (!result.ok || !result.json) return
+    const result = await window.api.openWorkspaceDialog()
+    if (!result.ok) return
+
+    if (result.workspaceRoot) {
+      const workspace = await window.api.readWorkspace(result.workspaceRoot)
+      loadWorkspace(workspace)
+    } else {
+      clearWorkspace()
+    }
+
+    if (!result.openBoardPath) {
+      clearBoard()
+      return
+    }
+
     try {
-      const board: Board = JSON.parse(result.json)
-      loadBoard(board)
-      setCurrentBoardFilePath(result.filePath ?? null)
+      const json = await window.api.openBoard(result.openBoardPath)
+      const board: Board = JSON.parse(json)
+      loadBoard(board, result.openBoardPath)
     } catch {
       console.error('Failed to parse board file')
     }
-  }, [loadBoard])
+  }, [clearBoard, clearWorkspace, loadBoard, loadWorkspace])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
