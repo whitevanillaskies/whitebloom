@@ -26,6 +26,7 @@ type PendingTrashBoard = {
 
 function App(): React.JSX.Element {
   const boardPath = useBoardStore((s) => s.path)
+  const isDirty = useBoardStore((s) => s.isDirty)
   const loadBoard = useBoardStore((s) => s.loadBoard)
   const clearBoard = useBoardStore((s) => s.clearBoard)
 
@@ -60,6 +61,13 @@ function App(): React.JSX.Element {
       cancelled = true
     }
   }, [boardPath, workspaceRoot])
+
+  useEffect(() => {
+    return window.api.onCloseRequested(() => {
+      if (boardPath !== null && isDirty) return
+      window.api.confirmClose()
+    })
+  }, [boardPath, isDirty])
 
   const openBoardByPath = useCallback(
     async (nextBoardPath: string) => {
