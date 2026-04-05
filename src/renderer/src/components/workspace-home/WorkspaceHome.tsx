@@ -1,4 +1,4 @@
-import { ArrowLeft, FilePlus, LayoutGrid, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, FilePlus, LayoutGrid, Plus, Trash2 } from 'lucide-react'
 import './WorkspaceHome.css'
 
 type WorkspaceHomeProps = {
@@ -7,6 +7,8 @@ type WorkspaceHomeProps = {
   workspaceName?: string
   workspaceBrief?: string
   boards: string[]
+  currentBoardName: string | null
+  onReturnToBoard: (() => void) | null
   onCreateBoard: () => void
   onOpenBoard: (boardPath: string) => void
   onTrashBoard: (boardPath: string) => void
@@ -25,6 +27,8 @@ export default function WorkspaceHome({
   workspaceName,
   workspaceBrief,
   boards,
+  currentBoardName,
+  onReturnToBoard,
   onCreateBoard,
   onOpenBoard,
   onTrashBoard,
@@ -42,6 +46,17 @@ export default function WorkspaceHome({
         </div>
 
         <nav className="workspace-home__nav">
+          {onReturnToBoard ? (
+            <button
+              type="button"
+              className="workspace-home__action workspace-home__action--return"
+              onClick={onReturnToBoard}
+            >
+              <ChevronLeft size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
+              {currentBoardName ?? 'Back to board'}
+            </button>
+          ) : null}
+
           <button
             type="button"
             className="workspace-home__action"

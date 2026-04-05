@@ -96,6 +96,15 @@
   color: var(--color-accent-blue);
 }
 
+.workspace-home__action--return {
+  border-left-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
+}
+
+.workspace-home__action--return .workspace-home__action-icon {
+  color: var(--color-accent-blue);
+}
+
 .workspace-home__error {
   margin: 16px 20px 0;
   padding: 10px 12px;

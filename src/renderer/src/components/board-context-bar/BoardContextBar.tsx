@@ -1,4 +1,4 @@
-import { FilePlus, MoreHorizontal, Save, Zap } from 'lucide-react'
+import { FilePlus, Home, MoreHorizontal, Save, Zap } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { PetalToolbarButton } from '../petal'
 import './BoardContextBar.css'
@@ -9,7 +9,8 @@ type BoardContextBarProps = {
   isDirty: boolean
   onNameChange: (name: string) => void
   onSave: () => void
-  onClose: () => void
+  onGoHome: () => void
+  onGoToWorkspaceHome: () => void
   onNewBoard: () => void
   onOverflow: (anchor: { x: number; y: number }) => void
 }
@@ -26,7 +27,8 @@ export default function BoardContextBar({
   isDirty,
   onNameChange,
   onSave,
-  onClose,
+  onGoHome,
+  onGoToWorkspaceHome,
   onNewBoard,
   onOverflow
 }: BoardContextBarProps) {
@@ -61,12 +63,22 @@ export default function BoardContextBar({
 
   return (
     <div className="board-context-bar">
+      {/* Home — always present, navigates to start screen */}
+      <button
+        type="button"
+        className="board-context-bar__home"
+        onClick={onGoHome}
+        aria-label="Home"
+      >
+        <Home size={13} strokeWidth={2} />
+      </button>
+
       {/* Identity slot */}
       {isWorkspace ? (
         <button
           type="button"
           className="board-context-bar__identity--workspace"
-          onClick={onClose}
+          onClick={onGoToWorkspaceHome}
         >
           {getWorkspaceName(workspaceRoot)}
         </button>

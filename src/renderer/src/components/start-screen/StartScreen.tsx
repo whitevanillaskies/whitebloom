@@ -1,10 +1,12 @@
-import { FolderOpen, FolderPlus, LayoutGrid, Trash2, Zap } from 'lucide-react'
+import { ChevronLeft, FolderOpen, FolderPlus, LayoutGrid, Trash2, Zap } from 'lucide-react'
 import './StartScreen.css'
 
 type StartScreenProps = {
   busy: boolean
   errorMessage: string | null
   transientBoards: string[]
+  currentBoardName: string | null
+  onReturnToBoard: (() => void) | null
   onOpenWorkspace: () => void
   onCreateWorkspace: () => void
   onCreateQuickboard: () => void
@@ -22,6 +24,8 @@ export default function StartScreen({
   busy,
   errorMessage,
   transientBoards,
+  currentBoardName,
+  onReturnToBoard,
   onOpenWorkspace,
   onCreateWorkspace,
   onCreateQuickboard,
@@ -34,6 +38,17 @@ export default function StartScreen({
         <h1 className="start-screen__logo">WHITEBLOOM</h1>
 
         <nav className="start-screen__nav">
+          {onReturnToBoard ? (
+            <button
+              type="button"
+              className="start-screen__action start-screen__action--return"
+              onClick={onReturnToBoard}
+            >
+              <ChevronLeft size={14} strokeWidth={1.8} className="start-screen__action-icon" />
+              {currentBoardName ?? 'Back to board'}
+            </button>
+          ) : null}
+
           <button
             type="button"
             className="start-screen__action"

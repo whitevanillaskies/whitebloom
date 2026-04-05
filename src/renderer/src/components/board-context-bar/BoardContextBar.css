@@ -13,6 +13,28 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
+/* Home button — always first, navigates to start screen */
+
+.board-context-bar__home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-muted-fg);
+  border-radius: 5px;
+  flex-shrink: 0;
+  transition: background 80ms ease, color 80ms ease;
+}
+
+.board-context-bar__home:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-primary-fg);
+}
+
 /* Identity slot — workspace (clickable, returns home) */
 
 .board-context-bar__identity--workspace {

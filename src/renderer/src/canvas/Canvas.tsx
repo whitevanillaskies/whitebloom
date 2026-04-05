@@ -114,7 +114,12 @@ function blurToolbarButtonIfFocused(): void {
   active.blur()
 }
 
-export function Canvas() {
+type CanvasProps = {
+  onGoHome: () => void
+  onGoToWorkspaceHome: () => void
+}
+
+export function Canvas({ onGoHome, onGoToWorkspaceHome }: CanvasProps) {
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
@@ -143,7 +148,7 @@ export function Canvas() {
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
-  const [pendingDocumentAction, setPendingDocumentAction] = useState<'close' | 'exit' | null>(null)
+  const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [imageDropError, setImageDropError] = useState<string | null>(null)
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
@@ -347,14 +352,6 @@ export function Canvas() {
     }
   }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence])
 
-  const handleCloseBoard = useCallback(() => {
-    if (isDirty) {
-      setPendingDocumentAction('close')
-      return
-    }
-
-    clearBoard()
-  }, [clearBoard, isDirty])
 
   const handlePromoteToWorkspace = useCallback(async () => {
     if (!boardPath || workspaceRoot !== null) return
@@ -542,38 +539,17 @@ export function Canvas() {
   const handleConfirmDocumentAction = useCallback(() => {
     if (pendingDocumentAction === 'exit') {
       window.api.confirmClose()
-      return
     }
-
-    if (pendingDocumentAction === 'close') {
-      clearBoard()
-    }
-
     setPendingDocumentAction(null)
-  }, [clearBoard, pendingDocumentAction])
+  }, [pendingDocumentAction])
 
   const handleCancelDocumentAction = useCallback(() => {
     setPendingDocumentAction(null)
   }, [])
 
-  const confirmDialogTitle =
-    pendingDocumentAction === 'exit'
-        ? 'Exit without saving?'
-        : workspaceRoot
-          ? 'Return to workspace home?'
-          : 'Close quickboard?'
-  const confirmDialogBody =
-    pendingDocumentAction === 'exit'
-        ? 'You have unsaved changes. Do you want to discard them and exit?'
-        : workspaceRoot
-          ? 'You have unsaved changes. Do you want to discard them and return to the workspace home screen?'
-          : 'You have unsaved changes. Do you want to discard them and close this quickboard?'
-  const confirmDialogConfirmLabel =
-    pendingDocumentAction === 'exit'
-        ? 'Exit'
-        : workspaceRoot
-          ? 'Return to workspace'
-          : 'Close board'
+  const confirmDialogTitle = 'Exit without saving?'
+  const confirmDialogBody = 'You have unsaved changes. Do you want to discard them and exit?'
+  const confirmDialogConfirmLabel = 'Exit'
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -749,7 +725,8 @@ export function Canvas() {
             isDirty={isDirty}
             onNameChange={(name) => updateBoardMeta({ name })}
             onSave={() => void handleSave()}
-            onClose={handleCloseBoard}
+            onGoHome={onGoHome}
+            onGoToWorkspaceHome={onGoToWorkspaceHome}
             onNewBoard={() => { /* TODO: workspace → CreateBoardModal; quickboard → new transient */ }}
             onOverflow={setOverflowAnchor}
           />

@@ -1,0 +1,70 @@
+{
+  "version": 3,
+  "name": "ddd",
+  "nodes": [
+    {
+      "id": "3ad5912f-c6e0-49b8-bb3f-a15780769004",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 322,
+        "y": 271
+      },
+      "size": {
+        "w": 32,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"/\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-05T20:33:56.733Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T20:34:13.172Z",
+      "updatedBy": "anon",
+      "plain": "/"
+    },
+    {
+      "id": "daa08af0-05f6-4091-9c1f-8a91cc3958e4",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 332.7163382158284,
+        "y": 157.70858380353067
+      },
+      "size": {
+        "w": 212,
+        "h": 78
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"test ext wed sq\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"/\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"fvrfvvvvveeeeeeeeeeeeeeee\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-05T20:36:32.611Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T21:09:11.118Z",
+      "updatedBy": "anon",
+      "plain": "test ext wed sq\n/\nfvrfvvvvveeeeeeeeeeeeeeee"
+    },
+    {
+      "id": "6e0c6711-8226-49b7-9965-7b7c669eb52b",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": -109.6744204235786,
+        "y": 354.0207360652098
+      },
+      "size": {
+        "w": 383,
+        "h": 57
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Please please just change the default zoom because it's pissing me off.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 383,
+      "created": "2026-04-05T20:54:34.808Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T20:54:47.463Z",
+      "updatedBy": "anon",
+      "plain": "Please please just change the default zoom because it's pissing me off."
+    }
+  ],
+  "edges": []
+}

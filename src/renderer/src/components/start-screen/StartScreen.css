@@ -70,6 +70,15 @@
   color: var(--color-accent-blue);
 }
 
+.start-screen__action--return {
+  border-left-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
+}
+
+.start-screen__action--return .start-screen__action-icon {
+  color: var(--color-accent-blue);
+}
+
 .start-screen__error {
   margin: 20px 20px 0;
   padding: 10px 12px;

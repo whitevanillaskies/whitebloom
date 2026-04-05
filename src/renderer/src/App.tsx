@@ -9,6 +9,8 @@ import { useBoardStore } from './stores/board'
 import { useWorkspaceStore } from './stores/workspace'
 import type { Board } from './shared/types'
 
+type AppView = 'board' | 'workspace-home' | 'start'
+
 type BusyAction =
   | 'open'
   | 'create-workspace'
@@ -26,6 +28,7 @@ type PendingTrashBoard = {
 
 function App(): React.JSX.Element {
   const boardPath = useBoardStore((s) => s.path)
+  const boardName = useBoardStore((s) => s.name)
   const isDirty = useBoardStore((s) => s.isDirty)
   const loadBoard = useBoardStore((s) => s.loadBoard)
   const clearBoard = useBoardStore((s) => s.clearBoard)
@@ -38,12 +41,15 @@ function App(): React.JSX.Element {
   const removeBoard = useWorkspaceStore((s) => s.removeBoard)
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace)
 
+  const [view, setView] = useState<AppView>('start')
   const [busyAction, setBusyAction] = useState<BusyAction>(null)
   const [shellError, setShellError] = useState<string | null>(null)
   const [transientBoards, setTransientBoards] = useState<string[]>([])
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false)
   const [newBoardName, setNewBoardName] = useState('Board')
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
+
+  const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
 
   useEffect(() => {
     if (boardPath !== null || workspaceRoot !== null) return
@@ -74,6 +80,7 @@ function App(): React.JSX.Element {
       const json = await window.api.openBoard(nextBoardPath)
       const board = JSON.parse(json) as Board
       loadBoard(board, nextBoardPath)
+      setView('board')
     },
     [loadBoard]
   )
@@ -95,6 +102,7 @@ function App(): React.JSX.Element {
 
       if (!result.openBoardPath) {
         clearBoard()
+        setView(result.workspaceRoot ? 'workspace-home' : 'start')
         return
       }
 
@@ -118,6 +126,7 @@ function App(): React.JSX.Element {
       const workspace = await window.api.readWorkspace(result.workspaceRoot)
       loadWorkspace(workspace)
       clearBoard()
+      setView('workspace-home')
     } catch (error) {
       setShellError(error instanceof Error ? error.message : 'Unable to create a workspace.')
     } finally {
@@ -262,19 +271,26 @@ function App(): React.JSX.Element {
     clearBoard()
     clearWorkspace()
     setShellError(null)
+    setView('start')
   }, [clearBoard, clearWorkspace])
 
-  if (boardPath !== null) {
+  const handleGoHome = useCallback(() => setView('start'), [])
+  const handleGoToWorkspaceHome = useCallback(() => setView('workspace-home'), [])
+  const handleReturnToBoard = useCallback(() => setView('board'), [])
+
+  const canReturnToBoard = boardPath !== null && view !== 'board'
+
+  if (view === 'board' && boardPath !== null) {
     return (
       <ReactFlowProvider>
         <div style={{ width: '100vw', height: '100vh' }}>
-          <Canvas />
+          <Canvas onGoHome={handleGoHome} onGoToWorkspaceHome={handleGoToWorkspaceHome} />
         </div>
       </ReactFlowProvider>
     )
   }
 
-  if (workspaceRoot !== null) {
+  if (view === 'workspace-home' || (workspaceRoot !== null && view !== 'start')) {
     return (
       <>
         <WorkspaceHome
@@ -283,6 +299,8 @@ function App(): React.JSX.Element {
           workspaceName={workspaceConfig?.name}
           workspaceBrief={workspaceConfig?.brief}
           boards={workspaceBoards}
+          currentBoardName={canReturnToBoard ? currentBoardName : null}
+          onReturnToBoard={canReturnToBoard ? handleReturnToBoard : null}
           onCreateBoard={handleOpenCreateBoardModal}
           onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
           onTrashBoard={(nextBoardPath) =>
@@ -316,6 +334,8 @@ function App(): React.JSX.Element {
         busy={busyAction !== null}
         errorMessage={shellError}
         transientBoards={transientBoards}
+        currentBoardName={canReturnToBoard ? currentBoardName : null}
+        onReturnToBoard={canReturnToBoard ? handleReturnToBoard : null}
         onOpenWorkspace={() => void handleOpenWorkspace()}
         onCreateWorkspace={() => void handleCreateWorkspace()}
         onCreateQuickboard={() => void handleCreateQuickboard()}
