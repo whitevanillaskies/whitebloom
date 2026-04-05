@@ -7,7 +7,7 @@ no backwards compatibility.
 Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only.
 
 
-## Phase 1: Workspace architecture
+## Phase 1: Workspace architecture (DONE)
 
 STATUS: OK
 
@@ -156,7 +156,7 @@ gives the remote URL instead. The drop handler branches on context:
   `deferred_work.md`.
 
 
-## Phase 2: App store
+## Phase 2: App store (DONE)
 
 Introduces an app-level store at `app.getPath('userData')` that backs transient quickboards
 and establishes the `wbapp:` URI scheme as the foundation for app-global resources.
@@ -219,7 +219,7 @@ Remove:
 - `quickboard:create-dialog` — superseded by `quickboard:create`.
 
 
-## Phase 3: Module registry
+## Phase 3: Module registry (DONE)
 
 Makes node types pluggable. Text and image become built-in modules. Canvas stops caring about
 specific node implementations.

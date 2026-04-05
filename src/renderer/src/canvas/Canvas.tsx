@@ -14,7 +14,10 @@ import { useBoardStore } from '@renderer/stores/board'
 import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
-import { ImageNode } from './ImageNode'
+import { BudNode } from './BudNode'
+import { BloomContext, type ActiveBloom } from './BloomContext'
+import '../modules/index'
+import { dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
@@ -28,7 +31,7 @@ import { lexicalContentToPlainText } from '@renderer/shared/types'
 import type { Tool } from './tools'
 import './Canvas.css'
 
-const nodeTypes = { text: TextNode, image: ImageNode }
+const nodeTypes = { text: TextNode, bud: BudNode }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 
 const WEB_RESOURCE_DROP_ERROR = 'Can\'t embed web resources — save the image to your local drive first, then drop it.'
@@ -148,6 +151,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const { screenToFlowPosition } = useReactFlow()
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
+  const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | 'newBoard' | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -160,6 +164,14 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
   const transientAutosaveRef = useRef<string | null>(null)
+
+  const handleBloom = useCallback((bloom: ActiveBloom) => {
+    if (bloom.module.defaultRenderer === 'external') {
+      void window.api.openFile(bloom.resource)
+      return
+    }
+    setActiveBloom(bloom)
+  }, [setActiveBloom])
 
   const activeToolRef = useRef(activeTool)
   useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
@@ -186,24 +198,30 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const schemaNodes: RFNode[] = useMemo(
     () =>
       boardNodes.map((n) => {
-        if (n.type === 'image') {
+        if (n.kind === 'leaf' && n.type === 'text') {
           return {
             id: n.id,
-            type: n.type,
+            type: 'text',
             position: { x: n.position.x, y: n.position.y },
-            data: { resource: n.resource, size: n.size }
+            data: {
+              content: n.content ?? makeLexicalContent(n.label ?? ''),
+              widthMode: n.widthMode ?? 'auto',
+              wrapWidth: n.wrapWidth ?? null,
+              size: n.size,
+              autoEditToken: autoEditRequest?.id === n.id ? autoEditRequest.token : undefined
+            }
           }
         }
+        // Bud node — moduleType carries the module id; unknown types show UnknownBudNode
         return {
           id: n.id,
-          type: n.type,
+          type: 'bud',
           position: { x: n.position.x, y: n.position.y },
           data: {
-            content: n.content ?? makeLexicalContent(n.label ?? ''),
-            widthMode: n.widthMode ?? 'auto',
-            wrapWidth: n.wrapWidth ?? null,
+            moduleType: n.type,
+            resource: n.resource ?? '',
             size: n.size,
-            autoEditToken: autoEditRequest?.id === n.id ? autoEditRequest.token : undefined
+            label: n.label
           }
         }
       }),
@@ -645,11 +663,9 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       event.preventDefault()
 
       const browserDraggedUri = event.dataTransfer.getData('text/uri-list').trim()
+      const droppedFiles = Array.from(event.dataTransfer.files)
 
-      const imageFiles = Array.from(event.dataTransfer.files).filter((file) =>
-        file.type.toLowerCase().startsWith('image/')
-      )
-      if (imageFiles.length === 0) {
+      if (droppedFiles.length === 0) {
         if (browserDraggedUri) {
           setImageDropError(WEB_RESOURCE_DROP_ERROR)
         }
@@ -658,46 +674,56 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
       const basePosition = screenToFlowPosition({ x: event.clientX, y: event.clientY })
 
-      const measuredImages = await Promise.allSettled(
-        imageFiles.map(async (file) => {
-          const droppedFilePath = getDroppedFilePath(file as File & { path?: string })
-          if (!droppedFilePath) {
+      const settled = await Promise.allSettled(
+        droppedFiles.map(async (file) => {
+          const filePath = getDroppedFilePath(file as File & { path?: string })
+          if (!filePath) {
             throw new Error(WEB_RESOURCE_DROP_ERROR)
           }
 
-          const { size } = await measureDroppedImage(file)
+          let resource: string
           if (workspaceRoot !== null) {
-            const copyResult = await window.api.copyWorkspaceResource(workspaceRoot, droppedFilePath)
+            const copyResult = await window.api.copyWorkspaceResource(workspaceRoot, filePath)
             if (!copyResult.ok || !copyResult.resource) {
-              throw new Error(`Unable to copy ${file.name || droppedFilePath} into workspace resources.`)
+              throw new Error(`Unable to copy ${file.name || filePath} into workspace resources.`)
             }
-
-            return { resource: copyResult.resource, size }
+            resource = copyResult.resource
+          } else {
+            resource = absolutePathToFileUri(filePath)
           }
 
-          return { resource: absolutePathToFileUri(droppedFilePath), size }
+          const module = dispatchModule(resource)
+
+          // Image files get measured for natural dimensions; everything else uses a default
+          const isImage = file.type.toLowerCase().startsWith('image/')
+          const size = isImage
+            ? (await measureDroppedImage(file)).size
+            : { w: 240, h: 160 }
+
+          return { resource, moduleType: module?.id ?? '', size }
         })
       )
 
       let createdCount = 0
       let firstFailure: string | null = null
 
-      measuredImages.forEach((result) => {
+      settled.forEach((result) => {
         if (result.status === 'rejected') {
-          firstFailure ??= result.reason instanceof Error ? result.reason.message : 'Unable to load dropped image.'
+          firstFailure ??= result.reason instanceof Error ? result.reason.message : 'Unable to drop file.'
           return
         }
 
+        const { resource, moduleType, size } = result.value
         addNode({
           id: crypto.randomUUID(),
-          kind: 'leaf',
-          type: 'image',
+          kind: 'bud',
+          type: moduleType,
           position: {
             x: basePosition.x + createdCount * 24,
             y: basePosition.y + createdCount * 24
           },
-          size: result.value.size,
-          resource: result.value.resource
+          size,
+          resource
         })
         createdCount += 1
       })
@@ -710,7 +736,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   )
 
   return (
-    <>
+    <BloomContext.Provider value={handleBloom}>
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
@@ -768,7 +794,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       )}
 
       {imageDropError ? (
-        <PetalPanel title="Image drop failed" body={imageDropError} onClose={() => setImageDropError(null)}>
+        <PetalPanel title="Drop failed" body={imageDropError} onClose={() => setImageDropError(null)}>
           <div className="petal-panel__actions">
             <PetalButton onClick={() => setImageDropError(null)}>Close</PetalButton>
           </div>
@@ -847,6 +873,6 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           />
         )
       })() : null}
-    </>
+    </BloomContext.Provider>
   )
 }
