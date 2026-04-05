@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { ArrowLeft, FilePlus, LayoutGrid, Plus, Trash2 } from 'lucide-react'
 import './WorkspaceHome.css'
 
 type WorkspaceHomeProps = {
@@ -32,66 +32,88 @@ export default function WorkspaceHome({
 }: WorkspaceHomeProps) {
   return (
     <main className="workspace-home">
-      <header className="workspace-home__header">
-        <div>
+      <aside className="workspace-home__sidebar">
+        <div className="workspace-home__identity">
           <p className="workspace-home__eyebrow">Workspace</p>
           <h1 className="workspace-home__title">{workspaceName?.trim() || 'Untitled workspace'}</h1>
-          <p className="workspace-home__brief">
-            {workspaceBrief?.trim() || 'No workspace brief yet. Open a board or create one to begin.'}
-          </p>
+          {workspaceBrief?.trim() ? (
+            <p className="workspace-home__brief">{workspaceBrief.trim()}</p>
+          ) : null}
         </div>
 
-        <div className="workspace-home__actions">
-          <button type="button" className="workspace-home__button" onClick={onCloseWorkspace}>
-            Close workspace
-          </button>
+        <nav className="workspace-home__nav">
           <button
             type="button"
-            className="workspace-home__button workspace-home__button--primary"
+            className="workspace-home__action"
             onClick={onCreateBoard}
             disabled={busy}
           >
+            <FilePlus size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
             New board
           </button>
-        </div>
-      </header>
 
-      {errorMessage ? <p className="workspace-home__error">{errorMessage}</p> : null}
+          <button
+            type="button"
+            className="workspace-home__action"
+            onClick={onCloseWorkspace}
+          >
+            <ArrowLeft size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
+            Close workspace
+          </button>
+        </nav>
 
-      <section className="workspace-home__board-list" aria-label="Workspace boards">
-        {boards.length === 0 ? (
-          <div className="workspace-home__empty">
-            <p className="workspace-home__empty-title">No boards yet</p>
-            <p className="workspace-home__empty-copy">
-              Create the first `.wb.json` in this workspace and drop directly into the editor.
-            </p>
+        {errorMessage ? <p className="workspace-home__error">{errorMessage}</p> : null}
+      </aside>
+
+      <section className="workspace-home__main" aria-label="Workspace boards">
+        <p className="workspace-home__boards-eyebrow">Boards</p>
+        <div className="workspace-home__board-grid">
+          <div className="workspace-home__board-tile workspace-home__board-tile--new">
+            <button
+              type="button"
+              className="workspace-home__board-open"
+              onClick={onCreateBoard}
+              disabled={busy}
+            >
+              <div className="workspace-home__board-preview">
+                <Plus size={28} strokeWidth={1.4} />
+              </div>
+              <div className="workspace-home__board-info">
+                <span className="workspace-home__board-label">New board</span>
+              </div>
+            </button>
           </div>
-        ) : (
-          boards.map((boardPath) => (
-            <div key={boardPath} className="workspace-home__board-card">
+
+          {boards.map((boardPath) => (
+            <div key={boardPath} className="workspace-home__board-tile">
               <button
                 type="button"
-                className="workspace-home__board"
+                className="workspace-home__board-open"
                 onClick={() => onOpenBoard(boardPath)}
                 disabled={busy}
               >
-                <span className="workspace-home__board-title">{getBoardLabel(boardPath)}</span>
-                <span className="workspace-home__board-path">{boardPath}</span>
+                <div className="workspace-home__board-preview">
+                  <LayoutGrid size={30} strokeWidth={1.2} />
+                </div>
+                <div className="workspace-home__board-info">
+                  <span className="workspace-home__board-label">{getBoardLabel(boardPath)}</span>
+                  <span className="workspace-home__board-path">{boardPath}</span>
+                </div>
               </button>
 
               <button
                 type="button"
-                className="workspace-home__board-trash"
+                className="workspace-home__board-discard"
                 onClick={() => onTrashBoard(boardPath)}
                 disabled={busy}
                 aria-label={`Move ${getBoardLabel(boardPath)} to trash`}
-                title="Move board to trash"
+                title="Move to trash"
               >
-                <Trash2 size={16} strokeWidth={1.8} />
+                <Trash2 size={11} strokeWidth={1.8} />
               </button>
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </section>
     </main>
   )
