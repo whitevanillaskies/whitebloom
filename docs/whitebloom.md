@@ -100,6 +100,7 @@ The `.wb.json` extension signals "Whitebloom board" while remaining parseable by
 {
   "version": 3,
 
+  "name": "Perfume Concepts",
   "brief": "A board for exploring perfume concepts for a spring/summer fashion campaign targeting physically active teens to young adults. Keep current teen trends in mind when suggesting directions.",
 
   "nodes": [
@@ -213,7 +214,8 @@ Two flows bring external assets onto the board:
 | Field     | Required | Description |
 |-----------|----------|-------------|
 | `version` | yes      | Schema version. Current version is `3`. |
-| `brief`   | no       | Plain text context for agents — describes the board's purpose, domain, constraints, or preferences. Written by the user; read by agents as the first thing in the manifest. |
+| `name`    | no       | Display name for this board — a human-readable label shown in the workspace home screen, board switcher, and UI chrome. Distinct from the workspace `name` in `.wbconfig`. |
+| `brief`   | no       | Agent context for this board — describes its purpose, domain, constraints, or editorial preferences. Agents read this first when operating on the board. Distinct from the workspace `brief` in `.wbconfig`, which describes the project as a whole. |
 | `nodes`   | yes      | Array of node objects |
 | `edges`   | yes      | Array of edge objects |
 
@@ -242,9 +244,9 @@ Authorship is intentionally lightweight in v3. The board file stores per-node pr
 
 An agent can:
 
-1. `cat .wbconfig` to understand the workspace: its name, brief, and module configuration.
+1. `cat .wbconfig` to understand the workspace: its `name` (the project name), `brief` (what the project is about in general), and module configuration.
 2. `ls *.wb.json` to discover all boards in the workspace.
-3. `cat research.wb.json` to understand a specific board: what exists, where it is, how things connect. The `brief` field (if present) appears near the top and gives immediate context about the board's purpose.
+3. `cat research.wb.json` to understand a specific board: what exists, where it is, how things connect. The board's own `name` (its display label) and `brief` (what this board is specifically for) appear near the top and give immediate context. The board `brief` is narrower and more specific than the workspace `brief`.
 4. Resolve `wloc:` URIs to workspace-local paths and follow them to read or edit specific assets.
 5. Grep `blossoms/` for content across all bloomable assets in the workspace.
 6. Understand the topology from `edges` without opening any other file.
@@ -708,13 +710,35 @@ A real v1 would use CodeMirror or Tiptap inside that editor. The point is: the c
 | Field | Required | Description |
 |-------|----------|-------------|
 | `version` | yes | Config schema version. Current version is `1`. |
-| `name` | no | Human-readable workspace name. |
-| `brief` | no | Plain-text context for agents — describes the workspace's purpose, domain, and constraints. Distinct from any individual board's `brief`. |
+| `name` | no | Human-readable workspace name — identifies the project as a whole (e.g. "Perfume Campaign SS26"). Distinct from any individual board's `name`. |
+| `brief` | no | Agent context for the workspace — describes what you're working on in general: the project's purpose, domain, and constraints. Agents read this to orient themselves before opening any board. Distinct from any individual board's `brief`, which describes what that specific board is for. |
 | `modules` | no | Per-module overrides, keyed by module `id`. Each entry can override `renderer`, `editor`, `shell`, or add extra `lenses`. |
 
 The `lenses` array allows users to layer additional community or custom lenses on top of whatever the shell ships. These are resolved as paths relative to a configurable lens directory.
 
 When `modules` is absent or a module has no entry, the app falls back to default resolution: the first registered editor and first registered shell for each type.
+
+### `name` and `brief` at two levels
+
+Both `.wbconfig` and `*.wb.json` carry a `name` and a `brief`, but they mean different things at each level:
+
+| Field   | In `.wbconfig` | In `*.wb.json` |
+|---------|---------------|----------------|
+| `name`  | The workspace name — identifies the project as a whole (e.g. `"Perfume Campaign SS26"`). | The board's display label — shown in the workspace home screen and UI chrome (e.g. `"Perfume Concepts"`). |
+| `brief` | What you're working on in general — project purpose, domain, constraints. Read by agents before they open any board. | What this specific board is for — its scope, editorial direction, constraints. Read by agents before they touch any node on this board. |
+
+The same field names are reused deliberately. Their meaning is fully determined by the file they appear in — `.wbconfig` is the workspace manifest, `*.wb.json` is a board manifest. Prefixing them (`workspaceName`, `boardBrief`, etc.) would be redundant: you always know which file you're reading. The only context in which both appear simultaneously is documentation like this table, and there the file name makes the scope obvious.
+
+### Naming convention for JSON fields and configs
+
+All JSON field names use **`camelCase`**: `createdBy`, `updatedAt`, `defaultRenderer`, `canMerge`. This is already established by the existing schema and consistent with how TypeScript types map directly to JSON without transformation.
+
+Config file and directory names use the convention dictated by their role:
+- **Spec-defined files** use existing punctuation: `.wbconfig`, `*.wb.json`, `*.inbox.json` — the dots and stems are load-bearing identifiers, not style choices.
+- **Asset directories** use lowercase with no separator: `blossoms/`, `res/`.
+- **Module identifiers** (`id` field) use reverse-domain notation: `com.whitebloom.focus-writer`. The dot separators are intentional and do not imply kebab-case elsewhere.
+
+When in doubt: camelCase for JSON keys, lowercase-no-separator for directory names, reverse-domain for module IDs.
 
 ### Shared UI kit (`@whitebloom/ui`)
 

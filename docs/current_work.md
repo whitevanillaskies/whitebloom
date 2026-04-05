@@ -14,10 +14,14 @@ introduces the `wloc:` URI scheme, and gives the app a home screen.
 
 - Add `WorkspaceConfig` type to `src/renderer/src/shared/types.ts`:
   `{ version: number, name?: string, brief?: string }`. Current version: 1.
+  `name` here is the workspace/project name. `brief` is agent context for the project as a whole ("what I'm working on").
 - Document `wloc:resource/path` as the canonical form for workspace-local URIs.
   `file:///absolute/path` for external filesystem links. `https://` reserved for web (future).
-- Remove `name` and `brief` from `Board` type — these are board-level fields that stay on the
-  board, but `WorkspaceConfig` gets its own independent `name`/`brief`.
+- Ensure `Board` type carries its own `name?: string` and `brief?: string`, independent of
+  `WorkspaceConfig`. Board `name` is the display label for that board (shown in workspace home,
+  UI chrome). Board `brief` is agent context scoped to that board ("what this board is for").
+  Both share field names with `.wbconfig` fields; the file they appear in defines their scope —
+  no prefixing (`boardName`, `boardBrief`) needed.
 - Add `Workspace` runtime type: `{ config: WorkspaceConfig, rootPath: string, boards: string[] }`.
 
 ### 1.2 URI resolver
