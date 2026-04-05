@@ -154,12 +154,75 @@ gives the remote URL instead. The drop handler branches on context:
   `deferred_work.md`.
 
 
-## Phase 2: Module registry
+## Phase 2: App store
+
+Introduces an app-level store at `app.getPath('userData')` that backs transient quickboards
+and establishes the `wbapp:` URI scheme as the foundation for app-global resources.
+
+### 2.1 `wbapp:` URI scheme
+
+STATUS: OK.
+
+- Register `wbapp:` in the URI resolver: resolves against `app.getPath('userData')`.
+- `wbapp:boards/quickboard-{timestamp}.wb.json` — transient board files.
+- `wbapp:res/` — reserved for app-global resource cache (directory created here; population
+  is deferred — see `deferred_work.md`).
+- Register an Electron protocol handler for `wbapp:` in the main process alongside the
+  existing `wloc:` handler.
+- Unknown `wbapp:` paths throw like any other unresolvable URI.
+
+### 2.2 Transient boards
+
+STATUS: OK
+
+- `Board` type gains `transient?: true`. Absent means permanent.
+- `quickboard:create` no longer shows a file-save dialog. It:
+  - Generates a timestamped filename (`quickboard-{timestamp}.wb.json`).
+  - Writes the empty board to `userData/boards/`.
+  - Sets `transient: true` in the board JSON.
+  - Returns the board path; caller opens it in Canvas.
+- Auto-save writes to the transient path on every change. No dirty-flag tracking needed for
+  transient boards — just write on every mutation.
+- The "Save" toolbar action checks `board.transient`:
+  - `true` → shows a file-save dialog; on confirm, writes to the chosen path, deletes the
+    transient file, updates `board.path`, clears `transient` from both the store and the
+    written JSON.
+  - `false` → saves in place (existing behavior).
+
+### 2.3 Start screen: transient boards
+
+STATUS: OK
+
+- `StartScreen` reads `userData/boards/` and lists any `*.wb.json` files found under
+  "Unsaved quickboards".
+- Clicking one opens it directly (no dialog) — natural recovery path after closing without
+  saving.
+- A discard action (trash icon) deletes the file immediately.
+- A trash icon on the toolbar to delete boards perhaps? 
+
+### 2.4 IPC changes
+
+STATUS: OK.
+
+New handlers:
+- `quickboard:create` — creates transient file in `userData/boards/`, returns its path.
+  No dialog. Replaces the old `quickboard:create-dialog`.
+- `board:promote(transientPath, targetPath, json)` — writes `json` to `targetPath`, deletes
+  `transientPath`. Called by the save flow when promoting a transient board.
+- `app:list-transient-boards` — lists `*.wb.json` files in `userData/boards/`; used by
+  `StartScreen`.
+- `app:discard-transient-board(path)` — deletes a transient board file.
+
+Remove:
+- `quickboard:create-dialog` — superseded by `quickboard:create`.
+
+
+## Phase 3: Module registry
 
 Makes node types pluggable. Text and image become built-in modules. Canvas stops caring about
 specific node implementations.
 
-### 2.1 Module contract types
+### 3.1 Module contract types
 
 New file: `src/renderer/src/modules/types.ts`.
 
@@ -197,7 +260,7 @@ interface BudEditorProps {
 Leaves keep their existing props shape — they do not go through the module registry for
 rendering. The registry is for buds only.
 
-### 2.2 Module registry
+### 3.2 Module registry
 
 New file: `src/renderer/src/modules/registry.ts`.
 
@@ -209,7 +272,7 @@ New file: `src/renderer/src/modules/registry.ts`.
 Registry is a plain module-level Map. Populated by static imports at app startup — no dynamic
 loading yet, but the interface is compatible with it later.
 
-### 2.3 Built-in modules
+### 3.3 Built-in modules
 
 - `src/renderer/src/modules/image/` — `com.whitebloom.image`
   - `extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif', '.tiff', '.svg']`
@@ -220,7 +283,7 @@ loading yet, but the interface is compatible with it later.
 
 - Text (leaf) stays as-is. Leaves are not registered in the module registry.
 
-### 2.4 Registry-driven Canvas
+### 3.4 Registry-driven Canvas
 
 - `nodeTypes` in `Canvas.tsx` is derived from the registry at module load time.
 - All bud nodes are rendered via a `BudNode` wrapper component:
@@ -237,7 +300,7 @@ loading yet, but the interface is compatible with it later.
   Distinct from `UnknownBudNode`: unknown type = module not present; error = module tried
   and failed (or resource is inaccessible).
 
-### 2.5 Drag-and-drop module dispatch
+### 3.5 Drag-and-drop module dispatch
 
 - On file drop, iterate registered modules; call `recognizes(resource)` for specific modules first.
   First truthy result claims the file and stamps its `id` as the node `type`.
@@ -245,23 +308,23 @@ loading yet, but the interface is compatible with it later.
 - If no module matches at all → create a void-typed bud (`type: null`), `UnknownBudNode` renders it.
 
 
-## Phase 3: Bloom modal
+## Phase 4: Bloom modal
 
 The container that activates when a bud is double-clicked.
 
-### 3.1 Bloom state
+### 4.1 Bloom state
 
 - Canvas holds `activeBloom: { nodeId: string, module: WhitebloomModule, resource: string } | null`.
 - `BudNode`'s `onBloom` callback sets this state.
 - Clearing `activeBloom` (Escape, close button, save-and-close) returns to the board.
 
-### 3.2 IPC: blossom read/write
+### 4.2 IPC: blossom read/write
 
 - `blossom:read(workspaceRoot, resource)` — resolves `wloc:` URI, reads file, returns string.
 - `blossom:write(workspaceRoot, resource, data)` — resolves URI, writes file.
 - Both handlers live in the main process alongside workspace handlers.
 
-### 3.3 Bloom modal shell
+### 4.3 Bloom modal shell
 
 New component: `src/renderer/src/canvas/BloomModal.tsx`.
 
@@ -273,11 +336,11 @@ New component: `src/renderer/src/canvas/BloomModal.tsx`.
 - Autosave vs explicit save: decide during implementation. Start with explicit save-on-close.
 
 
-## Phase 4: Focus writer module
+## Phase 5: Focus writer module
 
 The first real module. IA Writer-style prose editor for `.md` files.
 
-### 4.1 Module definition
+### 5.1 Module definition
 
 `src/renderer/src/modules/focus-writer/index.ts`
 
@@ -288,13 +351,13 @@ The first real module. IA Writer-style prose editor for `.md` files.
   specific module, so the module id gets stamped as `type` on drag-and-drop.
 - `createDefault()`: returns `''` (empty string — blank markdown file).
 
-### 4.2 Canvas node component (`FocusWriterNode`)
+### 5.2 Canvas node component (`FocusWriterNode`)
 
 - Compact bud card: label (filename if no label) + first non-empty line of content as a subtitle.
 - Content preview populated from the blossom file (read once on mount, not live).
 - Shows a small document icon.
 
-### 4.3 Editor component (`FocusWriterEditor`)
+### 5.3 Editor component (`FocusWriterEditor`)
 
 - IA Writer aesthetic: centered column, generous line height, minimal chrome.
 - Editing surface: decide between raw `<textarea>` with monospace markdown styling vs. CodeMirror
@@ -302,7 +365,7 @@ The first real module. IA Writer-style prose editor for `.md` files.
 - `onSave` called on close (and optionally on a debounced interval while editing).
 - No preview mode for v1 — editing is the primary action.
 
-### 4.4 Create flow (palette)
+### 5.4 Create flow (palette)
 
 - New toolbar action or canvas keyboard shortcut to create a focus-writer bud.
 - On activate: prompts for a filename (or auto-generates one), writes empty `.md` to

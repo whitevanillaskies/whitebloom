@@ -99,6 +99,11 @@ function getBoardNameFromPath(boardPath: string): string {
   return fileName.replace(/\.wb\.json$/i, '') || 'Board'
 }
 
+function getSuggestedBoardFileName(boardPath: string, boardName?: string): string {
+  const trimmedName = boardName?.trim()
+  return trimmedName && trimmedName.length > 0 ? trimmedName : getBoardNameFromPath(boardPath)
+}
+
 function blurToolbarButtonIfFocused(): void {
   const active = document.activeElement
   if (!(active instanceof HTMLElement)) return
@@ -111,6 +116,7 @@ export function Canvas() {
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
   const boardPath = useBoardStore((s) => s.path)
+  const boardTransient = useBoardStore((s) => s.transient === true)
   const boardName = useBoardStore((s) => s.name)
   const boardBrief = useBoardStore((s) => s.brief)
   const isDirty = useBoardStore((s) => s.isDirty)
@@ -121,9 +127,11 @@ export function Canvas() {
   const clearBoard = useBoardStore((s) => s.clearBoard)
   const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
+  const setBoardPersistence = useBoardStore((s) => s.setBoardPersistence)
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
+  const removeWorkspaceBoard = useWorkspaceStore((s) => s.removeBoard)
   const username = useAppSettingsStore((s) => s.user.username)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
   const updateUsername = useAppSettingsStore((s) => s.updateUsername)
@@ -137,8 +145,11 @@ export function Canvas() {
   const [imageDropError, setImageDropError] = useState<string | null>(null)
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
   const [promoteInFlight, setPromoteInFlight] = useState(false)
+  const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
+  const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
+  const transientAutosaveRef = useRef<string | null>(null)
 
   const activeToolRef = useRef(activeTool)
   useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
@@ -261,7 +272,7 @@ export function Canvas() {
     [activeTool, screenToFlowPosition, addNode]
   )
 
-  const buildBoardSnapshot = useCallback((): Board => {
+  const buildBoardSnapshot = useCallback((options?: { transient?: boolean }): Board => {
     const nodes = boardNodes.map((node) => {
       if (node.type !== 'text') return node
 
@@ -275,6 +286,7 @@ export function Canvas() {
 
     return {
       version,
+      ...(options?.transient ? { transient: true as const } : {}),
       ...(boardName?.trim() ? { name: boardName.trim() } : {}),
       ...(boardBrief?.trim() ? { brief: boardBrief.trim() } : {}),
       nodes,
@@ -282,18 +294,54 @@ export function Canvas() {
     }
   }, [version, boardName, boardBrief, boardNodes, boardEdges])
 
+  useEffect(() => {
+    if (!boardTransient || !boardPath) {
+      transientAutosaveRef.current = null
+      return
+    }
+
+    const serializedBoard = JSON.stringify(buildBoardSnapshot({ transient: true }), null, 2)
+    if (transientAutosaveRef.current === serializedBoard) return
+
+    transientAutosaveRef.current = serializedBoard
+    void window.api.saveBoard(boardPath, serializedBoard)
+  }, [boardPath, boardTransient, buildBoardSnapshot])
+
   const handleSave = useCallback(async () => {
     if (!boardPath) {
       console.error('Cannot save board without an explicit board path.')
       return
     }
 
-    const result = await window.api.saveBoard(boardPath, JSON.stringify(buildBoardSnapshot(), null, 2))
+    if (boardTransient) {
+      const saveDialogResult = await window.api.showBoardSaveDialog(
+        getSuggestedBoardFileName(boardPath, boardName)
+      )
+      if (!saveDialogResult.ok || !saveDialogResult.boardPath) return
+
+      const promotedSnapshot = buildBoardSnapshot({ transient: false })
+      const promotionResult = await window.api.promoteBoard(
+        boardPath,
+        saveDialogResult.boardPath,
+        JSON.stringify(promotedSnapshot, null, 2)
+      )
+
+      if (promotionResult.ok && promotionResult.boardPath) {
+        setBoardPersistence(promotionResult.boardPath, false)
+        markSaved()
+      }
+      return
+    }
+
+    const result = await window.api.saveBoard(
+      boardPath,
+      JSON.stringify(buildBoardSnapshot({ transient: false }), null, 2)
+    )
 
     if (result.ok) {
       markSaved()
     }
-  }, [boardPath, buildBoardSnapshot, markSaved])
+  }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence])
 
   const handleCloseBoard = useCallback(() => {
     if (isDirty) {
@@ -314,7 +362,7 @@ export function Canvas() {
       const createWorkspaceResult = await window.api.createWorkspaceDialog()
       if (!createWorkspaceResult.ok || !createWorkspaceResult.workspaceRoot) return
 
-      const snapshot = buildBoardSnapshot()
+      const snapshot = buildBoardSnapshot({ transient: false })
       const suggestedName = snapshot.name?.trim() || getBoardNameFromPath(boardPath)
       const createBoardResult = await window.api.createBoard(
         createWorkspaceResult.workspaceRoot,
@@ -325,10 +373,14 @@ export function Canvas() {
         throw new Error('Unable to create a workspace board.')
       }
 
-      const saveResult = await window.api.saveBoard(
-        createBoardResult.boardPath,
-        JSON.stringify(snapshot, null, 2)
-      )
+      const saveResult = boardTransient
+        ? await window.api.promoteBoard(
+            boardPath,
+            createBoardResult.boardPath,
+            JSON.stringify(snapshot, null, 2)
+          )
+        : await window.api.saveBoard(createBoardResult.boardPath, JSON.stringify(snapshot, null, 2))
+
       if (!saveResult.ok) {
         throw new Error('Unable to write the promoted board into the new workspace.')
       }
@@ -343,7 +395,34 @@ export function Canvas() {
     } finally {
       setPromoteInFlight(false)
     }
-  }, [boardPath, buildBoardSnapshot, loadBoard, loadWorkspace, workspaceRoot])
+  }, [boardPath, boardTransient, buildBoardSnapshot, loadBoard, loadWorkspace, workspaceRoot])
+
+  const handleTrashBoard = useCallback(async () => {
+    if (!boardPath) return
+
+    setTrashBoardInFlight(true)
+    setWorkspaceActionError(null)
+
+    try {
+      const result = await window.api.trashBoard(boardPath)
+      if (!result.ok) {
+        throw new Error('Unable to move this board into wbapp:trash.')
+      }
+
+      if (workspaceRoot !== null) {
+        removeWorkspaceBoard(boardPath)
+      }
+
+      setTrashBoardConfirmOpen(false)
+      clearBoard()
+    } catch (error) {
+      setWorkspaceActionError(
+        error instanceof Error ? error.message : 'Unable to move this board into wbapp:trash.'
+      )
+    } finally {
+      setTrashBoardInFlight(false)
+    }
+  }, [boardPath, clearBoard, removeWorkspaceBoard, workspaceRoot])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -675,6 +754,14 @@ export function Canvas() {
                 Promote to Workspace
               </button>
             ) : null}
+            <button
+              type="button"
+              className="canvas-shell-actions__button"
+              onClick={() => setTrashBoardConfirmOpen(true)}
+              disabled={trashBoardInFlight}
+            >
+              Move to Trash
+            </button>
             <button type="button" className="canvas-shell-actions__button" onClick={handleCloseBoard}>
               {workspaceRoot ? 'Workspace Home' : 'Close Board'}
             </button>
@@ -762,6 +849,44 @@ export function Canvas() {
                 onClick={handleConfirmDocumentAction}
               >
                 {confirmDialogConfirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {trashBoardConfirmOpen ? (
+        <div
+          className="canvas-modal__overlay"
+          role="presentation"
+          onClick={() => setTrashBoardConfirmOpen(false)}
+        >
+          <div
+            className="canvas-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Move board to trash"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="canvas-modal__title">Move board to trash?</h2>
+            <p className="canvas-modal__body">
+              This moves the board file into `wbapp:trash`. Any unsaved in-memory edits will be lost.
+            </p>
+            <div className="canvas-modal__actions">
+              <button
+                type="button"
+                className="canvas-modal__button"
+                onClick={() => setTrashBoardConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="canvas-modal__button canvas-modal__button--danger"
+                onClick={() => void handleTrashBoard()}
+                disabled={trashBoardInFlight}
+              >
+                Move to trash
               </button>
             </div>
           </div>

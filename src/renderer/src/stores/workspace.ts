@@ -8,6 +8,7 @@ type WorkspaceState = {
   loadWorkspace: (workspace: Workspace) => void
   setBoards: (boards: string[]) => void
   addBoard: (boardPath: string) => void
+  removeBoard: (boardPath: string) => void
   clearWorkspace: () => void
 }
 
@@ -35,6 +36,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set((state) => {
       if (state.boards.includes(boardPath)) return state
       return { boards: sortBoardPaths([...state.boards, boardPath]) }
+    }),
+
+  removeBoard: (boardPath) =>
+    set((state) => {
+      if (!state.boards.includes(boardPath)) return state
+      return { boards: state.boards.filter((path) => path !== boardPath) }
     }),
 
   clearWorkspace: () =>

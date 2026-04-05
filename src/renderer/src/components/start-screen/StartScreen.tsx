@@ -1,19 +1,32 @@
+import { Trash2 } from 'lucide-react'
 import './StartScreen.css'
 
 type StartScreenProps = {
   busy: boolean
   errorMessage: string | null
+  transientBoards: string[]
   onOpenWorkspace: () => void
   onCreateWorkspace: () => void
   onCreateQuickboard: () => void
+  onOpenTransientBoard: (boardPath: string) => void
+  onTrashBoard: (boardPath: string) => void
+}
+
+function getBoardLabel(boardPath: string): string {
+  const normalized = boardPath.replace(/\\/g, '/')
+  const fileName = normalized.slice(normalized.lastIndexOf('/') + 1)
+  return fileName.replace(/\.wb\.json$/i, '') || fileName || 'Unsaved quickboard'
 }
 
 export default function StartScreen({
   busy,
   errorMessage,
+  transientBoards,
   onOpenWorkspace,
   onCreateWorkspace,
-  onCreateQuickboard
+  onCreateQuickboard,
+  onOpenTransientBoard,
+  onTrashBoard
 }: StartScreenProps) {
   return (
     <main className="start-screen">
@@ -60,10 +73,48 @@ export default function StartScreen({
         >
           <span className="start-screen__action-title">New quickboard</span>
           <span className="start-screen__action-copy">
-            Create a single `.wb.json` with no workspace around it.
+            Start with an unsaved quickboard in app storage and save it out only if it deserves to keep.
           </span>
         </button>
       </section>
+
+      {transientBoards.length > 0 ? (
+        <section className="start-screen__transients" aria-label="Unsaved quickboards">
+          <div className="start-screen__transients-header">
+            <p className="start-screen__transients-eyebrow">Unsaved quickboards</p>
+            <p className="start-screen__transients-copy">
+              Reopen a transient board from app storage, or discard it if it was only a scratch pass.
+            </p>
+          </div>
+
+          <div className="start-screen__transient-list">
+            {transientBoards.map((boardPath) => (
+              <div key={boardPath} className="start-screen__transient-card">
+                <button
+                  type="button"
+                  className="start-screen__transient-open"
+                  onClick={() => onOpenTransientBoard(boardPath)}
+                  disabled={busy}
+                >
+                  <span className="start-screen__transient-title">{getBoardLabel(boardPath)}</span>
+                  <span className="start-screen__transient-path">{boardPath}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="start-screen__transient-discard"
+                  onClick={() => onTrashBoard(boardPath)}
+                  disabled={busy}
+                  aria-label={`Move ${getBoardLabel(boardPath)} to trash`}
+                  title="Move board to trash"
+                >
+                  <Trash2 size={16} strokeWidth={1.8} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {errorMessage ? <p className="start-screen__error">{errorMessage}</p> : null}
     </main>

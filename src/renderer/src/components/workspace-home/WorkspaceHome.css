@@ -85,6 +85,13 @@
   gap: 14px;
 }
 
+.workspace-home__board-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
 .workspace-home__board,
 .workspace-home__empty {
   min-height: 132px;
@@ -104,6 +111,7 @@
 .workspace-home__board {
   text-align: left;
   cursor: pointer;
+  width: 100%;
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
@@ -116,6 +124,32 @@
 }
 
 .workspace-home__board:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.workspace-home__board-trash {
+  width: 42px;
+  min-height: 132px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  border: 1px solid rgba(138, 29, 61, 0.14);
+  background: rgba(255, 255, 255, 0.74);
+  color: #8a1d3d;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease;
+}
+
+.workspace-home__board-trash:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(138, 29, 61, 0.28);
+  background: rgba(255, 242, 245, 0.92);
+}
+
+.workspace-home__board-trash:disabled {
   opacity: 0.65;
   cursor: default;
 }

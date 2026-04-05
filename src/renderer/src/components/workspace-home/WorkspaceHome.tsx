@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 import './WorkspaceHome.css'
 
 type WorkspaceHomeProps = {
@@ -8,6 +9,7 @@ type WorkspaceHomeProps = {
   boards: string[]
   onCreateBoard: () => void
   onOpenBoard: (boardPath: string) => void
+  onTrashBoard: (boardPath: string) => void
   onCloseWorkspace: () => void
 }
 
@@ -25,6 +27,7 @@ export default function WorkspaceHome({
   boards,
   onCreateBoard,
   onOpenBoard,
+  onTrashBoard,
   onCloseWorkspace
 }: WorkspaceHomeProps) {
   return (
@@ -65,16 +68,28 @@ export default function WorkspaceHome({
           </div>
         ) : (
           boards.map((boardPath) => (
-            <button
-              type="button"
-              key={boardPath}
-              className="workspace-home__board"
-              onClick={() => onOpenBoard(boardPath)}
-              disabled={busy}
-            >
-              <span className="workspace-home__board-title">{getBoardLabel(boardPath)}</span>
-              <span className="workspace-home__board-path">{boardPath}</span>
-            </button>
+            <div key={boardPath} className="workspace-home__board-card">
+              <button
+                type="button"
+                className="workspace-home__board"
+                onClick={() => onOpenBoard(boardPath)}
+                disabled={busy}
+              >
+                <span className="workspace-home__board-title">{getBoardLabel(boardPath)}</span>
+                <span className="workspace-home__board-path">{boardPath}</span>
+              </button>
+
+              <button
+                type="button"
+                className="workspace-home__board-trash"
+                onClick={() => onTrashBoard(boardPath)}
+                disabled={busy}
+                aria-label={`Move ${getBoardLabel(boardPath)} to trash`}
+                title="Move board to trash"
+              >
+                <Trash2 size={16} strokeWidth={1.8} />
+              </button>
+            </div>
           ))
         )}
       </section>

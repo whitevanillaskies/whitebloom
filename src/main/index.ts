@@ -3,15 +3,19 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createMainWindow } from './create-window'
 import { registerAppIpc } from './ipc/register-app-ipc'
 import { registerBoardIpc } from './ipc/register-board-ipc'
-import { registerWlocProtocol, registerWlocScheme } from './protocol/register-wloc-protocol'
+import {
+  registerResourceProtocols,
+  registerResourceSchemes
+} from './protocol/register-wloc-protocol'
+import { ensureAppStorageDirectories } from './services/app-storage'
 import { createMainProcessContext } from './state/main-process-context'
 
-registerWlocScheme()
+registerResourceSchemes()
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
 
   app.on('browser-window-created', (_, window) => {
@@ -19,8 +23,9 @@ app.whenReady().then(() => {
   })
 
   const context = createMainProcessContext()
+  await ensureAppStorageDirectories()
 
-  registerWlocProtocol(context)
+  registerResourceProtocols(context)
   registerBoardIpc(context)
   registerAppIpc(context)
   createMainWindow()

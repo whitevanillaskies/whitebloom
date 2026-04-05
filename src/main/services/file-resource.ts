@@ -20,7 +20,11 @@ export function openResource(resource: string, context: MainProcessContext): Pro
 
   if (!resourceValue) return Promise.resolve('')
 
-  if (resourceValue.startsWith('wloc:') || resourceValue.startsWith('file:///')) {
+  if (
+    resourceValue.startsWith('wloc:') ||
+    resourceValue.startsWith('wbapp:') ||
+    resourceValue.startsWith('file:///')
+  ) {
     try {
       const absolutePath = resolveResource(resourceValue, context.getActiveWorkspaceRoot() ?? '')
       return shell.openPath(absolutePath)

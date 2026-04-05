@@ -44,11 +44,18 @@ vs. link (see below) would control whether a local file drop produces `file:///`
 
 **Size concern.** Large images bloat the board JSON. A reasonable cap (e.g. 5 MB per asset,
 configurable) should be enforced at drop time, with a clear error if exceeded. Above the cap,
-fall back to the current error toast and tell the user to save locally. Max size should be configurable
-as an app-level setting. Another option is to have an app-level bucket. `wbapp` may point point
-to resources downloaded to an app bucket. This however losses the portability of the quickboard,
-but going from/to wbapp to wbhost is almost trivial. A user may select "export as standalone"
-to grab all resources and embed them. This would also work for workspaces, even.
+fall back to the current error toast and tell the user to save locally. Max size should be
+configurable as an app-level setting.
+
+**`wbapp:` global resource cache.** The `wbapp:` URI scheme and the app store directory
+(`userData/`) are established in Phase 2 as the backing store for transient quickboards.
+The `wbapp:res/` subdirectory is reserved but not yet populated. Once populated, `wbapp:`
+can back a global asset cache: resources downloaded or embedded at the app level rather
+than the workspace level. A quickboard could reference `wbapp:res/img-abc.png` instead of
+embedding via `wbhost:`. Going from `wbhost:` to `wbapp:` and vice versa is trivial — both
+are local to the machine. A user may select "export as standalone" to embed all referenced
+assets (both `wbapp:` and `wloc:`) into the board file as `wbhost:` entries. This would
+work for workspaces as well.
 
 
 ## Workspace crates (`.wbcrate`)

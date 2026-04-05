@@ -1,8 +1,60 @@
 import { posix, resolve as resolvePath, normalize as normalizePath } from 'path'
 import { fileURLToPath } from 'url'
+import { getAppDataRoot } from './services/app-storage'
 
 function toUnixPath(pathValue: string): string {
   return pathValue.replace(/\\/g, '/')
+}
+
+function requireRootPath(rootPath: string, scheme: string, uri: string): string {
+  const trimmedRoot = rootPath.trim()
+
+  if (!trimmedRoot) {
+    throw new Error(`${scheme} URI requires an active root path: ${uri}`)
+  }
+
+  return trimmedRoot
+}
+
+function resolveManagedUri(
+  uri: string,
+  scheme: 'wloc' | 'wbapp',
+  rootPath: string,
+  allowedTopLevelSegments?: string[]
+): string {
+  if (uri.startsWith(`${scheme}://`)) {
+    throw new Error(`Invalid ${scheme} URI (authority not allowed): ${uri}`)
+  }
+
+  const encodedPath = uri.slice(`${scheme}:`.length)
+  const decodedPath = decodeURIComponent(encodedPath)
+  const normalizedResourcePath = posix.normalize(decodedPath.replace(/\\/g, '/'))
+  const relativeResourcePath = normalizedResourcePath.replace(/^\/+/, '')
+
+  if (!relativeResourcePath || relativeResourcePath === '.') {
+    throw new Error(`Invalid ${scheme} URI path: ${uri}`)
+  }
+
+  if (relativeResourcePath === '..' || relativeResourcePath.startsWith('../')) {
+    throw new Error(`${scheme} URI escapes root: ${uri}`)
+  }
+
+  if (allowedTopLevelSegments) {
+    const topLevelSegment = relativeResourcePath.split('/')[0]
+    if (!allowedTopLevelSegments.includes(topLevelSegment)) {
+      throw new Error(`Unsupported ${scheme} URI path: ${uri}`)
+    }
+  }
+
+  const absoluteRootUnix = toUnixPath(resolvePath(rootPath))
+  const absoluteUnixPath = posix.resolve(absoluteRootUnix, relativeResourcePath)
+  const rootPrefix = absoluteRootUnix.endsWith('/') ? absoluteRootUnix : `${absoluteRootUnix}/`
+
+  if (absoluteUnixPath !== absoluteRootUnix && !absoluteUnixPath.startsWith(rootPrefix)) {
+    throw new Error(`${scheme} URI escapes root: ${uri}`)
+  }
+
+  return normalizePath(absoluteUnixPath)
 }
 
 /**
@@ -10,6 +62,7 @@ function toUnixPath(pathValue: string): string {
  *
  * Supported schemes:
  * - wloc:resource/path (resolved against workspaceRoot)
+ * - wbapp:resource/path (resolved against app.getPath('userData'))
  * - file:///absolute/path
  */
 export function resolveResource(uri: string, workspaceRoot: string): string {
@@ -19,37 +72,11 @@ export function resolveResource(uri: string, workspaceRoot: string): string {
   }
 
   if (trimmedUri.startsWith('wloc:')) {
-    if (trimmedUri.startsWith('wloc://')) {
-      throw new Error(`Invalid wloc URI (authority not allowed): ${trimmedUri}`)
-    }
+    return resolveManagedUri(trimmedUri, 'wloc', requireRootPath(workspaceRoot, 'wloc', trimmedUri))
+  }
 
-    const encodedPath = trimmedUri.slice('wloc:'.length)
-    const decodedPath = decodeURIComponent(encodedPath)
-    const normalizedResourcePath = posix.normalize(decodedPath.replace(/\\/g, '/'))
-    const relativeResourcePath = normalizedResourcePath.replace(/^\/+/, '')
-
-    if (!relativeResourcePath || relativeResourcePath === '.') {
-      throw new Error(`Invalid wloc URI path: ${trimmedUri}`)
-    }
-
-    if (relativeResourcePath === '..' || relativeResourcePath.startsWith('../')) {
-      throw new Error(`wloc URI escapes workspace root: ${trimmedUri}`)
-    }
-
-    const workspaceAbsoluteUnix = toUnixPath(resolvePath(workspaceRoot))
-    const absoluteUnixPath = posix.resolve(workspaceAbsoluteUnix, relativeResourcePath)
-    const workspacePrefix = workspaceAbsoluteUnix.endsWith('/')
-      ? workspaceAbsoluteUnix
-      : `${workspaceAbsoluteUnix}/`
-
-    if (
-      absoluteUnixPath !== workspaceAbsoluteUnix &&
-      !absoluteUnixPath.startsWith(workspacePrefix)
-    ) {
-      throw new Error(`wloc URI escapes workspace root: ${trimmedUri}`)
-    }
-
-    return normalizePath(absoluteUnixPath)
+  if (trimmedUri.startsWith('wbapp:')) {
+    return resolveManagedUri(trimmedUri, 'wbapp', getAppDataRoot(), ['boards', 'res', 'trash'])
   }
 
   if (trimmedUri.startsWith('file:///')) {

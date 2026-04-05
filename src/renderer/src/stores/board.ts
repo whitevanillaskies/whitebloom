@@ -28,10 +28,14 @@ type BoardState = Board & {
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
   updateBoardMeta: (patch: { name?: string; brief?: string }) => void
   setActiveUsername: (username: string) => void
-  setBoardPath: (path: string | null) => void
+  setBoardPersistence: (path: string | null, transient: boolean) => void
   clearBoard: () => void
   markSaved: () => void
   loadBoard: (board: Board, path: string) => void
+}
+
+function shouldMarkBoardDirty(state: Pick<BoardState, 'transient'>): boolean {
+  return state.transient !== true
 }
 
 function isValidIsoTimestamp(value: unknown): value is string {
@@ -72,6 +76,7 @@ function touchNode(node: BoardNode, timestamp: string, username: string): BoardN
 export const useBoardStore = create<BoardState>((set) => ({
   version: CURRENT_BOARD_VERSION,
   path: null,
+  transient: undefined,
   name: undefined,
   brief: undefined,
   nodes: [],
@@ -85,7 +90,7 @@ export const useBoardStore = create<BoardState>((set) => ({
       const username = normalizeUsername(state.activeUsername)
       return {
         nodes: [...state.nodes, normalizeNodeMetadata(node, timestamp, username)],
-        isDirty: true
+        isDirty: shouldMarkBoardDirty(state)
       }
     }),
 
@@ -93,7 +98,7 @@ export const useBoardStore = create<BoardState>((set) => ({
     set((state) => ({
       nodes: state.nodes.filter((n) => n.id !== id),
       edges: state.edges.filter((e) => e.from !== id && e.to !== id),
-      isDirty: true
+      isDirty: shouldMarkBoardDirty(state)
     })),
 
   deleteNodes: (ids) =>
@@ -102,7 +107,7 @@ export const useBoardStore = create<BoardState>((set) => ({
       return {
         nodes: state.nodes.filter((n) => !idSet.has(n.id)),
         edges: state.edges.filter((e) => !idSet.has(e.from) && !idSet.has(e.to)),
-        isDirty: true
+        isDirty: shouldMarkBoardDirty(state)
       }
     }),
 
@@ -117,7 +122,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         changed = true
         return { ...touchNode(n, timestamp, username), position: { x, y } }
       })
-      return changed ? { nodes, isDirty: true } : state
+      return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
   updateNodeSize: (id, w, h) =>
@@ -131,7 +136,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         changed = true
         return { ...touchNode(n, timestamp, username), size: { w, h } }
       })
-      return changed ? { nodes, isDirty: true } : state
+      return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
   updateNodeText: (id, patch) =>
@@ -158,7 +163,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         return { ...touchNode(n, timestamp, username), ...patch, updatedAt: timestamp }
       })
 
-      return changed ? { nodes, isDirty: true } : state
+      return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
   updateBoardMeta: (patch) =>
@@ -167,21 +172,23 @@ export const useBoardStore = create<BoardState>((set) => ({
       if ('name' in patch && patch.name !== state.name) updates.name = patch.name
       if ('brief' in patch && patch.brief !== state.brief) updates.brief = patch.brief
       if (Object.keys(updates).length === 0) return state
-      return { ...updates, isDirty: true }
+      return { ...updates, isDirty: shouldMarkBoardDirty(state) }
     }),
 
   setActiveUsername: (username) => set({ activeUsername: normalizeUsername(username) }),
 
-  setBoardPath: (path) =>
+  setBoardPersistence: (path, transient) =>
     set((state) => {
-      if (state.path === path) return state
-      return { path }
+      const nextTransient = transient ? (true as const) : undefined
+      if (state.path === path && state.transient === nextTransient) return state
+      return { path, transient: nextTransient }
     }),
 
   clearBoard: () =>
     set((state) => {
       if (
         state.path === null &&
+        state.transient === undefined &&
         state.nodes.length === 0 &&
         state.edges.length === 0 &&
         state.name === undefined &&
@@ -193,6 +200,7 @@ export const useBoardStore = create<BoardState>((set) => ({
 
       return {
         path: null,
+        transient: undefined,
         nodes: [],
         edges: [],
         name: undefined,
@@ -209,6 +217,7 @@ export const useBoardStore = create<BoardState>((set) => ({
       return {
         version: CURRENT_BOARD_VERSION,
         path,
+        transient: board.transient === true ? true : undefined,
         name: board.name,
         brief: board.brief,
         nodes: board.nodes.map((node) =>

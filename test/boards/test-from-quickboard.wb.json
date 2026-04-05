@@ -1,0 +1,48 @@
+{
+  "version": 3,
+  "nodes": [
+    {
+      "id": "0bce838e-f46d-4559-870e-624d429655a3",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 342,
+        "y": 278
+      },
+      "size": {
+        "w": 88,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"asdasdas\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-05T17:05:16.097Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T17:05:18.043Z",
+      "updatedBy": "anon",
+      "plain": "asdasdas"
+    },
+    {
+      "id": "04e1afa1-e123-41b6-b659-5303e0ab8dd5",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 457.7912922472093,
+        "y": 162.16451316262604
+      },
+      "size": {
+        "w": 77,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"sddddd\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-05T17:05:31.860Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T17:05:32.916Z",
+      "updatedBy": "anon",
+      "plain": "sddddd"
+    }
+  ],
+  "edges": []
+}

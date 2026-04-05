@@ -15,7 +15,7 @@ export function absolutePathToFileUri(filePath: string): string {
 export function resourceToImageSrc(resource: string): string {
   const trimmed = resource.trim()
 
-  if (trimmed.startsWith('wloc:')) {
+  if (trimmed.startsWith('wloc:') || trimmed.startsWith('wbapp:')) {
     return trimmed
   }
 

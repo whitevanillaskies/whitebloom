@@ -35,9 +35,29 @@ type BoardCreateResult = {
   boardPath?: string
 }
 
-type QuickboardCreateDialogResult = {
+type QuickboardCreateResult = {
   ok: boolean
   boardPath?: string
+}
+
+type BoardSaveDialogResult = {
+  ok: boolean
+  boardPath?: string
+}
+
+type BoardPromoteResult = {
+  ok: boolean
+  boardPath?: string
+}
+
+type BoardTrashResult = {
+  ok: boolean
+  trashPath?: string
+}
+
+type ListTransientBoardsResult = {
+  ok: boolean
+  boardPaths: string[]
 }
 
 type WorkspaceCopyToResResult = {
@@ -55,6 +75,16 @@ const api = {
   openBoard: (boardPath: string): Promise<string> => ipcRenderer.invoke('board:open', boardPath),
   saveBoard: (boardPath: string, json: string): Promise<BoardSaveResult> =>
     ipcRenderer.invoke('board:save', boardPath, json),
+  showBoardSaveDialog: (defaultName?: string): Promise<BoardSaveDialogResult> =>
+    ipcRenderer.invoke('board:save-dialog', defaultName),
+  promoteBoard: (
+    transientPath: string,
+    targetPath: string,
+    json: string
+  ): Promise<BoardPromoteResult> =>
+    ipcRenderer.invoke('board:promote', transientPath, targetPath, json),
+  trashBoard: (boardPath: string): Promise<BoardTrashResult> =>
+    ipcRenderer.invoke('board:trash', boardPath),
   createBoard: (workspaceRoot: string, name: string): Promise<BoardCreateResult> =>
     ipcRenderer.invoke('board:create', workspaceRoot, name),
   copyWorkspaceResource: (
@@ -62,8 +92,9 @@ const api = {
     srcPath: string
   ): Promise<WorkspaceCopyToResResult> =>
     ipcRenderer.invoke('workspace:copy-to-res', workspaceRoot, srcPath),
-  createQuickboardDialog: (): Promise<QuickboardCreateDialogResult> =>
-    ipcRenderer.invoke('quickboard:create-dialog'),
+  createQuickboard: (): Promise<QuickboardCreateResult> => ipcRenderer.invoke('quickboard:create'),
+  listTransientBoards: (): Promise<ListTransientBoardsResult> =>
+    ipcRenderer.invoke('app:list-transient-boards'),
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { Canvas } from './canvas/Canvas'
 import StartScreen from './components/start-screen/StartScreen'
@@ -19,10 +19,29 @@ function App(): React.JSX.Element {
   const workspaceBoards = useWorkspaceStore((s) => s.boards)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
   const addBoard = useWorkspaceStore((s) => s.addBoard)
+  const removeBoard = useWorkspaceStore((s) => s.removeBoard)
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace)
 
   const [busyAction, setBusyAction] = useState<BusyAction>(null)
   const [shellError, setShellError] = useState<string | null>(null)
+  const [transientBoards, setTransientBoards] = useState<string[]>([])
+
+  useEffect(() => {
+    if (boardPath !== null || workspaceRoot !== null) return
+
+    let cancelled = false
+
+    void (async () => {
+      const result = await window.api.listTransientBoards()
+      if (cancelled) return
+
+      setTransientBoards(result.ok ? result.boardPaths : [])
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [boardPath, workspaceRoot])
 
   const openBoardByPath = useCallback(
     async (nextBoardPath: string) => {
@@ -85,7 +104,7 @@ function App(): React.JSX.Element {
     setShellError(null)
 
     try {
-      const result = await window.api.createQuickboardDialog()
+      const result = await window.api.createQuickboard()
       if (!result.ok || !result.boardPath) return
 
       clearWorkspace()
@@ -96,6 +115,54 @@ function App(): React.JSX.Element {
       setBusyAction(null)
     }
   }, [clearWorkspace, openBoardByPath])
+
+  const handleOpenTransientBoard = useCallback(
+    async (nextBoardPath: string) => {
+      setBusyAction('open-board')
+      setShellError(null)
+
+      try {
+        clearWorkspace()
+        await openBoardByPath(nextBoardPath)
+      } catch (error) {
+        setShellError(error instanceof Error ? error.message : 'Unable to open that quickboard.')
+      } finally {
+        setBusyAction(null)
+      }
+    },
+    [clearWorkspace, openBoardByPath]
+  )
+
+  const handleTrashBoard = useCallback(
+    async (nextBoardPath: string, options?: { removeFromWorkspace?: boolean; clearWorkspace?: boolean }) => {
+      const confirmed = window.confirm(
+        'Move this board into wbapp:trash? You can still restore it manually from the filesystem during development.'
+      )
+      if (!confirmed) return
+
+      setShellError(null)
+
+      try {
+        const result = await window.api.trashBoard(nextBoardPath)
+        if (!result.ok) {
+          throw new Error('Unable to move that board into trash.')
+        }
+
+        if (options?.removeFromWorkspace) {
+          removeBoard(nextBoardPath)
+        } else {
+          setTransientBoards((current) => current.filter((boardPath) => boardPath !== nextBoardPath))
+        }
+
+        if (options?.clearWorkspace) {
+          clearWorkspace()
+        }
+      } catch (error) {
+        setShellError(error instanceof Error ? error.message : 'Unable to move that board into trash.')
+      }
+    },
+    [clearWorkspace, removeBoard]
+  )
 
   const handleOpenWorkspaceBoard = useCallback(
     async (nextBoardPath: string) => {
@@ -163,6 +230,7 @@ function App(): React.JSX.Element {
         boards={workspaceBoards}
         onCreateBoard={() => void handleCreateWorkspaceBoard()}
         onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
+        onTrashBoard={(nextBoardPath) => void handleTrashBoard(nextBoardPath, { removeFromWorkspace: true })}
         onCloseWorkspace={handleCloseWorkspace}
       />
     )
@@ -172,9 +240,12 @@ function App(): React.JSX.Element {
     <StartScreen
       busy={busyAction !== null}
       errorMessage={shellError}
+      transientBoards={transientBoards}
       onOpenWorkspace={() => void handleOpenWorkspace()}
       onCreateWorkspace={() => void handleCreateWorkspace()}
       onCreateQuickboard={() => void handleCreateQuickboard()}
+      onOpenTransientBoard={(nextBoardPath) => void handleOpenTransientBoard(nextBoardPath)}
+      onTrashBoard={(nextBoardPath) => void handleTrashBoard(nextBoardPath)}
     />
   )
 }

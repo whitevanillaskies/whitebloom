@@ -50,6 +50,7 @@ export type BoardEdge = {
 
 export type Board = {
   version: number
+  transient?: true
   // Board-scoped display label (distinct from WorkspaceConfig.name).
   name?: string
   // Board-scoped agent context (distinct from WorkspaceConfig.brief).

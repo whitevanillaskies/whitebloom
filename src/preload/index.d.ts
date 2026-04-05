@@ -34,9 +34,29 @@ type BoardCreateResult = {
   boardPath?: string
 }
 
-type QuickboardCreateDialogResult = {
+type QuickboardCreateResult = {
   ok: boolean
   boardPath?: string
+}
+
+type BoardSaveDialogResult = {
+  ok: boolean
+  boardPath?: string
+}
+
+type BoardPromoteResult = {
+  ok: boolean
+  boardPath?: string
+}
+
+type BoardTrashResult = {
+  ok: boolean
+  trashPath?: string
+}
+
+type ListTransientBoardsResult = {
+  ok: boolean
+  boardPaths: string[]
 }
 
 type WorkspaceCopyToResResult = {
@@ -53,12 +73,20 @@ declare global {
       readWorkspace: (workspaceRoot: string) => Promise<Workspace>
       openBoard: (boardPath: string) => Promise<string>
       saveBoard: (boardPath: string, json: string) => Promise<BoardSaveResult>
+      showBoardSaveDialog: (defaultName?: string) => Promise<BoardSaveDialogResult>
+      promoteBoard: (
+        transientPath: string,
+        targetPath: string,
+        json: string
+      ) => Promise<BoardPromoteResult>
+      trashBoard: (boardPath: string) => Promise<BoardTrashResult>
       createBoard: (workspaceRoot: string, name: string) => Promise<BoardCreateResult>
       copyWorkspaceResource: (
         workspaceRoot: string,
         srcPath: string
       ) => Promise<WorkspaceCopyToResResult>
-      createQuickboardDialog: () => Promise<QuickboardCreateDialogResult>
+      createQuickboard: () => Promise<QuickboardCreateResult>
+      listTransientBoards: () => Promise<ListTransientBoardsResult>
       openFile: (filePath: string) => Promise<void>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
