@@ -1,0 +1,28 @@
+{
+  "version": 3,
+  "name": "test",
+  "nodes": [
+    {
+      "id": "bbd94669-5946-4fd9-a326-8cd475d239d0",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 274,
+        "y": 223
+      },
+      "size": {
+        "w": 96,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"asdasdasd\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-05T17:26:45.466Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-05T17:26:46.547Z",
+      "updatedBy": "anon",
+      "plain": "asdasdasd"
+    }
+  ],
+  "edges": []
+}

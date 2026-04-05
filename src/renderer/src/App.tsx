@@ -2,12 +2,27 @@ import { useCallback, useEffect, useState } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { Canvas } from './canvas/Canvas'
 import StartScreen from './components/start-screen/StartScreen'
+import CreateBoardModal from './components/workspace-home/CreateBoardModal'
+import ConfirmTrashModal from './components/workspace-home/ConfirmTrashModal'
 import WorkspaceHome from './components/workspace-home/WorkspaceHome'
 import { useBoardStore } from './stores/board'
 import { useWorkspaceStore } from './stores/workspace'
 import type { Board } from './shared/types'
 
-type BusyAction = 'open' | 'create-workspace' | 'create-quickboard' | 'create-board' | 'open-board' | null
+type BusyAction =
+  | 'open'
+  | 'create-workspace'
+  | 'create-quickboard'
+  | 'create-board'
+  | 'open-board'
+  | 'trash-board'
+  | null
+
+type PendingTrashBoard = {
+  boardPath: string
+  removeFromWorkspace?: boolean
+  clearWorkspace?: boolean
+}
 
 function App(): React.JSX.Element {
   const boardPath = useBoardStore((s) => s.path)
@@ -25,6 +40,9 @@ function App(): React.JSX.Element {
   const [busyAction, setBusyAction] = useState<BusyAction>(null)
   const [shellError, setShellError] = useState<string | null>(null)
   const [transientBoards, setTransientBoards] = useState<string[]>([])
+  const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false)
+  const [newBoardName, setNewBoardName] = useState('Board')
+  const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
 
   useEffect(() => {
     if (boardPath !== null || workspaceRoot !== null) return
@@ -133,36 +151,55 @@ function App(): React.JSX.Element {
     [clearWorkspace, openBoardByPath]
   )
 
-  const handleTrashBoard = useCallback(
-    async (nextBoardPath: string, options?: { removeFromWorkspace?: boolean; clearWorkspace?: boolean }) => {
-      const confirmed = window.confirm(
-        'Move this board into wbapp:trash? You can still restore it manually from the filesystem during development.'
-      )
-      if (!confirmed) return
-
+  const handleRequestTrashBoard = useCallback(
+    (nextBoardPath: string, options?: { removeFromWorkspace?: boolean; clearWorkspace?: boolean }) => {
       setShellError(null)
 
-      try {
-        const result = await window.api.trashBoard(nextBoardPath)
-        if (!result.ok) {
-          throw new Error('Unable to move that board into trash.')
-        }
-
-        if (options?.removeFromWorkspace) {
-          removeBoard(nextBoardPath)
-        } else {
-          setTransientBoards((current) => current.filter((boardPath) => boardPath !== nextBoardPath))
-        }
-
-        if (options?.clearWorkspace) {
-          clearWorkspace()
-        }
-      } catch (error) {
-        setShellError(error instanceof Error ? error.message : 'Unable to move that board into trash.')
-      }
+      setPendingTrashBoard({
+        boardPath: nextBoardPath,
+        removeFromWorkspace: options?.removeFromWorkspace,
+        clearWorkspace: options?.clearWorkspace
+      })
     },
-    [clearWorkspace, removeBoard]
+    []
   )
+
+  const handleCloseTrashModal = useCallback(() => {
+    if (busyAction === 'trash-board') return
+    setPendingTrashBoard(null)
+  }, [busyAction])
+
+  const handleConfirmTrashBoard = useCallback(async () => {
+    if (!pendingTrashBoard) return
+
+    setBusyAction('trash-board')
+    setShellError(null)
+
+    try {
+      const result = await window.api.trashBoard(pendingTrashBoard.boardPath)
+      if (!result.ok) {
+        throw new Error('Unable to move that board into trash.')
+      }
+
+      if (pendingTrashBoard.removeFromWorkspace) {
+        removeBoard(pendingTrashBoard.boardPath)
+      } else {
+        setTransientBoards((current) =>
+          current.filter((boardPath) => boardPath !== pendingTrashBoard.boardPath)
+        )
+      }
+
+      if (pendingTrashBoard.clearWorkspace) {
+        clearWorkspace()
+      }
+
+      setPendingTrashBoard(null)
+    } catch (error) {
+      setShellError(error instanceof Error ? error.message : 'Unable to move that board into trash.')
+    } finally {
+      setBusyAction(null)
+    }
+  }, [clearWorkspace, pendingTrashBoard, removeBoard])
 
   const handleOpenWorkspaceBoard = useCallback(
     async (nextBoardPath: string) => {
@@ -180,21 +217,30 @@ function App(): React.JSX.Element {
     [openBoardByPath]
   )
 
+  const handleOpenCreateBoardModal = useCallback(() => {
+    setShellError(null)
+    setNewBoardName('Board')
+    setIsCreateBoardModalOpen(true)
+  }, [])
+
+  const handleCloseCreateBoardModal = useCallback(() => {
+    if (busyAction === 'create-board') return
+    setIsCreateBoardModalOpen(false)
+  }, [busyAction])
+
   const handleCreateWorkspaceBoard = useCallback(async () => {
     if (!workspaceRoot) return
-
-    const requestedName = window.prompt('New board name', 'Board')
-    if (requestedName === null) return
 
     setBusyAction('create-board')
     setShellError(null)
 
     try {
-      const result = await window.api.createBoard(workspaceRoot, requestedName)
+      const result = await window.api.createBoard(workspaceRoot, newBoardName)
       if (!result.ok || !result.boardPath) {
         throw new Error('Unable to create a board in this workspace.')
       }
 
+      setIsCreateBoardModalOpen(false)
       addBoard(result.boardPath)
       await openBoardByPath(result.boardPath)
     } catch (error) {
@@ -202,7 +248,7 @@ function App(): React.JSX.Element {
     } finally {
       setBusyAction(null)
     }
-  }, [addBoard, openBoardByPath, workspaceRoot])
+  }, [addBoard, newBoardName, openBoardByPath, workspaceRoot])
 
   const handleCloseWorkspace = useCallback(() => {
     clearBoard()
@@ -222,31 +268,60 @@ function App(): React.JSX.Element {
 
   if (workspaceRoot !== null) {
     return (
-      <WorkspaceHome
-        busy={busyAction !== null}
-        errorMessage={shellError}
-        workspaceName={workspaceConfig?.name}
-        workspaceBrief={workspaceConfig?.brief}
-        boards={workspaceBoards}
-        onCreateBoard={() => void handleCreateWorkspaceBoard()}
-        onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
-        onTrashBoard={(nextBoardPath) => void handleTrashBoard(nextBoardPath, { removeFromWorkspace: true })}
-        onCloseWorkspace={handleCloseWorkspace}
-      />
+      <>
+        <WorkspaceHome
+          busy={busyAction !== null}
+          errorMessage={shellError}
+          workspaceName={workspaceConfig?.name}
+          workspaceBrief={workspaceConfig?.brief}
+          boards={workspaceBoards}
+          onCreateBoard={handleOpenCreateBoardModal}
+          onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
+          onTrashBoard={(nextBoardPath) =>
+            void handleRequestTrashBoard(nextBoardPath, { removeFromWorkspace: true })
+          }
+          onCloseWorkspace={handleCloseWorkspace}
+        />
+        {isCreateBoardModalOpen ? (
+          <CreateBoardModal
+            boardName={newBoardName}
+            busy={busyAction === 'create-board'}
+            onBoardNameChange={setNewBoardName}
+            onClose={handleCloseCreateBoardModal}
+            onSubmit={() => void handleCreateWorkspaceBoard()}
+          />
+        ) : null}
+        {pendingTrashBoard ? (
+          <ConfirmTrashModal
+            busy={busyAction === 'trash-board'}
+            onClose={handleCloseTrashModal}
+            onConfirm={() => void handleConfirmTrashBoard()}
+          />
+        ) : null}
+      </>
     )
   }
 
   return (
-    <StartScreen
-      busy={busyAction !== null}
-      errorMessage={shellError}
-      transientBoards={transientBoards}
-      onOpenWorkspace={() => void handleOpenWorkspace()}
-      onCreateWorkspace={() => void handleCreateWorkspace()}
-      onCreateQuickboard={() => void handleCreateQuickboard()}
-      onOpenTransientBoard={(nextBoardPath) => void handleOpenTransientBoard(nextBoardPath)}
-      onTrashBoard={(nextBoardPath) => void handleTrashBoard(nextBoardPath)}
-    />
+    <>
+      <StartScreen
+        busy={busyAction !== null}
+        errorMessage={shellError}
+        transientBoards={transientBoards}
+        onOpenWorkspace={() => void handleOpenWorkspace()}
+        onCreateWorkspace={() => void handleCreateWorkspace()}
+        onCreateQuickboard={() => void handleCreateQuickboard()}
+        onOpenTransientBoard={(nextBoardPath) => void handleOpenTransientBoard(nextBoardPath)}
+        onTrashBoard={(nextBoardPath) => void handleRequestTrashBoard(nextBoardPath)}
+      />
+      {pendingTrashBoard ? (
+        <ConfirmTrashModal
+          busy={busyAction === 'trash-board'}
+          onClose={handleCloseTrashModal}
+          onConfirm={() => void handleConfirmTrashBoard()}
+        />
+      ) : null}
+    </>
   )
 }
 

@@ -270,6 +270,7 @@ Maybe taking the current confirm new document dialogue and have a Momo Modal. I 
 
 ```
       {pendingDocumentAction ? (
+
         <div className="canvas-modal__overlay" role="presentation" onClick={handleCancelDocumentAction}>
           <div
             className="canvas-modal"
@@ -296,3 +297,25 @@ Maybe taking the current confirm new document dialogue and have a Momo Modal. I 
         </div>
       ) : null}
 ```
+
+
+## Leaf modules (third-party canvas widgets)
+
+Allow the module system to target leaf nodes, not just buds. A leaf module is a self-contained canvas widget with no backing file — a clock, a weather display, a countdown timer, a live feed. Whitebloom wouldn't ship these, but third parties should be able to.
+
+**Schema change (minimal).** The `type` field on a leaf currently holds a built-in string (`"text"`). Widen it to also accept a module ID (e.g. `"com.example.clock"`), the same pattern buds already use. No new `kind` value needed.
+
+**State storage.** The `content` field on the leaf stores the module's inline state as JSON — config, cached data, whatever the module needs. This is already part of the leaf schema; no new field required.
+
+**Module registration differences from bud modules:**
+- No `extensions` — leaf modules are not file-backed
+- No `recognizes` — never claimed on drag-and-drop
+- No `defaultRenderer` — no bloom action
+- `createDefault()` — returns the initial `content` blob (required)
+- A marker (`leaf: true` or similar) to distinguish from bud modules during registration
+
+**Renderer contract difference.** Leaf modules render directly on the canvas at all times (not just as a thumbnail with a bloom action). The Layer 3 binding spec needs a canvas renderer contract for leaf modules, distinct from the bud editor contract. This is a Layer 3 concern only — HEP and CoreData are unaffected.
+
+**Unknown/error semantics.** Unknown leaf module types fall under the existing "unknown is not broken" rule — they render as a generic placeholder. Same as unknown bud types.
+
+**What does not change.** CoreData schema, HEP, the board file format (aside from widening the `type` field description), and all existing bud module behavior.
