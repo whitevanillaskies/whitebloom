@@ -117,8 +117,24 @@
 
 .fw-editor__preview-empty {
   margin: 0;
-  font-family: 'Source Serif 4', Georgia, serif;
+  font-family: 'Source Serif 4';
   font-size: 18px;
   color: var(--color-muted-fg);
   font-style: italic;
+}
+
+/* ── Mode indicator ───────────────────────────────────────────── */
+
+.fw-editor__mode-indicator {
+  position: fixed;
+  bottom: 18px;
+  right: 22px;
+  font-family: 'Courier Prime';
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--color-muted-fg);
+  opacity: 0.85;
+  pointer-events: none;
+  user-select: none;
 }

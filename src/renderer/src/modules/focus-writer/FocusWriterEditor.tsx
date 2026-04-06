@@ -322,6 +322,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
         <div className="fw-editor__column">
           <PreviewContent text={text} />
         </div>
+        <span className="fw-editor__mode-indicator" aria-hidden="true">preview</span>
       </div>
     )
   }
@@ -356,6 +357,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
           <div className="fw-editor__typewriter-spacer" aria-hidden="true" />
         )}
       </div>
+      <span className="fw-editor__mode-indicator" aria-hidden="true">{mode}</span>
     </div>
   )
 }
