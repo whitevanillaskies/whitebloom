@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { FileText } from 'lucide-react'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import type { BudNodeProps } from '../types'
 import './FocusWriterNode.css'
@@ -31,19 +30,20 @@ export function FocusWriterNode({ resource, label, size, selected, onBloom }: Bu
 
   return (
     <div
-      className={`fw-node${selected ? ' fw-node--selected' : ''}`}
+      className="fw-node"
       style={{ width: size.w, height: size.h }}
       onDoubleClick={(e) => { e.stopPropagation(); onBloom() }}
     >
-      <div className="fw-node__header">
-        <FileText size={12} strokeWidth={1.5} className="fw-node__icon" />
-        <span className="fw-node__label">{displayLabel}</span>
+      <div className={`fw-node__card${selected ? ' fw-node__card--selected' : ''}`}>
+        {preview ? (
+          <p className="fw-node__preview">{preview}</p>
+        ) : (
+          <p className="fw-node__empty">—</p>
+        )}
       </div>
-      {preview ? (
-        <p className="fw-node__preview">{preview}</p>
-      ) : (
-        <p className="fw-node__empty">—</p>
-      )}
+      <p className={`fw-node__label${selected ? ' fw-node__label--selected' : ''}`}>
+        {displayLabel}
+      </p>
     </div>
   )
 }
