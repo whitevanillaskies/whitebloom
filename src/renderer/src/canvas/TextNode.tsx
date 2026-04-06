@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
-import { CONNECTION_HANDLE_OUTSET_PX } from './canvas-constants'
+import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants'
 import { useBoardStore } from '@renderer/stores/board'
 import type { WidthMode } from '@renderer/shared/types'
 import { isLexicalContentEmpty } from '@renderer/shared/types'
@@ -686,10 +686,30 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
           </div>
         )}
 
-        <Handle type="target" position={Position.Top} style={{ top: -CONNECTION_HANDLE_OUTSET_PX }} />
-        <Handle type="target" position={Position.Left} style={{ left: -CONNECTION_HANDLE_OUTSET_PX }} />
-        <Handle type="source" position={Position.Bottom} style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }} />
-        <Handle type="source" position={Position.Right} style={{ right: -CONNECTION_HANDLE_OUTSET_PX }} />
+        <Handle
+          id={NODE_HANDLE_IDS.top}
+          type="target"
+          position={Position.Top}
+          style={{ top: -CONNECTION_HANDLE_OUTSET_PX }}
+        />
+        <Handle
+          id={NODE_HANDLE_IDS.left}
+          type="target"
+          position={Position.Left}
+          style={{ left: -CONNECTION_HANDLE_OUTSET_PX }}
+        />
+        <Handle
+          id={NODE_HANDLE_IDS.bottom}
+          type="source"
+          position={Position.Bottom}
+          style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }}
+        />
+        <Handle
+          id={NODE_HANDLE_IDS.right}
+          type="source"
+          position={Position.Right}
+          style={{ right: -CONNECTION_HANDLE_OUTSET_PX }}
+        />
       </div>
     </>
   )

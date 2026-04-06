@@ -1,6 +1,6 @@
 import React, { useCallback, useContext } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { CONNECTION_HANDLE_OUTSET_PX } from './canvas-constants'
+import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants'
 import { HelpCircle, AlertCircle } from 'lucide-react'
 import { resolveModuleById } from '../modules/registry'
 import type { Size } from '../shared/types'
@@ -212,10 +212,30 @@ function BudNodeInner({
 
 const budHandles = (
   <>
-    <Handle type="target" position={Position.Top}    style={{ top:    -CONNECTION_HANDLE_OUTSET_PX }} />
-    <Handle type="target" position={Position.Left}   style={{ left:   -CONNECTION_HANDLE_OUTSET_PX }} />
-    <Handle type="source" position={Position.Bottom} style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }} />
-    <Handle type="source" position={Position.Right}  style={{ right:  -CONNECTION_HANDLE_OUTSET_PX }} />
+    <Handle
+      id={NODE_HANDLE_IDS.top}
+      type="target"
+      position={Position.Top}
+      style={{ top: -CONNECTION_HANDLE_OUTSET_PX }}
+    />
+    <Handle
+      id={NODE_HANDLE_IDS.left}
+      type="target"
+      position={Position.Left}
+      style={{ left: -CONNECTION_HANDLE_OUTSET_PX }}
+    />
+    <Handle
+      id={NODE_HANDLE_IDS.bottom}
+      type="source"
+      position={Position.Bottom}
+      style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }}
+    />
+    <Handle
+      id={NODE_HANDLE_IDS.right}
+      type="source"
+      position={Position.Right}
+      style={{ right: -CONNECTION_HANDLE_OUTSET_PX }}
+    />
   </>
 )
 

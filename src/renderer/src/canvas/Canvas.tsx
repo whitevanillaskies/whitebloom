@@ -293,6 +293,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         id: e.id,
         source: e.from,
         target: e.to,
+        sourceHandle: e.sourceHandle ?? null,
+        targetHandle: e.targetHandle ?? null,
         type: 'wb',
         label: e.label,
         data: { style: e.style, color: e.color } satisfies WbEdgeData,
@@ -341,6 +343,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         id: crypto.randomUUID(),
         from: connection.source,
         to: connection.target,
+        sourceHandle: connection.sourceHandle ?? null,
+        targetHandle: connection.targetHandle ?? null,
       })
     },
     [storeAddEdge]

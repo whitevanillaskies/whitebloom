@@ -46,6 +46,8 @@ export type BoardEdge = {
   id: string
   from: string
   to: string
+  sourceHandle?: string | null
+  targetHandle?: string | null
   label?: string
   style?: 'solid' | 'dashed' | 'dotted'
   color?: string
