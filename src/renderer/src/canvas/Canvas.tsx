@@ -19,7 +19,7 @@ import { BudNode } from './BudNode'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import '../modules/index'
-import { dispatchModule } from '../modules/registry'
+import { dispatchDirectory, dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
@@ -769,9 +769,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
             throw new Error(WEB_RESOURCE_DROP_ERROR)
           }
 
-          // Dispatch by file path before deciding whether to copy
-          const module = dispatchModule(filePath)
           const fileName = file.name || filePath
+          const isDir = await window.api.isDirectory(filePath)
 
           // Shared helper: warn if large, then copy. Returns null if user cancels.
           const importFile = async (): Promise<string | null> => {
@@ -788,14 +787,31 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           }
 
           let resource: string
+          let moduleType: string | null
+
+          if (isDir) {
+            // Directory drop — only directory-aware modules can claim it; always link.
+            const module = await dispatchDirectory(filePath)
+            moduleType = module?.id ?? null
+            resource = absolutePathToFileUri(filePath)
+            return { resource, moduleType, size: { w: 88, h: 106 } }
+          }
+
+          // File drop — dispatch by extension / recognizes()
+          const module = dispatchModule(filePath)
+          moduleType = module?.id ?? null
+
           if (workspaceRoot === null) {
             // Quickboard — always link, no workspace to copy into
             resource = absolutePathToFileUri(filePath)
-          } else if (module) {
-            // Known module — always import so the module can read via wloc:
+          } else if (module && module.importable !== false) {
+            // Known importable module — copy so the module can read via wloc:
             const imported = await importFile()
             if (imported === null) return // user cancelled the large-file warning
             resource = imported
+          } else if (module) {
+            // Known module with importable: false — always link
+            resource = absolutePathToFileUri(filePath)
           } else {
             // No handler — respect the unhandled drop setting
             const behavior = unhandledDropSetting === 'ask'
@@ -819,7 +835,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
               ? { w: 220, h: 160 }
               : { w: 88, h: 106 }
 
-          return { resource, moduleType: module?.id ?? null, size }
+          return { resource, moduleType, size }
         })
       )
 

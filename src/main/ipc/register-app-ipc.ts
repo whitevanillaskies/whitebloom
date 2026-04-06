@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
 import { listTransientBoards } from '../services/app-storage'
@@ -74,6 +75,22 @@ export function registerAppIpc(context: MainProcessContext): void {
       return { ok: true, settings: savedSettings }
     } catch {
       return { ok: false, settings: normalizeAppSettings(settings) }
+    }
+  })
+
+  ipcMain.handle('protocol:check', (_event, scheme: string) => {
+    return app.getApplicationNameForProtocol(scheme) !== ''
+  })
+
+  ipcMain.handle('url:open', (_event, url: string) => {
+    return shell.openExternal(url)
+  })
+
+  ipcMain.handle('path:is-directory', async (_event, filePath: string) => {
+    try {
+      return (await stat(filePath)).isDirectory()
+    } catch {
+      return false
     }
   })
 

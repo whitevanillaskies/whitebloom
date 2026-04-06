@@ -26,7 +26,7 @@ export function getAllModules(): WhitebloomModule[] {
 }
 
 /**
- * Dispatch a dropped resource to the best-matching module.
+ * Dispatch a dropped file to the best-matching module.
  *
  * Priority:
  * 1. Specific modules (have `recognizes`) — first truthy result wins.
@@ -36,6 +36,7 @@ export function getAllModules(): WhitebloomModule[] {
 export function dispatchModule(resource: string): WhitebloomModule | undefined {
   // Specific modules first
   for (const module of registry.values()) {
+    if (module.handlesDirectories) continue
     if (module.recognizes?.(resource)) return module
   }
 
@@ -43,9 +44,25 @@ export function dispatchModule(resource: string): WhitebloomModule | undefined {
   const dotIdx = resource.lastIndexOf('.')
   if (dotIdx !== -1) {
     const ext = resource.slice(dotIdx).toLowerCase()
-    const byExt = resolveModuleByExtension(ext)
+    const byExt = resolveModuleByExtension(ext).filter((m) => !m.handlesDirectories)
     if (byExt.length > 0) return byExt[0]
   }
 
+  return undefined
+}
+
+/**
+ * Dispatch a dropped directory to the first module that opts in and recognizes it.
+ *
+ * Only modules with `handlesDirectories: true` participate.
+ * `recognizes()` may return a Promise (e.g. for filesystem checks via IPC).
+ * Returns `undefined` if no module claims the directory.
+ */
+export async function dispatchDirectory(dirPath: string): Promise<WhitebloomModule | undefined> {
+  for (const module of registry.values()) {
+    if (module.handlesDirectories && module.recognizes) {
+      if (await module.recognizes(dirPath)) return module
+    }
+  }
   return undefined
 }

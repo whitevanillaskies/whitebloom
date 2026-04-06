@@ -105,6 +105,12 @@ const api = {
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
   getFileIcon: (workspaceRoot: string, resource: string): Promise<{ ok: boolean; dataUrl: string | null }> =>
     ipcRenderer.invoke('file:get-icon', workspaceRoot, resource),
+  checkProtocol: (scheme: string): Promise<boolean> =>
+    ipcRenderer.invoke('protocol:check', scheme),
+  openUrl: (url: string): Promise<void> =>
+    ipcRenderer.invoke('url:open', url),
+  isDirectory: (filePath: string): Promise<boolean> =>
+    ipcRenderer.invoke('path:is-directory', filePath),
   confirmLargeImport: (fileName: string, sizeMb: number): Promise<boolean> =>
     ipcRenderer.invoke('file:confirm-large-import', fileName, sizeMb),
   askImportOrLink: (fileName: string): Promise<'import' | 'link'> =>

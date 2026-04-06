@@ -28,8 +28,21 @@ export interface WhitebloomModule {
   /** e.g. `['.md']` */
   extensions: string[]
   defaultRenderer: 'internal' | 'external'
-  /** When present, marks this module as specific — first truthy result claims a dropped file */
-  recognizes?(resource: string): boolean
+  /**
+   * When `false`, the module permanently opts out of copy-into-workspace behavior.
+   * The UI suppresses all import affordances for this module's resources.
+   * Omitting the field means importable. Use for opaque directories or assets
+   * where copying would be harmful — Obsidian vaults, .blend files, etc.
+   */
+  importable?: false
+  /**
+   * When `true`, the module participates in folder drop dispatch.
+   * `recognizes()` is then called with a directory path instead of a file path.
+   * Modules with this flag must also implement `recognizes()`.
+   */
+  handlesDirectories?: true
+  /** When present, marks this module as specific — first truthy result claims a dropped file or directory */
+  recognizes?(resource: string): boolean | Promise<boolean>
   /** Default file content for palette-created buds */
   createDefault?(): string
 

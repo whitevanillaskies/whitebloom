@@ -91,6 +91,9 @@ declare global {
       writeBlossom: (workspaceRoot: string, resource: string, data: string) => Promise<{ ok: boolean }>
       openFile: (filePath: string) => Promise<void>
       getFileIcon: (workspaceRoot: string, resource: string) => Promise<{ ok: boolean; dataUrl: string | null }>
+      checkProtocol: (scheme: string) => Promise<boolean>
+      openUrl: (url: string) => Promise<void>
+      isDirectory: (filePath: string) => Promise<boolean>
       confirmLargeImport: (fileName: string, sizeMb: number) => Promise<boolean>
       askImportOrLink: (fileName: string) => Promise<'import' | 'link'>
       updateWorkspaceConfig: (
