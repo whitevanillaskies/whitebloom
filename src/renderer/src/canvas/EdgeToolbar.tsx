@@ -14,10 +14,16 @@ export function EdgeToolbar({ edges }: EdgeToolbarProps) {
 
   // Hide while panning — viewport transform changes on every pan frame
   const transform = useStore((s) => s.transform)
+  const prevTransformRef = useRef(transform)
   const [isPanning, setIsPanning] = useState(false)
   const panTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    const [, , prevZoom] = prevTransformRef.current
+    const [, , nextZoom] = transform
+    prevTransformRef.current = transform
+    // Only hide on pure pan; zoom (including zoom-to-cursor) changes the zoom level
+    if (nextZoom !== prevZoom) return
     setIsPanning(true)
     if (panTimerRef.current) clearTimeout(panTimerRef.current)
     panTimerRef.current = setTimeout(() => setIsPanning(false), 80)
