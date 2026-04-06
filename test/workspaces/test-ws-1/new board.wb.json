@@ -254,7 +254,7 @@
       "type": "com.whitebloom.schemabloom",
       "position": {
         "x": 767.9754298026309,
-        "y": -207.96147840218438
+        "y": -213.23951004527595
       },
       "size": {
         "w": 240,
@@ -263,7 +263,7 @@
       "resource": "wloc:res/sample_schema_jk 6.bdb",
       "created": "2026-04-06T13:39:50.489Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T14:48:56.691Z",
+      "updatedAt": "2026-04-06T16:54:37.871Z",
       "updatedBy": "anon"
     },
     {
@@ -271,8 +271,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 804.1301035301325,
-        "y": -388.74441212691033
+        "x": 801.8565286803669,
+        "y": -386.4708372771447
       },
       "size": {
         "w": 88,
@@ -281,7 +281,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T15:48:42.018Z",
+      "updatedAt": "2026-04-06T16:55:28.562Z",
       "updatedBy": "anon"
     },
     {
@@ -289,8 +289,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 898.1045306537769,
-        "y": -408.4487274915455
+        "x": 922.4404879281741,
+        "y": -393.4549710324609
       },
       "size": {
         "w": 88,
@@ -299,14 +299,32 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T15:48:47.983Z",
+      "updatedAt": "2026-04-06T16:55:56.186Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "f3737f50-a197-4481-afe1-3d94dcbe0af1",
+      "kind": "bud",
+      "type": "io.obsidianbloom.vault",
+      "position": {
+        "x": 997.0582993113428,
+        "y": -240.860786349788
+      },
+      "size": {
+        "w": 88,
+        "h": 106
+      },
+      "resource": "file:///D:/persona/personal_notes/Mindstorm",
+      "created": "2026-04-06T16:59:09.183Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T16:59:10.545Z",
       "updatedBy": "anon"
     }
   ],
   "edges": [],
   "viewport": {
-    "x": 123.4719835506811,
-    "y": 373.4756635351086,
-    "zoom": 0.6597539553864481
+    "x": -75.62889102144459,
+    "y": 436.53834204654805,
+    "zoom": 0.7578582832552009
   }
 }

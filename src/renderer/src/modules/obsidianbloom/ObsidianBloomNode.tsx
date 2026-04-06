@@ -46,15 +46,29 @@ export function ObsidianBloomNode({ resource, label, size, selected }: BudNodePr
       accentColor="--color-accent-purple"
       onDoubleClick={handleOpen}
     >
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-        <ObsidianBloomIcon size={36} />
+      {/*
+       * Mirror NativeFileBudNode layout: 64×64 wrap, centered icon.
+       * The Obsidian SVG has ~17% whitespace on each axis, so we render
+       * at 58px to make the visible logo content appear at ~48px — matching
+       * native file icons from app.getFileIcon().
+       */}
+      <div style={{
+        width: 64,
+        height: 64,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        position: 'relative'
+      }}>
+        <ObsidianBloomIcon size={58} />
         {installed === false && (
           <div
             title="Obsidian is not installed — download it at obsidian.md to open this vault"
             style={{
               position: 'absolute',
-              bottom: 0,
-              right: 0,
+              bottom: 2,
+              right: 2,
               width: 10,
               height: 10,
               borderRadius: '50%',
