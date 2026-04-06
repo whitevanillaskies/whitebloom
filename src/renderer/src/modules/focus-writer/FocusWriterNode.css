@@ -4,10 +4,12 @@
   flex-direction: column;
   gap: 7px;
   padding: 11px 13px 12px;
-  border-radius: var(--radius-border-inner);
-  border: 1px solid rgba(0, 0, 0, 0.10);
-  background: #fcfcfc;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
   cursor: default;
   overflow: hidden;
   transition: border-color 80ms ease, box-shadow 80ms ease;
@@ -15,7 +17,9 @@
 
 .fw-node--selected {
   border-color: var(--color-accent-blue);
-  box-shadow: 0 0 5px 3px rgba(var(--color-accent-blue-rgb), 0.15);
+  box-shadow:
+    0 0 5px 3px rgba(var(--color-accent-blue-rgb), 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .fw-node__header {
@@ -27,7 +31,7 @@
 
 .fw-node__icon {
   flex-shrink: 0;
-  color: var(--color-muted-fg);
+  color: var(--color-accent-pink);
 }
 
 .fw-node__label {
@@ -43,8 +47,8 @@
 
 .fw-node__preview {
   margin: 0;
-  font-family: 'Courier Prime', monospace;
-  font-size: 11px;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 12px;
   line-height: 1.55;
   color: var(--color-primary-fg);
   overflow: hidden;
