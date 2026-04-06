@@ -7,9 +7,9 @@ Raw ideas, copy directions, and pitch sketches. Nothing here is final.
 
 **Desktop for your desktop.**
 
-Enter through a modest door. Let the depth reveal itself.
+Enter through a cute door. Let the depth reveal itself.
 
-The cute door is the whiteboard — spatial, tactile, immediately familiar. The depth is everything underneath: files on disk, an open module system, agents that traverse it as peers. Most tools in this space invert this — the pitch is grandiose, the product is a notes app. Here the pitch is almost casual and the product keeps surprising you long after you're in.
+The cute door is the whiteboard — spatial, tactile, immediately familiar. The depth is everything underneath: files on disk, an open module system, agents that traverse it as peers. Most tools in this space invert this — the pitch is grandiose, the product is a notes app. Here the pitch is casual and the product keeps surprising you long after you're in.
 
 The emotional arc a user should have: *oh, a whiteboard* → *wait, these nodes open into things* → *wait, it's just files?* → *wait, I can add my own module?* Each layer recontextualizes the one before it. That's the product doing the marketing.
 
@@ -59,3 +59,12 @@ Now you can have as many as you want.
 | Bloom / blooms | Inside the product only — earns meaning through use, not explanation |
 | OS for knowledge | Long-form: blog posts, talks, deep-dives |
 | Cute door | Internal shorthand for the design philosophy — never in copy |
+
+
+## Post-credits
+
+After the pitch. After the technical details. Small text, at the bottom, for the people who read that far.
+
+*You can even put your desktop on your desktop.*
+
+Requires OS-level file association for `.wb.json` and `.wbconfig` — double-clicking a board file on your actual desktop opens it directly. Not a joke dressed as a feature. A feature that is also a joke. Placement is everything: too prominent and it's trying too hard, buried correctly and it's a reward.

@@ -3,6 +3,113 @@
 Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only.
 
 
+## Edges MVP
+
+Render and wire edges between nodes on the canvas. The `BoardEdge` type, store state, cascade-delete on node removal, and board snapshot serialization are all already in place. The missing pieces are: connection handles on bud nodes, edge rendering in ReactFlow, store actions for create/delete, and a custom edge component matching the design language.
+
+Every node on the canvas — text nodes, bud nodes, icon-personality nodes, void-typed nodes (`.blend`, `.psd`, native files), unknown-type nodes, and error nodes — must be connectable. The canvas is a knowledge graph; an edge from a Blender file to a TODO list is a valid and meaningful semantic link that an agent reading the board JSON would immediately understand.
+
+### Pieces
+
+**1. Extend `BoardEdge` type** (`src/renderer/src/shared/types.ts`)
+
+Add `style` and `color` to match the schema example already documented in `whitebloom.md`:
+
+```ts
+export type BoardEdge = {
+  id: string
+  from: string
+  to: string
+  label?: string
+  style?: 'solid' | 'dashed' | 'dotted'   // default: solid
+  color?: 'blue' | 'pink' | 'red' | 'purple' | 'green'  // default: neutral fg
+}
+```
+
+**2. Store actions** (`src/renderer/src/stores/board.ts`)
+
+Add `addEdge` and `deleteEdge`. Import `BoardEdge` (currently not imported). Same `set` pattern as `addNode`/`deleteNode`, marks dirty.
+
+```ts
+addEdge: (edge: BoardEdge) => void
+deleteEdge: (id: string) => void
+```
+
+**3. Handles on every node**
+
+TextNode already has 4 handles (Top/Left as target, Bottom/Right as source). BudNode has none.
+
+Fix: restructure `BudNode`'s return so all four render paths (void-typed → `NativeFileBudNode`, unknown module → `UnknownBudNode`, error → `ErrorBudNode`, resolved → `BudNodeInner`) feed into a shared fragment with handles appended after the content. This touches only the `BudNode` function — none of the sub-components change.
+
+```tsx
+// BudNode becomes:
+export function BudNode({ id, data, selected }: NodeProps) {
+  const budData = data as BudData
+  const module = resolveModuleById(budData.moduleType)
+
+  let content: React.ReactNode
+  if (budData.moduleType === null) {
+    content = <NativeFileBudNode ... />
+  } else if (!module) {
+    content = <UnknownBudNode ... />
+  } else {
+    content = <BudNodeInner ... />
+  }
+
+  return (
+    <>
+      {content}
+      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={Position.Left} />
+      <Handle type="source" position={Position.Bottom} />
+      <Handle type="source" position={Position.Right} />
+    </>
+  )
+}
+```
+
+All four handles must be offset outward from the node boundary — not just left/right. This is a fix for TextNode too (currently only its left/right handles are offset; top/bottom are flush). The four dots should float outside the node on all sides, so the node edge reads purely as framing/resize boundary, not as a connection target.
+
+Extract `CONNECTION_HANDLE_OUTSET_PX` to a shared file (e.g. `src/renderer/src/canvas/canvas-constants.ts`) so both TextNode and BudNode import the same value. Fix TextNode's top/bottom handles to apply the offset (`top: -CONNECTION_HANDLE_OUTSET_PX`, `bottom: -CONNECTION_HANDLE_OUTSET_PX`). Apply all four offsets to BudNode's handles as well.
+
+**4. Custom edge component** (`src/renderer/src/canvas/WbEdge.tsx`, new file)
+
+Uses ReactFlow's `BaseEdge` + `EdgeLabelRenderer` + `getBezierPath`. Design language: thin line (1.5px), follows surface/shadow tokens.
+
+- Default color: `var(--color-secondary-fg)`
+- `color` field → design tokens: `blue→--color-accent-blue`, `pink→--color-accent-pink`, `red→--color-accent-red`, `purple→--color-accent-purple`, `green→--color-accent-green`
+- `style` field → SVG `strokeDasharray`: solid→none, dashed→`8 4`, dotted→`2 4`
+- `label` → rendered via `EdgeLabelRenderer` as a small pill centered at midpoint (subtle shadow, `--color-primary-bg` background, `--radius-border-inner` radius, small sans text)
+
+Edge `data` shape: `{ style?: BoardEdge['style']; color?: BoardEdge['color'] }`.
+
+**5. Wire Canvas.tsx** (`src/renderer/src/canvas/Canvas.tsx`)
+
+Five coordinated changes, following the exact pattern already established for nodes:
+
+- Import `Edge as RFEdge`, `EdgeChange`, `applyEdgeChanges`, `Connection` from `@xyflow/react`; import `WbEdge`
+- `const edgeTypes = { wb: WbEdge }` alongside `nodeTypes`
+- `schemaEdges` useMemo: maps `boardEdges` → RF edges (`source: e.from`, `target: e.to`, `type: 'wb'`, `data: { style, color }`)
+- `[edges, setEdges]` local state + effect to sync from `schemaEdges` (preserving selection state), mirrors node pattern
+- `onEdgesChange`: calls `applyEdgeChanges` for RF local state; on `remove` changes calls `deleteEdge` in store
+- `onConnect`: generates a `crypto.randomUUID()` id, calls store `addEdge`
+- Pass `edges`, `edgeTypes`, `onEdgesChange`, `onConnect` to `<ReactFlow />`
+- Set `connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}` for the in-progress drag line
+
+New edges created via drag-from-handle get no `style` or `color` (defaults to solid neutral). Style/color can be set by editing the board JSON until a style picker UI is added later.
+
+### What does not change
+
+- Board schema version (no structural change, just adding optional fields to `BoardEdge`)
+- Node sub-components (`NativeFileBudNode`, `UnknownBudNode`, `ErrorBudNode`, `BudNodeInner`, `PetalBudNode`)
+- All existing node creation, deletion, and positioning behavior
+- The pointer-tool gate (`nodesConnectable={activeTool === 'pointer'}`) already ensures edges can only be drawn in pointer mode
+
+### Open questions
+
+- Handle visibility on hover: ReactFlow shows handles only on node hover by default. Confirm whether always-visible or hover-only is preferred. Hover-only is less noisy for dense boards.
+
+
 ## Obsidian Vault Module
 
 A module that recognizes an Obsidian vault dropped onto the canvas, displays it as an icon-personality node, and opens it in Obsidian on double-click.
@@ -12,31 +119,6 @@ A module that recognizes an Obsidian vault dropped onto the canvas, displays it 
 Obsidian vaults are opaque directories — the OS has no native file association for them, so `app.getFileIcon()` would return a generic folder icon and `shell.openPath()` would open Finder/Explorer, not Obsidian. A dedicated module gives the node the correct icon, the correct launch behavior, and a meaningful warning when Obsidian isn't installed.
 
 ### Pieces
-
-**1. Folder drop dispatch (new platform capability)**
-
-Currently the DnD handler assumes dropped items are files with extensions. Add a parallel path for dropped directories:
-
-- When a directory is dropped, collect all registered modules that declare `handlesDirectories: true`.
-- Run each module's `recognizes(path)` in order; first match wins.
-- If no module claims it, fall through to the existing unknown-type dialog (adapted to say "unknown folder type" rather than "unknown file type").
-- If a module claims it, create a bud node with `resource: "file:///absolute/path"` and stamp the module's `id` as `type`. The `wloc:` scheme is not valid here since the vault lives outside the workspace.
-
-This dispatch path is intentionally generic — Unity projects, Xcode workspaces, and similar opaque directories can follow the same pattern later.
-
-**2. Obsidian module (`com.whitebloom.obsidian-vault`)**
-
-Module definition:
-
-- `handlesDirectories: true`
-- `extensions: []` (no file extension — directory only)
-- `recognizes(path)`: checks for existence of `.obsidian/` subdirectory at `path`. Return `true` if found.
-- `defaultRenderer: 'external'`
-- `importable: false` — vaults must never be copied; link via `file:///` always.
-- Bloom action: `shell.openExternal('obsidian://open?path=' + encodeURIComponent(absolutePath))`
-- Bundled Obsidian SVG icon (the purple diamond). Slots into the icon-node layout as any Lucide icon would — import changes, nothing else does.
-
-Node visual personality: **Icon** (per design language). No card, no background. Large centered Obsidian icon (~36px), vault folder name as label below, wrapping to two lines max.
 
 **3. Installation detection**
 
