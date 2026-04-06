@@ -283,12 +283,30 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-06T14:50:08.711Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "c25f1c56-49e5-4d49-8821-f230ad490143",
+      "kind": "bud",
+      "type": null,
+      "position": {
+        "x": 870.4583237203867,
+        "y": -450.59224514104466
+      },
+      "size": {
+        "w": 88,
+        "h": 106
+      },
+      "resource": "wloc:res/types of work 2.xlsx",
+      "created": "2026-04-06T15:25:49.597Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T15:27:40.652Z",
+      "updatedBy": "anon"
     }
   ],
   "edges": [],
   "viewport": {
-    "x": 522.512892519606,
-    "y": 486.94615850640696,
-    "zoom": 0.7578582832552
+    "x": 74.80463221151547,
+    "y": 443.29487158318415,
+    "zoom": 0.659753955386448
   }
 }

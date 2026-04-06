@@ -9,11 +9,11 @@
   transition: box-shadow 80ms ease;
 }
 
-.native-node__icon-wrap--selected {
+/* .native-node__icon-wrap--selected {
   box-shadow:
     0 0 0 2.5px var(--color-accent-system),
     0 0 0 4.5px rgba(var(--color-accent-system-rgb), 0.18);
-}
+} */
 
 .native-node__icon {
   width: 48px;
