@@ -11,7 +11,7 @@ function deriveLabel(resource: string): string {
   return segment.replace(/\.bdb$/, '')
 }
 
-export function SchemaBloomNode({ resource, label, size, selected, onBloom }: BudNodeProps): JSX.Element {
+export function SchemaBloomNode({ resource, label, size, selected, onBloom }: BudNodeProps) {
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const [tableCount, setTableCount] = useState<number | null>(null)
 
@@ -32,7 +32,7 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
 
   return (
     <PetalBudNode
-      size={size}
+      size={{ w: 88 }}
       label={label ?? deriveLabel(resource)}
       selected={selected}
       accentColor="--color-accent-blue"

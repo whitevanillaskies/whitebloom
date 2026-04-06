@@ -3,7 +3,8 @@ import type { Size } from '../../shared/types'
 import './PetalBudNode.css'
 
 type PetalBudNodeProps = {
-  size: Size
+  /** Width is always applied. Omit `h` to let height size to content (icon nodes). */
+  size: { w: number; h?: number }
   label: string
   selected: boolean
   /** CSS variable name for the accent color, e.g. `'--color-accent-blue'`.
@@ -20,7 +21,7 @@ export default function PetalBudNode({
   accentColor = '--color-accent-blue',
   onDoubleClick,
   children
-}: PetalBudNodeProps): JSX.Element {
+}: PetalBudNodeProps) {
   return (
     <div
       className="petal-bud-node"
@@ -28,7 +29,7 @@ export default function PetalBudNode({
         {
           '--bud-accent': `var(${accentColor})`,
           width: size.w,
-          height: size.h
+          ...(size.h !== undefined ? { height: size.h } : {})
         } as React.CSSProperties
       }
       onDoubleClick={(e) => {

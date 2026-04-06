@@ -23,7 +23,7 @@ function deriveLabel(resource: string): string {
  * Icon-personality node for Obsidian vaults.
  * Does not use the BloomModal — opens the vault via the obsidian:// URI scheme directly.
  */
-export function ObsidianBloomNode({ resource, label, size, selected }: BudNodeProps): JSX.Element {
+export function ObsidianBloomNode({ resource, label, size, selected }: BudNodeProps) {
   const [installed, setInstalled] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function ObsidianBloomNode({ resource, label, size, selected }: BudNodePr
 
   return (
     <PetalBudNode
-      size={size}
+      size={{ w: 88 }}
       label={displayLabel}
       selected={selected}
       accentColor="--color-accent-purple"

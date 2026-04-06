@@ -42,7 +42,7 @@ function MirrorContent({
   text: string
   activePara: number
   allBright: boolean
-}): JSX.Element {
+}) {
   if (!text) {
     return <span className="fw-editor__placeholder">Start writing…</span>
   }
@@ -72,7 +72,7 @@ function MirrorContent({
 // Preview — Source Serif 4, read-only rendered text
 // ---------------------------------------------------------------------------
 
-function PreviewContent({ text }: { text: string }): JSX.Element {
+function PreviewContent({ text }: { text: string }) {
   const paragraphs = text.split(/\n\n+/).filter((p) => p.trim())
   if (paragraphs.length === 0) {
     return <p className="fw-editor__preview-empty">Nothing written yet.</p>
@@ -92,7 +92,7 @@ function PreviewContent({ text }: { text: string }): JSX.Element {
 // Editor component
 // ---------------------------------------------------------------------------
 
-export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorProps): JSX.Element {
+export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorProps) {
   const [text, setText] = useState(initialData)
   const [mode, setMode] = useState<'typewriter' | 'dynamic' | 'preview'>('dynamic')
   const [activePara, setActivePara] = useState(0)

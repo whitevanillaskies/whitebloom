@@ -28,6 +28,8 @@ export interface WhitebloomModule {
   /** e.g. `['.md']` */
   extensions: string[]
   defaultRenderer: 'internal' | 'external'
+  /** Default bud node dimensions when dropped or created. Falls back to `{ w: 220, h: 160 }`. */
+  defaultSize?: { w: number; h: number }
   /**
    * When `false`, the module permanently opts out of copy-into-workspace behavior.
    * The UI suppresses all import affordances for this module's resources.

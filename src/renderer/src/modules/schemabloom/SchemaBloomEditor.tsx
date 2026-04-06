@@ -30,7 +30,7 @@ import '@xyflow/react/dist/style.css'
 
 const AUTOSAVE_DELAY_MS = 400
 
-export function SchemaBloomEditor({ initialData, onSave, onClose }: BudEditorProps): JSX.Element {
+export function SchemaBloomEditor({ initialData, onSave, onClose }: BudEditorProps) {
   const [schema, setSchema] = useState<SchemaDocument>(() => {
     try {
       return loadSchema(initialData)

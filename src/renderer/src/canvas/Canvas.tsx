@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
+  ConnectionMode,
   type Node as RFNode,
   type Edge as RFEdge,
   type NodeChange,
@@ -161,11 +162,9 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
   const removeWorkspaceBoard = useWorkspaceStore((s) => s.removeBoard)
-  const username = useAppSettingsStore((s) => s.user.username)
   const unhandledDropSetting = useAppSettingsStore((s) => s.files.unhandledDrop)
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
-  const updateUsername = useAppSettingsStore((s) => s.updateUsername)
 
   const { screenToFlowPosition } = useReactFlow()
 
@@ -209,7 +208,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
     await window.api.writeBlossom(workspaceRoot, resource, schemaBloomModule.createDefault!())
     const id = crypto.randomUUID()
-    addNode({ id, kind: 'bud', type: schemaBloomModule.id, position, size: { w: 88, h: 106 }, resource })
+    addNode({ id, kind: 'bud', type: schemaBloomModule.id, position, size: { w: 88, h: 88 }, resource })
     setActiveBloom({ nodeId: id, module: schemaBloomModule, resource })
   }, [workspaceRoot, screenToFlowPosition, addNode])
 
@@ -856,7 +855,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
             const module = await dispatchDirectory(filePath)
             moduleType = module?.id ?? null
             resource = absolutePathToFileUri(filePath)
-            return { resource, moduleType, size: { w: 88, h: 106 } }
+            return { resource, moduleType, size: module?.defaultSize ?? { w: 88, h: 88 } }
           }
 
           // File drop — dispatch by extension / recognizes()
@@ -894,8 +893,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           const size = isImage
             ? (await measureDroppedImage(file)).size
             : module
-              ? { w: 220, h: 160 }
-              : { w: 88, h: 106 }
+              ? (module.defaultSize ?? { w: 220, h: 160 })
+              : { w: 88, h: 88 }
 
           return { resource, moduleType, size }
         })
@@ -909,6 +908,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           firstFailure ??= result.reason instanceof Error ? result.reason.message : 'Unable to drop file.'
           return
         }
+
+        if (!result.value) return
 
         const { resource, moduleType, size } = result.value
         addNode({
@@ -964,7 +965,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         nodesConnectable={activeTool === 'pointer'}
         selectionOnDrag={activeTool === 'pointer'}
         panOnDrag={panOnDragButtons}
-        connectionMode="loose"
+        connectionMode={ConnectionMode.Loose}
         connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
         {...(boardViewport
           ? { defaultViewport: boardViewport }

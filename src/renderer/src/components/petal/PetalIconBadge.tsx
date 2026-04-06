@@ -16,7 +16,7 @@ export default function PetalIconBadge({
   size = 64,
   selected = false,
   className
-}: PetalIconBadgeProps): JSX.Element {
+}: PetalIconBadgeProps) {
   const iconSize = Math.round(size * 0.44)
   const radius = Math.min(12, Math.round(size * 0.2))
 

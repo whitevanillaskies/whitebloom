@@ -8,6 +8,7 @@ export const schemaBloomModule: WhitebloomModule = {
   id: 'com.whitebloom.schemabloom',
   extensions: ['.bdb'],
   defaultRenderer: 'internal',
+  defaultSize: { w: 88, h: 88 },
 
   recognizes(resource: string): boolean {
     return resource.endsWith('.bdb')

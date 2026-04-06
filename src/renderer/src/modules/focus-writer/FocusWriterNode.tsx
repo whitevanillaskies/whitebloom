@@ -15,7 +15,7 @@ function extractPreview(text: string): string {
   return first.slice(0, 200) + '\u2026'
 }
 
-export function FocusWriterNode({ resource, label, size, selected, onBloom }: BudNodeProps): JSX.Element {
+export function FocusWriterNode({ resource, label, size, selected, onBloom }: BudNodeProps) {
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const [preview, setPreview] = useState<string | null>(null)
 
@@ -29,7 +29,7 @@ export function FocusWriterNode({ resource, label, size, selected, onBloom }: Bu
 
   return (
     <PetalBudNode
-      size={size}
+      size={{ w: size.w, h: size.h }}
       label={label ?? deriveLabel(resource)}
       selected={selected}
       accentColor="--color-accent-blue"

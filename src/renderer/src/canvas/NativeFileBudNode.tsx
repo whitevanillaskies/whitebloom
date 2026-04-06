@@ -27,7 +27,7 @@ export function NativeFileBudNode({
   size,
   selected,
   onOpen
-}: NativeFileBudNodeProps): JSX.Element {
+}: NativeFileBudNodeProps) {
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const [iconUrl, setIconUrl] = useState<string | null>(null)
 
@@ -45,7 +45,7 @@ export function NativeFileBudNode({
 
   return (
     <PetalBudNode
-      size={size}
+      size={{ w: 88 }}
       label={displayLabel}
       selected={selected}
       accentColor="--color-accent-system"

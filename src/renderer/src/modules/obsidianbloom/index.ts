@@ -8,6 +8,7 @@ export const obsidianBloomModule: WhitebloomModule = {
   defaultRenderer: 'external',
   importable: false,
   handlesDirectories: true,
+  defaultSize: { w: 88, h: 88 },
 
   /**
    * Recognizes an Obsidian vault by the presence of a `.obsidian/` config directory
