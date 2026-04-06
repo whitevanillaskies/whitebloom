@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
-import { PetalIconBadge } from '@renderer/components/petal'
+import { PetalBudNode, PetalIconBadge } from '@renderer/components/petal'
 import type { BudNodeProps } from '../types'
 import { loadSchema } from './schema'
 import { SchemaBloomIcon } from './SchemaBloomIcon'
@@ -30,13 +30,13 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
       .catch(() => setTableCount(null))
   }, [workspaceRoot, resource])
 
-  const displayLabel = label ?? deriveLabel(resource)
-
   return (
-    <div
-      className={`sb-node${selected ? ' sb-node--selected' : ''}`}
-      style={{ width: size.w, height: size.h }}
-      onDoubleClick={(e) => { e.stopPropagation(); onBloom() }}
+    <PetalBudNode
+      size={size}
+      label={label ?? deriveLabel(resource)}
+      selected={selected}
+      accentColor="--color-accent-blue"
+      onDoubleClick={onBloom}
     >
       <div className="sb-node__badge-wrap">
         <PetalIconBadge
@@ -49,7 +49,6 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
           <span className="sb-node__count">{tableCount}</span>
         )}
       </div>
-      <p className="sb-node__label">{displayLabel}</p>
-    </div>
+    </PetalBudNode>
   )
 }

@@ -1,17 +1,7 @@
-.fw-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  cursor: default;
-  overflow: visible;
-}
-
-/* ---- Preview card ---- */
-
 .fw-node__card {
   width: 100%;
   flex: 1;
+  min-height: 0;
   padding: 11px 13px 12px;
   border-radius: var(--radius-border-frame);
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -48,29 +38,4 @@
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 11px;
   color: var(--color-muted-fg);
-}
-
-/* ---- Label (below the card, same pattern as icon-style nodes) ---- */
-
-.fw-node__label {
-  margin: 0;
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-primary-fg);
-  text-align: center;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-  max-width: 100%;
-  padding: 0 2px;
-}
-
-.fw-node__label--selected {
-  background: rgba(var(--color-accent-blue-rgb), 0.12);
-  border-radius: 3px;
-  padding: 1px 5px;
 }

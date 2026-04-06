@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
+import { PetalBudNode } from '@renderer/components/petal'
 import type { BudNodeProps } from '../types'
 import './FocusWriterNode.css'
 
@@ -26,13 +27,13 @@ export function FocusWriterNode({ resource, label, size, selected, onBloom }: Bu
       .catch(() => setPreview(null))
   }, [workspaceRoot, resource])
 
-  const displayLabel = label ?? deriveLabel(resource)
-
   return (
-    <div
-      className="fw-node"
-      style={{ width: size.w, height: size.h }}
-      onDoubleClick={(e) => { e.stopPropagation(); onBloom() }}
+    <PetalBudNode
+      size={size}
+      label={label ?? deriveLabel(resource)}
+      selected={selected}
+      accentColor="--color-accent-blue"
+      onDoubleClick={onBloom}
     >
       <div className={`fw-node__card${selected ? ' fw-node__card--selected' : ''}`}>
         {preview ? (
@@ -41,9 +42,6 @@ export function FocusWriterNode({ resource, label, size, selected, onBloom }: Bu
           <p className="fw-node__empty">—</p>
         )}
       </div>
-      <p className={`fw-node__label${selected ? ' fw-node__label--selected' : ''}`}>
-        {displayLabel}
-      </p>
-    </div>
+    </PetalBudNode>
   )
 }
