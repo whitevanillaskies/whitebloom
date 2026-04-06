@@ -2,43 +2,6 @@
 
 Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only.
 
-## Type errors
-
-### Analysis
-
-Four files accept a `size` prop they don't actually use, violating the `BudNodeProps` contract defined at `modules/types.ts:4-13`.
-
-**The contract**: `BudNodeProps.size: Size` (`{ w: number; h: number }`) is required. `FocusWriterNode` is the conformant reference — it forwards `size.w` and `size.h` directly to `PetalBudNode`.
-
-**Broken nodes:**
-- `ObsidianBloomNode.tsx:27` — destructures `size` from `BudNodeProps`, ignores it, hardcodes `{ w: 88 }` at line 44.
-- `SchemaBloomNode.tsx:15` — same pattern, hardcodes `{ w: 88 }` at line 36.
-- `NativeFileBudNode.tsx:25` — has its own local props type (not `BudNodeProps`), still accepts `size`, ignores it, hardcodes `{ w: 88 }` at line 49.
-- `PetalBudNode.tsx:2` — imports `Size` from shared types but defines its own inline shape and never uses the import. Dead import.
-
-**Architectural decision** (resolved by reading the code): icon-style buds should be **size-driven**, same as the contract. Both `obsidianbloom/index.ts:11` and `schemabloom/index.ts:11` already declare `defaultSize: { w: 88, h: 88 }` — so the board initializes these nodes at 88px wide. The nodes just need to stop ignoring the value they're given. Height remains content-driven: `PetalBudNode` already makes `h` optional, so icon nodes should forward `size.w` only, leaving height free.
-
-**Magic number problem**: `88` is also an unnamed magic number appearing in 5 places. `canvas-constants.ts` already establishes the pattern for this — `BUD_ICON_PX = 52` names the icon glyph size. The node container width needs the same treatment. These are two distinct design values (88 ≈ 52 + ~18px padding each side) and should remain separate named constants, not derived from each other. The constant belongs at the initialization point (`defaultSize` declarations), not inside node components — which should just use `size.w` from the prop.
-
-### Fix plan
-
-1. **`canvas-constants.ts`** — add `BUD_ICON_NODE_W = 88` with a doc comment mirroring the style of `BUD_ICON_PX`.
-
-2. **`obsidianbloom/index.ts`** and **`schemabloom/index.ts`** — import `BUD_ICON_NODE_W` and replace the two `{ w: 88, h: 88 }` literals in `defaultSize` with `{ w: BUD_ICON_NODE_W, h: BUD_ICON_NODE_W }`.
-
-3. **`PetalBudNode.tsx`** — remove the unused `import type { Size }` at line 2.
-
-4. **`ObsidianBloomNode.tsx`** — replace the hardcoded `size={{ w: 88 }}` at line 44 with `size={{ w: size.w }}`. No import of the constant needed — the component just uses what the board passes.
-
-5. **`SchemaBloomNode.tsx`** — same: replace hardcoded `size={{ w: 88 }}` at line 36 with `size={{ w: size.w }}`.
-
-6. **`NativeFileBudNode.tsx`** — same: replace hardcoded `size={{ w: 88 }}` at line 49 with `size={{ w: size.w }}`.
-
-7. Run `npm run typecheck:web` to confirm no new type errors surface.
-
-After this, `88` exists in exactly one place (`canvas-constants.ts`). The module index files reference the constant for initialization; the node components are free of any hardcoded dimension.
-
-
 
 ## Viewport thumbnails for board tiles
 
@@ -65,13 +28,26 @@ Questions the helper should settle explicitly:
 
 **2. Thumbnail file location + naming**
 
-Store board thumbnails beside board data as generated cache files, not inside the board JSON. For workspace boards, use a hidden thumbnail directory under the workspace root. For transient quickboards, use a sibling/generated location under app data.
+Store board thumbnails beside board data as generated cache files, not inside the board JSON. For workspace boards, use a hidden thumbnail directory under the workspace root using a mirrored path structure. Quickboard thumbnails are deferred — the intended approach is inline embedding via wbhost URI, which keeps quickboards self-contained and portable. Until that lands, skip thumbnail generation for quickboards entirely.
 
-Suggested shape:
-- workspace board: `<workspace>/.wbthumbs/<board-file-stem>.jpg`
-- transient board: `userData/boards/.wbthumbs/<board-file-stem>.jpg`
+Shape:
+- workspace board: `<workspace>/.wbthumbs/<board-relative-path>.jpg`
+  - e.g. board at `workspace/notes/meeting.wbb` → thumbnail at `workspace/.wbthumbs/notes/meeting.jpg`
+  - mirrored structure is collision-safe across nested board directories and requires no lookup table
 
-The filename scheme must be collision-safe and stable across repeated saves. The path should be derivable from the board path so the shell can ask for it without maintaining a second lookup table.
+The thumbnail path is always derivable from the board path (workspace root + `.wbthumbs/` + relative board path, extension swapped to `.jpg`). No secondary index needed.
+
+`.wbthumbs/` is generated cache and should not be committed. Workspace creation must write a default `.gitignore` that includes `.wbthumbs/` so workspaces that are (or become) git repos suppress it automatically. See step 2a below.
+
+**2a. Workspace default `.gitignore`**
+
+When a new workspace is created, write a `.gitignore` file at the workspace root (or append to an existing one) that suppresses generated cache directories:
+
+```
+.wbthumbs/
+```
+
+This must happen in workspace creation, not thumbnail generation, so the gitignore is present even before any thumbnail is ever written. If a `.gitignore` already exists at the workspace root, append the entry only if it is not already present.
 
 **3. Main-process thumbnail write/read service**
 
@@ -159,7 +135,7 @@ Pick one rule and keep it consistent. Simpler first version: discard generated t
 - `src/preload/index.d.ts`
 - `src/main/ipc/register-board-ipc.ts`
 - `src/main/ipc/register-app-ipc.ts`
-- `src/main/services/workspace-files.ts`
+- `src/main/services/workspace-files.ts` (workspace creation must write default `.gitignore`)
 - `src/main/services/app-storage.ts`
 - `src/main/services/recent-boards-store.ts` (new, when recent boards lands)
 - `src/main/services/board-thumbnails.ts` (new)
