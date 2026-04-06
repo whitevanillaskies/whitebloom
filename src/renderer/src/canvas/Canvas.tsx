@@ -4,6 +4,7 @@ import {
   Background,
   type Node as RFNode,
   type NodeChange,
+  type Viewport,
   applyNodeChanges,
   Panel,
   useReactFlow,
@@ -134,9 +135,11 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const boardTransient = useBoardStore((s) => s.transient === true)
   const boardName = useBoardStore((s) => s.name)
   const boardBrief = useBoardStore((s) => s.brief)
+  const boardViewport = useBoardStore((s) => s.viewport)
   const isDirty = useBoardStore((s) => s.isDirty)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
+  const updateViewport = useBoardStore((s) => s.updateViewport)
   const addNode = useBoardStore((s) => s.addNode)
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
   const clearBoard = useBoardStore((s) => s.clearBoard)
@@ -342,9 +345,10 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       ...(boardName?.trim() ? { name: boardName.trim() } : {}),
       ...(boardBrief?.trim() ? { brief: boardBrief.trim() } : {}),
       nodes,
-      edges: boardEdges
+      edges: boardEdges,
+      ...(boardViewport ? { viewport: boardViewport } : {})
     }
-  }, [version, boardName, boardBrief, boardNodes, boardEdges])
+  }, [version, boardName, boardBrief, boardNodes, boardEdges, boardViewport])
 
   useEffect(() => {
     if (!boardTransient || !boardPath) {
@@ -816,9 +820,16 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     [activeTool, addNode, screenToFlowPosition, workspaceRoot]
   )
 
+  const onMoveEnd = useCallback(
+    (_: unknown, vp: Viewport) => {
+      updateViewport({ x: vp.x, y: vp.y, zoom: vp.zoom })
+    },
+    [updateViewport]
+  )
+
   return (
     <BloomContext.Provider value={handleBloom}>
-      <div style={{ width: '100%', height: '100%', ...(activeBloom !== null && { visibility: 'hidden', pointerEvents: 'none' }) }}>
+      {activeBloom === null && (
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
@@ -830,14 +841,16 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onPaneContextMenu={onPaneContextMenu}
+        onMoveEnd={onMoveEnd}
         className={`canvas--tool-${activeTool}`}
         elementsSelectable={activeTool === 'pointer'}
         nodesDraggable={activeTool === 'pointer'}
         nodesConnectable={activeTool === 'pointer'}
         selectionOnDrag={activeTool === 'pointer'}
         panOnDrag={panOnDragButtons}
-        fitView
-        fitViewOptions={{ padding: 0.25, maxZoom: 0.75 }}
+        {...(boardViewport
+          ? { defaultViewport: boardViewport }
+          : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
@@ -863,7 +876,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           />
         </Panel>
       </ReactFlow>
-      </div>
+      )}
 
       {settingsOpen && (
         <SettingsModal

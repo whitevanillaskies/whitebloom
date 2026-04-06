@@ -48,6 +48,8 @@ export type BoardEdge = {
   label?: string
 }
 
+export type BoardViewport = { x: number; y: number; zoom: number }
+
 export type Board = {
   version: number
   transient?: true
@@ -57,6 +59,7 @@ export type Board = {
   brief?: string
   nodes: BoardNode[]
   edges: BoardEdge[]
+  viewport?: BoardViewport
 }
 
 /** Create a minimal Lexical EditorState JSON for a plain-text string. */

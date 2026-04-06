@@ -3,6 +3,7 @@ import {
   CURRENT_BOARD_VERSION,
   type Board,
   type BoardNode,
+  type BoardViewport,
   type WidthMode
 } from '@renderer/shared/types'
 import { DEFAULT_USERNAME, normalizeUsername } from '../../../shared/app-settings'
@@ -27,6 +28,7 @@ type BoardState = Board & {
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
   updateBoardMeta: (patch: { name?: string; brief?: string }) => void
+  updateViewport: (viewport: BoardViewport) => void
   setActiveUsername: (username: string) => void
   setBoardPersistence: (path: string | null, transient: boolean) => void
   clearBoard: () => void
@@ -81,6 +83,7 @@ export const useBoardStore = create<BoardState>((set) => ({
   brief: undefined,
   nodes: [],
   edges: [],
+  viewport: undefined,
   activeUsername: DEFAULT_USERNAME,
   isDirty: false,
 
@@ -175,6 +178,9 @@ export const useBoardStore = create<BoardState>((set) => ({
       return { ...updates, isDirty: shouldMarkBoardDirty(state) }
     }),
 
+  // Viewport changes are never dirty — they persist silently on the next save.
+  updateViewport: (viewport) => set({ viewport }),
+
   setActiveUsername: (username) => set({ activeUsername: normalizeUsername(username) }),
 
   setBoardPersistence: (path, transient) =>
@@ -193,6 +199,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         state.edges.length === 0 &&
         state.name === undefined &&
         state.brief === undefined &&
+        state.viewport === undefined &&
         !state.isDirty
       ) {
         return state
@@ -205,6 +212,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         edges: [],
         name: undefined,
         brief: undefined,
+        viewport: undefined,
         isDirty: false
       }
     }),
@@ -224,6 +232,7 @@ export const useBoardStore = create<BoardState>((set) => ({
           normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME)
         ),
         edges: board.edges,
+        viewport: board.viewport,
         isDirty: false
       }
     })

@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(npx --prefix \"D:\\\\slvtte\\\\prj\\\\WHITEBLOOM\\\\code\\\\whitebloom\" tsc --noEmit)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
     ]
   }
 }
