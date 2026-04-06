@@ -63,7 +63,7 @@
   min-height: 60vh;
   background: transparent;
   color: transparent;
-  caret-color: var(--color-primary-fg);
+  caret-color: var(--color-accent-blue);
   font-family: 'Courier Prime', 'Courier New', monospace;
   font-size: 16px;
   line-height: 1.8;
@@ -78,6 +78,14 @@
   word-break: break-word;
   overflow-wrap: break-word;
   -webkit-appearance: none;
+}
+
+/* ── Typewriter mode ──────────────────────────────────────────── */
+
+.fw-editor--typewriter {
+  /* Extra breathing room so first/last paragraphs can reach center */
+  padding-top: 50vh;
+  padding-bottom: 50vh;
 }
 
 /* ── Preview mode ─────────────────────────────────────────────── */

@@ -4,9 +4,9 @@
   flex-direction: column;
   gap: 7px;
   padding: 11px 13px 12px;
-  border-radius: var(--radius-border-frame);
-  border: 1.5px solid rgba(0, 0, 0, 0.10);
-  background: #faf9f7;
+  border-radius: var(--radius-border-inner);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: #fcfcfc;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   cursor: default;
   overflow: hidden;
@@ -43,7 +43,7 @@
 
 .fw-node__preview {
   margin: 0;
-  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-family: 'Courier Prime', monospace;
   font-size: 11px;
   line-height: 1.55;
   color: var(--color-primary-fg);

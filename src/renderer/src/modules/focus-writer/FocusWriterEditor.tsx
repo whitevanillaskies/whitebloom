@@ -34,7 +34,15 @@ function getActiveParagraph(text: string, cursor: number): number {
 // Mirror — positioned behind the textarea, renders paragraph-level opacity
 // ---------------------------------------------------------------------------
 
-function MirrorContent({ text, activePara }: { text: string; activePara: number }): JSX.Element {
+function MirrorContent({
+  text,
+  activePara,
+  allBright,
+}: {
+  text: string
+  activePara: number
+  allBright: boolean
+}): JSX.Element {
   if (!text) {
     return <span className="fw-editor__placeholder">Start writing…</span>
   }
@@ -49,11 +57,9 @@ function MirrorContent({ text, activePara }: { text: string; activePara: number 
           return <span key={i}>{part}</span>
         }
         const idx = paraIndex++
+        const cls = allBright || idx === activePara ? 'fw-editor__para--active' : 'fw-editor__para--dim'
         return (
-          <span
-            key={i}
-            className={idx === activePara ? 'fw-editor__para--active' : 'fw-editor__para--dim'}
-          >
+          <span key={i} className={cls}>
             {part}
           </span>
         )
@@ -88,12 +94,21 @@ function PreviewContent({ text }: { text: string }): JSX.Element {
 
 export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorProps): JSX.Element {
   const [text, setText] = useState(initialData)
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const [mode, setMode] = useState<'typewriter' | 'dynamic' | 'preview'>('typewriter')
   const [activePara, setActivePara] = useState(0)
+  // Dynamic mode: 'seek' = all bright, cursor free; 'focused' = active para bright, rest dim
+  const [dynamicSubState, setDynamicSubState] = useState<'seek' | 'focused'>('seek')
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mirrorRef = useRef<HTMLDivElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingTextRef = useRef(initialData)
+  // Remembers the last writing mode so Ctrl+P returns to it
+  const lastWritingModeRef = useRef<'typewriter' | 'dynamic'>('typewriter')
+  // Refs for values needed inside rAF callbacks (avoids stale closures)
+  const activeParaRef = useRef(0)
+  const modeRef = useRef<'typewriter' | 'dynamic' | 'preview'>('typewriter')
 
   // ── Textarea auto-grow ──────────────────────────────────────────────────
 
@@ -138,7 +153,24 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
   const updateActivePara = useCallback(() => {
     const ta = textareaRef.current
     if (!ta) return
-    setActivePara(getActiveParagraph(ta.value, ta.selectionStart))
+    const next = getActiveParagraph(ta.value, ta.selectionStart)
+    activeParaRef.current = next
+    setActivePara(next)
+  }, [])
+
+  // For click/select: also detect paragraph change → dynamic seek
+  const handleSelectOrClick = useCallback(() => {
+    const prev = activeParaRef.current
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current
+      if (!ta) return
+      const next = getActiveParagraph(ta.value, ta.selectionStart)
+      activeParaRef.current = next
+      setActivePara(next)
+      if (modeRef.current === 'dynamic' && next !== prev) {
+        setDynamicSubState('seek')
+      }
+    })
   }, [])
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -170,10 +202,36 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
         return
       }
 
+      if (isMod && e.key.toLowerCase() === 't') {
+        e.preventDefault()
+        lastWritingModeRef.current = 'typewriter'
+        setMode('typewriter')
+        return
+      }
+
+      if (isMod && e.key.toLowerCase() === 'd') {
+        e.preventDefault()
+        lastWritingModeRef.current = 'dynamic'
+        setMode('dynamic')
+        return
+      }
+
+      if (isMod && e.key.toLowerCase() === 'l') {
+        e.preventDefault()
+        if (mode === 'dynamic') setDynamicSubState('seek')
+        return
+      }
+
+      // Dynamic seek → focused: any printable character starts focusing
+      if (mode === 'dynamic' && dynamicSubState === 'seek' && !isMod && e.key.length === 1) {
+        setDynamicSubState('focused')
+        // Fall through — let the character be inserted normally
+      }
+
       // Update active paragraph on any key
       window.requestAnimationFrame(updateActivePara)
     },
-    [flushAndClose, updateActivePara]
+    [flushAndClose, updateActivePara, mode, dynamicSubState]
   )
 
   const handlePreviewKeyDown = useCallback(
@@ -188,13 +246,8 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
 
       if (isMod && e.key.toLowerCase() === 'p') {
         e.preventDefault()
-        setMode('edit')
+        setMode(lastWritingModeRef.current)
         return
-      }
-
-      // Any regular keypress returns to edit mode
-      if (!isMod && e.key.length === 1) {
-        setMode('edit')
       }
     },
     [flushAndClose]
@@ -210,14 +263,42 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     resizeTextarea()
   }, [resizeTextarea])
 
-  // Refocus textarea when returning to edit mode
+  // Refocus textarea when returning to a writing mode
   useEffect(() => {
-    if (mode !== 'edit') return
+    if (mode === 'preview') return
     const ta = textareaRef.current
     if (!ta) return
     ta.focus()
     resizeTextarea()
   }, [mode, resizeTextarea])
+
+  // Keep modeRef in sync for rAF callbacks
+  useEffect(() => {
+    modeRef.current = mode
+  }, [mode])
+
+  // Reset dynamic sub-state to seek whenever entering dynamic mode
+  useEffect(() => {
+    if (mode === 'dynamic') setDynamicSubState('seek')
+  }, [mode])
+
+  // Typewriter: scroll active paragraph to vertical center
+  useEffect(() => {
+    if (mode !== 'typewriter') return
+    const container = containerRef.current
+    const mirror = mirrorRef.current
+    if (!container || !mirror) return
+
+    requestAnimationFrame(() => {
+      const activeSpan = mirror.querySelector<HTMLSpanElement>('.fw-editor__para--active')
+      if (!activeSpan) return
+      const spanRect = activeSpan.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const spanMid = spanRect.top + spanRect.height / 2
+      const containerMid = containerRect.top + containerRect.height / 2
+      container.scrollBy({ top: spanMid - containerMid, behavior: 'smooth' })
+    })
+  }, [activePara, mode])
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -236,11 +317,18 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
   }
 
   return (
-    <div className="fw-editor">
+    <div
+      ref={containerRef}
+      className={`fw-editor${mode === 'typewriter' ? ' fw-editor--typewriter' : ''}`}
+    >
       <div className="fw-editor__column">
         {/* Mirror: renders paragraph-dimmed text behind the transparent textarea */}
-        <div className="fw-editor__mirror" aria-hidden="true">
-          <MirrorContent text={text} activePara={activePara} />
+        <div ref={mirrorRef} className="fw-editor__mirror" aria-hidden="true">
+          <MirrorContent
+            text={text}
+            activePara={activePara}
+            allBright={mode === 'dynamic' && dynamicSubState === 'seek'}
+          />
         </div>
         <textarea
           ref={textareaRef}
@@ -248,8 +336,8 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onSelect={updateActivePara}
-          onClick={updateActivePara}
+          onSelect={handleSelectOrClick}
+          onClick={handleSelectOrClick}
           spellCheck={false}
           autoCorrect="off"
           autoCapitalize="off"
