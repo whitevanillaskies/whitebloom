@@ -94,7 +94,7 @@ function PreviewContent({ text }: { text: string }): JSX.Element {
 
 export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorProps): JSX.Element {
   const [text, setText] = useState(initialData)
-  const [mode, setMode] = useState<'typewriter' | 'dynamic' | 'preview'>('typewriter')
+  const [mode, setMode] = useState<'typewriter' | 'dynamic' | 'preview'>('dynamic')
   const [activePara, setActivePara] = useState(0)
   // Dynamic mode: 'seek' = all bright, cursor free; 'focused' = active para bright, rest dim
   const [dynamicSubState, setDynamicSubState] = useState<'seek' | 'focused'>('seek')
@@ -105,10 +105,10 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingTextRef = useRef(initialData)
   // Remembers the last writing mode so Ctrl+P returns to it
-  const lastWritingModeRef = useRef<'typewriter' | 'dynamic'>('typewriter')
+  const lastWritingModeRef = useRef<'typewriter' | 'dynamic'>('dynamic')
   // Refs for values needed inside rAF callbacks (avoids stale closures)
   const activeParaRef = useRef(0)
-  const modeRef = useRef<'typewriter' | 'dynamic' | 'preview'>('typewriter')
+  const modeRef = useRef<'typewriter' | 'dynamic' | 'preview'>('dynamic')
 
   // ── Textarea auto-grow ──────────────────────────────────────────────────
 
@@ -342,6 +342,9 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
           autoCorrect="off"
           autoCapitalize="off"
         />
+        {mode === 'typewriter' && (
+          <div className="fw-editor__typewriter-spacer" aria-hidden="true" />
+        )}
       </div>
     </div>
   )

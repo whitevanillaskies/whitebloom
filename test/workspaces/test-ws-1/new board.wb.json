@@ -7,8 +7,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 16,
-        "y": 68.83333333333333
+        "x": -72.79615745620464,
+        "y": 82.76214234607131
       },
       "size": {
         "w": 312,
@@ -19,7 +19,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:29:56.060Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-05T22:30:00.819Z",
+      "updatedAt": "2026-04-06T00:57:00.075Z",
       "updatedBy": "anon",
       "plain": "organization and management of knowledge"
     },
@@ -28,8 +28,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 7.516523609368505,
-        "y": 163.79773783970234
+        "x": -61.40537769045355,
+        "y": 147.71596086974387
       },
       "size": {
         "w": 401,
@@ -40,7 +40,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:04.687Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-05T22:30:19.537Z",
+      "updatedAt": "2026-04-06T01:01:14.226Z",
       "updatedBy": "anon",
       "plain": "mind graphs, etc. are useful, but I'm thinking also of assets"
     },
@@ -154,8 +154,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 463.5145542741519,
-        "y": 5.6278277003720945
+        "x": 458.29125089437514,
+        "y": 14.333333333333332
       },
       "size": {
         "w": 397,
@@ -166,7 +166,7 @@
       "wrapWidth": 397,
       "created": "2026-04-05T22:33:08.012Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T00:52:06.895Z",
+      "updatedAt": "2026-04-06T00:56:58.797Z",
       "updatedBy": "anon",
       "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
     },
@@ -175,8 +175,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": 87.21547723423794,
-        "y": -186.57866424320878
+        "x": -127.38120368823866,
+        "y": -173.9790895264348
       },
       "size": {
         "w": 220,
@@ -185,8 +185,29 @@
       "resource": "wloc:blossoms/note-1775434843412.blt",
       "created": "2026-04-06T00:20:43.419Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T00:41:30.467Z",
+      "updatedAt": "2026-04-06T01:01:29.923Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "2576c107-6930-48ae-a80c-98b2ca7a56a4",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": -329.82654155417475,
+        "y": 218.1135289490534
+      },
+      "size": {
+        "w": 265,
+        "h": 111
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"We need to delete resources when deleting nodes, probably? or maybe do a cleanup action that goes through all resources and tries to find a reference? not sure\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 265,
+      "created": "2026-04-06T01:02:36.132Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T01:03:07.525Z",
+      "updatedBy": "anon",
+      "plain": "We need to delete resources when deleting nodes, probably? or maybe do a cleanup action that goes through all resources and tries to find a reference? not sure"
     }
   ],
   "edges": []

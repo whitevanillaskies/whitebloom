@@ -83,9 +83,16 @@
 /* ── Typewriter mode ──────────────────────────────────────────── */
 
 .fw-editor--typewriter {
-  /* Extra breathing room so first/last paragraphs can reach center */
+  /* Top padding so the first paragraph can reach vertical center */
   padding-top: 50vh;
-  padding-bottom: 50vh;
+}
+
+/* Spacer inside the column — padding-bottom on scroll containers is unreliable
+   in Chromium, so we use a real element to extend scrollable height instead */
+.fw-editor__typewriter-spacer {
+  height: 50vh;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ── Preview mode ─────────────────────────────────────────────── */
@@ -96,8 +103,8 @@
 
 .fw-editor__preview-para {
   font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 18px;
-  line-height: 1.85;
+  font-size: 14px;
+  line-height: 1.2;
   color: var(--color-primary-fg);
   margin: 0 0 1.6em;
   white-space: pre-wrap;
