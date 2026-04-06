@@ -105,6 +105,15 @@ const api = {
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
   getFileIcon: (workspaceRoot: string, resource: string): Promise<{ ok: boolean; dataUrl: string | null }> =>
     ipcRenderer.invoke('file:get-icon', workspaceRoot, resource),
+  confirmLargeImport: (fileName: string, sizeMb: number): Promise<boolean> =>
+    ipcRenderer.invoke('file:confirm-large-import', fileName, sizeMb),
+  askImportOrLink: (fileName: string): Promise<'import' | 'link'> =>
+    ipcRenderer.invoke('file:ask-import-or-link', fileName),
+  updateWorkspaceConfig: (
+    workspaceRoot: string,
+    patch: { name?: string; brief?: string }
+  ): Promise<{ ok: boolean; config: { version: number; name?: string; brief?: string } | null }> =>
+    ipcRenderer.invoke('workspace:update-config', workspaceRoot, patch),
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
     ipcRenderer.invoke('app-settings:save', settings),

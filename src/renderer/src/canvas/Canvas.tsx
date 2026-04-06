@@ -37,6 +37,7 @@ import './Canvas.css'
 
 const nodeTypes = { text: TextNode, bud: BudNode }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
+const LARGE_IMPORT_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
 
 const WEB_RESOURCE_DROP_ERROR = 'Can\'t embed web resources — save the image to your local drive first, then drop it.'
 
@@ -151,6 +152,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
   const removeWorkspaceBoard = useWorkspaceStore((s) => s.removeBoard)
   const username = useAppSettingsStore((s) => s.user.username)
+  const unhandledDropSetting = useAppSettingsStore((s) => s.files.unhandledDrop)
+  const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
   const updateUsername = useAppSettingsStore((s) => s.updateUsername)
 
@@ -766,18 +769,46 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
             throw new Error(WEB_RESOURCE_DROP_ERROR)
           }
 
-          let resource: string
-          if (workspaceRoot !== null) {
-            const copyResult = await window.api.copyWorkspaceResource(workspaceRoot, filePath)
-            if (!copyResult.ok || !copyResult.resource) {
-              throw new Error(`Unable to copy ${file.name || filePath} into workspace resources.`)
+          // Dispatch by file path before deciding whether to copy
+          const module = dispatchModule(filePath)
+          const fileName = file.name || filePath
+
+          // Shared helper: warn if large, then copy. Returns null if user cancels.
+          const importFile = async (): Promise<string | null> => {
+            if (warnLargeImport && file.size > LARGE_IMPORT_THRESHOLD_BYTES) {
+              const sizeMb = Math.round(file.size / (1024 * 1024))
+              const proceed = await window.api.confirmLargeImport(fileName, sizeMb)
+              if (!proceed) return null
             }
-            resource = copyResult.resource
-          } else {
-            resource = absolutePathToFileUri(filePath)
+            const copyResult = await window.api.copyWorkspaceResource(workspaceRoot!, filePath)
+            if (!copyResult.ok || !copyResult.resource) {
+              throw new Error(`Unable to copy ${fileName} into workspace resources.`)
+            }
+            return copyResult.resource
           }
 
-          const module = dispatchModule(resource)
+          let resource: string
+          if (workspaceRoot === null) {
+            // Quickboard — always link, no workspace to copy into
+            resource = absolutePathToFileUri(filePath)
+          } else if (module) {
+            // Known module — always import so the module can read via wloc:
+            const imported = await importFile()
+            if (imported === null) return // user cancelled the large-file warning
+            resource = imported
+          } else {
+            // No handler — respect the unhandled drop setting
+            const behavior = unhandledDropSetting === 'ask'
+              ? await window.api.askImportOrLink(fileName)
+              : unhandledDropSetting
+            if (behavior === 'import') {
+              const imported = await importFile()
+              if (imported === null) return // user cancelled the large-file warning
+              resource = imported
+            } else {
+              resource = absolutePathToFileUri(filePath)
+            }
+          }
 
           // Images: measure natural dimensions. Known modules: use their default.
           // No handler (null): icon-node dimensions.
@@ -820,7 +851,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         setImageDropError(firstFailure)
       }
     },
-    [activeTool, addNode, screenToFlowPosition, workspaceRoot]
+    [activeTool, addNode, screenToFlowPosition, workspaceRoot, unhandledDropSetting, warnLargeImport]
   )
 
   const onMoveEnd = useCallback(
@@ -885,9 +916,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         <SettingsModal
           name={boardName}
           brief={boardBrief}
-          username={username}
           onChange={updateBoardMeta}
-          onUsernameChange={(nextUsername) => void updateUsername(nextUsername)}
           onClose={() => setSettingsOpen(false)}
         />
       )}

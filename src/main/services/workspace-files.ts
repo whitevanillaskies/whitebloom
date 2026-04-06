@@ -131,6 +131,23 @@ export async function findWorkspaceRootForBoard(boardPath: string): Promise<stri
   return (await pathExists(getWorkspaceConfigPath(workspaceRoot))) ? workspaceRoot : null
 }
 
+export async function updateWorkspaceConfig(
+  workspaceRoot: string,
+  patch: { name?: string; brief?: string }
+): Promise<WorkspaceConfig> {
+  const configPath = getWorkspaceConfigPath(workspaceRoot)
+  const existing = normalizeWorkspaceConfig(
+    JSON.parse(await readFile(configPath, 'utf-8'))
+  )
+  const updated: WorkspaceConfig = {
+    ...existing,
+    name: normalizeOptionalText(patch.name) ?? existing.name,
+    brief: normalizeOptionalText(patch.brief) ?? existing.brief
+  }
+  await writeFile(configPath, JSON.stringify(updated, null, 2), 'utf-8')
+  return updated
+}
+
 export async function createWorkspace(workspaceRoot: string): Promise<void> {
   await mkdir(workspaceRoot, { recursive: true })
 

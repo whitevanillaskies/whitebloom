@@ -122,3 +122,184 @@
   flex-direction: column;
   gap: 20px;
 }
+
+/* Generic field wrapper (for non-PetalField controls) */
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-field__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary-fg);
+}
+
+/* HACK: this is copied from PetalField.css (.petal-field__hint) -- we should find a better way to do this. */
+
+.settings-field__hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-muted-fg);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+/* Radio group */
+
+.settings-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.settings-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 80ms ease;
+}
+
+.settings-radio:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.settings-radio input[type='radio'] {
+  flex-shrink: 0;
+  accent-color: var(--color-accent-blue);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.settings-radio__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary-fg);
+  min-width: 52px;
+}
+
+.settings-radio__desc {
+  font-size: 11px;
+  color: var(--color-muted-fg);
+}
+
+/* Advanced collapsible */
+
+.settings-advanced__toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted-fg);
+  cursor: pointer;
+  transition: color 80ms ease;
+}
+
+.settings-advanced__toggle:hover {
+  color: var(--color-secondary-fg);
+}
+
+.settings-advanced__chevron {
+  transition: transform 120ms ease;
+  flex-shrink: 0;
+}
+
+.settings-advanced__toggle--open .settings-advanced__chevron {
+  transform: rotate(90deg);
+}
+
+.settings-advanced__body {
+  margin-top: 12px;
+  padding-left: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Checkbox toggle */
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.settings-toggle input[type='checkbox'] {
+  flex-shrink: 0;
+  accent-color: var(--color-accent-blue);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.settings-toggle__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary-fg);
+}
+
+/* Inline confirmation */
+
+.settings-confirm {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(236, 22, 76, 0.2);
+  background: rgba(236, 22, 76, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-confirm__text {
+  font-size: 12px;
+  color: var(--color-primary-fg);
+  line-height: 1.5;
+}
+
+.settings-confirm__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-confirm__btn {
+  padding: 4px 10px;
+  border-radius: var(--radius-border-inner);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.8);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-secondary-fg);
+  cursor: pointer;
+  transition: background 80ms ease, color 80ms ease;
+}
+
+.settings-confirm__btn:hover {
+  background: rgba(255, 255, 255, 1);
+  color: var(--color-primary-fg);
+}
+
+.settings-confirm__btn--danger {
+  border-color: rgba(236, 22, 76, 0.3);
+  color: var(--color-accent-red);
+}
+
+.settings-confirm__btn--danger:hover {
+  background: rgba(236, 22, 76, 0.06);
+}

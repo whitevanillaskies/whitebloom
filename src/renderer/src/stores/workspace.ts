@@ -10,6 +10,7 @@ type WorkspaceState = {
   addBoard: (boardPath: string) => void
   removeBoard: (boardPath: string) => void
   clearWorkspace: () => void
+  updateConfig: (patch: { name?: string; brief?: string }) => Promise<boolean>
 }
 
 function sortBoardPaths(paths: string[]): string[] {
@@ -18,7 +19,7 @@ function sortBoardPaths(paths: string[]): string[] {
   )
 }
 
-export const useWorkspaceStore = create<WorkspaceState>((set) => ({
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   root: null,
   config: null,
   boards: [],
@@ -48,5 +49,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set((state) => {
       if (state.root === null && state.config === null && state.boards.length === 0) return state
       return { root: null, config: null, boards: [] }
-    })
+    }),
+
+  updateConfig: async (patch) => {
+    const { root } = get()
+    if (!root) return false
+    const result = await window.api.updateWorkspaceConfig(root, patch)
+    if (result.ok && result.config) {
+      set({ config: result.config })
+    }
+    return result.ok
+  }
 }))

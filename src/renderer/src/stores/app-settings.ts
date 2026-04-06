@@ -3,7 +3,8 @@ import {
   DEFAULT_APP_SETTINGS,
   normalizeAppSettings,
   normalizeUsername,
-  type AppSettings
+  type AppSettings,
+  type UnhandledDropBehavior
 } from '../../../shared/app-settings'
 import { useBoardStore } from './board'
 
@@ -11,9 +12,11 @@ type AppSettingsState = AppSettings & {
   isHydrated: boolean
   loadAppSettings: () => Promise<void>
   updateUsername: (username: string) => Promise<void>
+  updateUnhandledDrop: (behavior: UnhandledDropBehavior) => Promise<void>
+  updateWarnLargeImport: (warn: boolean) => Promise<void>
 }
 
-export const useAppSettingsStore = create<AppSettingsState>((set) => ({
+export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
   ...DEFAULT_APP_SETTINGS,
   isHydrated: false,
 
@@ -24,20 +27,30 @@ export const useAppSettingsStore = create<AppSettingsState>((set) => ({
   },
 
   updateUsername: async (username) => {
-    const nextSettings = {
-      user: {
-        username: normalizeUsername(username)
-      }
+    const next: AppSettings = {
+      ...get(),
+      user: { username: normalizeUsername(username) }
     }
-
-    set(nextSettings)
-    useBoardStore.getState().setActiveUsername(nextSettings.user.username)
-
-    const result = await window.api.saveAppSettings(nextSettings)
+    set(next)
+    useBoardStore.getState().setActiveUsername(next.user.username)
+    const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
+    if (!result.ok) console.error('Failed to persist app settings')
+  },
 
-    if (!result.ok) {
-      console.error('Failed to persist app settings')
-    }
+  updateUnhandledDrop: async (behavior) => {
+    const next: AppSettings = { ...get(), files: { ...get().files, unhandledDrop: behavior } }
+    set(next)
+    const result = await window.api.saveAppSettings(next)
+    set({ ...normalizeAppSettings(result.settings) })
+    if (!result.ok) console.error('Failed to persist app settings')
+  },
+
+  updateWarnLargeImport: async (warn) => {
+    const next: AppSettings = { ...get(), files: { ...get().files, warnLargeImport: warn } }
+    set(next)
+    const result = await window.api.saveAppSettings(next)
+    set({ ...normalizeAppSettings(result.settings) })
+    if (!result.ok) console.error('Failed to persist app settings')
   }
 }))
