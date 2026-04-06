@@ -4,6 +4,9 @@ export const CONNECTION_HANDLE_OUTSET_PX = 8
 /** Icon content size (longest axis) for all bud icon nodes. */
 export const BUD_ICON_PX = 52
 
+/** Node container width for all icon-style bud nodes. */
+export const BUD_ICON_NODE_W = 88
+
 export const NODE_HANDLE_IDS = {
   top: 'top',
   left: 'left',

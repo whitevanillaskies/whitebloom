@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: ar.whitebloom.app
 productName: whitebloom
 directories:
   buildResources: build
@@ -38,6 +38,3 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates

@@ -1,0 +1,375 @@
+{
+  "version": 3,
+  "name": "muestra walter",
+  "nodes": [
+    {
+      "id": "d9ba3917-eda9-4580-8d27-395ae7960fb9",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1658.5211217697668,
+        "y": 34.2189477495292
+      },
+      "size": {
+        "w": 317,
+        "h": 139
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Contrataciones\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Tengo que hacer tal y tal cosa, para manyana\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cosa 1\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cosa 2\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cosa 3\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":3}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:14:57.725Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:19:25.542Z",
+      "updatedBy": "anon",
+      "plain": "Contrataciones\nTengo que hacer tal y tal cosa, para manyana\nCosa 1\nCosa 2\nCosa 3"
+    },
+    {
+      "id": "59e267c1-bdbb-4e95-aebd-58a17fa06f1a",
+      "kind": "bud",
+      "type": null,
+      "position": {
+        "x": 1879.2839720205745,
+        "y": -309.1545612804181
+      },
+      "size": {
+        "w": 88,
+        "h": 88
+      },
+      "resource": "file:///C:/Users/jignb/Documents/walter/planilla/SIN%20AUMENTO%20DESIERTOS%20INCLUYE%20EL%2012.xlsx",
+      "created": "2026-04-06T21:15:23.722Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:17:59.132Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "b33fce7f-a561-4517-9e19-d2cbf9771137",
+      "kind": "bud",
+      "type": null,
+      "position": {
+        "x": 742.769947532856,
+        "y": -156.89557970134206
+      },
+      "size": {
+        "w": 88,
+        "h": 88
+      },
+      "resource": "file:///C:/Users/jignb/Documents/walter/planilla/PLANILLA%20RENGLONES%20QUE%20SE%20PRORROGAN%20prueba.xlsx",
+      "created": "2026-04-06T21:15:28.456Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:21:06.878Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "c50d3fc5-02b6-4e0a-b3f9-3e7c060aee80",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1349.9892295365316,
+        "y": 17.011716434529752
+      },
+      "size": {
+        "w": 111,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Contratacion\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:17:09.534Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:19:25.542Z",
+      "updatedBy": "anon",
+      "plain": "Contratacion"
+    },
+    {
+      "id": "b8441275-28b0-4c3e-997c-801755a8d834",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1652.9408255635826,
+        "y": -72.36480806387232
+      },
+      "size": {
+        "w": 60,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Excel\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:17:14.610Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:19:25.542Z",
+      "updatedBy": "anon",
+      "plain": "Excel"
+    },
+    {
+      "id": "1d82f7bc-f98d-4752-9873-5ea60183cd7f",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 753.371910157588,
+        "y": 101.74530459535247
+      },
+      "size": {
+        "w": 294,
+        "h": 78
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Marzo Abril\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Esta carpeta tiene todos los documentos\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:18:01.249Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:18:27.944Z",
+      "updatedBy": "anon",
+      "plain": "Marzo Abril\nEsta carpeta tiene todos los documentos"
+    },
+    {
+      "id": "8f3da345-0544-40cf-9db0-cfda46f25d9e",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 933.285693238787,
+        "y": 212.01504261286155
+      },
+      "size": {
+        "w": 282,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Esto me lo pidio alguien para manayana\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:18:29.935Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:18:43.476Z",
+      "updatedBy": "anon",
+      "plain": "Esto me lo pidio alguien para manayana"
+    },
+    {
+      "id": "227248aa-f5fa-41f1-8b99-1423554316a2",
+      "kind": "bud",
+      "type": "com.whitebloom.focus-writer",
+      "position": {
+        "x": 1072.5737833661665,
+        "y": -235.44794692134622
+      },
+      "size": {
+        "w": 220,
+        "h": 160
+      },
+      "resource": "wloc:blossoms/note-1775510338826.blt",
+      "created": "2026-04-06T21:18:58.832Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:19:27.467Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "ae4d32d9-a067-4f74-af15-776546d6d48c",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 326.7395648471053,
+        "y": -39.911714358991674
+      },
+      "size": {
+        "w": 74,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"1. Dispo\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:19:55.446Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:20:59.294Z",
+      "updatedBy": "anon",
+      "plain": "1. Dispo"
+    },
+    {
+      "id": "6eaf4413-eef6-4b44-a394-14c541a7dd9a",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 501.0697374134432,
+        "y": -45.797332206660904
+      },
+      "size": {
+        "w": 112,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Mandar mails\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:20:07.238Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:20:59.949Z",
+      "updatedBy": "anon",
+      "plain": "Mandar mails"
+    },
+    {
+      "id": "78f91773-45d1-4c8a-a2c7-a5a06d8382a9",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 322.5463153755896,
+        "y": 109.0529203362213
+      },
+      "size": {
+        "w": 82,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"apertura\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:20:14.981Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:20:27.567Z",
+      "updatedBy": "anon",
+      "plain": "apertura"
+    },
+    {
+      "id": "3f8b0d14-093a-408e-a5de-1851a84ea519",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 284.7277339282491,
+        "y": 224.08202212687948
+      },
+      "size": {
+        "w": 157,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"cuadro comparativo\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:20:20.456Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:20:55.477Z",
+      "updatedBy": "anon",
+      "plain": "cuadro comparativo"
+    },
+    {
+      "id": "52d638ef-0fab-43b9-8984-e55f17dc73a0",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 533.1935808561294,
+        "y": 210.06257276887698
+      },
+      "size": {
+        "w": 150,
+        "h": 61
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Documentacion\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Desempate\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:20:29.021Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:21:01.676Z",
+      "updatedBy": "anon",
+      "plain": "Documentacion\nDesempate"
+    },
+    {
+      "id": "54cfd4c7-0ee2-4d5d-bd98-5098e9f09e29",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 297.9228130359781,
+        "y": 342.83773409643993
+      },
+      "size": {
+        "w": 131,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"preadjudicacion\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:20:48.437Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:20:57.472Z",
+      "updatedBy": "anon",
+      "plain": "preadjudicacion"
+    },
+    {
+      "id": "89cfd471-ad9a-498c-938c-a216ac7d7390",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 963.9643401123452,
+        "y": 444.21512124913096
+      },
+      "size": {
+        "w": 168,
+        "h": 127
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Descuentos\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Martes\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h2\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Los MAXNIC\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:22:55.053Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:23:15.115Z",
+      "updatedBy": "anon",
+      "plain": "Descuentos\nMartes\nLos MAXNIC"
+    }
+  ],
+  "edges": [
+    {
+      "id": "4691922c-340b-4500-abbe-98d11a15568b",
+      "from": "c50d3fc5-02b6-4e0a-b3f9-3e7c060aee80",
+      "to": "b8441275-28b0-4c3e-997c-801755a8d834",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    },
+    {
+      "id": "871db4cf-6ce8-438e-a6eb-6647781fa7c4",
+      "from": "c50d3fc5-02b6-4e0a-b3f9-3e7c060aee80",
+      "to": "d9ba3917-eda9-4580-8d27-395ae7960fb9",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    },
+    {
+      "id": "ab810104-9dcf-4bd9-9ad3-ec3e295a32a1",
+      "from": "b33fce7f-a561-4517-9e19-d2cbf9771137",
+      "to": "1d82f7bc-f98d-4752-9873-5ea60183cd7f",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "10d93995-83ce-49d2-84e1-23e79d772488",
+      "from": "ae4d32d9-a067-4f74-af15-776546d6d48c",
+      "to": "6eaf4413-eef6-4b44-a394-14c541a7dd9a",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    },
+    {
+      "id": "68cf7bbf-73ef-431f-b86f-99e66d6e4bb0",
+      "from": "ae4d32d9-a067-4f74-af15-776546d6d48c",
+      "to": "78f91773-45d1-4c8a-a2c7-a5a06d8382a9",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "aa0742cd-2d35-4b7f-a297-a17b49b48389",
+      "from": "78f91773-45d1-4c8a-a2c7-a5a06d8382a9",
+      "to": "3f8b0d14-093a-408e-a5de-1851a84ea519",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "ea003d77-d9bb-4096-9816-273f1f3c5435",
+      "from": "3f8b0d14-093a-408e-a5de-1851a84ea519",
+      "to": "52d638ef-0fab-43b9-8984-e55f17dc73a0",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    },
+    {
+      "id": "f12f60d6-fc3f-4a66-abe7-d1a2152bcd17",
+      "from": "3f8b0d14-093a-408e-a5de-1851a84ea519",
+      "to": "54cfd4c7-0ee2-4d5d-bd98-5098e9f09e29",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    }
+  ],
+  "viewport": {
+    "x": 241.0267449157409,
+    "y": 316.8386590631517,
+    "zoom": 0.7500000000000002
+  }
+}

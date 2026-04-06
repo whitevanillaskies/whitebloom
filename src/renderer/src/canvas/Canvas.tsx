@@ -24,6 +24,7 @@ import { BudNode } from './BudNode'
 import { ProximityTracker } from './ProximityTracker'
 import { WbEdge } from './WbEdge'
 import type { WbEdgeData } from './WbEdge'
+import { EdgeToolbar } from './EdgeToolbar'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import '../modules/index'
@@ -996,6 +997,10 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           />
         </Panel>
       </ReactFlow>
+      )}
+
+      {activeBloom === null && (
+        <EdgeToolbar edges={edges} />
       )}
 
       {settingsOpen && (

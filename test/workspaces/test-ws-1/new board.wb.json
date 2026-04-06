@@ -235,8 +235,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": -39.12881492178117,
-        "y": -202.34870571931353
+        "x": -188.2332088391181,
+        "y": -210.2657531839509
       },
       "size": {
         "w": 220,
@@ -245,7 +245,7 @@
       "resource": "wloc:blossoms/note-1775439811494.blt",
       "created": "2026-04-06T01:43:31.501Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T14:53:50.251Z",
+      "updatedAt": "2026-04-06T19:45:07.259Z",
       "updatedBy": "anon"
     },
     {
@@ -253,8 +253,8 @@
       "kind": "bud",
       "type": "com.whitebloom.schemabloom",
       "position": {
-        "x": 767.9754298026309,
-        "y": -213.23951004527595
+        "x": 1032.5945089715192,
+        "y": -498.3464424081513
       },
       "size": {
         "w": 240,
@@ -263,7 +263,7 @@
       "resource": "wloc:res/sample_schema_jk 6.bdb",
       "created": "2026-04-06T13:39:50.489Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T16:54:37.871Z",
+      "updatedAt": "2026-04-06T20:58:53.356Z",
       "updatedBy": "anon"
     },
     {
@@ -271,8 +271,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 801.8565286803669,
-        "y": -386.4708372771447
+        "x": 863.8734004866927,
+        "y": -387.7903451879175
       },
       "size": {
         "w": 88,
@@ -281,7 +281,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T16:55:28.562Z",
+      "updatedAt": "2026-04-06T20:58:59.984Z",
       "updatedBy": "anon"
     },
     {
@@ -289,8 +289,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 922.4404879281741,
-        "y": -393.4549710324609
+        "x": 1168.3496799403654,
+        "y": -303.2525659975442
       },
       "size": {
         "w": 88,
@@ -299,7 +299,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T16:55:56.186Z",
+      "updatedAt": "2026-04-06T20:58:48.400Z",
       "updatedBy": "anon"
     },
     {
@@ -307,8 +307,8 @@
       "kind": "bud",
       "type": "io.obsidianbloom.vault",
       "position": {
-        "x": 997.0582993113428,
-        "y": -240.860786349788
+        "x": 1455.0894023877051,
+        "y": -184.0728470132372
       },
       "size": {
         "w": 88,
@@ -317,14 +317,29 @@
       "resource": "file:///D:/persona/personal_notes/Mindstorm",
       "created": "2026-04-06T16:59:09.183Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T16:59:10.545Z",
+      "updatedAt": "2026-04-06T20:58:49.774Z",
       "updatedBy": "anon"
     }
   ],
-  "edges": [],
+  "edges": [
+    {
+      "id": "830f6e4c-2a01-4aa1-b856-df146f0df542",
+      "from": "f6097a86-d4c5-485a-9075-b34b61e3815c",
+      "to": "b89f2d7a-17c4-440b-aad6-da8a39bf20fc",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    },
+    {
+      "id": "2ae5d8ec-6536-4438-a288-071a6402f263",
+      "from": "8f0e5f43-b14a-40a4-a7f6-66ab8f7beaa3",
+      "to": "f3737f50-a197-4481-afe1-3d94dcbe0af1",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    }
+  ],
   "viewport": {
-    "x": -75.62889102144459,
-    "y": 436.53834204654805,
-    "zoom": 0.7578582832552009
+    "x": 475.42799368547776,
+    "y": 568.7747371742382,
+    "zoom": 0.7578582832551997
   }
 }

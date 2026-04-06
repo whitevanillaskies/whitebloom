@@ -46,7 +46,7 @@ export function NativeFileBudNode({
 
   return (
     <PetalBudNode
-      size={{ w: 88 }}
+      size={{ w: size.w }}
       label={displayLabel}
       selected={selected}
       accentColor="--color-accent-system"

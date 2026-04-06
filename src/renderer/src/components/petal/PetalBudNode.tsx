@@ -1,5 +1,4 @@
 import type React from 'react'
-import type { Size } from '../../shared/types'
 import './PetalBudNode.css'
 
 type PetalBudNodeProps = {

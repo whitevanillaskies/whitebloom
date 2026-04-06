@@ -1,0 +1,33 @@
+{
+  "version": 3,
+  "name": "descuentos",
+  "nodes": [
+    {
+      "id": "e3825ed2-fa18-4cd4-9966-3881997cedc7",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 664,
+        "y": 353.66666666666663
+      },
+      "size": {
+        "w": 226,
+        "h": 78
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Martes\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"MAXNIC verduleria con noe me\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-06T21:23:41.613Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T21:23:52.018Z",
+      "updatedBy": "anon",
+      "plain": "Martes\nMAXNIC verduleria con noe me"
+    }
+  ],
+  "edges": [],
+  "viewport": {
+    "x": 279.25,
+    "y": 208.625,
+    "zoom": 0.75
+  }
+}

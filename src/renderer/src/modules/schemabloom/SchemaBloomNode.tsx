@@ -33,7 +33,7 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
 
   return (
     <PetalBudNode
-      size={{ w: 88 }}
+      size={{ w: size.w }}
       label={label ?? deriveLabel(resource)}
       selected={selected}
       accentColor="--color-accent-blue"

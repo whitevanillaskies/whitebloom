@@ -27,6 +27,7 @@ type BoardState = Board & {
   deleteNodes: (ids: string[]) => void
   addEdge: (edge: BoardEdge) => void
   deleteEdge: (id: string) => void
+  updateEdge: (id: string, patch: Partial<Pick<BoardEdge, 'style' | 'color' | 'from' | 'to' | 'label'>>) => void
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
@@ -128,6 +129,25 @@ export const useBoardStore = create<BoardState>((set) => ({
       edges: state.edges.filter((e) => e.id !== id),
       isDirty: shouldMarkBoardDirty(state)
     })),
+
+  updateEdge: (id, patch) =>
+    set((state) => {
+      let changed = false
+      const edges = state.edges.map((e) => {
+        if (e.id !== id) return e
+        const next = { ...e, ...patch }
+        if (
+          next.style === e.style &&
+          next.color === e.color &&
+          next.from === e.from &&
+          next.to === e.to &&
+          next.label === e.label
+        ) return e
+        changed = true
+        return next
+      })
+      return changed ? { edges, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
 
   updateNodePosition: (id, x, y) =>
     set((state) => {

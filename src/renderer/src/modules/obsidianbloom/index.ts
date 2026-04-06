@@ -1,4 +1,5 @@
 import type { WhitebloomModule } from '../types'
+import { BUD_ICON_NODE_W } from '@renderer/canvas/canvas-constants'
 import { ObsidianBloomIcon } from './ObsidianBloomIcon'
 import { ObsidianBloomNode } from './ObsidianBloomNode'
 
@@ -8,7 +9,7 @@ export const obsidianBloomModule: WhitebloomModule = {
   defaultRenderer: 'external',
   importable: false,
   handlesDirectories: true,
-  defaultSize: { w: 88, h: 88 },
+  defaultSize: { w: BUD_ICON_NODE_W, h: BUD_ICON_NODE_W },
 
   /**
    * Recognizes an Obsidian vault by the presence of a `.obsidian/` config directory
