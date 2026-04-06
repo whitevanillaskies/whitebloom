@@ -253,8 +253,8 @@
       "kind": "bud",
       "type": "com.whitebloom.schemabloom",
       "position": {
-        "x": 1032.5945089715192,
-        "y": -498.3464424081513
+        "x": 1079.6042393895098,
+        "y": -501.8286446613358
       },
       "size": {
         "w": 240,
@@ -263,7 +263,7 @@
       "resource": "wloc:res/sample_schema_jk 6.bdb",
       "created": "2026-04-06T13:39:50.489Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T20:58:53.356Z",
+      "updatedAt": "2026-04-06T23:38:24.997Z",
       "updatedBy": "anon"
     },
     {
@@ -271,8 +271,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 838.106218856016,
-        "y": -431.74612561671904
+        "x": 862.4816346283073,
+        "y": -508.3545751867779
       },
       "size": {
         "w": 88,
@@ -281,7 +281,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:07:51.665Z",
+      "updatedAt": "2026-04-06T23:38:32.571Z",
       "updatedBy": "anon"
     },
     {
@@ -289,8 +289,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 1023.4515026441082,
-        "y": -202.9660079034023
+        "x": 1013.004895884555,
+        "y": -241.2702326884318
       },
       "size": {
         "w": 88,
@@ -299,7 +299,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:28:47.311Z",
+      "updatedAt": "2026-04-06T23:38:33.658Z",
       "updatedBy": "anon"
     },
     {
@@ -329,15 +329,15 @@
         "y": -22.481273931598245
       },
       "size": {
-        "w": 26,
-        "h": 19
+        "w": 609,
+        "h": 75
       },
       "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"zooming temporarily hides toolbars which is quite jarring, while panning should hide them, zooming shouldn't. This doesn't happen to node toolbars, but it does happen to edge toolbars, so maybe check what's different between them.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "fixed",
       "wrapWidth": 609,
       "created": "2026-04-06T23:29:29.384Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:30:10.424Z",
+      "updatedAt": "2026-04-06T23:37:09.299Z",
       "updatedBy": "anon",
       "plain": "zooming temporarily hides toolbars which is quite jarring, while panning should hide them, zooming shouldn't. This doesn't happen to node toolbars, but it does happen to edge toolbars, so maybe check what's different between them."
     }
@@ -359,8 +359,8 @@
     }
   ],
   "viewport": {
-    "x": -239.9014398609521,
-    "y": 406.8321093984982,
-    "zoom": 0.6597539553864475
+    "x": -6.120982924978193,
+    "y": 379.228046705004,
+    "zoom": 0.574349177498518
   }
 }

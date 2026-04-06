@@ -4,7 +4,7 @@ import { PetalBudNode, PetalIconBadge } from '@renderer/components/petal'
 import type { BudNodeProps } from '../types'
 import { loadSchema } from './schema'
 import { SchemaBloomIcon } from './SchemaBloomIcon'
-import { BUD_ICON_PX } from '@renderer/canvas/canvas-constants'
+import { BUD_ICON_PX, BUD_ICON_NODE_W } from '@renderer/canvas/canvas-constants'
 import './SchemaBloomNode.css'
 
 function deriveLabel(resource: string): string {
@@ -33,7 +33,7 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
 
   return (
     <PetalBudNode
-      size={{ w: size.w }}
+      size={{ w: BUD_ICON_NODE_W }}
       label={label ?? deriveLabel(resource)}
       selected={selected}
       accentColor="--color-accent-blue"
