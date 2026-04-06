@@ -233,6 +233,13 @@
   line-height: 1.4;
 }
 
+.workspace-home__board-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Discard button — revealed on tile hover */
 
 .workspace-home__board-discard {

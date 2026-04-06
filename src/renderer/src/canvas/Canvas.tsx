@@ -42,7 +42,18 @@ import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
 import type { Tool } from './tools'
+import { captureBoardThumbnail } from './captureBoardThumbnail'
 import './Canvas.css'
+
+async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
+  try {
+    const dataUrl = await captureBoardThumbnail()
+    if (!dataUrl) return
+    await window.api.saveThumbnail(boardPath, workspaceRoot, dataUrl)
+  } catch (error) {
+    console.error('[thumbnail] capture or save failed:', error)
+  }
+}
 
 const nodeTypes = { text: TextNode, bud: BudNode }
 const edgeTypes = { wb: WbEdge }
@@ -450,6 +461,9 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       if (promotionResult.ok && promotionResult.boardPath) {
         setBoardPersistence(promotionResult.boardPath, false)
         markSaved()
+        if (workspaceRoot !== null) {
+          void captureAndSaveThumbnail(promotionResult.boardPath, workspaceRoot)
+        }
       }
       return
     }
@@ -461,8 +475,11 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
     if (result.ok) {
       markSaved()
+      if (workspaceRoot !== null) {
+        void captureAndSaveThumbnail(boardPath, workspaceRoot)
+      }
     }
-  }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence])
+  }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence, workspaceRoot])
 
 
   const handlePromoteToWorkspace = useCallback(async () => {
@@ -497,6 +514,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       if (!saveResult.ok) {
         throw new Error('Unable to write the promoted board into the new workspace.')
       }
+
+      void captureAndSaveThumbnail(createBoardResult.boardPath, createWorkspaceResult.workspaceRoot)
 
       const workspace = await window.api.readWorkspace(createWorkspaceResult.workspaceRoot)
       loadWorkspace(workspace)
@@ -972,29 +991,36 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           ? { defaultViewport: boardViewport }
           : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
         proOptions={{ hideAttribution: true }}
+        data-board-capture="root"
       >
         <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-        <MiniMap nodeStrokeWidth={1} zoomable pannable />
+        <div data-board-capture="exclude">
+          <MiniMap nodeStrokeWidth={1} zoomable pannable />
+        </div>
         <Panel position="top-left">
-          <BoardContextBar
-            name={boardName}
-            workspaceRoot={workspaceRoot}
-            isDirty={isDirty}
-            onNameChange={(name) => updateBoardMeta({ name })}
-            onSave={() => void handleSave()}
-            onGoHome={onGoHome}
-            onGoToWorkspaceHome={onGoToWorkspaceHome}
-            onNewBoard={handleNewBoard}
-            onOverflow={setOverflowAnchor}
-          />
+          <div data-board-capture="exclude">
+            <BoardContextBar
+              name={boardName}
+              workspaceRoot={workspaceRoot}
+              isDirty={isDirty}
+              onNameChange={(name) => updateBoardMeta({ name })}
+              onSave={() => void handleSave()}
+              onGoHome={onGoHome}
+              onGoToWorkspaceHome={onGoToWorkspaceHome}
+              onNewBoard={handleNewBoard}
+              onOverflow={setOverflowAnchor}
+            />
+          </div>
         </Panel>
 
         <Panel position="bottom-center">
-          <CanvasToolbar
-            activeTool={activeTool}
-            onToolChange={setActiveTool}
-          />
+          <div data-board-capture="exclude">
+            <CanvasToolbar
+              activeTool={activeTool}
+              onToolChange={setActiveTool}
+            />
+          </div>
         </Panel>
       </ReactFlow>
       )}

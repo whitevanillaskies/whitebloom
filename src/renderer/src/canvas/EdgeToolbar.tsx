@@ -58,6 +58,7 @@ export function EdgeToolbar({ edges }: EdgeToolbarProps) {
   return (
     <div
       className="edge-toolbar"
+      data-board-capture="exclude"
       style={{ left: screen.x, top: screen.y - 12 }}
       onMouseDown={(e) => e.stopPropagation()}
     >

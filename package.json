@@ -25,6 +25,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@lexical/react": "^0.42.0",
     "@xyflow/react": "^12.10.2",
+    "html-to-image": "^1.11.13",
     "lexical": "^0.42.0",
     "lucide-react": "^1.7.0",
     "zustand": "^5.0.12"

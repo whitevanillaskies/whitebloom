@@ -1,12 +1,18 @@
 import { ArrowLeft, ChevronLeft, FilePlus, LayoutGrid, Plus, Trash2 } from 'lucide-react'
+import { resourceToImageSrc } from '../../shared/resource-url'
 import './WorkspaceHome.css'
+
+type BoardEntry = {
+  path: string
+  thumbnailUri?: string
+}
 
 type WorkspaceHomeProps = {
   busy: boolean
   errorMessage: string | null
   workspaceName?: string
   workspaceBrief?: string
-  boards: string[]
+  boards: BoardEntry[]
   currentBoardName: string | null
   onReturnToBoard: (() => void) | null
   onCreateBoard: () => void
@@ -99,7 +105,7 @@ export default function WorkspaceHome({
             </button>
           </div>
 
-          {boards.map((boardPath) => (
+          {boards.map(({ path: boardPath, thumbnailUri }) => (
             <div key={boardPath} className="workspace-home__board-tile">
               <button
                 type="button"
@@ -108,7 +114,16 @@ export default function WorkspaceHome({
                 disabled={busy}
               >
                 <div className="workspace-home__board-preview">
-                  <LayoutGrid size={30} strokeWidth={1.2} />
+                  {thumbnailUri ? (
+                    <img
+                      src={resourceToImageSrc(thumbnailUri)}
+                      alt=""
+                      className="workspace-home__board-thumbnail"
+                      draggable={false}
+                    />
+                  ) : (
+                    <LayoutGrid size={30} strokeWidth={1.2} />
+                  )}
                 </div>
                 <div className="workspace-home__board-info">
                   <span className="workspace-home__board-label">{getBoardLabel(boardPath)}</span>

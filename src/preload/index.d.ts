@@ -59,6 +59,18 @@ type ListTransientBoardsResult = {
   boardPaths: string[]
 }
 
+type RecentBoardItem = {
+  path: string
+  openedAt: number
+  workspaceRoot?: string
+  thumbnailUri?: string
+}
+
+type ListRecentBoardsResult = {
+  ok: boolean
+  boards: RecentBoardItem[]
+}
+
 type WorkspaceCopyToResResult = {
   ok: boolean
   resource?: string
@@ -87,6 +99,7 @@ declare global {
       ) => Promise<WorkspaceCopyToResResult>
       createQuickboard: () => Promise<QuickboardCreateResult>
       listTransientBoards: () => Promise<ListTransientBoardsResult>
+      listRecentBoards: () => Promise<ListRecentBoardsResult>
       readBlossom: (workspaceRoot: string, resource: string) => Promise<string>
       writeBlossom: (workspaceRoot: string, resource: string, data: string) => Promise<{ ok: boolean }>
       openFile: (filePath: string) => Promise<void>
@@ -104,6 +117,19 @@ declare global {
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
       onCloseRequested: (cb: () => void) => () => void
       confirmClose: () => void
+      saveThumbnail: (
+        boardPath: string,
+        workspaceRoot: string,
+        dataUrl: string
+      ) => Promise<{ ok: boolean }>
+      getThumbnailUri: (
+        boardPath: string,
+        workspaceRoot: string
+      ) => Promise<{ ok: boolean; uri: string | null }>
+      discardThumbnail: (
+        boardPath: string,
+        workspaceRoot: string
+      ) => Promise<{ ok: boolean }>
     }
   }
 }

@@ -53,17 +53,17 @@
         "y": 271.74600768842174
       },
       "size": {
-        "w": 326,
+        "w": 356,
         "h": 39
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"asset management is knowledge management\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"asset management is knowledge management ddd\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "auto",
       "wrapWidth": null,
       "created": "2026-04-05T22:30:20.846Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-05T22:30:28.400Z",
+      "updatedAt": "2026-04-06T23:15:56.769Z",
       "updatedBy": "anon",
-      "plain": "asset management is knowledge management"
+      "plain": "asset management is knowledge management ddd"
     },
     {
       "id": "fa9fa309-1ae1-4ff6-bc99-e1a6449cba8c",
@@ -112,8 +112,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 574.0298129812744,
-        "y": 201.92540058608108
+        "x": 568.9706943914423,
+        "y": 196.8662819962488
       },
       "size": {
         "w": 165,
@@ -124,7 +124,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:31:49.473Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-05T22:31:55.080Z",
+      "updatedAt": "2026-04-06T23:15:45.031Z",
       "updatedBy": "anon",
       "plain": "ctrl - E to edit a node"
     },
@@ -235,8 +235,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": -188.2332088391181,
-        "y": -210.2657531839509
+        "x": -246.29155691312542,
+        "y": -228.7388639347714
       },
       "size": {
         "w": 220,
@@ -245,7 +245,7 @@
       "resource": "wloc:blossoms/note-1775439811494.blt",
       "created": "2026-04-06T01:43:31.501Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T19:45:07.259Z",
+      "updatedAt": "2026-04-06T21:30:07.597Z",
       "updatedBy": "anon"
     },
     {
@@ -271,8 +271,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 863.8734004866927,
-        "y": -387.7903451879175
+        "x": 838.106218856016,
+        "y": -431.74612561671904
       },
       "size": {
         "w": 88,
@@ -281,7 +281,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T20:58:59.984Z",
+      "updatedAt": "2026-04-06T23:07:51.665Z",
       "updatedBy": "anon"
     },
     {
@@ -289,8 +289,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 1168.3496799403654,
-        "y": -303.2525659975442
+        "x": 1120.8473951525411,
+        "y": -264.9868365851303
       },
       "size": {
         "w": 88,
@@ -299,7 +299,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T20:58:48.400Z",
+      "updatedAt": "2026-04-06T21:31:39.824Z",
       "updatedBy": "anon"
     },
     {
@@ -330,7 +330,7 @@
       "targetHandle": "left"
     },
     {
-      "id": "2ae5d8ec-6536-4438-a288-071a6402f263",
+      "id": "6128b732-5840-4672-8cae-69a6e76e9d16",
       "from": "8f0e5f43-b14a-40a4-a7f6-66ab8f7beaa3",
       "to": "f3737f50-a197-4481-afe1-3d94dcbe0af1",
       "sourceHandle": "right",
@@ -338,8 +338,8 @@
     }
   ],
   "viewport": {
-    "x": 475.42799368547776,
-    "y": 568.7747371742382,
-    "zoom": 0.7578582832551997
+    "x": 102.58292815706585,
+    "y": 122.85969090747915,
+    "zoom": 0.7578582832552001
   }
 }

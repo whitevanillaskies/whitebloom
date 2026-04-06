@@ -3,6 +3,7 @@ import { stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
 import { listTransientBoards } from '../services/app-storage'
+import { listRecentBoards, type RecentBoardItem } from '../services/recent-boards-store'
 import { openResource } from '../services/file-resource'
 import { resolveResource } from '../resource-uri'
 import { updateWorkspaceConfig } from '../services/workspace-files'
@@ -11,6 +12,11 @@ import type { MainProcessContext } from '../state/main-process-context'
 type ListTransientBoardsResult = {
   ok: boolean
   boardPaths: string[]
+}
+
+type ListRecentBoardsResult = {
+  ok: boolean
+  boards: RecentBoardItem[]
 }
 
 export function registerAppIpc(context: MainProcessContext): void {
@@ -99,6 +105,14 @@ export function registerAppIpc(context: MainProcessContext): void {
       return { ok: true, boardPaths: await listTransientBoards() }
     } catch {
       return { ok: false, boardPaths: [] }
+    }
+  })
+
+  ipcMain.handle('app:list-recent-boards', async (): Promise<ListRecentBoardsResult> => {
+    try {
+      return { ok: true, boards: await listRecentBoards() }
+    } catch {
+      return { ok: false, boards: [] }
     }
   })
 

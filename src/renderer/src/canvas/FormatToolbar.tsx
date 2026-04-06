@@ -40,7 +40,7 @@ export function FormatToolbar() {
   }, [editor, syncFormats])
 
   return (
-    <div className="format-toolbar" onMouseDown={(e) => e.preventDefault()}>
+    <div className="format-toolbar" data-board-capture="exclude" onMouseDown={(e) => e.preventDefault()}>
       <button
         className={`format-toolbar__btn${isBold ? ' format-toolbar__btn--active' : ''}`}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}

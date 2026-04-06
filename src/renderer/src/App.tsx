@@ -9,6 +9,13 @@ import { useBoardStore } from './stores/board'
 import { useWorkspaceStore } from './stores/workspace'
 import type { Board } from './shared/types'
 
+type RecentBoardItem = {
+  path: string
+  openedAt: number
+  workspaceRoot?: string
+  thumbnailUri?: string
+}
+
 type AppView = 'board' | 'workspace-home' | 'start'
 
 type BusyAction =
@@ -45,6 +52,8 @@ function App(): React.JSX.Element {
   const [busyAction, setBusyAction] = useState<BusyAction>(null)
   const [shellError, setShellError] = useState<string | null>(null)
   const [transientBoards, setTransientBoards] = useState<string[]>([])
+  const [recentBoards, setRecentBoards] = useState<RecentBoardItem[]>([])
+  const [boardThumbnails, setBoardThumbnails] = useState<Record<string, string>>({})
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false)
   const [newBoardName, setNewBoardName] = useState('Board')
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
@@ -67,6 +76,52 @@ function App(): React.JSX.Element {
       cancelled = true
     }
   }, [boardPath, workspaceRoot])
+
+  useEffect(() => {
+    if (boardPath !== null || workspaceRoot !== null) return
+
+    let cancelled = false
+
+    void (async () => {
+      const result = await window.api.listRecentBoards()
+      if (cancelled) return
+
+      setRecentBoards(result.ok ? result.boards : [])
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [boardPath, workspaceRoot])
+
+  useEffect(() => {
+    if (view !== 'workspace-home' || !workspaceRoot || workspaceBoards.length === 0) {
+      setBoardThumbnails({})
+      return
+    }
+
+    let cancelled = false
+
+    void (async () => {
+      const entries = await Promise.all(
+        workspaceBoards.map(async (boardPath) => {
+          const result = await window.api.getThumbnailUri(boardPath, workspaceRoot)
+          return [boardPath, result.ok && result.uri ? result.uri : null] as const
+        })
+      )
+      if (cancelled) return
+
+      const thumbnails: Record<string, string> = {}
+      for (const [path, uri] of entries) {
+        if (uri) thumbnails[path] = uri
+      }
+      setBoardThumbnails(thumbnails)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [view, workspaceBoards, workspaceRoot])
 
   useEffect(() => {
     return window.api.onCloseRequested(() => {
@@ -166,6 +221,29 @@ function App(): React.JSX.Element {
       }
     },
     [clearWorkspace, openBoardByPath]
+  )
+
+  const handleOpenRecentBoard = useCallback(
+    async (item: RecentBoardItem) => {
+      setBusyAction('open-board')
+      setShellError(null)
+
+      try {
+        if (item.workspaceRoot) {
+          const workspace = await window.api.readWorkspace(item.workspaceRoot)
+          loadWorkspace(workspace)
+        } else {
+          clearWorkspace()
+        }
+        await openBoardByPath(item.path)
+      } catch (error) {
+        clearBoard()
+        setShellError(error instanceof Error ? error.message : 'Unable to open that board.')
+      } finally {
+        setBusyAction(null)
+      }
+    },
+    [clearBoard, clearWorkspace, loadWorkspace, openBoardByPath]
   )
 
   const handleRequestTrashBoard = useCallback(
@@ -321,7 +399,7 @@ function App(): React.JSX.Element {
           errorMessage={shellError}
           workspaceName={workspaceConfig?.name}
           workspaceBrief={workspaceConfig?.brief}
-          boards={workspaceBoards}
+          boards={workspaceBoards.map((path) => ({ path, thumbnailUri: boardThumbnails[path] }))}
           currentBoardName={canReturnToBoard ? currentBoardName : null}
           onReturnToBoard={canReturnToBoard ? handleReturnToBoard : null}
           onCreateBoard={handleOpenCreateBoardModal}
@@ -357,12 +435,14 @@ function App(): React.JSX.Element {
         busy={busyAction !== null}
         errorMessage={shellError}
         transientBoards={transientBoards}
+        recentBoards={recentBoards}
         currentBoardName={canReturnToBoard ? currentBoardName : null}
         onReturnToBoard={canReturnToBoard ? handleReturnToBoard : null}
         onOpenWorkspace={() => void handleOpenWorkspace()}
         onCreateWorkspace={() => void handleCreateWorkspace()}
         onCreateQuickboard={() => void handleCreateQuickboard()}
         onOpenTransientBoard={(nextBoardPath) => void handleOpenTransientBoard(nextBoardPath)}
+        onOpenRecentBoard={(item) => void handleOpenRecentBoard(item)}
         onTrashBoard={(nextBoardPath) => void handleRequestTrashBoard(nextBoardPath)}
       />
       {pendingTrashBoard ? (

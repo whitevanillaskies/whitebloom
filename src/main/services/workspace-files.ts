@@ -2,6 +2,9 @@ import { constants } from 'fs'
 import { access, copyFile, mkdir, readdir, readFile, writeFile } from 'fs/promises'
 import { basename, dirname, extname, join, parse } from 'path'
 
+const GITIGNORE_FILENAME = '.gitignore'
+const GITIGNORE_THUMBS_ENTRY = '.wbthumbs/'
+
 export type WorkspaceConfig = {
   version: number
   name?: string
@@ -157,6 +160,21 @@ export async function createWorkspace(workspaceRoot: string): Promise<void> {
     : normalizeWorkspaceConfig(undefined)
 
   await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
+  await ensureGitignoreEntry(workspaceRoot)
+}
+
+async function ensureGitignoreEntry(workspaceRoot: string): Promise<void> {
+  const gitignorePath = join(workspaceRoot, GITIGNORE_FILENAME)
+
+  if (await pathExists(gitignorePath)) {
+    const existing = await readFile(gitignorePath, 'utf-8')
+    const lines = existing.split(/\r?\n/)
+    if (lines.some((line) => line.trim() === GITIGNORE_THUMBS_ENTRY.trim())) return
+    const separator = existing.endsWith('\n') || existing.length === 0 ? '' : '\n'
+    await writeFile(gitignorePath, `${existing}${separator}${GITIGNORE_THUMBS_ENTRY}\n`, 'utf-8')
+  } else {
+    await writeFile(gitignorePath, `${GITIGNORE_THUMBS_ENTRY}\n`, 'utf-8')
+  }
 }
 
 export async function readWorkspace(workspaceRoot: string): Promise<Workspace> {

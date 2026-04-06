@@ -16,6 +16,12 @@ import {
   readWorkspace,
   writeBoard
 } from '../services/workspace-files'
+import {
+  discardThumbnail,
+  getThumbnailUri,
+  writeThumbnail
+} from '../services/board-thumbnails'
+import { recordBoardOpen } from '../services/recent-boards-store'
 import { resolveResource } from '../resource-uri'
 
 type WorkspaceOpenDialogResult = {
@@ -136,6 +142,7 @@ export function registerBoardIpc(context: MainProcessContext): void {
   ipcMain.handle('board:open', async (_event, boardPath: string) => {
     const json = await readBoard(boardPath)
     context.setActiveWorkspaceRoot(await findWorkspaceRootForBoard(boardPath))
+    void recordBoardOpen(boardPath)
     return json
   })
 
@@ -192,8 +199,10 @@ export function registerBoardIpc(context: MainProcessContext): void {
     if (!boardPath) return { ok: false }
 
     try {
+      const workspaceRoot = await findWorkspaceRootForBoard(boardPath)
       const trashPath = await trashBoard(boardPath)
-      context.setActiveWorkspaceRoot(await findWorkspaceRootForBoard(boardPath))
+      context.setActiveWorkspaceRoot(workspaceRoot)
+      if (workspaceRoot) void discardThumbnail(boardPath, workspaceRoot)
       return { ok: true, trashPath }
     } catch {
       return { ok: false }
@@ -260,6 +269,58 @@ export function registerBoardIpc(context: MainProcessContext): void {
         const absolutePath = resolveResource(resource, workspaceRoot)
         await mkdir(dirname(absolutePath), { recursive: true })
         await writeFile(absolutePath, data, 'utf-8')
+        return { ok: true }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'thumbnail:save',
+    async (
+      _event,
+      boardPath: string,
+      workspaceRoot: string,
+      dataUrl: string
+    ): Promise<{ ok: boolean }> => {
+      if (!boardPath || !workspaceRoot || !dataUrl) return { ok: false }
+      try {
+        await writeThumbnail(boardPath, workspaceRoot, dataUrl)
+        return { ok: true }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'thumbnail:get-uri',
+    async (
+      _event,
+      boardPath: string,
+      workspaceRoot: string
+    ): Promise<{ ok: boolean; uri: string | null }> => {
+      if (!boardPath || !workspaceRoot) return { ok: false, uri: null }
+      try {
+        const uri = await getThumbnailUri(boardPath, workspaceRoot)
+        return { ok: true, uri }
+      } catch {
+        return { ok: false, uri: null }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'thumbnail:discard',
+    async (
+      _event,
+      boardPath: string,
+      workspaceRoot: string
+    ): Promise<{ ok: boolean }> => {
+      if (!boardPath || !workspaceRoot) return { ok: false }
+      try {
+        await discardThumbnail(boardPath, workspaceRoot)
         return { ok: true }
       } catch {
         return { ok: false }

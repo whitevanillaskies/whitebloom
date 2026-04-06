@@ -60,6 +60,18 @@ type ListTransientBoardsResult = {
   boardPaths: string[]
 }
 
+type RecentBoardItem = {
+  path: string
+  openedAt: number
+  workspaceRoot?: string
+  thumbnailUri?: string
+}
+
+type ListRecentBoardsResult = {
+  ok: boolean
+  boards: RecentBoardItem[]
+}
+
 type WorkspaceCopyToResResult = {
   ok: boolean
   resource?: string
@@ -95,6 +107,8 @@ const api = {
   createQuickboard: (): Promise<QuickboardCreateResult> => ipcRenderer.invoke('quickboard:create'),
   listTransientBoards: (): Promise<ListTransientBoardsResult> =>
     ipcRenderer.invoke('app:list-transient-boards'),
+  listRecentBoards: (): Promise<ListRecentBoardsResult> =>
+    ipcRenderer.invoke('app:list-recent-boards'),
   readBlossom: (workspaceRoot: string, resource: string): Promise<string> =>
     ipcRenderer.invoke('blossom:read', workspaceRoot, resource),
   writeBlossom: (
@@ -128,7 +142,23 @@ const api = {
     ipcRenderer.on('app:close-requested', listener)
     return () => ipcRenderer.off('app:close-requested', listener)
   },
-  confirmClose: (): void => ipcRenderer.send('app:confirm-close')
+  confirmClose: (): void => ipcRenderer.send('app:confirm-close'),
+  saveThumbnail: (
+    boardPath: string,
+    workspaceRoot: string,
+    dataUrl: string
+  ): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('thumbnail:save', boardPath, workspaceRoot, dataUrl),
+  getThumbnailUri: (
+    boardPath: string,
+    workspaceRoot: string
+  ): Promise<{ ok: boolean; uri: string | null }> =>
+    ipcRenderer.invoke('thumbnail:get-uri', boardPath, workspaceRoot),
+  discardThumbnail: (
+    boardPath: string,
+    workspaceRoot: string
+  ): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('thumbnail:discard', boardPath, workspaceRoot)
 }
 
 if (process.contextIsolated) {
