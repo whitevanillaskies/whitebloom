@@ -28,8 +28,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": -61.40537769045355,
-        "y": 147.71596086974387
+        "x": -71.85198445000705,
+        "y": 122.17981101305756
       },
       "size": {
         "w": 401,
@@ -40,7 +40,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:04.687Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T01:01:14.226Z",
+      "updatedAt": "2026-04-06T01:35:56.143Z",
       "updatedBy": "anon",
       "plain": "mind graphs, etc. are useful, but I'm thinking also of assets"
     },
@@ -171,24 +171,6 @@
       "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
     },
     {
-      "id": "c437591b-b57f-49b6-bbf5-ac49d21262f0",
-      "kind": "bud",
-      "type": "com.whitebloom.focus-writer",
-      "position": {
-        "x": -127.38120368823866,
-        "y": -173.9790895264348
-      },
-      "size": {
-        "w": 220,
-        "h": 160
-      },
-      "resource": "wloc:blossoms/note-1775434843412.blt",
-      "created": "2026-04-06T00:20:43.419Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-06T01:01:29.923Z",
-      "updatedBy": "anon"
-    },
-    {
       "id": "2576c107-6930-48ae-a80c-98b2ca7a56a4",
       "kind": "leaf",
       "type": "text",
@@ -214,8 +196,8 @@
       "kind": "bud",
       "type": "com.whitebloom.image",
       "position": {
-        "x": 177.70220054741566,
-        "y": -337.2036477338097
+        "x": 259.75747965251895,
+        "y": -383.83587881351633
       },
       "size": {
         "w": 205,
@@ -224,7 +206,46 @@
       "resource": "wloc:res/1d0ff473584c87908b1bf02aded2a8dd.jpg",
       "created": "2026-04-06T01:17:43.238Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T01:17:54.602Z",
+      "updatedAt": "2026-04-06T01:45:52.578Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "f909b4b0-8860-47be-b5d6-be1d8283dc50",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 500.42934634974563,
+        "y": -338.5517726636362
+      },
+      "size": {
+        "w": 261,
+        "h": 326
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Features added\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"We coded the architecture to support modular plugins where each module supports a file extension. For example, we coded a focus writer mode.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Other features\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h3\"},{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Refactored files into workspaces and quickboards\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Added support for portable boards with embedded files like pictures\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Tools palette\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":3},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Workspace home screen, start screen.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":4}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 261,
+      "created": "2026-04-06T01:42:33.048Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T01:43:29.567Z",
+      "updatedBy": "anon",
+      "plain": "Features added\nWe coded the architecture to support modular plugins where each module supports a file extension. For example, we coded a focus writer mode.\nOther features\nRefactored files into workspaces and quickboards\nAdded support for portable boards with embedded files like pictures\nTools palette\nWorkspace home screen, start screen."
+    },
+    {
+      "id": "f6097a86-d4c5-485a-9075-b34b61e3815c",
+      "kind": "bud",
+      "type": "com.whitebloom.focus-writer",
+      "position": {
+        "x": -77.03586063668328,
+        "y": -164.4416600044114
+      },
+      "size": {
+        "w": 220,
+        "h": 160
+      },
+      "resource": "wloc:blossoms/note-1775439811494.blt",
+      "created": "2026-04-06T01:43:31.501Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T01:43:59.616Z",
       "updatedBy": "anon"
     }
   ],

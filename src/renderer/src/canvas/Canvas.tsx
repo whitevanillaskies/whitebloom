@@ -22,10 +22,11 @@ import { dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
-import { FileText, FolderPlus, Settings2, Trash2, Type } from 'lucide-react'
+import { Database, FileText, FolderPlus, Settings2, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
 import { focusWriterModule } from '../modules/focus-writer'
+import { schemaBloomModule } from '../modules/schemabloom'
 import { absolutePathToFileUri } from '@renderer/shared/resource-url'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
@@ -184,6 +185,16 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     const id = crypto.randomUUID()
     addNode({ id, kind: 'bud', type: focusWriterModule.id, position, size: { w: 220, h: 160 }, resource })
     setActiveBloom({ nodeId: id, module: focusWriterModule, resource })
+  }, [workspaceRoot, screenToFlowPosition, addNode])
+
+  const createSchemaBloomBud = useCallback(async () => {
+    if (!workspaceRoot) return
+    const resource = `wloc:blossoms/schema-${Date.now()}.bdb`
+    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    await window.api.writeBlossom(workspaceRoot, resource, schemaBloomModule.createDefault!())
+    const id = crypto.randomUUID()
+    addNode({ id, kind: 'bud', type: schemaBloomModule.id, position, size: { w: 220, h: 100 }, resource })
+    setActiveBloom({ nodeId: id, module: schemaBloomModule, resource })
   }, [workspaceRoot, screenToFlowPosition, addNode])
 
   const activeToolRef = useRef(activeTool)
@@ -493,6 +504,9 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         return
       }
 
+      // All remaining shortcuts are canvas-only — skip them while any bloom is open
+      if (activeBloom !== null) return
+
       if (
         event.key.toLowerCase() === 't' &&
         !event.ctrlKey &&
@@ -640,10 +654,16 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         icon: <FileText size={14} strokeWidth={1.8} />,
         onActivate: () => { void createFocusWriterBud() }
       })
+      items.push({
+        id: 'create-schema-bloom',
+        label: 'Schema Bloom',
+        icon: <Database size={14} strokeWidth={1.8} />,
+        onActivate: () => { void createSchemaBloomBud() }
+      })
     }
 
     return items
-  }, [workspaceRoot, screenToFlowPosition, addNode, createFocusWriterBud])
+  }, [workspaceRoot, screenToFlowPosition, addNode, createFocusWriterBud, createSchemaBloomBud])
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -798,6 +818,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
   return (
     <BloomContext.Provider value={handleBloom}>
+      <div style={{ width: '100%', height: '100%', ...(activeBloom !== null && { visibility: 'hidden', pointerEvents: 'none' }) }}>
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
@@ -842,6 +863,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           />
         </Panel>
       </ReactFlow>
+      </div>
 
       {settingsOpen && (
         <SettingsModal

@@ -5,7 +5,7 @@
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  background: var(--color-bg);
+  background: var(--color-primary-bg);
 }
 
 /* Loading — invisible by default; modules animate in as they like */

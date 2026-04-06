@@ -1,0 +1,146 @@
+/* ── Table Node (SchemaBloom canvas node) ── */
+
+.sbn-root {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-border-frame);
+  min-width: 220px;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--color-primary-fg);
+}
+
+/* ── Header (table name + add column button) ── */
+
+.sbn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  cursor: default;
+  user-select: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.sbn-table-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-primary-fg);
+}
+
+.sbn-name-input {
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-border-inner);
+  outline: none;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-fg);
+  padding: 1px 4px;
+  width: 100%;
+}
+
+.sbn-name-input:focus {
+  border-color: var(--color-accent-blue);
+}
+
+.sbn-add-column {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-border-inner);
+  background: transparent;
+  color: var(--color-muted-fg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.sbn-add-column:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-primary-fg);
+}
+
+/* ── Column list ── */
+
+.sbn-columns {
+  /* no top border — header already has a bottom border */
+}
+
+.sbn-column {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  color: var(--color-secondary-fg);
+}
+
+.sbn-column:last-child {
+  border-bottom: none;
+}
+
+.sbn-column-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+.sbn-column-delete {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border: none;
+  border-radius: var(--radius-border-inner);
+  background: transparent;
+  color: var(--color-muted-fg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.sbn-column:hover .sbn-column-delete {
+  opacity: 1;
+}
+
+.sbn-column-delete:hover {
+  background: rgba(236, 22, 76, 0.08);
+  color: var(--color-accent-red);
+}
+
+/* ── Handles (connection dots) ── */
+
+.sbn-handle {
+  width: 6px;
+  height: 6px;
+  background: var(--color-muted-fg);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+}
+
+.sbn-handle:hover {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+}
