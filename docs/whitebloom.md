@@ -465,6 +465,14 @@ type WhitebloomEditor<T = unknown> = {
   // 'external' — bloom opens the file in the OS default app (shell.openPath).
   // Users can override this per type in .wbconfig.
 
+  importable?: false
+  // Optional. When set to false, the module permanently opts out of import
+  // (copy-into-workspace) behavior. The UI never offers an import option for
+  // this module's resources: no import toggle in settings, no "Import to Local"
+  // in the context menu, no copy on drop. Omitting this field means importable
+  // (the default). Use for opaque directories (Obsidian vaults, .blend files,
+  // shared team project folders) where copying would be harmful or meaningless.
+
   recognizes?(resource: string): boolean | Promise<boolean>
   // Optional. Marks this as a specific module. Called on drag-and-drop to test
   // whether this module claims the dropped file. Implementations should inspect
