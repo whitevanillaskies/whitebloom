@@ -46,6 +46,9 @@ import { captureBoardThumbnail } from './captureBoardThumbnail'
 import './Canvas.css'
 
 async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
+  // Defer capture by one animation frame so it doesn't block the post-save UI
+  // update. toJpeg does heavy synchronous DOM work on the render thread.
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
   try {
     const dataUrl = await captureBoardThumbnail()
     if (!dataUrl) return

@@ -31,7 +31,6 @@
 }
 
 .board-context-bar__home:hover {
-  background: rgba(0, 0, 0, 0.06);
   color: var(--color-primary-fg);
 }
 

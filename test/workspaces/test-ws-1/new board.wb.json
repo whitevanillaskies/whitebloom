@@ -49,21 +49,21 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 149.12608190553803,
-        "y": 271.74600768842174
+        "x": 128.01395533317177,
+        "y": 232.16077036523495
       },
       "size": {
-        "w": 356,
+        "w": 326,
         "h": 39
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"asset management is knowledge management ddd\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"asset management is knowledge management\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "auto",
       "wrapWidth": null,
       "created": "2026-04-05T22:30:20.846Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:15:56.769Z",
+      "updatedAt": "2026-04-06T23:18:55.719Z",
       "updatedBy": "anon",
-      "plain": "asset management is knowledge management ddd"
+      "plain": "asset management is knowledge management"
     },
     {
       "id": "fa9fa309-1ae1-4ff6-bc99-e1a6449cba8c",
@@ -214,8 +214,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 500.42934634974563,
-        "y": -338.5517726636362
+        "x": 486.42934634974563,
+        "y": -394.5517726636362
       },
       "size": {
         "w": 261,
@@ -226,7 +226,7 @@
       "wrapWidth": 261,
       "created": "2026-04-06T01:42:33.048Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T01:43:29.567Z",
+      "updatedAt": "2026-04-06T23:28:40.334Z",
       "updatedBy": "anon",
       "plain": "Features added\nWe coded the architecture to support modular plugins where each module supports a file extension. For example, we coded a focus writer mode.\nOther features\nRefactored files into workspaces and quickboards\nAdded support for portable boards with embedded files like pictures\nTools palette\nWorkspace home screen, start screen."
     },
@@ -235,8 +235,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": -246.29155691312542,
-        "y": -228.7388639347714
+        "x": -193.45143258326192,
+        "y": -262.05111622968536
       },
       "size": {
         "w": 220,
@@ -245,7 +245,7 @@
       "resource": "wloc:blossoms/note-1775439811494.blt",
       "created": "2026-04-06T01:43:31.501Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T21:30:07.597Z",
+      "updatedAt": "2026-04-06T23:21:13.529Z",
       "updatedBy": "anon"
     },
     {
@@ -289,8 +289,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 1120.8473951525411,
-        "y": -264.9868365851303
+        "x": 1023.4515026441082,
+        "y": -202.9660079034023
       },
       "size": {
         "w": 88,
@@ -299,7 +299,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T21:31:39.824Z",
+      "updatedAt": "2026-04-06T23:28:47.311Z",
       "updatedBy": "anon"
     },
     {
@@ -319,6 +319,27 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-06T20:58:49.774Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "2e63960b-3f1e-4eb7-9cc8-fbdadb129a4e",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 918.3748500697484,
+        "y": -22.481273931598245
+      },
+      "size": {
+        "w": 26,
+        "h": 19
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"zooming temporarily hides toolbars which is quite jarring, while panning should hide them, zooming shouldn't. This doesn't happen to node toolbars, but it does happen to edge toolbars, so maybe check what's different between them.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 609,
+      "created": "2026-04-06T23:29:29.384Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T23:30:10.424Z",
+      "updatedBy": "anon",
+      "plain": "zooming temporarily hides toolbars which is quite jarring, while panning should hide them, zooming shouldn't. This doesn't happen to node toolbars, but it does happen to edge toolbars, so maybe check what's different between them."
     }
   ],
   "edges": [
@@ -338,8 +359,8 @@
     }
   ],
   "viewport": {
-    "x": 102.58292815706585,
-    "y": 122.85969090747915,
-    "zoom": 0.7578582832552001
+    "x": -239.9014398609521,
+    "y": 406.8321093984982,
+    "zoom": 0.6597539553864475
   }
 }

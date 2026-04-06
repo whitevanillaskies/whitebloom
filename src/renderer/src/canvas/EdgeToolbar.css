@@ -31,11 +31,6 @@
   transition: background 100ms ease, border-color 100ms ease;
 }
 
-.edge-toolbar__btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.06);
-}
-
 .edge-toolbar__btn:active {
   background: rgba(0, 0, 0, 0.1);
 }
