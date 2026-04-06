@@ -169,6 +169,24 @@
       "updatedAt": "2026-04-05T22:33:30.723Z",
       "updatedBy": "anon",
       "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
+    },
+    {
+      "id": "c437591b-b57f-49b6-bbf5-ac49d21262f0",
+      "kind": "bud",
+      "type": "com.whitebloom.focus-writer",
+      "position": {
+        "x": 30.666666666666686,
+        "y": -157
+      },
+      "size": {
+        "w": 220,
+        "h": 160
+      },
+      "resource": "wloc:blossoms/note-1775434843412.blt",
+      "created": "2026-04-06T00:20:43.419Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T00:21:30.111Z",
+      "updatedBy": "anon"
     }
   ],
   "edges": []
