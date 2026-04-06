@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ReactFlowProvider } from '@xyflow/react'
 import type { ActiveBloom } from './BloomContext'
 import './BloomModal.css'
 
@@ -62,13 +63,15 @@ export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
       )}
 
       {loadState.status === 'ready' && EditorComponent && (
-        <EditorComponent
-          resource={bloom.resource}
-          workspaceRoot={workspaceRoot}
-          initialData={loadState.initialData}
-          onSave={handleSave}
-          onClose={onClose}
-        />
+        <ReactFlowProvider>
+          <EditorComponent
+            resource={bloom.resource}
+            workspaceRoot={workspaceRoot}
+            initialData={loadState.initialData}
+            onSave={handleSave}
+            onClose={onClose}
+          />
+        </ReactFlowProvider>
       )}
     </div>
   )

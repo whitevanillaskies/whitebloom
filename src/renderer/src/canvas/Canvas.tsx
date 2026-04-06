@@ -660,7 +660,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       })
       items.push({
         id: 'create-schema-bloom',
-        label: 'Schema Bloom',
+        label: 'DB Schema Drafter',
         icon: <Database size={14} strokeWidth={1.8} />,
         onActivate: () => { void createSchemaBloomBud() }
       })

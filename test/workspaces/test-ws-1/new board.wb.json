@@ -247,7 +247,30 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-06T01:43:59.616Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "bd858ab0-058c-42da-9b19-acf166917508",
+      "kind": "bud",
+      "type": "com.whitebloom.schemabloom",
+      "position": {
+        "x": 819.8742006664453,
+        "y": -252.1846871413853
+      },
+      "size": {
+        "w": 240,
+        "h": 160
+      },
+      "resource": "wloc:res/sample_schema_jk 6.bdb",
+      "created": "2026-04-06T13:39:50.489Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T13:39:54.800Z",
+      "updatedBy": "anon"
     }
   ],
-  "edges": []
+  "edges": [],
+  "viewport": {
+    "x": 20.98865934827444,
+    "y": 246.34019054516477,
+    "zoom": 0.5683937124413992
+  }
 }

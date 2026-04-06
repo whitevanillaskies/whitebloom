@@ -3,6 +3,94 @@
 Work that's not yet needed but it's worth keeping in mind.
 
 
+## Arrangements: workspace resource manager
+
+A first-class UI for managing all workspace resources — a logical asset library that lives above the physical `res/` and `blossoms/` directories, inspired by Aperture's Projects + Albums model and DaVinci Resolve's Media Pool.
+
+**Motivation.** Currently, a resource's lifecycle is tied entirely to its node. Deleting a node leaks its backing file; there is no way to share a resource across multiple boards; and `file:///`-linked resources are indistinguishable from workspace-owned ones in any UI. As Whitebloom becomes a knowledge management environment, resources need to be workspace-level citizens with their own organizational home.
+
+**Precedents.** Apple Aperture (2005–2014) is the closest model: photos lived in *Projects* (exclusive ownership, flat list) and could be organized into *Albums* (non-exclusive, hierarchical). This two-tier model cleanly separated "where does this asset belong" from "how do I view it right now." DaVinci Resolve's Media Pool uses the same idea, backed by a PostgreSQL/SQLite database rather than files. Scrivener's Binder is a third precedent: a logical tree over an opaque flat package, where users never see or care about the on-disk structure.
+
+### Two organizational concepts
+
+**Bins** — exclusive, flat. A resource belongs to exactly one bin. Bins answer "what *is* this fundamentally." They are categorical, not contextual. A resource's bin assignment is the user's decision and the system never overrides it. Bins have no nesting.
+
+**Sets** — non-exclusive, hierarchical. A resource can appear in any number of sets. Sets answer "what *context* does this belong to right now." Sets can nest arbitrarily deep. Sets come in two kinds:
+
+- *Manual sets* — user-curated. The user drags resources into them. An Arrangement Set is the full qualified term (seen in UI: the Arrangements view, containing Sets).
+- *Smart sets* — computed at read time by scanning board files. Never stored with membership lists; membership is derived, not recorded. The system populates them automatically but never uses them to reclassify or move anything.
+
+**The core invariant:** the system layer (smart sets, stale detection) is always advisory and read-only. It observes but never reclassifies. A resource the user has placed in an "Images" bin stays in "Images" forever, regardless of whether it is referenced by zero boards.
+
+### System bins (built-in, read-only)
+
+- **Unclassified** — the import default. Any resource that enters the workspace without an explicit bin assignment lands here. This includes all drops onto the whiteboard canvas. The user promotes resources out of Unclassified by dragging them into a named bin in the Arrangements view.
+- **Trash** — soft delete. Resources are moved here only by an explicit user action inside Arrangements (right-click → Move to Trash, or drag). Deleting a node on a whiteboard does *not* move its resource to Trash — the resource stays in its bin and may become Stale. Trash is emptied explicitly (permanently deletes files from disk).
+
+### System smart sets (built-in, computed)
+
+- **Stale** — resources not referenced by any `*.wb.json` in the workspace. Computed by scanning all board files. A resource in the Stale set has zero node references but retains its bin assignment. This is the discovery mechanism for cleanup candidates; the user decides whether to trash, reassign, or leave them.
+- **Linked** — resources whose backing URI is `file:///` (external links, not workspace-owned). These are assets the user chose to link rather than import. The Linked set is the natural home for the "Import to Local" action (copies the file into `res/`, rewrites the node's `resource` from `file:///` to `wloc:`).
+
+Additional smart sets can be added without schema changes: "Recently Added," "Referenced by Open Board," etc. Smart set definitions are pure functions over the resource list and board files.
+
+### Physical storage
+
+The `res/` and `blossoms/` directories remain as-is on disk. The split (`res/` for externally-originated assets, `blossoms/` for internally-authored ones) stays meaningful for agent traversal and filesystem legibility. It is invisible to the user in the Arrangements UI — the user sees bins and sets, not directories.
+
+Files within each directory are stored flat (no subdirectories). Filenames are content-addressed or UUID-based — an implementation detail the user never sees. Filesystem organization is fully delegated to the app.
+
+### `blossoms-garden.json`
+
+A new workspace-level file at the workspace root (sibling to `.wbconfig`). It stores bins, sets, and resource metadata. Smart sets are not stored here — they are computed on demand.
+
+```json
+{
+  "version": 1,
+  "bins": [
+    { "id": "sys:unclassified", "name": "Unclassified", "system": true },
+    { "id": "sys:trash",        "name": "Trash",         "system": true },
+    { "id": "uuid-a",           "name": "Images",        "system": false },
+    { "id": "uuid-b",           "name": "Data",          "system": false }
+  ],
+  "sets": [
+    { "id": "uuid-c", "name": "Project Alpha", "parent": null },
+    { "id": "uuid-d", "name": "References",    "parent": "uuid-c" }
+  ],
+  "resources": [
+    {
+      "id": "uuid-r1",
+      "file": "res/abc123.png",
+      "name": "diagram.png",
+      "bin": "uuid-a",
+      "sets": ["uuid-d"]
+    },
+    {
+      "id": "uuid-r2",
+      "file": "blossoms/def456.md",
+      "name": "research notes",
+      "bin": "sys:unclassified",
+      "sets": []
+    }
+  ]
+}
+```
+
+Nodes in `.wb.json` continue to reference resources by `wloc:` URI. The `blossoms-garden.json` `resource.id` and `resource.file` are the bridge between the logical garden and the physical file. Stale detection is a join: resources in the garden whose `file` value does not appear in any `resource` field across all board files.
+
+### Import flow
+
+1. User drops a file onto the canvas → file is copied into `res/` (import) or kept in place (link) → a node is created referencing `wloc:res/<hash>.ext` or `file:///…` → resource record is written to `blossoms-garden.json` with `bin: "sys:unclassified"`.
+2. User opens Arrangements later, sees the resource in Unclassified, drags it to the "Images" bin → `bin` field updated in `blossoms-garden.json`. Nothing on disk moves.
+3. User deletes the node from the canvas → resource record stays in `blossoms-garden.json`, bin assignment unchanged → resource now appears in the Stale smart set.
+4. User opens Arrangements, sees resource in Stale, drags it to Trash → `bin` updated to `sys:trash`.
+5. User empties Trash → file deleted from disk, record removed from `blossoms-garden.json`.
+
+### Quickboards
+
+Quickboards have no workspace and no `blossoms-garden.json`. Resources in a quickboard are either embedded (`wbhost:`) or linked (`file:///`). The Arrangements view is unavailable for quickboards. On promotion to a workspace, `wbhost:` resources are extracted to `res/`, written into a fresh `blossoms-garden.json` as Unclassified, and `resource` URIs are rewritten to `wloc:`.
+
+
 ## `wbhost:` inline asset URIs
 
 A URI scheme for embedding binary assets directly inside the board JSON, intended primarily
