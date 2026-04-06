@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
+import { CONNECTION_HANDLE_OUTSET_PX } from './canvas-constants'
 import { useBoardStore } from '@renderer/stores/board'
 import type { WidthMode } from '@renderer/shared/types'
 import { isLexicalContentEmpty } from '@renderer/shared/types'
@@ -46,7 +47,6 @@ const MIN_AUTO_WIDTH = 180
 const MIN_WRAP_WIDTH = 120
 const EDGE_RESIZE_ZONE_PX = 6
 const EDGE_ICON_OFFSET_PX = 10
-const CONNECTION_HANDLE_OUTSET_PX = 8
 
 type ResizeEdge = 'left' | 'right'
 
@@ -686,9 +686,9 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
           </div>
         )}
 
-        <Handle type="target" position={Position.Top} />
+        <Handle type="target" position={Position.Top} style={{ top: -CONNECTION_HANDLE_OUTSET_PX }} />
         <Handle type="target" position={Position.Left} style={{ left: -CONNECTION_HANDLE_OUTSET_PX }} />
-        <Handle type="source" position={Position.Bottom} />
+        <Handle type="source" position={Position.Bottom} style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }} />
         <Handle type="source" position={Position.Right} style={{ right: -CONNECTION_HANDLE_OUTSET_PX }} />
       </div>
     </>

@@ -59,3 +59,22 @@
 }
 
 
+/* ─── Connection handles ─────────────────────────────────────────────────── */
+
+/* Hidden by default on all nodes */
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Visible on the single selected node */
+.canvas--single-select .react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Visible on the proximity target while a connection is being dragged */
+.react-flow__node.wb-handles-visible .react-flow__handle {
+  opacity: 1;
+  pointer-events: all;
+}

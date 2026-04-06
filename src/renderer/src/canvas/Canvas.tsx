@@ -3,9 +3,13 @@ import {
   ReactFlow,
   Background,
   type Node as RFNode,
+  type Edge as RFEdge,
   type NodeChange,
+  type EdgeChange,
+  type Connection,
   type Viewport,
   applyNodeChanges,
+  applyEdgeChanges,
   Panel,
   useReactFlow,
   MiniMap
@@ -16,6 +20,9 @@ import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
 import { BudNode } from './BudNode'
+import { ProximityTracker } from './ProximityTracker'
+import { WbEdge } from './WbEdge'
+import type { WbEdgeData } from './WbEdge'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import '../modules/index'
@@ -36,6 +43,7 @@ import type { Tool } from './tools'
 import './Canvas.css'
 
 const nodeTypes = { text: TextNode, bud: BudNode }
+const edgeTypes = { wb: WbEdge }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 const LARGE_IMPORT_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
 
@@ -143,6 +151,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const updateViewport = useBoardStore((s) => s.updateViewport)
   const addNode = useBoardStore((s) => s.addNode)
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
+  const storeAddEdge = useBoardStore((s) => s.addEdge)
+  const storeDeleteEdge = useBoardStore((s) => s.deleteEdge)
   const clearBoard = useBoardStore((s) => s.clearBoard)
   const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
@@ -276,6 +286,33 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     })
   }, [activeTool])
 
+  // Derive RF edges from store
+  const schemaEdges: RFEdge[] = useMemo(
+    () =>
+      boardEdges.map((e) => ({
+        id: e.id,
+        source: e.from,
+        target: e.to,
+        type: 'wb',
+        label: e.label,
+        data: { style: e.style, color: e.color } satisfies WbEdgeData,
+      })),
+    [boardEdges]
+  )
+
+  const [edges, setEdges] = useState<RFEdge[]>(schemaEdges)
+  useEffect(() => {
+    setEdges((prev) => {
+      const selectedIds = new Set(prev.filter((e) => e.selected).map((e) => e.id))
+      return schemaEdges.map((e) => ({ ...e, selected: selectedIds.has(e.id) }))
+    })
+  }, [schemaEdges])
+
+  const singleSelectedNodeId = useMemo(() => {
+    const selected = nodes.filter((n) => n.selected)
+    return selected.length === 1 ? selected[0].id : null
+  }, [nodes])
+
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       setNodes((nds) => applyNodeChanges(changes, nds))
@@ -286,6 +323,27 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       }
     },
     [updateNodePosition]
+  )
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds))
+      for (const change of changes) {
+        if (change.type === 'remove') storeDeleteEdge(change.id)
+      }
+    },
+    [storeDeleteEdge]
+  )
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      storeAddEdge({
+        id: crypto.randomUUID(),
+        from: connection.source,
+        to: connection.target,
+      })
+    },
+    [storeAddEdge]
   )
 
   const onPaneClick = useCallback(
@@ -882,8 +940,12 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       {activeBloom === null && (
       <ReactFlow
         nodes={nodes}
+        edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         onPaneClick={onPaneClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
@@ -892,17 +954,20 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         onMouseUp={onMouseUp}
         onPaneContextMenu={onPaneContextMenu}
         onMoveEnd={onMoveEnd}
-        className={`canvas--tool-${activeTool}`}
+        className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
         elementsSelectable={activeTool === 'pointer'}
         nodesDraggable={activeTool === 'pointer'}
         nodesConnectable={activeTool === 'pointer'}
         selectionOnDrag={activeTool === 'pointer'}
         panOnDrag={panOnDragButtons}
+        connectionMode="loose"
+        connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
         {...(boardViewport
           ? { defaultViewport: boardViewport }
           : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
         proOptions={{ hideAttribution: true }}
       >
+        <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
         <Background gap={25} size={1} color="var(--color-secondary-fg)" />
         <MiniMap nodeStrokeWidth={1} zoomable pannable />
         <Panel position="top-left">

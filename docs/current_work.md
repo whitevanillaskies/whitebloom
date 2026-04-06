@@ -110,6 +110,12 @@ New edges created via drag-from-handle get no `style` or `color` (defaults to so
 - Handle visibility on hover: ReactFlow shows handles only on node hover by default. Confirm whether always-visible or hover-only is preferred. Hover-only is less noisy for dense boards.
 
 
+## Edge connection targeting
+
+**Bug:** Connections don't reliably land on the handle the user aimed at. Any handle should be able to be connected to any handle, except perhaps self loops on the same node. Also the preview doesn't match the resulting connection, even on this state, you may drop a connection on some handle and reactflow will show it as valid, but it will create a connection to a different one.
+
+**Why it matters:** The user can't control which destination node the edge attaches to. For a knowledge-management canvas where spatial layout carries meaning, this is a real loss of expressiveness.
+
 ## Obsidian Vault Module
 
 A module that recognizes an Obsidian vault dropped onto the canvas, displays it as an icon-personality node, and opens it in Obsidian on double-click.

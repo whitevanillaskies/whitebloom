@@ -47,6 +47,8 @@ export type BoardEdge = {
   from: string
   to: string
   label?: string
+  style?: 'solid' | 'dashed' | 'dotted'
+  color?: string
 }
 
 export type BoardViewport = { x: number; y: number; zoom: number }

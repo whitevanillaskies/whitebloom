@@ -1,5 +1,6 @@
 import React, { useCallback, useContext } from 'react'
-import type { NodeProps } from '@xyflow/react'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { CONNECTION_HANDLE_OUTSET_PX } from './canvas-constants'
 import { HelpCircle, AlertCircle } from 'lucide-react'
 import { resolveModuleById } from '../modules/registry'
 import type { Size } from '../shared/types'
@@ -209,6 +210,15 @@ function BudNodeInner({
 // BudNode — the single ReactFlow node component for all bud types
 // ---------------------------------------------------------------------------
 
+const budHandles = (
+  <>
+    <Handle type="target" position={Position.Top}    style={{ top:    -CONNECTION_HANDLE_OUTSET_PX }} />
+    <Handle type="target" position={Position.Left}   style={{ left:   -CONNECTION_HANDLE_OUTSET_PX }} />
+    <Handle type="source" position={Position.Bottom} style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }} />
+    <Handle type="source" position={Position.Right}  style={{ right:  -CONNECTION_HANDLE_OUTSET_PX }} />
+  </>
+)
+
 export function BudNode({ id, data, selected }: NodeProps) {
   const budData = data as BudData
   const module = resolveModuleById(budData.moduleType)
@@ -216,35 +226,44 @@ export function BudNode({ id, data, selected }: NodeProps) {
   // Void-typed bud (type: null) — no handler registered, open with OS default
   if (budData.moduleType === null) {
     return (
-      <NativeFileBudNode
-        id={id}
-        resource={budData.resource}
-        label={budData.label}
-        size={budData.size}
-        selected={selected ?? false}
-        onOpen={() => void window.api.openFile(budData.resource)}
-      />
+      <>
+        <NativeFileBudNode
+          id={id}
+          resource={budData.resource}
+          label={budData.label}
+          size={budData.size}
+          selected={selected ?? false}
+          onOpen={() => void window.api.openFile(budData.resource)}
+        />
+        {budHandles}
+      </>
     )
   }
 
   // Concrete-typed bud whose module isn't installed
   if (!module) {
     return (
-      <UnknownBudNode
-        label={budData.label}
-        moduleType={budData.moduleType}
-        size={budData.size}
-        selected={selected ?? false}
-      />
+      <>
+        <UnknownBudNode
+          label={budData.label}
+          moduleType={budData.moduleType}
+          size={budData.size}
+          selected={selected ?? false}
+        />
+        {budHandles}
+      </>
     )
   }
 
   return (
-    <BudNodeInner
-      id={id}
-      data={budData}
-      selected={selected ?? false}
-      module={module}
-    />
+    <>
+      <BudNodeInner
+        id={id}
+        data={budData}
+        selected={selected ?? false}
+        module={module}
+      />
+      {budHandles}
+    </>
   )
 }

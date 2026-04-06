@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   CURRENT_BOARD_VERSION,
   type Board,
+  type BoardEdge,
   type BoardNode,
   type BoardViewport,
   type WidthMode
@@ -24,6 +25,8 @@ type BoardState = Board & {
   addNode: (node: BoardNodeDraft) => void
   deleteNode: (id: string) => void
   deleteNodes: (ids: string[]) => void
+  addEdge: (edge: BoardEdge) => void
+  deleteEdge: (id: string) => void
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
@@ -113,6 +116,18 @@ export const useBoardStore = create<BoardState>((set) => ({
         isDirty: shouldMarkBoardDirty(state)
       }
     }),
+
+  addEdge: (edge) =>
+    set((state) => ({
+      edges: [...state.edges, edge],
+      isDirty: shouldMarkBoardDirty(state)
+    })),
+
+  deleteEdge: (id) =>
+    set((state) => ({
+      edges: state.edges.filter((e) => e.id !== id),
+      isDirty: shouldMarkBoardDirty(state)
+    })),
 
   updateNodePosition: (id, x, y) =>
     set((state) => {
