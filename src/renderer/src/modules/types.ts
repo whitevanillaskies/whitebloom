@@ -33,6 +33,20 @@ export interface WhitebloomModule {
   /** Default file content for palette-created buds */
   createDefault?(): string
 
+  /**
+   * React component that renders the module's icon.
+   * Can be anything — a Lucide icon, a custom SVG, a PNG with transparency, etc.
+   * Used in icon-style nodes, the palette, context menus, and any other UI
+   * chrome that needs to represent this module type.
+   */
+  IconComponent: React.ComponentType<{ size?: number }>
+  /**
+   * CSS variable name for the module's accent color, e.g. `'--color-accent-blue'`.
+   * Used as the badge background tint for icon-style nodes and anywhere the
+   * module needs a consistent color identity across the UI.
+   */
+  accentColor: string
+
   NodeComponent: React.ComponentType<BudNodeProps>
   /** Present only for `defaultRenderer: 'internal'` modules */
   EditorComponent?: React.ComponentType<BudEditorProps>

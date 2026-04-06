@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Database } from 'lucide-react'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import type { BudNodeProps } from '../types'
 import { loadSchema } from './schema'
+import { SchemaBloomIcon } from './SchemaBloomIcon'
 import './SchemaBloomNode.css'
 
 function deriveLabel(resource: string): string {
   const segment = resource.split('/').pop() ?? resource
   return segment.replace(/\.bdb$/, '')
-}
-
-function tableCountLabel(count: number): string {
-  if (count === 0) return 'empty'
-  return count === 1 ? '1 table' : `${count} tables`
 }
 
 export function SchemaBloomNode({ resource, label, size, selected, onBloom }: BudNodeProps): JSX.Element {
@@ -42,13 +37,13 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
       style={{ width: size.w, height: size.h }}
       onDoubleClick={(e) => { e.stopPropagation(); onBloom() }}
     >
-      <div className="sb-node__header">
-        <Database size={12} strokeWidth={1.5} className="sb-node__icon" />
-        <span className="sb-node__label">{displayLabel}</span>
+      <div className="sb-node__badge">
+        <SchemaBloomIcon size={28} />
+        {tableCount !== null && tableCount > 0 && (
+          <span className="sb-node__count">{tableCount}</span>
+        )}
       </div>
-      <p className="sb-node__count">
-        {tableCount === null ? '—' : tableCountLabel(tableCount)}
-      </p>
+      <p className="sb-node__label">{displayLabel}</p>
     </div>
   )
 }

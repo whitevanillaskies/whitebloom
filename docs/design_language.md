@@ -129,11 +129,10 @@ Whitebloom has no army of designers. Icon sourcing is therefore a solved-by-conv
 
 ### Internal module icons (buds authored inside Whitebloom)
 
-Use the **iOS/macOS app icon pattern**: an accent-colored rounded square (radius: `--radius-border-frame`, 6px at small scale, scaling up proportionally) containing a centered white Lucide icon. Each module is assigned one accent color from the design token set. This is:
+Use the **iOS/macOS app icon pattern**: an accent-colored rounded square (radius: `--radius-border-frame`, 6px at small scale, scaling up proportionally) containing a centered icon. Each module is assigned one accent color from the design token set. This is:
 - Immediately recognizable as a "typed file" — the pattern is universal.
-- Buildable with zero additional assets — Lucide + CSS.
 - Consistent across all internal modules.
-- Easily swappable: replace the Lucide icon with a custom SVG later without changing the layout.
+- The icon itself can be anything: a Lucide icon, a custom SVG, a PNG with transparency, an LLM-generated asset, etc. The `IconComponent` contract is deliberately open — only the badge layout is fixed, not the icon source.
 
 Icon size inside the badge scales with the node size. At the default icon-node size, the badge is ~40×40px and the Lucide icon is 20px.
 

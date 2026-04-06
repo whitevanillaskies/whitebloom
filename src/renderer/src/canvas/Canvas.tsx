@@ -196,7 +196,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
     await window.api.writeBlossom(workspaceRoot, resource, schemaBloomModule.createDefault!())
     const id = crypto.randomUUID()
-    addNode({ id, kind: 'bud', type: schemaBloomModule.id, position, size: { w: 220, h: 100 }, resource })
+    addNode({ id, kind: 'bud', type: schemaBloomModule.id, position, size: { w: 88, h: 106 }, resource })
     setActiveBloom({ nodeId: id, module: schemaBloomModule, resource })
   }, [workspaceRoot, screenToFlowPosition, addNode])
 
