@@ -13,24 +13,6 @@ function deriveLabel(resource: string): string {
 }
 
 export function SchemaBloomNode({ resource, label, size, selected, onBloom }: BudNodeProps) {
-  const workspaceRoot = useWorkspaceStore((s) => s.root)
-  const [tableCount, setTableCount] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!workspaceRoot) return
-    window.api
-      .readBlossom(workspaceRoot, resource)
-      .then((data) => {
-        try {
-          const schema = loadSchema(data)
-          setTableCount(schema.tables.length)
-        } catch {
-          setTableCount(0)
-        }
-      })
-      .catch(() => setTableCount(null))
-  }, [workspaceRoot, resource])
-
   return (
     <PetalBudNode
       size={{ w: BUD_ICON_NODE_W }}
@@ -46,9 +28,7 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
           size={BUD_ICON_PX}
           selected={selected}
         />
-        {tableCount !== null && tableCount > 0 && (
-          <span className="sb-node__count">{tableCount}</span>
-        )}
+
       </div>
     </PetalBudNode>
   )
