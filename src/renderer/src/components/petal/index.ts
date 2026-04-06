@@ -1,4 +1,5 @@
 export { default as PetalButton } from './PetalButton'
+export { default as PetalIconBadge } from './PetalIconBadge'
 export { default as PetalField } from './PetalField'
 export { default as PetalMenu } from './PetalMenu'
 export type { PetalMenuItem } from './PetalMenu'

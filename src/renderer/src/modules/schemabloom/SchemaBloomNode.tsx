@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
+import { PetalIconBadge } from '@renderer/components/petal'
 import type { BudNodeProps } from '../types'
 import { loadSchema } from './schema'
 import { SchemaBloomIcon } from './SchemaBloomIcon'
@@ -37,8 +38,13 @@ export function SchemaBloomNode({ resource, label, size, selected, onBloom }: Bu
       style={{ width: size.w, height: size.h }}
       onDoubleClick={(e) => { e.stopPropagation(); onBloom() }}
     >
-      <div className="sb-node__badge">
-        <SchemaBloomIcon size={28} />
+      <div className="sb-node__badge-wrap">
+        <PetalIconBadge
+          IconComponent={SchemaBloomIcon}
+          accentColor="--color-accent-blue"
+          size={64}
+          selected={selected}
+        />
         {tableCount !== null && tableCount > 0 && (
           <span className="sb-node__count">{tableCount}</span>
         )}

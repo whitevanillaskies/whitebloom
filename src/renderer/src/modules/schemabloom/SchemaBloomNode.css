@@ -9,37 +9,12 @@
   overflow: visible;
 }
 
-/* ---- Badge (the colored icon square) ---- */
+/* Badge wrapper — positions the count pill relative to the badge */
 
-.sb-node__badge {
+.sb-node__badge-wrap {
   position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  background: var(--color-accent-blue);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  box-shadow:
-    0 6px 20px rgba(15, 23, 42, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  transition: box-shadow 80ms ease;
 }
-
-.sb-node__badge svg {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.sb-node--selected .sb-node__badge {
-  box-shadow:
-    0 0 0 2.5px var(--color-accent-blue),
-    0 0 0 4.5px rgba(var(--color-accent-blue-rgb), 0.22),
-    0 6px 20px rgba(15, 23, 42, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-}
-
-/* ---- Table count pill (top-right corner of badge) ---- */
 
 .sb-node__count {
   position: absolute;
@@ -62,7 +37,7 @@
   box-shadow: 0 0 0 1.5px var(--color-primary-bg);
 }
 
-/* ---- Label ---- */
+/* Label */
 
 .sb-node__label {
   margin: 0;
