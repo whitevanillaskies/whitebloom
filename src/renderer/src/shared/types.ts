@@ -26,7 +26,8 @@ export type Workspace = {
 export type BoardNode = {
   id: string
   kind: 'bud' | 'leaf'
-  type: string
+  /** Module id for concrete-typed buds; null for void-typed buds (no handler — open with OS default). */
+  type: string | null
   position: Position
   size: Size
   created: string

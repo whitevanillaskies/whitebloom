@@ -1,8 +1,9 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
 import { listTransientBoards } from '../services/app-storage'
 import { openResource } from '../services/file-resource'
+import { resolveResource } from '../resource-uri'
 import type { MainProcessContext } from '../state/main-process-context'
 
 type ListTransientBoardsResult = {
@@ -19,6 +20,16 @@ export function registerAppIpc(context: MainProcessContext): void {
 
   ipcMain.handle('file:open', (_event, resource: string) => {
     return openResource(resource, context)
+  })
+
+  ipcMain.handle('file:get-icon', async (_event, workspaceRoot: string, resource: string) => {
+    try {
+      const absolutePath = resolveResource(resource, workspaceRoot)
+      const icon = await app.getFileIcon(absolutePath, { size: 'large' })
+      return { ok: true, dataUrl: icon.toDataURL() }
+    } catch {
+      return { ok: false, dataUrl: null }
+    }
   })
 
   ipcMain.handle('app-settings:save', async (_event, settings: AppSettings) => {

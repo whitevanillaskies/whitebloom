@@ -4,6 +4,7 @@ import { HelpCircle, AlertCircle } from 'lucide-react'
 import { resolveModuleById } from '../modules/registry'
 import type { Size } from '../shared/types'
 import { BloomContext } from './BloomContext'
+import { NativeFileBudNode } from './NativeFileBudNode'
 import type { WhitebloomModule } from '../modules/types'
 
 // ---------------------------------------------------------------------------
@@ -11,7 +12,8 @@ import type { WhitebloomModule } from '../modules/types'
 // ---------------------------------------------------------------------------
 
 export type BudData = {
-  moduleType: string
+  /** Module id for concrete-typed buds; null for void-typed buds handled natively by the OS. */
+  moduleType: string | null
   resource: string
   size: Size
   label?: string
@@ -211,6 +213,21 @@ export function BudNode({ id, data, selected }: NodeProps) {
   const budData = data as BudData
   const module = resolveModuleById(budData.moduleType)
 
+  // Void-typed bud (type: null) — no handler registered, open with OS default
+  if (budData.moduleType === null) {
+    return (
+      <NativeFileBudNode
+        id={id}
+        resource={budData.resource}
+        label={budData.label}
+        size={budData.size}
+        selected={selected ?? false}
+        onOpen={() => void window.api.openFile(budData.resource)}
+      />
+    )
+  }
+
+  // Concrete-typed bud whose module isn't installed
   if (!module) {
     return (
       <UnknownBudNode

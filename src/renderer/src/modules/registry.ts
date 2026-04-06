@@ -6,7 +6,8 @@ export function registerModule(module: WhitebloomModule): void {
   registry.set(module.id, module)
 }
 
-export function resolveModuleById(id: string): WhitebloomModule | undefined {
+export function resolveModuleById(id: string | null): WhitebloomModule | undefined {
+  if (id === null) return undefined
   return registry.get(id)
 }
 

@@ -1,0 +1,27 @@
+.native-node__icon-wrap {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  transition: box-shadow 80ms ease;
+}
+
+.native-node__icon-wrap--selected {
+  box-shadow:
+    0 0 0 2.5px var(--color-accent-system),
+    0 0 0 4.5px rgba(var(--color-accent-system-rgb), 0.18);
+}
+
+.native-node__icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  /* System icons are rendered by the OS — no filter, show them as-is */
+}
+
+.native-node__icon-fallback {
+  color: var(--color-muted-fg);
+}

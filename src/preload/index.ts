@@ -103,6 +103,8 @@ const api = {
     data: string
   ): Promise<{ ok: boolean }> => ipcRenderer.invoke('blossom:write', workspaceRoot, resource, data),
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
+  getFileIcon: (workspaceRoot: string, resource: string): Promise<{ ok: boolean; dataUrl: string | null }> =>
+    ipcRenderer.invoke('file:get-icon', workspaceRoot, resource),
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
     ipcRenderer.invoke('app-settings:save', settings),

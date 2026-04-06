@@ -82,6 +82,9 @@
   --color-accent-red: #ec164c;
   --color-accent-red-rgb: 236, 22, 76;
   --color-accent-purple: #7c35ff;
+  /* System/native file nodes — aliased to blue for now, promote to its own value when needed */
+  --color-accent-system: #1e87ff;
+  --color-accent-system-rgb: 30, 135, 255;
 
   --radius-border-frame: 6px;
   --radius-border-inner: 4px;

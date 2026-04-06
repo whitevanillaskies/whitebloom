@@ -90,6 +90,7 @@ declare global {
       readBlossom: (workspaceRoot: string, resource: string) => Promise<string>
       writeBlossom: (workspaceRoot: string, resource: string, data: string) => Promise<{ ok: boolean }>
       openFile: (filePath: string) => Promise<void>
+      getFileIcon: (workspaceRoot: string, resource: string) => Promise<{ ok: boolean; dataUrl: string | null }>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
       onCloseRequested: (cb: () => void) => () => void

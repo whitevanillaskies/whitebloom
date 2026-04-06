@@ -779,13 +779,16 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
           const module = dispatchModule(resource)
 
-          // Image files get measured for natural dimensions; everything else uses a default
+          // Images: measure natural dimensions. Known modules: use their default.
+          // No handler (null): icon-node dimensions.
           const isImage = file.type.toLowerCase().startsWith('image/')
           const size = isImage
             ? (await measureDroppedImage(file)).size
-            : { w: 240, h: 160 }
+            : module
+              ? { w: 220, h: 160 }
+              : { w: 88, h: 106 }
 
-          return { resource, moduleType: module?.id ?? '', size }
+          return { resource, moduleType: module?.id ?? null, size }
         })
       )
 
