@@ -91,6 +91,64 @@ they are inherently relational and not semantic tokens.
 - Radius: floating (10–12px)
 - Always use backdrop-filter
 
+## Node Visual Grammar
+
+Whitebloom is an OS for knowledge. The canvas is a spatial desktop — nodes are files, not UI widgets. The node's visual treatment should follow the same logic macOS Finder uses for thumbnails: **can the content meaningfully fill the node space?**
+
+### Three node personalities
+
+**Self-representing** — the content IS the node. No chrome needed beyond selection state.
+- Images: show the image itself at full node size.
+- Video: show a thumbnail frame.
+- Anything that renders as a visual artifact: show the artifact.
+
+**Preview** — the content communicates something useful at reduced scale. Use a minimal card.
+- FocusWriter: text preview is genuinely informative. A soft card with content fills the space.
+- Future: spreadsheet grids, diagram thumbnails, code snippets.
+- Card treatment: no hard border, soft shadow (subtle tier), paper-like feel. Not a "mini app," more a physical document lying on the desk.
+
+**Icon** — the content is opaque or doesn't reduce meaningfully. Use macOS desktop icon style.
+- Database schemas, compiled assets, anything where "3 tables" or a filename is the entire story.
+- Treatment: no card, no background. A large centered icon (32–40px), the filename label centered below, wrapping to two lines max. Floats on the canvas the way a Finder icon floats on the desktop.
+- Selected state: blue ring around the icon, blue tint on the label background — exactly macOS selection.
+- Badges are acceptable for count metadata (e.g. table count in corner of the icon). Keep them small and non-intrusive.
+
+### Icon-style node icon source
+
+See the Icon Source section below. The icon for each module is the module author's responsibility. Internal modules use the iOS-style icon treatment (accent-colored rounded square + centered Lucide icon). External-default modules (files opened by native apps) use `app.getFileIcon()` to return the real system icon — the same icon Finder would show — for free.
+
+### The principle
+
+Ask: does displaying the content at node scale give the user more information than a well-chosen icon would? If yes, show content. If no, show an icon. Never apply one treatment uniformly to all nodes. The SchemaBloom node wearing a "card with a header" costume is wrong because it implies there is a preview, then delivers nothing useful.
+
+---
+
+## Icon Source
+
+Whitebloom has no army of designers. Icon sourcing is therefore a solved-by-convention problem, not a bespoke design problem.
+
+### Internal module icons (buds authored inside Whitebloom)
+
+Use the **iOS/macOS app icon pattern**: an accent-colored rounded square (radius: `--radius-border-frame`, 6px at small scale, scaling up proportionally) containing a centered white Lucide icon. Each module is assigned one accent color from the design token set. This is:
+- Immediately recognizable as a "typed file" — the pattern is universal.
+- Buildable with zero additional assets — Lucide + CSS.
+- Consistent across all internal modules.
+- Easily swappable: replace the Lucide icon with a custom SVG later without changing the layout.
+
+Icon size inside the badge scales with the node size. At the default icon-node size, the badge is ~40×40px and the Lucide icon is 20px.
+
+### External module icons (files opened by native apps)
+
+Use Electron's `app.getFileIcon(path)` IPC call. This returns the exact icon the OS uses for that file type — the same icon Finder, Explorer, or Nautilus would show. For `.psd` files the user gets the Photoshop icon. For `.xlsx` they get the Excel icon. This is the correct answer: we cannot out-design Apple or Microsoft on their own file type icons, and we don't need to.
+
+Expose this as a preload API call (`window.api.getFileIcon(path) → dataURL`) and cache the result in node render state.
+
+### Custom SVGs (future)
+
+Reserved for cases where neither the iOS badge pattern nor the system icon is appropriate. When custom SVGs are added, they slot into the same layout contract as Lucide icons — the import changes, nothing else does.
+
+---
+
 ## Do Not
 
 - Use `border-radius` above 12px anywhere
