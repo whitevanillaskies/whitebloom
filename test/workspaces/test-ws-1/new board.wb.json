@@ -119,14 +119,14 @@
         "w": 165,
         "h": 39
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"ctrl - E to edit a node\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "auto",
-      "wrapWidth": null,
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ...\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 283,
       "created": "2026-04-05T22:31:49.473Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:15:45.031Z",
+      "updatedAt": "2026-04-06T23:54:41.037Z",
       "updatedBy": "anon",
-      "plain": "ctrl - E to edit a node"
+      "plain": "ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ..."
     },
     {
       "id": "790779ff-3779-40ea-bb9a-bff03a86c83e",
@@ -169,27 +169,6 @@
       "updatedAt": "2026-04-06T00:56:58.797Z",
       "updatedBy": "anon",
       "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
-    },
-    {
-      "id": "2576c107-6930-48ae-a80c-98b2ca7a56a4",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": -329.82654155417475,
-        "y": 218.1135289490534
-      },
-      "size": {
-        "w": 265,
-        "h": 111
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"We need to delete resources when deleting nodes, probably? or maybe do a cleanup action that goes through all resources and tries to find a reference? not sure\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 265,
-      "created": "2026-04-06T01:02:36.132Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-06T01:03:07.525Z",
-      "updatedBy": "anon",
-      "plain": "We need to delete resources when deleting nodes, probably? or maybe do a cleanup action that goes through all resources and tries to find a reference? not sure"
     },
     {
       "id": "b89f2d7a-17c4-440b-aad6-da8a39bf20fc",
@@ -319,27 +298,6 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-06T23:44:22.061Z",
       "updatedBy": "anon"
-    },
-    {
-      "id": "2e63960b-3f1e-4eb7-9cc8-fbdadb129a4e",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 918.3748500697484,
-        "y": -22.481273931598245
-      },
-      "size": {
-        "w": 609,
-        "h": 75
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"zooming temporarily hides toolbars which is quite jarring, while panning should hide them, zooming shouldn't. This doesn't happen to node toolbars, but it does happen to edge toolbars, so maybe check what's different between them.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 609,
-      "created": "2026-04-06T23:29:29.384Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:37:09.299Z",
-      "updatedBy": "anon",
-      "plain": "zooming temporarily hides toolbars which is quite jarring, while panning should hide them, zooming shouldn't. This doesn't happen to node toolbars, but it does happen to edge toolbars, so maybe check what's different between them."
     }
   ],
   "edges": [
@@ -359,8 +317,8 @@
     }
   ],
   "viewport": {
-    "x": 568.7583139523006,
-    "y": 565.911302495273,
-    "zoom": 0.7578582832551992
+    "x": 122.94651959824586,
+    "y": 149.67661493588355,
+    "zoom": 0.7578582832552002
   }
 }

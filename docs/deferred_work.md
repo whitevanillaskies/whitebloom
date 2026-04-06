@@ -205,23 +205,6 @@ One-way export of a board to the [JSON Canvas](https://jsoncanvas.org/) open for
 
 Surface as `File > Export > JSON Canvas (.canvas)`. The implementation is a single pure function — walk nodes, map types, write the file.
 
-
-## Groups as filesystem directories
-
-Groups on the board map to subdirectories inside `blossoms/`. A node in the "concept-maps" group has `resource: "wloc:blossoms/concept-maps/schema.json"`. The directory IS the group — no separate group record in the board manifest is needed for buds.
-
-The unresolved tension: leaf nodes have no `resource` and no file on disk. They can't live in a directory. Resolution options:
-
-- **Accept the asymmetry** — only buds can belong to groups; leaves always sit at board root. Leaves are lightweight inline elements; grouping them is less critical.
-- **Add a `folder` field to leaves** — explicit group membership for inline nodes, not derived from the filesystem.
-
-The board manifest remains authoritative for group membership in both cases. The filesystem directory is a *consequence* of group membership for buds, not the definition. This means the module system can derive group membership from `resource` paths without a new schema field.
-
-Namespacing via intermediate directories (`/blossoms/db_schema/the_asset.json`) is a natural extension — multi-level groups are just nested directories.
-
-A "folder node" on the canvas represents a directory. Clicking it zooms into its contents. This is a spatial tree view, not a separate node type — the node is just a group header leaf that happens to share its position with the group's bounding box.
-
-
 ## Agent-off-limits flag
 
 An optional `ignoreAgents: true` field on any node. When set, agents skip the node during reads and never include it in proposals. This is a social signal, not a lock — it does not prevent direct filesystem access. The intent is "this is my scratchpad / live TODO / personal note, don't touch it."
@@ -314,22 +297,6 @@ A computed field `clusters` at the board level, populated on save (or as a backg
 ```
 
 Agentic clusters are optional and require an explicit agent pass. Spatial clusters can run locally with no external dependencies. The two are kept separate in the schema so consumers can use either or both.
-
-
-## Recent boards on the start screen
-
-A "recently opened" list on the start screen, similar to Photoshop's recent documents.
-
-**Storage.** A new `userData/recent-boards.json` file (separate from `settings.json` to avoid the renderer overwriting it on settings save). Each entry is `{ path: string, openedAt: string }`. Capped at 15 entries, deduplicated by path — reopening a board moves it to the front.
-
-**Recording.** The `board:open` IPC handler (main process) appends to the list on every successful open. This covers workspace boards, standalone `.wb.json` files, and promoted quickboards equally. Transient quickboards are intentionally excluded — they already appear as "Unsaved quickboards."
-
-**IPC.** A new `app:list-recent-boards` handler returns the list. Renderer calls it alongside `app:list-transient-boards` when landing on the start screen.
-
-**UI.** A "Recent boards" section in the start screen main area, above the existing "Unsaved quickboards" section. Each tile shows the board name (from filename), the containing directory, and a relative time ("2 days ago"). Clicking a tile calls the same `openBoardByPath` path as the transient board tiles — error handling if the file has moved or been deleted is already in place.
-
-**Key files to touch:** `src/main/services/recent-boards-store.ts` (new), `src/main/ipc/register-board-ipc.ts`, `src/main/ipc/register-app-ipc.ts`, `src/preload/index.ts`, `src/renderer/src/App.tsx`, `src/renderer/src/components/start-screen/StartScreen.tsx`.
-
 
 ## Leaf modules (third-party canvas widgets)
 
