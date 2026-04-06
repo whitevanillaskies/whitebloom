@@ -1,4 +1,4 @@
-import { posix, resolve as resolvePath, normalize as normalizePath } from 'path'
+import { resolve as resolvePath, normalize as normalizePath, posix } from 'path'
 import { fileURLToPath } from 'url'
 import { getAppDataRoot } from './services/app-storage'
 
@@ -47,14 +47,14 @@ function resolveManagedUri(
   }
 
   const absoluteRootUnix = toUnixPath(resolvePath(rootPath))
-  const absoluteUnixPath = posix.resolve(absoluteRootUnix, relativeResourcePath)
+  const absoluteUnixPath = toUnixPath(resolvePath(rootPath, relativeResourcePath))
   const rootPrefix = absoluteRootUnix.endsWith('/') ? absoluteRootUnix : `${absoluteRootUnix}/`
 
   if (absoluteUnixPath !== absoluteRootUnix && !absoluteUnixPath.startsWith(rootPrefix)) {
     throw new Error(`${scheme} URI escapes root: ${uri}`)
   }
 
-  return normalizePath(absoluteUnixPath)
+  return normalizePath(resolvePath(rootPath, relativeResourcePath))
 }
 
 /**

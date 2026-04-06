@@ -1,0 +1,109 @@
+/* ── Outer container ──────────────────────────────────────────── */
+
+.fw-editor {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 10vh 32px 18vh;
+  box-sizing: border-box;
+  background: var(--color-primary-bg);
+}
+
+/* ── Centered column ─────────────────────────────────────────── */
+
+.fw-editor__column {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+}
+
+/* ── Mirror (behind textarea, renders styled paragraphs) ─────── */
+
+.fw-editor__mirror {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--color-primary-fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ── Paragraph dimming ───────────────────────────────────────── */
+
+.fw-editor__para--active {
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.fw-editor__para--dim {
+  opacity: 0.28;
+  transition: opacity 180ms ease;
+}
+
+/* ── Placeholder ─────────────────────────────────────────────── */
+
+.fw-editor__placeholder {
+  color: var(--color-muted-fg);
+  font-style: italic;
+}
+
+/* ── Textarea (transparent text, visible caret) ──────────────── */
+
+.fw-editor__textarea {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 60vh;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--color-primary-fg);
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.8;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  -webkit-appearance: none;
+}
+
+/* ── Preview mode ─────────────────────────────────────────────── */
+
+.fw-editor--preview {
+  outline: none;
+}
+
+.fw-editor__preview-para {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.85;
+  color: var(--color-primary-fg);
+  margin: 0 0 1.6em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fw-editor__preview-para:last-child {
+  margin-bottom: 0;
+}
+
+.fw-editor__preview-empty {
+  margin: 0;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--color-muted-fg);
+  font-style: italic;
+}

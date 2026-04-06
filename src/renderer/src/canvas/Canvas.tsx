@@ -22,9 +22,10 @@ import { dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
-import { FolderPlus, Settings2, Trash2 } from 'lucide-react'
-import { PetalButton, PetalMenu, PetalPanel } from '@renderer/components/petal'
-import type { PetalMenuItem } from '@renderer/components/petal'
+import { FileText, FolderPlus, Settings2, Trash2, Type } from 'lucide-react'
+import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
+import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
+import { focusWriterModule } from '../modules/focus-writer'
 import { absolutePathToFileUri } from '@renderer/shared/resource-url'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
@@ -153,6 +154,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | 'newBoard' | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -173,6 +175,16 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     }
     setActiveBloom(bloom)
   }, [setActiveBloom])
+
+  const createFocusWriterBud = useCallback(async () => {
+    if (!workspaceRoot) return
+    const resource = `wloc:blossoms/note-${Date.now()}.blt`
+    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    await window.api.writeBlossom(workspaceRoot, resource, '')
+    const id = crypto.randomUUID()
+    addNode({ id, kind: 'bud', type: focusWriterModule.id, position, size: { w: 220, h: 160 }, resource })
+    setActiveBloom({ nodeId: id, module: focusWriterModule, resource })
+  }, [workspaceRoot, screenToFlowPosition, addNode])
 
   const activeToolRef = useRef(activeTool)
   useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
@@ -447,11 +459,24 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+        if (isEditableTarget(event.target)) return
+        if (activeBloom !== null) return
+        event.preventDefault()
+        setPaletteOpen((open) => !open)
+        return
+      }
+
       if (event.key === 'Escape') {
         if (isEditableTarget(event.target)) return
         if (activeBloom !== null) {
           event.preventDefault()
           setActiveBloom(null)
+          return
+        }
+        if (paletteOpen) {
+          event.preventDefault()
+          setPaletteOpen(false)
           return
         }
         if (settingsOpen) {
@@ -517,7 +542,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [activeBloom, boardNodes, deleteNodes, handleSave, nodes, settingsOpen, setActiveTool, setNodes, updateNodeText])
+  }, [activeBloom, boardNodes, deleteNodes, handleSave, nodes, paletteOpen, settingsOpen, setActiveTool, setNodes, updateNodeText])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -589,6 +614,36 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     ? 'You have unsaved changes. Do you want to discard them and open a new board?'
     : 'You have unsaved changes. Do you want to discard them and exit?'
   const confirmDialogConfirmLabel = pendingDocumentAction === 'newBoard' ? 'Discard' : 'Exit'
+
+  const paletteItems = useMemo((): PaletteItem[] => {
+    const items: PaletteItem[] = [
+      {
+        id: 'create-text',
+        label: 'Text',
+        icon: <Type size={14} strokeWidth={1.8} />,
+        hint: 'T',
+        onActivate: () => {
+          const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+          const id = crypto.randomUUID()
+          const nextToken = autoEditSequenceRef.current + 1
+          autoEditSequenceRef.current = nextToken
+          setAutoEditRequest({ id, token: nextToken })
+          addNode({ id, kind: 'leaf', type: 'text', position, size: { w: 200, h: 40 }, content: makeLexicalContent(''), widthMode: 'auto', wrapWidth: null })
+        }
+      }
+    ]
+
+    if (workspaceRoot !== null) {
+      items.push({
+        id: 'create-focus-writer',
+        label: 'Focus Writer',
+        icon: <FileText size={14} strokeWidth={1.8} />,
+        onActivate: () => { void createFocusWriterBud() }
+      })
+    }
+
+    return items
+  }, [workspaceRoot, screenToFlowPosition, addNode, createFocusWriterBud])
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -850,6 +905,14 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           bloom={activeBloom}
           workspaceRoot={workspaceRoot}
           onClose={() => setActiveBloom(null)}
+        />
+      )}
+
+      {paletteOpen && (
+        <PetalPalette
+          items={paletteItems}
+          onClose={() => setPaletteOpen(false)}
+          placeholder="Search Palette"
         />
       )}
 
