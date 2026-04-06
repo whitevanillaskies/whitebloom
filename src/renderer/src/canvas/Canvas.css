@@ -61,10 +61,23 @@
 
 /* ─── Connection handles ─────────────────────────────────────────────────── */
 
-/* Hidden by default on all nodes */
+/* Canonical appearance — all node types inherit this */
 .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary-fg);
+  /* border: 1.5px solid var(--color-accent-blue); */
+  /* Hidden by default on all nodes */
   opacity: 0;
   pointer-events: none;
+}
+
+/* Active: being dragged from, or valid drop target */
+.react-flow__handle.connecting,
+.react-flow__handle.connectingto {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
 }
 
 /* Visible on the single selected node */

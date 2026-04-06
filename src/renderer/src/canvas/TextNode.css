@@ -109,19 +109,6 @@
   pointer-events: none;
 }
 
-.text-node .react-flow__handle {
-  visibility: hidden;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-accent-blue);
-  border: 1.5px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.text-node--selected .react-flow__handle {
-  visibility: visible;
-}
 
 /* ── Rich text block types ─────────────────────────────────────── */
 

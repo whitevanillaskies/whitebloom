@@ -110,7 +110,6 @@ function ColumnRow({
         type="target"
         position={Position.Left}
         id={`${column.id}-target`}
-        className="sbn-handle"
       />
 
       <EditableText value={column.name} onCommit={onRename} className="sbn-column-name" />
@@ -123,7 +122,6 @@ function ColumnRow({
         type="source"
         position={Position.Right}
         id={`${column.id}-source`}
-        className="sbn-handle"
       />
     </div>
   )

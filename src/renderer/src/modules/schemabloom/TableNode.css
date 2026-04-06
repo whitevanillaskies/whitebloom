@@ -130,17 +130,3 @@
   color: var(--color-accent-red);
 }
 
-/* ── Handles (connection dots) ── */
-
-.sbn-handle {
-  width: 6px;
-  height: 6px;
-  background: var(--color-muted-fg);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 50%;
-}
-
-.sbn-handle:hover {
-  background: var(--color-accent-blue);
-  border-color: var(--color-accent-blue);
-}
