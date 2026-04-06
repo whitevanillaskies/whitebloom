@@ -208,6 +208,24 @@
       "updatedAt": "2026-04-06T01:03:07.525Z",
       "updatedBy": "anon",
       "plain": "We need to delete resources when deleting nodes, probably? or maybe do a cleanup action that goes through all resources and tries to find a reference? not sure"
+    },
+    {
+      "id": "b89f2d7a-17c4-440b-aad6-da8a39bf20fc",
+      "kind": "bud",
+      "type": "com.whitebloom.image",
+      "position": {
+        "x": 177.70220054741566,
+        "y": -337.2036477338097
+      },
+      "size": {
+        "w": 205,
+        "h": 354
+      },
+      "resource": "wloc:res/1d0ff473584c87908b1bf02aded2a8dd.jpg",
+      "created": "2026-04-06T01:17:43.238Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-06T01:17:54.602Z",
+      "updatedBy": "anon"
     }
   ],
   "edges": []

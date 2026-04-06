@@ -282,9 +282,19 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     if (mode === 'dynamic') setDynamicSubState('seek')
   }, [mode])
 
-  // Typewriter: scroll active paragraph to vertical center
+  // Typewriter: scroll active paragraph to vertical center.
+  // On mode entry use 'instant' — padding-top just changed from 10vh→50vh,
+  // Chromium resets scrollTop to 0, so a smooth scroll would animate from the
+  // top of the page. On subsequent activePara changes use 'smooth'.
+  const prevModeRef = useRef(mode)
   useEffect(() => {
-    if (mode !== 'typewriter') return
+    if (mode !== 'typewriter') {
+      prevModeRef.current = mode
+      return
+    }
+    const justEntered = prevModeRef.current !== 'typewriter'
+    prevModeRef.current = mode
+
     const container = containerRef.current
     const mirror = mirrorRef.current
     if (!container || !mirror) return
@@ -296,7 +306,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
       const containerRect = container.getBoundingClientRect()
       const spanMid = spanRect.top + spanRect.height / 2
       const containerMid = containerRect.top + containerRect.height / 2
-      container.scrollBy({ top: spanMid - containerMid, behavior: 'smooth' })
+      container.scrollBy({ top: spanMid - containerMid, behavior: justEntered ? 'instant' : 'smooth' })
     })
   }, [activePara, mode])
 
