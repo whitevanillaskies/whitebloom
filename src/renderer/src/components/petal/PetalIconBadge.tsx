@@ -17,7 +17,7 @@ export default function PetalIconBadge({
   selected = false,
   className
 }: PetalIconBadgeProps) {
-  const iconSize = Math.round(size * 0.44)
+  const iconSize = Math.round(size * 0.5)
   const radius = Math.min(12, Math.round(size * 0.2))
 
   const cls = ['petal-icon-badge', selected ? 'petal-icon-badge--selected' : null, className ?? null]

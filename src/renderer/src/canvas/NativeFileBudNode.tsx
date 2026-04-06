@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { File } from 'lucide-react'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { PetalBudNode } from '@renderer/components/petal'
+import { BUD_ICON_PX } from './canvas-constants'
 import type { Size } from '@renderer/shared/types'
 import './NativeFileBudNode.css'
 
@@ -51,13 +52,18 @@ export function NativeFileBudNode({
       accentColor="--color-accent-system"
       onDoubleClick={onOpen}
     >
-      <div className={`native-node__icon-wrap${selected ? ' native-node__icon-wrap--selected' : ''}`}>
-        {iconUrl ? (
-          <img src={iconUrl} className="native-node__icon" alt="" draggable={false} />
-        ) : (
-          <File size={32} className="native-node__icon-fallback" strokeWidth={1.25} />
-        )}
-      </div>
+      {iconUrl ? (
+        <img
+          src={iconUrl}
+          width={BUD_ICON_PX}
+          height={BUD_ICON_PX}
+          alt=""
+          draggable={false}
+          style={{ flexShrink: 0 }}
+        />
+      ) : (
+        <File size={BUD_ICON_PX} className="native-node__icon-fallback" strokeWidth={1.25} />
+      )}
     </PetalBudNode>
   )
 }

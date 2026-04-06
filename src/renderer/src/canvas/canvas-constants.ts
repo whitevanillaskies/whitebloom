@@ -1,6 +1,9 @@
 /** How far connection handles sit outside the node boundary on all four sides. */
 export const CONNECTION_HANDLE_OUTSET_PX = 8
 
+/** Icon content size (longest axis) for all bud icon nodes. */
+export const BUD_ICON_PX = 52
+
 export const NODE_HANDLE_IDS = {
   top: 'top',
   left: 'left',

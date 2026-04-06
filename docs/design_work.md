@@ -34,11 +34,11 @@ SVG rendered as `<img>` at `width={BUD_ICON_PX} height={BUD_ICON_PX}`. The eleme
 
 ### Implementation checklist
 
-- [ ] Add `BUD_ICON_PX = 52` to `canvas-constants.ts`
-- [ ] `SchemaBloomNode`: pass `size={BUD_ICON_PX}` to `PetalIconBadge` (down from 64); update fill ratio to 50 % in `PetalIconBadge`
-- [ ] `ObsidianBloomNode`: remove 64 px wrapper div; render `<img>` at `BUD_ICON_PX × BUD_ICON_PX`
-- [ ] `NativeFileBudNode`: remove `native-node__icon-wrap` div and its CSS; render icon `<img>` at `BUD_ICON_PX`; remove fallback `<File>` sizing that references the old 64 px wrap
-- [ ] Delete `.native-node__icon-wrap` and `.native-node__icon` rules from `NativeFileBudNode.css`; keep only `.native-node__icon-fallback` color rule if the fallback icon is kept
+- [x] Add `BUD_ICON_PX = 52` to `canvas-constants.ts`
+- [x] `SchemaBloomNode`: pass `size={BUD_ICON_PX}` to `PetalIconBadge` (down from 64); update fill ratio to 50 % in `PetalIconBadge`
+- [x] `ObsidianBloomNode`: remove 64 px wrapper div; render `<img>` at `BUD_ICON_PX × BUD_ICON_PX`
+- [x] `NativeFileBudNode`: remove `native-node__icon-wrap` div and its CSS; render icon `<img>` at `BUD_ICON_PX`; remove fallback `<File>` sizing that references the old 64 px wrap
+- [x] Delete `.native-node__icon-wrap` and `.native-node__icon` rules from `NativeFileBudNode.css`; keep only `.native-node__icon-fallback` color rule if the fallback icon is kept
 
 ---
 
