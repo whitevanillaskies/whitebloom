@@ -10,6 +10,8 @@ type PetalBudNodeProps = {
   /** CSS variable name for the accent color, e.g. `'--color-accent-blue'`.
    *  Drives the selected-label tint. Defaults to blue. */
   accentColor?: string
+  /** Renders a small dot indicator anchored to the label. Does not affect layout. */
+  indicator?: 'warning'
   onDoubleClick?: () => void
   children: React.ReactNode
 }
@@ -19,6 +21,7 @@ export default function PetalBudNode({
   label,
   selected,
   accentColor = '--color-accent-blue',
+  indicator,
   onDoubleClick,
   children
 }: PetalBudNodeProps) {
@@ -38,9 +41,12 @@ export default function PetalBudNode({
       }}
     >
       {children}
-      <p className={`petal-bud-node__label${selected ? ' petal-bud-node__label--selected' : ''}`}>
-        {label}
-      </p>
+      <div className="petal-bud-node__label-wrap">
+        <p className={`petal-bud-node__label${selected ? ' petal-bud-node__label--selected' : ''}`}>
+          {label}
+        </p>
+        {indicator === 'warning' && <span className="petal-bud-node__indicator" />}
+      </div>
     </div>
   )
 }

@@ -3,6 +3,11 @@
 Work that's not yet needed but it's worth keeping in mind.
 
 
+## Obsidian vault: double-click notification when not installed
+
+When Obsidian is not installed and the user double-clicks the vault node, the handler currently returns silently. The indicator dot on the label communicates the state persistently, but a momentary feedback on the action would be better UX. Needs an in-app toast system (non-blocking, auto-dismissing) that doesn't exist yet. Alternatively, the Electron `Notification` API could fire a native OS notification from the main process with no new UI infrastructure.
+
+
 ## Arrangements: workspace resource manager
 
 A first-class UI for managing all workspace resources — a logical asset library that lives above the physical `res/` and `blossoms/` directories, inspired by Aperture's Projects + Albums model and DaVinci Resolve's Media Pool.
@@ -159,45 +164,7 @@ A portable, single-file format for sharing a complete workspace without requirin
 **Implementation notes.** Node's built-in `zlib` handles zip at the stream level; for a friendlier API, `archiver` (write) and `unzipper` or `adm-zip` (read) are the standard Electron-compatible choices. The export dialog should let the user pick destination and filename. Import should warn if the target directory is non-empty.
 
 
-## File handling: import vs link, handler resolution, unknown type dialog
-
-A unified system for how any file enters the board — whether dropped from the OS, referenced by a module, or of an unknown type.
-
-### Handler resolution chain
-
-When a file is dropped onto the canvas (or a node's type is evaluated), resolution walks:
-
-1. Exact type match (`markdown:screenplay`) → use that module
-2. Base type fallback (`markdown`) → use that module, ignore subtype
-3. No handler at all → show the unknown type dialog
-
-This chain covers the `markdown:subtype` convention automatically. A generic markdown module handles any `markdown:*` file; a specialized screenplay module handles only `markdown:screenplay`. Unknown is not broken.
-
-### Import vs link
-
-Every module exposes an **Import / Link** setting, per type, in the settings panel. The distinction:
-
-- **Import** — file is copied into the workspace (`res/` for external assets, `blossoms/` for internal ones). `resource` is a `wloc:` URI (e.g. `wloc:res/photo.jpg`). Safe for agents, safe against moves.
-- **Link** — file stays on disk at its current location. `resource` is a `file:///absolute/path` URI. The spec treats any `file:///` URI in `resource` as a linked (non-copied) asset — no schema flag needed. The app warns: *"Linked files may not be readable by LLMs. If the file moves or is renamed, the node will break."*
-
-Import is the default for all modules. Link exists for assets too heavy to copy, or assets that need to stay where they are (project files, shared team resources, .blend files).
-
-**Import to Local** is a right-click action (deferred): copies the linked file to `res/`, rewrites `resource` from the `file:///` URI to a `wloc:res/filename` URI. The only mutation that changes a `resource` URI without changing node content.
-
-### Unknown type dialog
-
-When resolution finds no handler, a dialog appears:
-
-> **No handler found for this file type.**
-> You can link it or import it — the default action will be opening the file with your OS's native app.
->
-> [Cancel] [Link] [Import]
->
-> *You can disable this message by selecting a default action in Settings.*
-
-This is the entry point for arbitrary-doc nodes — files whitebloom has no module for (.blend, .psd, unknown formats). The node shows a generic file icon on the canvas, is never read by agents, and double-clicks open the OS default app. The only value the node adds is spatial placement, grouping, and edges.
-
-The dialog's "default action" setting (per file extension) also drives the per-module import/link default: if a user sets "always link for .blend," the dialog is skipped for .blend files entirely.
+## Alert node
 
 A native, canvas-level `kind: "leaf"`, `type: "alert"` node. No module, no external resource — all data is inline. Fields: `label`, `deadline` (ISO timestamp), `description`, and optional `remindBefore` (integer days before deadline).
 
@@ -210,7 +177,6 @@ Reminder fires once and persists in the inbox as `status: "unread"` until the us
 Open question before implementing: whether the inbox lives at board level (`<board-stem>.inbox.json`, keeps workspaces self-contained) or app level (single `~/.whitebloom/inbox.json`, enables unified cross-board notifications). The `boardPath` field on alert items is designed to support either model.
 
 Alert nodes connect to other nodes via edges when edges are implemented. The alert carries the *when*, the edge carries the relationship, the target node carries the *what*.
-
 
 ## Task node kind
 
@@ -348,43 +314,6 @@ A computed field `clusters` at the board level, populated on save (or as a backg
 ```
 
 Agentic clusters are optional and require an explicit agent pass. Spatial clusters can run locally with no external dependencies. The two are kept separate in the schema so consumers can use either or both.
-
-
-## Momo UI proof of concept
-
-Momo (from peach, to keep the botanical naming) should be a set of reusable UI elements that different modules using this system could reuse.
-
-Maybe taking the current confirm new document dialogue and have a Momo Modal. I think we could extract this into a common shared component
-
-```
-      {pendingDocumentAction ? (
-
-        <div className="canvas-modal__overlay" role="presentation" onClick={handleCancelDocumentAction}>
-          <div
-            className="canvas-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Unsaved changes"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 className="canvas-modal__title">{confirmDialogTitle}</h2>
-            <p className="canvas-modal__body">{confirmDialogBody}</p>
-            <div className="canvas-modal__actions">
-              <button type="button" className="canvas-modal__button" onClick={handleCancelDocumentAction}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="canvas-modal__button canvas-modal__button--danger"
-                onClick={handleConfirmDocumentAction}
-              >
-                {confirmDialogConfirmLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-```
 
 
 ## Recent boards on the start screen

@@ -29,3 +29,20 @@
   border-radius: 3px;
   padding: 1px 5px;
 }
+
+.petal-bud-node__label-wrap {
+  position: relative;
+  max-width: 100%;
+}
+
+.petal-bud-node__indicator {
+  position: absolute;
+  top: 2px;
+  right: -7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent-pink);
+  border: 1px solid var(--color-primary-bg);
+  pointer-events: none;
+}

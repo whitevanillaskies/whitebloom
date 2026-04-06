@@ -45,27 +45,10 @@ export function ObsidianBloomNode({ resource, label, size, selected }: BudNodePr
       label={displayLabel}
       selected={selected}
       accentColor="--color-accent-purple"
+      indicator={installed === false ? 'warning' : undefined}
       onDoubleClick={handleOpen}
     >
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <ObsidianBloomIcon size={BUD_ICON_PX} />
-        {installed === false && (
-          <div
-            title="Obsidian is not installed — download it at obsidian.md to open this vault"
-            style={{
-              position: 'absolute',
-              bottom: 2,
-              right: 2,
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: 'var(--color-accent-yellow, #F59E0B)',
-              border: '1.5px solid var(--color-primary-bg)',
-              pointerEvents: 'none'
-            }}
-          />
-        )}
-      </div>
+      <ObsidianBloomIcon size={BUD_ICON_PX} />
     </PetalBudNode>
   )
 }
