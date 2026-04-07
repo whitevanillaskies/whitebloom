@@ -3,12 +3,20 @@ import { stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
 import { changeMainLanguage, t } from '../i18n'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
+import { readGardenState, writeGardenState } from '../services/garden-store'
 import { listTransientBoards } from '../services/app-storage'
 import { listRecentBoards, type RecentBoardItem } from '../services/recent-boards-store'
 import { openResource } from '../services/file-resource'
 import { resolveResource } from '../resource-uri'
+import {
+  emptyArrangementsTrash,
+  enumerateWorkspaceMaterial,
+  findBoardsReferencingMaterial
+} from '../services/workspace-material'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import type { MainProcessContext } from '../state/main-process-context'
+import type { GardenState } from '../../shared/arrangements'
+import type { ArrangementsMaterial } from '../../shared/arrangements'
 
 type ListTransientBoardsResult = {
   ok: boolean
@@ -20,12 +28,88 @@ type ListRecentBoardsResult = {
   boards: RecentBoardItem[]
 }
 
+type ArrangementsReadResult = {
+  ok: boolean
+  state: GardenState | null
+}
+
+type ArrangementsWriteResult = {
+  ok: boolean
+  state: GardenState | null
+}
+
+type ArrangementsEnumerateResult = {
+  ok: boolean
+  materials: ArrangementsMaterial[]
+}
+
+type ArrangementsReferencesResult = {
+  ok: boolean
+  boardPaths: string[]
+}
+
 export function registerAppIpc(context: MainProcessContext): void {
   ipcMain.on('ping', () => console.log('pong'))
 
   ipcMain.handle('app-settings:get', async () => {
     return await readAppSettings()
   })
+
+  ipcMain.handle(
+    'arrangements:read',
+    async (_event, workspaceRoot: string): Promise<ArrangementsReadResult> => {
+      try {
+        return { ok: true, state: await readGardenState(workspaceRoot) }
+      } catch {
+        return { ok: false, state: null }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'arrangements:write',
+    async (_event, workspaceRoot: string, state: GardenState): Promise<ArrangementsWriteResult> => {
+      try {
+        return { ok: true, state: await writeGardenState(workspaceRoot, state) }
+      } catch {
+        return { ok: false, state: null }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'arrangements:enumerate-material',
+    async (_event, workspaceRoot: string): Promise<ArrangementsEnumerateResult> => {
+      try {
+        return { ok: true, materials: await enumerateWorkspaceMaterial(workspaceRoot) }
+      } catch {
+        return { ok: false, materials: [] }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'arrangements:trash-empty',
+    async (_event, workspaceRoot: string, materialKeys: string[]): Promise<{ ok: boolean }> => {
+      try {
+        await emptyArrangementsTrash(workspaceRoot, materialKeys)
+        return { ok: true }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'arrangements:referenced-by',
+    async (_event, workspaceRoot: string, materialKey: string): Promise<ArrangementsReferencesResult> => {
+      try {
+        return { ok: true, boardPaths: await findBoardsReferencingMaterial(workspaceRoot, materialKey) }
+      } catch {
+        return { ok: false, boardPaths: [] }
+      }
+    }
+  )
 
   ipcMain.handle('file:open', (_event, resource: string) => {
     return openResource(resource, context)

@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
+import { useTranslation } from 'react-i18next'
 import { Canvas } from './canvas/Canvas'
+import ArrangementsView from './components/arrangements/ArrangementsView'
 import StartScreen from './components/start-screen/StartScreen'
 import CreateBoardModal from './components/workspace-home/CreateBoardModal'
 import ConfirmTrashModal from './components/workspace-home/ConfirmTrashModal'
 import WorkspaceHome from './components/workspace-home/WorkspaceHome'
+import { PetalButton, PetalPanel } from './components/petal'
 import { useBoardStore } from './stores/board'
 import { useWorkspaceStore } from './stores/workspace'
-import type { Board } from './shared/types'
+import {
+  isTextLeafNode,
+  lexicalContentToPlainText,
+  makeLexicalContent,
+  type Board
+} from './shared/types'
 
 type RecentBoardItem = {
   path: string
@@ -16,7 +24,8 @@ type RecentBoardItem = {
   thumbnailUri?: string
 }
 
-type AppView = 'board' | 'workspace-home' | 'start'
+type AppView = 'arrangements' | 'board' | 'workspace-home' | 'start'
+type ReturnView = 'board' | 'workspace-home'
 
 type BusyAction =
   | 'open'
@@ -33,12 +42,40 @@ type PendingTrashBoard = {
   clearWorkspace?: boolean
 }
 
+type PendingNavigationTarget = 'arrangements' | 'start' | 'workspace-home'
+
+type PendingViewTransition = {
+  target: PendingNavigationTarget
+  returnView?: ReturnView
+}
+
+async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  try {
+    const module = await import('./canvas/captureBoardThumbnail')
+    const dataUrl = await module.captureBoardThumbnail()
+    if (!dataUrl) return
+    await window.api.saveThumbnail(boardPath, workspaceRoot, dataUrl)
+  } catch (error) {
+    console.error('[thumbnail] capture or save failed:', error)
+  }
+}
+
 function App(): React.JSX.Element {
+  const { t } = useTranslation()
   const boardPath = useBoardStore((s) => s.path)
   const boardName = useBoardStore((s) => s.name)
+  const boardBrief = useBoardStore((s) => s.brief)
+  const boardTransient = useBoardStore((s) => s.transient === true)
+  const boardNodes = useBoardStore((s) => s.nodes)
+  const boardEdges = useBoardStore((s) => s.edges)
+  const boardViewport = useBoardStore((s) => s.viewport)
+  const boardVersion = useBoardStore((s) => s.version)
   const isDirty = useBoardStore((s) => s.isDirty)
   const loadBoard = useBoardStore((s) => s.loadBoard)
   const clearBoard = useBoardStore((s) => s.clearBoard)
+  const markSaved = useBoardStore((s) => s.markSaved)
+  const setBoardPersistence = useBoardStore((s) => s.setBoardPersistence)
 
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const workspaceConfig = useWorkspaceStore((s) => s.config)
@@ -57,8 +94,106 @@ function App(): React.JSX.Element {
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false)
   const [newBoardName, setNewBoardName] = useState('Board')
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
+  const [arrangementsReturnView, setArrangementsReturnView] = useState<ReturnView>('workspace-home')
+  const [pendingViewTransition, setPendingViewTransition] = useState<PendingViewTransition | null>(null)
 
   const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
+
+  const buildBoardSnapshot = useCallback(
+    (options?: { transient?: boolean }): Board => {
+      const nodes = boardNodes.map((node) => {
+        if (!isTextLeafNode(node)) return node
+
+        const content = node.content ?? makeLexicalContent(node.label ?? '')
+        return {
+          ...node,
+          content,
+          plain: lexicalContentToPlainText(content)
+        }
+      })
+
+      return {
+        version: boardVersion,
+        ...(options?.transient ? { transient: true as const } : {}),
+        ...(boardName?.trim() ? { name: boardName.trim() } : {}),
+        ...(boardBrief?.trim() ? { brief: boardBrief.trim() } : {}),
+        nodes,
+        edges: boardEdges,
+        ...(boardViewport ? { viewport: boardViewport } : {})
+      }
+    },
+    [boardBrief, boardEdges, boardName, boardNodes, boardVersion, boardViewport]
+  )
+
+  const saveCurrentBoard = useCallback(async (): Promise<boolean> => {
+    if (!boardPath) return false
+
+    if (boardTransient) {
+      const normalizedPath = boardPath.replace(/\\/g, '/')
+      const fileName = normalizedPath.slice(normalizedPath.lastIndexOf('/') + 1)
+      const suggestedName = boardName?.trim() || fileName.replace(/\.wb\.json$/i, '') || 'Board'
+      const saveDialogResult = await window.api.showBoardSaveDialog(suggestedName)
+      if (!saveDialogResult.ok || !saveDialogResult.boardPath) return false
+
+      const promotedSnapshot = buildBoardSnapshot({ transient: false })
+      const promotionResult = await window.api.promoteBoard(
+        boardPath,
+        saveDialogResult.boardPath,
+        JSON.stringify(promotedSnapshot, null, 2)
+      )
+
+      if (!promotionResult.ok || !promotionResult.boardPath) return false
+
+      setBoardPersistence(promotionResult.boardPath, false)
+      markSaved()
+      if (workspaceRoot !== null) {
+        void captureAndSaveThumbnail(promotionResult.boardPath, workspaceRoot)
+      }
+      return true
+    }
+
+    const result = await window.api.saveBoard(
+      boardPath,
+      JSON.stringify(buildBoardSnapshot({ transient: false }), null, 2)
+    )
+    if (!result.ok) return false
+
+    markSaved()
+    if (workspaceRoot !== null) {
+      void captureAndSaveThumbnail(boardPath, workspaceRoot)
+    }
+    return true
+  }, [
+    boardName,
+    boardPath,
+    boardTransient,
+    buildBoardSnapshot,
+    markSaved,
+    setBoardPersistence,
+    workspaceRoot
+  ])
+
+  const applyViewTransition = useCallback((transition: PendingViewTransition) => {
+    if (transition.target === 'arrangements') {
+      setArrangementsReturnView(transition.returnView ?? 'workspace-home')
+      setView('arrangements')
+      return
+    }
+
+    setView(transition.target)
+  }, [])
+
+  const requestViewTransition = useCallback(
+    (transition: PendingViewTransition) => {
+      if (view === 'board' && boardPath !== null && isDirty) {
+        setPendingViewTransition(transition)
+        return
+      }
+
+      applyViewTransition(transition)
+    },
+    [applyViewTransition, boardPath, isDirty, view]
+  )
 
   useEffect(() => {
     if (view !== 'start') return
@@ -129,6 +264,28 @@ function App(): React.JSX.Element {
       window.api.confirmClose()
     })
   }, [boardPath, isDirty])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (workspaceRoot === null) return
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.altKey) return
+      if (event.key.toLowerCase() !== 'a') return
+
+      event.preventDefault()
+
+      if (view === 'board') {
+        requestViewTransition({ target: 'arrangements', returnView: 'board' })
+        return
+      }
+
+      if (view === 'workspace-home') {
+        requestViewTransition({ target: 'arrangements', returnView: 'workspace-home' })
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [requestViewTransition, view, workspaceRoot])
 
   const openBoardByPath = useCallback(
     async (nextBoardPath: string) => {
@@ -369,11 +526,66 @@ function App(): React.JSX.Element {
     }
   }, [workspaceRoot, handleOpenCreateBoardModal, handleCreateQuickboard])
 
-  const handleGoHome = useCallback(() => setView('start'), [])
-  const handleGoToWorkspaceHome = useCallback(() => setView('workspace-home'), [])
+  const handleGoHome = useCallback(
+    () => requestViewTransition({ target: 'start' }),
+    [requestViewTransition]
+  )
+  const handleGoToWorkspaceHome = useCallback(
+    () => requestViewTransition({ target: 'workspace-home' }),
+    [requestViewTransition]
+  )
+  const handleOpenArrangementsFromWorkspace = useCallback(
+    () => requestViewTransition({ target: 'arrangements', returnView: 'workspace-home' }),
+    [requestViewTransition]
+  )
+  const handleOpenArrangementsFromBoard = useCallback(
+    () => requestViewTransition({ target: 'arrangements', returnView: 'board' }),
+    [requestViewTransition]
+  )
   const handleReturnToBoard = useCallback(() => setView('board'), [])
+  const handleReturnFromArrangements = useCallback(
+    () => setView(arrangementsReturnView),
+    [arrangementsReturnView]
+  )
+  const handleConfirmViewTransition = useCallback(async () => {
+    if (!pendingViewTransition) return
+
+    const saved = await saveCurrentBoard()
+    if (!saved) return
+
+    applyViewTransition(pendingViewTransition)
+    setPendingViewTransition(null)
+  }, [applyViewTransition, pendingViewTransition, saveCurrentBoard])
+  const handleDiscardViewTransition = useCallback(() => {
+    if (!pendingViewTransition) return
+
+    applyViewTransition(pendingViewTransition)
+    setPendingViewTransition(null)
+  }, [applyViewTransition, pendingViewTransition])
+  const handleCancelViewTransition = useCallback(() => {
+    setPendingViewTransition(null)
+  }, [])
 
   const canReturnToBoard = boardPath !== null && view !== 'board'
+  const pendingNavigationDialog = pendingViewTransition ? (
+    <PetalPanel
+      title={t('navigation.saveBeforeLeavingTitle')}
+      body={t('navigation.saveBeforeLeavingBody')}
+      onClose={handleCancelViewTransition}
+    >
+      <div className="petal-panel__actions">
+        <PetalButton onClick={handleCancelViewTransition}>
+          {t('navigation.cancelButton')}
+        </PetalButton>
+        <PetalButton onClick={() => void handleConfirmViewTransition()}>
+          {t('navigation.saveButton')}
+        </PetalButton>
+        <PetalButton intent="destructive" onClick={handleDiscardViewTransition}>
+          {t('navigation.discardButton')}
+        </PetalButton>
+      </div>
+    </PetalPanel>
+  ) : null
 
   if (view === 'board' && boardPath !== null) {
     return (
@@ -383,6 +595,7 @@ function App(): React.JSX.Element {
             <Canvas
               onGoHome={handleGoHome}
               onGoToWorkspaceHome={handleGoToWorkspaceHome}
+              onOpenArrangements={handleOpenArrangementsFromBoard}
               onNewBoard={handleNewBoardFromCanvas}
             />
           </div>
@@ -396,11 +609,27 @@ function App(): React.JSX.Element {
             onSubmit={() => void handleCreateWorkspaceBoard()}
           />
         ) : null}
+        {pendingNavigationDialog}
       </>
     )
   }
 
-  if (view === 'workspace-home' || (workspaceRoot !== null && view !== 'start')) {
+  if (view === 'arrangements' && workspaceRoot !== null) {
+    return (
+      <>
+        <ArrangementsView
+          workspaceName={workspaceConfig?.name}
+          onBack={handleReturnFromArrangements}
+        />
+        {pendingNavigationDialog}
+      </>
+    )
+  }
+
+  if (
+    view === 'workspace-home' ||
+    (workspaceRoot !== null && view !== 'start' && view !== 'arrangements')
+  ) {
     return (
       <>
         <WorkspaceHome
@@ -411,6 +640,7 @@ function App(): React.JSX.Element {
           boards={workspaceBoards.map((path) => ({ path, thumbnailUri: boardThumbnails[path] }))}
           currentBoardName={canReturnToBoard ? currentBoardName : null}
           onReturnToBoard={canReturnToBoard ? handleReturnToBoard : null}
+          onOpenArrangements={workspaceRoot !== null ? handleOpenArrangementsFromWorkspace : null}
           onCreateBoard={handleOpenCreateBoardModal}
           onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
           onTrashBoard={(nextBoardPath) =>
@@ -434,6 +664,7 @@ function App(): React.JSX.Element {
             onConfirm={() => void handleConfirmTrashBoard()}
           />
         ) : null}
+        {pendingNavigationDialog}
       </>
     )
   }
@@ -461,6 +692,7 @@ function App(): React.JSX.Element {
           onConfirm={() => void handleConfirmTrashBoard()}
         />
       ) : null}
+      {pendingNavigationDialog}
     </>
   )
 }

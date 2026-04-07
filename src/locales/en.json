@@ -16,6 +16,7 @@
     "untitledWorkspace": "Untitled workspace",
     "backToBoard": "Back to board",
     "newBoardAction": "New board",
+    "arrangementsAction": "Arrangements",
     "closeWorkspaceAction": "Close workspace",
     "boardsSection": "Boards",
     "newBoardTile": "New board",
@@ -65,6 +66,7 @@
     "paletteClusterLabel": "Create Cluster",
     "paletteClusterSelectionLabel": "Cluster Selected Nodes",
     "paletteFitClusterLabel": "Fit Cluster to Children",
+    "paletteArrangementsLabel": "Open Arrangements",
     "paletteFocusWriterLabel": "Focus Writer",
     "paletteSchemaBloomLabel": "DB Schema Drafter"
   },
@@ -205,5 +207,12 @@
     "boardFilter": "Whitebloom board",
     "createWorkspaceTitle": "Create workspace",
     "saveBoardTitle": "Save board"
+  },
+  "navigation": {
+    "saveBeforeLeavingTitle": "Save changes before leaving?",
+    "saveBeforeLeavingBody": "This board has unsaved changes. You can save, discard those edits, or cancel this navigation.",
+    "saveButton": "Save",
+    "discardButton": "Discard",
+    "cancelButton": "Cancel"
   }
 }

@@ -16,6 +16,7 @@
     "untitledWorkspace": "Espacio de trabajo sin título",
     "backToBoard": "Volver al tablero",
     "newBoardAction": "Nuevo tablero",
+    "arrangementsAction": "Arrangements",
     "closeWorkspaceAction": "Cerrar espacio de trabajo",
     "boardsSection": "Tableros",
     "newBoardTile": "Nuevo tablero",
@@ -65,6 +66,7 @@
     "paletteClusterLabel": "Crear clúster",
     "paletteClusterSelectionLabel": "Agrupar nodos seleccionados",
     "paletteFitClusterLabel": "Ajustar clúster a sus nodos",
+    "paletteArrangementsLabel": "Abrir Arrangements",
     "paletteFocusWriterLabel": "Escritor enfocado",
     "paletteSchemaBloomLabel": "Diseñador de esquema de BD"
   },
@@ -205,5 +207,12 @@
     "boardFilter": "Tablero Whitebloom",
     "createWorkspaceTitle": "Crear espacio de trabajo",
     "saveBoardTitle": "Guardar tablero"
+  },
+  "navigation": {
+    "saveBeforeLeavingTitle": "Â¿Guardar cambios antes de salir?",
+    "saveBeforeLeavingBody": "Este tablero tiene cambios sin guardar. Puedes guardarlos, descartar esas ediciones o cancelar esta navegaciÃ³n.",
+    "saveButton": "Guardar",
+    "discardButton": "Descartar",
+    "cancelButton": "Cancelar"
   }
 }

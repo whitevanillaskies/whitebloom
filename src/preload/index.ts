@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { AppSettings } from '../shared/app-settings'
+import type { ArrangementsMaterial, GardenState } from '../shared/arrangements'
 
 type WorkspaceConfig = {
   version: number
@@ -77,6 +78,26 @@ type WorkspaceCopyToResResult = {
   resource?: string
 }
 
+type ArrangementsReadResult = {
+  ok: boolean
+  state: GardenState | null
+}
+
+type ArrangementsWriteResult = {
+  ok: boolean
+  state: GardenState | null
+}
+
+type ArrangementsEnumerateResult = {
+  ok: boolean
+  materials: ArrangementsMaterial[]
+}
+
+type ArrangementsReferencesResult = {
+  ok: boolean
+  boardPaths: string[]
+}
+
 const api = {
   openWorkspaceDialog: (): Promise<WorkspaceOpenDialogResult> =>
     ipcRenderer.invoke('workspace:open-dialog'),
@@ -109,6 +130,25 @@ const api = {
     ipcRenderer.invoke('app:list-transient-boards'),
   listRecentBoards: (): Promise<ListRecentBoardsResult> =>
     ipcRenderer.invoke('app:list-recent-boards'),
+  readArrangements: (workspaceRoot: string): Promise<ArrangementsReadResult> =>
+    ipcRenderer.invoke('arrangements:read', workspaceRoot),
+  saveArrangements: (
+    workspaceRoot: string,
+    state: GardenState
+  ): Promise<ArrangementsWriteResult> =>
+    ipcRenderer.invoke('arrangements:write', workspaceRoot, state),
+  enumerateArrangementsMaterial: (workspaceRoot: string): Promise<ArrangementsEnumerateResult> =>
+    ipcRenderer.invoke('arrangements:enumerate-material', workspaceRoot),
+  emptyArrangementsTrash: (
+    workspaceRoot: string,
+    materialKeys: string[]
+  ): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('arrangements:trash-empty', workspaceRoot, materialKeys),
+  getArrangementsReferences: (
+    workspaceRoot: string,
+    materialKey: string
+  ): Promise<ArrangementsReferencesResult> =>
+    ipcRenderer.invoke('arrangements:referenced-by', workspaceRoot, materialKey),
   readBlossom: (workspaceRoot: string, resource: string): Promise<string> =>
     ipcRenderer.invoke('blossom:read', workspaceRoot, resource),
   writeBlossom: (workspaceRoot: string, resource: string, data: string): Promise<{ ok: boolean }> =>

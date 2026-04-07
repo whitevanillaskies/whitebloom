@@ -112,8 +112,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1629.4591738565757,
-        "y": 88.97061415776469
+        "x": 1606.72342535892,
+        "y": 93.51776385729588
       },
       "size": {
         "w": 165,
@@ -124,7 +124,7 @@
       "wrapWidth": 283,
       "created": "2026-04-05T22:31:49.473Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:43:53.924Z",
+      "updatedAt": "2026-04-07T17:36:14.600Z",
       "updatedBy": "anon",
       "plain": "ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ..."
     },
@@ -232,8 +232,8 @@
       "kind": "bud",
       "type": "com.whitebloom.schemabloom",
       "position": {
-        "x": 1296.2609451821388,
-        "y": -363.0776338676221
+        "x": 1272.0094801179723,
+        "y": -417.64343026199646
       },
       "size": {
         "w": 240,
@@ -242,7 +242,7 @@
       "resource": "wloc:res/sample_schema_jk 6.bdb",
       "created": "2026-04-06T13:39:50.489Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T14:05:23.617Z",
+      "updatedAt": "2026-04-07T17:34:53.374Z",
       "updatedBy": "anon"
     },
     {
@@ -250,8 +250,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 1075.0096023074561,
-        "y": -411.18731126871825
+        "x": 1064.3995863418834,
+        "y": -412.7030278352286
       },
       "size": {
         "w": 88,
@@ -260,7 +260,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T14:04:28.967Z",
+      "updatedAt": "2026-04-07T17:34:19.876Z",
       "updatedBy": "anon"
     },
     {
@@ -268,8 +268,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 883.6974796033522,
-        "y": 63.667699636066715
+        "x": 897.3389287019459,
+        "y": 68.2148493355979
       },
       "size": {
         "w": 88,
@@ -278,7 +278,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T14:04:26.951Z",
+      "updatedAt": "2026-04-07T17:35:07.201Z",
       "updatedBy": "anon"
     },
     {
@@ -377,8 +377,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1093.903161798844,
-        "y": 454.8808889812377
+        "x": 921.1114732166586,
+        "y": 427.5979907840505
       },
       "size": {
         "w": 411,
@@ -389,7 +389,7 @@
       "wrapWidth": null,
       "created": "2026-04-07T14:05:28.869Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T14:05:58.514Z",
+      "updatedAt": "2026-04-07T17:21:28.841Z",
       "updatedBy": "anon",
       "plain": "Cluster Features\nDouble click to edit cluster name.\nCluster toolbar for locking maybe, and absolutely for colors."
     },
@@ -406,8 +406,8 @@
       ],
       "color": "blue",
       "position": {
-        "x": 1046,
-        "y": 407
+        "x": 873.2083114178147,
+        "y": 379.7171018028128
       },
       "size": {
         "w": 672,
@@ -415,7 +415,7 @@
       },
       "created": "2026-04-07T14:06:00.633Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T16:25:52.494Z",
+      "updatedAt": "2026-04-07T17:21:28.841Z",
       "updatedBy": "anon"
     },
     {
@@ -444,8 +444,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1063.852721443812,
-        "y": 592.7844927766341
+        "x": 891.0610328616267,
+        "y": 565.5015945794469
       },
       "size": {
         "w": 271,
@@ -456,7 +456,7 @@
       "wrapWidth": null,
       "created": "2026-04-07T16:24:39.711Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T16:25:47.528Z",
+      "updatedAt": "2026-04-07T17:21:28.841Z",
       "updatedBy": "anon",
       "plain": "maybe extremely subtle accent glows\nyes, I think that may work"
     },
@@ -465,8 +465,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1211.7064967230401,
-        "y": 682.5453813267595
+        "x": 1038.9148081408548,
+        "y": 655.2624831295723
       },
       "size": {
         "w": 330,
@@ -477,7 +477,7 @@
       "wrapWidth": null,
       "created": "2026-04-07T16:25:03.916Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T16:25:20.553Z",
+      "updatedAt": "2026-04-07T17:21:28.841Z",
       "updatedBy": "anon",
       "plain": "a button on clusters to autofit them to content"
     },
@@ -486,8 +486,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1380.1080401377899,
-        "y": 562.3378005197527
+        "x": 1207.3163515556046,
+        "y": 535.0549023225656
       },
       "size": {
         "w": 320,
@@ -498,7 +498,7 @@
       "wrapWidth": 320,
       "created": "2026-04-07T16:25:21.991Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T16:25:53.611Z",
+      "updatedAt": "2026-04-07T17:21:28.841Z",
       "updatedBy": "anon",
       "plain": "not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them."
     }
@@ -541,8 +541,8 @@
     }
   ],
   "viewport": {
-    "x": -42.53173834154495,
-    "y": 303.9954118437781,
-    "zoom": 0.6597539553864477
+    "x": 481.3285476977991,
+    "y": 461.92313920595404,
+    "zoom": 0.5743491774985175
   }
 }

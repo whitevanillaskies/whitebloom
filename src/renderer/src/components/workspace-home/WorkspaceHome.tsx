@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronLeft, FilePlus, LayoutGrid, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, FilePlus, LayoutGrid, PanelsTopLeft, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { resourceToImageSrc } from '../../shared/resource-url'
 import './WorkspaceHome.css'
@@ -16,6 +16,7 @@ type WorkspaceHomeProps = {
   boards: BoardEntry[]
   currentBoardName: string | null
   onReturnToBoard: (() => void) | null
+  onOpenArrangements: (() => void) | null
   onCreateBoard: () => void
   onOpenBoard: (boardPath: string) => void
   onTrashBoard: (boardPath: string) => void
@@ -36,6 +37,7 @@ export default function WorkspaceHome({
   boards,
   currentBoardName,
   onReturnToBoard,
+  onOpenArrangements,
   onCreateBoard,
   onOpenBoard,
   onTrashBoard,
@@ -75,6 +77,22 @@ export default function WorkspaceHome({
             <FilePlus size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
             {t('workspaceHome.newBoardAction')}
           </button>
+
+          {onOpenArrangements ? (
+            <button
+              type="button"
+              className="workspace-home__action"
+              onClick={onOpenArrangements}
+              disabled={busy}
+            >
+              <PanelsTopLeft
+                size={14}
+                strokeWidth={1.8}
+                className="workspace-home__action-icon"
+              />
+              {t('workspaceHome.arrangementsAction')}
+            </button>
+          ) : null}
 
           <button
             type="button"

@@ -35,7 +35,7 @@ import { dispatchDirectory, dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
-import { Boxes, Database, FileText, FolderPlus, Scan, Settings2, Trash2, Type } from 'lucide-react'
+import { Boxes, Database, FileText, FolderPlus, PanelsTopLeft, Scan, Settings2, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
 import { focusWriterModule } from '../modules/focus-writer'
@@ -219,10 +219,16 @@ function blurToolbarButtonIfFocused(): void {
 type CanvasProps = {
   onGoHome: () => void
   onGoToWorkspaceHome: () => void
+  onOpenArrangements: () => void
   onNewBoard: () => void
 }
 
-export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProps) {
+export function Canvas({
+  onGoHome,
+  onGoToWorkspaceHome,
+  onOpenArrangements,
+  onNewBoard
+}: CanvasProps) {
   const { t } = useTranslation()
 
   const boardNodes = useBoardStore((s) => s.nodes)
@@ -1269,6 +1275,13 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
     if (workspaceRoot !== null) {
       items.push({
+        id: 'open-arrangements',
+        label: t('canvas.paletteArrangementsLabel'),
+        icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
+        hint: 'Arr',
+        onActivate: onOpenArrangements
+      })
+      items.push({
         id: 'create-focus-writer',
         label: t('canvas.paletteFocusWriterLabel'),
         icon: <FileText size={14} strokeWidth={1.8} />,
@@ -1292,6 +1305,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     createEmptyCluster,
     createFocusWriterBud,
     createSchemaBloomBud,
+    onOpenArrangements,
     selectedCluster,
     selectedClusterableNodes.length,
     t

@@ -1,5 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { AppSettings } from '../shared/app-settings'
+import type { ArrangementsMaterial, GardenState } from '../shared/arrangements'
 
 type WorkspaceConfig = {
   version: number
@@ -76,6 +77,26 @@ type WorkspaceCopyToResResult = {
   resource?: string
 }
 
+type ArrangementsReadResult = {
+  ok: boolean
+  state: GardenState | null
+}
+
+type ArrangementsWriteResult = {
+  ok: boolean
+  state: GardenState | null
+}
+
+type ArrangementsEnumerateResult = {
+  ok: boolean
+  materials: ArrangementsMaterial[]
+}
+
+type ArrangementsReferencesResult = {
+  ok: boolean
+  boardPaths: string[]
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -100,6 +121,20 @@ declare global {
       createQuickboard: () => Promise<QuickboardCreateResult>
       listTransientBoards: () => Promise<ListTransientBoardsResult>
       listRecentBoards: () => Promise<ListRecentBoardsResult>
+      readArrangements: (workspaceRoot: string) => Promise<ArrangementsReadResult>
+      saveArrangements: (
+        workspaceRoot: string,
+        state: GardenState
+      ) => Promise<ArrangementsWriteResult>
+      enumerateArrangementsMaterial: (workspaceRoot: string) => Promise<ArrangementsEnumerateResult>
+      emptyArrangementsTrash: (
+        workspaceRoot: string,
+        materialKeys: string[]
+      ) => Promise<{ ok: boolean }>
+      getArrangementsReferences: (
+        workspaceRoot: string,
+        materialKey: string
+      ) => Promise<ArrangementsReferencesResult>
       readBlossom: (workspaceRoot: string, resource: string) => Promise<string>
       writeBlossom: (
         workspaceRoot: string,

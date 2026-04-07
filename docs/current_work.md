@@ -50,6 +50,7 @@ The Arrangements view is the workspace desktop. Boards and resources live here a
 **What goes in Arrangements: material only.** Material means any workspace item with backing file substance. This includes:
 - Any bud-backed file (markdown, schema, image, etc.)
 - Boards (`.wb.json` files) — a board is material too
+- Linked files are materials too. Whether they appear as normal materials or with a link arrow to show they're not local is irrelevant. A picture is material whether it lives locally or points to some external file.
 
 Leaf nodes (text, sticky notes) are not material. They have no workspace file lifecycle and never appear in Arrangements.
 
@@ -85,6 +86,8 @@ Leaf nodes (text, sticky notes) are not material. They have no workspace file li
 - Parent-level exclusion may offer a hierarchy-aware prompt when child memberships exist.
 - Example: excluding from `Refs` may ask whether to also exclude the material from child sets.
 - The default should preserve explicit child memberships unless the user opts into the broader exclusion.
+
+- Internationalization note: In Spanish, Set is "Grupo" which should not be confused with Clusters. Clusters should be translated as "Racimos." 
 
 **Smart sets — computed, read-only.**
 
@@ -161,26 +164,34 @@ Opening a bin enters Bin View: a focused interior view of one bin. It should be 
 
 ### Phase 2 Implementation Plan
 
-#### Pre-work (decisions and scaffolding before any UI)
+#### Pre-work (decisions and scaffolding before any UI) 
 
-**1. State file: `.garden`**
+**1. State file: `.garden`** (DONE)
+
+STATUS: TEST OK.
 
 Arrangements persistence lives in `.garden` at the workspace root — a dotfile parallel to `.wbconfig`. It is not part of the open CoreData spec and not required by third-party board readers. Smart sets are not stored here; they are derived on demand.
 
 Schema covers: `bins`, `sets`, `memberships`, `desktopPlacements`, `cameraState`, `trashContents`. Material identity uses workspace-relative `wloc:` paths as stable keys.
 
-**2. `AppView` extension**
+**2. `AppView` extension** (DONE)
+
+STATUS: TEST OK.
 
 Add `'arrangements'` to the `AppView` union in `App.tsx`. Arrangements is a peer view, not a modal or canvas overlay. The view switch is a simple `setView('arrangements')` call.
 
-**3. Navigation decisions (settle before UI build)**
+**3. Navigation decisions (settle before UI build)** (DONE)
 
-- Palette command available from both board view and workspace home: type "arr" or "arrangements".
+STATUS: TEST OK.
+
+- Palette command available from board: type "arr" or "arrangements".
 - Keyboard shortcut: `Cmd+Shift+A` / `Ctrl+Shift+A` as a placeholder, finalize later — does not block implementation.
 - Dirty-board gate: opening Arrangements from a dirty board uses the same save/discard/cancel prompt already present for other view transitions. No new behavior needed.
 - Return path: Arrangements carries a `returnView` reference so back-navigation lands correctly (board or workspace home).
 
-**4. Material enumeration rules**
+**4. Material enumeration rules** (DONE)
+
+STATUS: TEST OK.
 
 v1 uses a hybrid approach:
 - Filesystem scan of `blossoms/` and `res/` for workspace-owned `wloc:` material.
@@ -189,7 +200,9 @@ v1 uses a hybrid approach:
 
 All three sources feed the material list. Stale computation (materials not referenced by any board) is deferred to v1.1 — it requires a full reference index and does not block the core Arrangements surface.
 
-**5. Arrangements Zustand store**
+**5. Arrangements Zustand store** (DONE)
+
+STATUS: TEST OK.
 
 Dedicated store (not local component state) given the state surface area. Shape:
 ```ts
@@ -206,7 +219,9 @@ Dedicated store (not local component state) given the state surface area. Shape:
 ```
 Smart sets (`Stale`, `Linked`) are derived selectors, not stored state.
 
-**6. IPC surface**
+**6. IPC surface** (DONE)
+
+STATUS: OK.
 
 Add to `register-app-ipc.ts` and `preload/index.ts`:
 - `arrangements:read` — load `.garden` for the current workspace
