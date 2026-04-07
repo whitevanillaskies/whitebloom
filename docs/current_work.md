@@ -161,126 +161,6 @@ Opening a bin enters Bin View: a focused interior view of one bin. It should be 
 
 **Storage.** Arrangements state lives in an app-specific workspace file (see `deferred_work.md`), not in board CoreData. Smart sets are not stored. Quickboards have no Arrangements view — the modal is unavailable without a workspace.
 
-
-### Phase 2 Implementation Plan
-
-#### Pre-work (decisions and scaffolding before any UI)  (DONE)
-
-**1. State file: `.garden`** (DONE)
-
-STATUS: TEST OK.
-
-Arrangements persistence lives in `.garden` at the workspace root — a dotfile parallel to `.wbconfig`. It is not part of the open CoreData spec and not required by third-party board readers. Smart sets are not stored here; they are derived on demand.
-
-Schema covers: `bins`, `sets`, `memberships`, `desktopPlacements`, `cameraState`, `trashContents`. Material identity uses workspace-relative `wloc:` paths as stable keys.
-
-**2. `AppView` extension** (DONE)
-
-STATUS: TEST OK.
-
-Add `'arrangements'` to the `AppView` union in `App.tsx`. Arrangements is a peer view, not a modal or canvas overlay. The view switch is a simple `setView('arrangements')` call.
-
-**3. Navigation decisions (settle before UI build)** (DONE)
-
-STATUS: TEST OK.
-
-- Palette command available from board: type "arr" or "arrangements".
-- Keyboard shortcut: `Cmd+Shift+A` / `Ctrl+Shift+A` as a placeholder, finalize later — does not block implementation.
-- Dirty-board gate: opening Arrangements from a dirty board uses the same save/discard/cancel prompt already present for other view transitions. No new behavior needed.
-- Return path: Arrangements carries a `returnView` reference so back-navigation lands correctly (board or workspace home).
-
-**4. Material enumeration rules** (DONE)
-
-STATUS: TEST OK.
-
-v1 uses a hybrid approach:
-- Filesystem scan of `blossoms/` and `res/` for workspace-owned `wloc:` material.
-- Board scan for `file:///` references to populate the `Linked` smart set.
-- Top-level `*.wb.json` boards from the existing `workspace-files.ts` service.
-
-All three sources feed the material list. Stale computation (materials not referenced by any board) is deferred to v1.1 — it requires a full reference index and does not block the core Arrangements surface.
-
-**5. Arrangements Zustand store** (DONE)
-
-STATUS: TEST OK.
-
-Dedicated store (not local component state) given the state surface area. Shape:
-```ts
-{
-  materials: ArrangementsMaterial[]      // all discovered workspace material
-  bins: Bin[]                            // user bins + system Trash
-  sets: SetNode[]                        // hierarchical set tree
-  memberships: SetMembership[]           // material ↔ set relationships
-  binAssignments: Record<materialKey, binId>
-  desktopPlacements: Record<materialKey, { x: number; y: number }>
-  cameraState: { x: number; y: number; zoom: number }
-  activeBinView: string | null           // null = desktop; binId = Bin View
-}
-```
-Smart sets (`Stale`, `Linked`) are derived selectors, not stored state.
-
-**6. IPC surface** (DONE)
-
-STATUS: OK.
-
-Add to `register-app-ipc.ts` and `preload/index.ts`:
-- `arrangements:read` — load `.garden` for the current workspace
-- `arrangements:write` — persist `.garden`
-- `arrangements:enumerate-material` — filesystem + board scan returning material list
-- `arrangements:trash-empty` — destructive delete of trashed materials from disk
-- `arrangements:referenced-by` — for a given material path, return which boards reference it (used for pre-deletion warning; scoped scan, not a global cache)
-
----
-
-#### Logic / Structural Work (DONE)
-
-Build in this order:
-
-1. (STATUS: DONE, TEST OK) **`.garden` service** (`src/main/services/garden-store.ts`) — read/write JSON, with safe atomic write (write to `.garden.tmp`, rename). Schema validation on read; corrupt file falls back to empty state with a warning.
-
-2. (STATUS: DONE, TEST OK) **Material enumerator** (`src/main/services/workspace-material.ts`) — scans `blossoms/` and `res/` for non-thumbnail files, reads top-level `*.wb.json` list, returns a flat `ArrangementsMaterial[]` with type, `wloc:` key, display name, and file extension. Board scan for `file:///` URIs runs in the same pass.
-
-3. (STATUS: DONE, TEST OK) **Reference checker** — on-demand scan of all `*.wb.json` in the workspace for references to a specific material key. Called only at trash-empty time or explicit "referenced by" UI query. Not cached in v1.
-
-4. (STATUS: DONE, TEST OK) **Register IPC channels** in `register-app-ipc.ts` and expose through `preload/index.ts`.
-
-5. (STATUS: DONE, TEST OK) **Arrangements store** — implement the Zustand store with actions: `loadArrangements`, `saveArrangements`, `assignToBin`, `removeFromBin`, `includeInSet`, `excludeFromSet`, `moveMaterialOnDesktop`, `moveBinOnDesktop`, `sendToTrash`, `emptyTrash`, `createBin`, `deleteBin`, `createSet`, `deleteSet`, `setCamera`.
-
-6. (STATUS: DONE, TEST OK) **Palette integration** — add "Open Arrangements" command to the `Tab` palette in `Canvas.tsx` and to the workspace home shortcut surface. Both call `setView('arrangements')` on the app view state.
-
----
-
-#### UI Build (DONE)
-
-Build in this order, shipping incrementally:
-
-##### 1. Arrangements view shell (DONE)
-a full-window `<div>` rendered when `view === 'arrangements'`. 
-
-##### 2.1 PetalIsland component (DONE)
-new addition to the Petal component library. A non-modal, non-floating docked panel with its own rounded, elevated surface. Inspired by JetBrains Islands: each tool window is a discrete "island" with its own background, rounded frame, and thin border — giving it visual identity without relying on backdrop-filter or heavy shadows. Unlike `PetalPanel` (which is a centered floating modal with overlay), `PetalIsland` is always-present, embedded in layout flow, and carries no overlay or dismiss behavior. It accepts a `title` slot and a `children` content area. Add to `petal/index.ts`.
-
-##### 2.2 PetalWindow component (DONE)
-also new to the Petal library. A Finder-window-on-the-desktop primitive: has window chrome (title bar, back/close button, view toggle slot, search slot), sits *on top of* the Arrangements desktop surface without overlaying it or blocking surrounding elements. No backdrop, no modal behavior, no dismiss-on-outside-click. The desktop behind and around it remains fully visible and interactable — desktop bins, Trash, and the Sets Island all stay live as drag targets. Think of it as an application window placed on a tabletop: it occupies space within the content zone but the tabletop itself is still there. Structurally distinct from `PetalPanel` (modal overlay) and `PetalContainer` (docked layout island). Add to `petal/index.ts`.
-
-##### 3. Desktop Island (DONE)
-main content for the Arrangements view. Contains the actual area for arranging materials.
-
-##### 4. Sets Island (DONE)
-left-docked `PetalContainer`. Contains the hierarchical set tree (expandable like a code editor project tree) and a separate smart sets section at the bottom. Double-click expands/collapses one level. Drag target for materials. Smart set entries are read-only. `Linked` smart set shows in v1; `Stale` deferred.
-
-##### 5. Material items on desktop (DONE)
-icon + label layout objects placed at `desktopPlacements` coordinates. Boards use a distinct icon; other materials use file-type icons from the existing `getSystemFileIcon` IPC. Selection state with keyboard `Delete` to assign to Trash. Double-click dispatches bloom (material) or board open.
-
-##### 6. Bins on desktop (DONE)
-same icon + label treatment as material items, but typed as bins. `Trash` is a fixed anchor (bottom-right or equivalent). User bins are repositionable. Double-click enters Bin View.
-
-##### 7. Bin View (DONE)
-rendered as a `PetalWindow` sitting on the Arrangements desktop. Does not replace or obscure the desktop; bins, Trash, and the Sets Island remain visible and interactable around it. Window chrome: back button (returns to desktop), view mode toggle (icon/list), search input. Main content: the bin's materials. Sidebar inside the window: flat list of all bins for drag-target reassignment. Trash Bin View is the same model; selection + `Delete` triggers permanent deletion with reference warning before executing.
-
-##### 8. Drag and drop (DONE)
-wire HTML5 drag across desktop ↔ bins ↔ Trash ↔ Sets Island. Affordances appear on hover during drag; no persistent clutter.
-
 ---
 
 #### Appearance Pass
@@ -317,5 +197,48 @@ Key properties:
 
 Defer implementation until clusters and Arrangements are shipped and stable.
 
-
 ---
+
+## Mica window manager.
+
+`Mica` is the Arrangements window manager: a lightweight UI layer above the desktop plane, named after the layered stone. It should behave like a tiny Quartz, but intentionally constrained for Whitebloom's calmer surface language.
+- `Mica` owns floating window instances, not bin data.
+- A window instance must have its own UI identity independent from any bin ID.
+- In v1, `Mica` should allow only one primary floating window at a time.
+- Opening a different bin while a window is already open should retarget that same window to the new bin instead of spawning another one.
+- The window should remain screen-space relative to the Arrangements desktop container, not world-space inside the panning desktop plane.
+- Window position should persist when switching between bins within the same open window.
+- The floating window layer should remain visually separate from the material/tabletop layer beneath it.
+
+**What `Mica` needs to manage.**
+
+- Window identity: a UI-level `windowId`, distinct from `binId`.
+- Window content routing: for now, `kind: "bin-view"` with a referenced `binId`.
+- Window geometry: at minimum `x` and `y`; likely also `width` and `height` even if resize is deferred.
+- Window visibility lifecycle: open, retarget, close.
+- Window focus policy: with one window this is simple, but the model should still preserve the idea that windows are focusable UI entities.
+- Window chrome interactions: dragging by title bar, non-draggable controls inside the chrome, and safe pointer capture rules so canvas pan does not fight the window.
+- Desktop-layer coordination: the canvas/world layer and the window/overlay layer must remain separate so the Finder-style window does not move with the camera.
+
+**State model direction.**
+
+- Replace the special-case `activeBinView` model with a small window-manager state owned by Arrangements.
+- Keep domain state and UI state separate: bins remain content; windows remain presentation instances.
+- Even with a single open window, model it as a window record rather than "the active bin."
+- Bin switching should update the window's routed content, not recreate the window conceptually.
+- Local per-window UI state should be considered explicitly: view mode, search query, selection, and last geometry.
+
+**Behavior rules to settle before implementation.**
+
+- Whether view mode is global to all bin windows or stored per window. Per window is probably cleaner.
+- Whether search resets when changing bins. Resetting is likely less confusing.
+- Whether selection always clears on bin switch. It probably should.
+- Whether the window remembers position across Arrangements sessions or only while Arrangements stays open.
+- Whether future non-bin windows are in scope for the same manager. The state shape should leave room for that even if v1 implements only bin windows.
+
+**Why this is worth doing.**
+
+- It keeps Arrangements from accreting one-off overlay behaviors.
+- It creates a clean seam between the tabletop world and floating UI surfaces.
+- It lets Bin View feel movable and desktop-native without allowing clutter from multiple simultaneous windows.
+- It gives Whitebloom a named UI primitive that can be extended later without rethinking the architecture from scratch.
