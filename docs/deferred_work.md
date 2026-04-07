@@ -81,7 +81,7 @@ A portable, single-file format for sharing a complete workspace without requirin
 
 Arrangements does not change CoreData. Bins, set membership, desktop placement, and other Arrangements-only metadata are app-level workspace state rather than board data. They belong in a separate workspace file, not in `.wbconfig`, `*.wb.json`, or HEP.
 
-Working assumption: store this in a dedicated JSON file at the workspace root, such as `blossoms-garden.json`. The exact filename is app-level and may still change; the important boundary is:
+**Settled:** the file is `.garden` at the workspace root — a dotfile parallel to `.wbconfig`. The important boundary is:
 
 - It is not part of the open CoreData spec.
 - It is not required for third-party consumers that only read boards and resources.
