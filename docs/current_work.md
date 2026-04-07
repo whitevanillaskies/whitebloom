@@ -159,7 +159,7 @@ Opening a bin enters Bin View: a focused interior view of one bin. It should be 
 **Storage.** Arrangements state lives in an app-specific workspace file (see `deferred_work.md`), not in board CoreData. Smart sets are not stored. Quickboards have no Arrangements view — the modal is unavailable without a workspace.
 
 
-### Subboards (deferred, design only)
+### Subboards
 
 A subboard is a bud node on the canvas whose resource is another `.wb.json` file. It represents true hierarchical containment: blooming opens the nested board. The parent board shows a live miniature preview of the child board inside the bud node.
 
