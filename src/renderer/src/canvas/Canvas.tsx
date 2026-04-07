@@ -41,7 +41,7 @@ import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
 import { focusWriterModule } from '../modules/focus-writer'
 import { schemaBloomModule } from '../modules/schemabloom'
 import { absolutePathToFileUri } from '@renderer/shared/resource-url'
-import type { Board } from '@renderer/shared/types'
+import type { Board, ClusterNode as BoardClusterNode } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
 import { isClusterNode } from '@renderer/shared/types'
@@ -81,6 +81,8 @@ type NodeBounds = {
   bottom: number
 }
 
+type ClusterMembershipCue = 'accept' | 'release'
+
 function getRenderedNodeBounds(
   nodeId: string,
   screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number }
@@ -111,6 +113,37 @@ function getDroppedFilePath(file: File & { path?: string }): string {
   }
 
   return typeof file.path === 'string' ? file.path : ''
+}
+
+function getNodeBounds(node: Pick<RFNode, 'position' | 'width' | 'height'>, fallbackSize?: { w: number; h: number }): NodeBounds | null {
+  const width = typeof node.width === 'number' && node.width > 0 ? node.width : fallbackSize?.w
+  const height = typeof node.height === 'number' && node.height > 0 ? node.height : fallbackSize?.h
+  if (typeof width !== 'number' || typeof height !== 'number') return null
+
+  return {
+    left: node.position.x,
+    top: node.position.y,
+    right: node.position.x + width,
+    bottom: node.position.y + height
+  }
+}
+
+function isBoundsFullyInside(bounds: NodeBounds, clusterBounds: NodeBounds): boolean {
+  return (
+    bounds.left >= clusterBounds.left &&
+    bounds.top >= clusterBounds.top &&
+    bounds.right <= clusterBounds.right &&
+    bounds.bottom <= clusterBounds.bottom
+  )
+}
+
+function isBoundsFullyOutside(bounds: NodeBounds, clusterBounds: NodeBounds): boolean {
+  return (
+    bounds.right < clusterBounds.left ||
+    bounds.left > clusterBounds.right ||
+    bounds.bottom < clusterBounds.top ||
+    bounds.top > clusterBounds.bottom
+  )
 }
 
 function measureDroppedImage(file: File): Promise<{ size: { w: number; h: number } }> {
@@ -559,6 +592,15 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     return mapping
   }, [boardNodes])
 
+  const clusterNodesById = useMemo(() => {
+    const mapping = new Map<string, BoardClusterNode>()
+    for (const node of boardNodes) {
+      if (!isClusterNode(node)) continue
+      mapping.set(node.id, node)
+    }
+    return mapping
+  }, [boardNodes])
+
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       const isClusterPositionChange = (
@@ -613,7 +655,97 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           })
         }
 
-        return nextNodes
+        const draggingNodeChanges = changes.filter(
+          (change): change is Extract<NodeChange, { type: 'position' }> =>
+            change.type === 'position' &&
+            'id' in change &&
+            Boolean(change.position) &&
+            change.dragging === true &&
+            !clusterChildrenById.has(change.id)
+        )
+
+        const nextCues: Record<string, ClusterMembershipCue> = {}
+
+        for (const change of draggingNodeChanges) {
+          const draggedBoardNode = boardNodes.find(
+            (node) => node.id === change.id && !isClusterNode(node)
+          )
+          if (!draggedBoardNode || !change.position) continue
+
+          const owningClusterId = Array.from(clusterChildrenById.entries()).find(([, childIds]) =>
+            childIds.includes(change.id)
+          )?.[0]
+
+          const draggedLocalNode = nextNodes.find((node) => node.id === change.id)
+          const draggedBounds = getNodeBounds(
+            {
+              position: change.position,
+              width: draggedLocalNode?.width,
+              height: draggedLocalNode?.height
+            },
+            draggedBoardNode.size
+          )
+          if (!draggedBounds) continue
+
+          const containingClusters = boardNodes
+            .filter((node): node is BoardClusterNode => isClusterNode(node))
+            .filter((cluster) => {
+              const clusterLocalNode = nextNodes.find((node) => node.id === cluster.id)
+              const clusterBounds = getNodeBounds(
+                {
+                  position: clusterLocalNode?.position ?? { x: cluster.position.x, y: cluster.position.y },
+                  width: clusterLocalNode?.width,
+                  height: clusterLocalNode?.height
+                },
+                cluster.size
+              )
+              return clusterBounds ? isBoundsFullyInside(draggedBounds, clusterBounds) : false
+            })
+            .sort((left, right) => left.size.w * left.size.h - right.size.w * right.size.h)
+
+          if (!owningClusterId && containingClusters.length > 0) {
+            nextCues[containingClusters[0].id] = 'accept'
+          }
+
+          if (owningClusterId) {
+            const owningCluster = clusterNodesById.get(owningClusterId)
+            if (owningCluster) {
+              const owningLocalNode = nextNodes.find((node) => node.id === owningCluster.id)
+              const owningBounds = getNodeBounds(
+                {
+                  position: owningLocalNode?.position ?? owningCluster.position,
+                  width: owningLocalNode?.width,
+                  height: owningLocalNode?.height
+                },
+                owningCluster.size
+              )
+
+              if (
+                owningBounds &&
+                isBoundsFullyOutside(draggedBounds, owningBounds) &&
+                nextCues[owningClusterId] !== 'accept'
+              ) {
+                nextCues[owningClusterId] = 'release'
+              }
+            }
+          }
+        }
+
+        return nextNodes.map((node) => {
+          if (node.type !== 'cluster') return node
+
+          const currentData = node.data as ClusterData
+          const membershipCue = nextCues[node.id] ?? null
+          if ((currentData.membershipCue ?? null) === membershipCue) return node
+
+          return {
+            ...node,
+            data: {
+              ...currentData,
+              membershipCue
+            } satisfies ClusterData
+          }
+        })
       })
 
       for (const change of changes) {
@@ -639,7 +771,14 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         }
       }
     },
-    [boardNodes, clusterChildrenById, reconcileNodeClusterMembership, translateCluster, updateNodePosition]
+    [
+      boardNodes,
+      clusterChildrenById,
+      clusterNodesById,
+      reconcileNodeClusterMembership,
+      translateCluster,
+      updateNodePosition
+    ]
   )
 
   const onEdgesChange = useCallback(

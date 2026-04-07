@@ -10,6 +10,7 @@ export type ClusterData = {
   label?: string
   color: ClusterColor
   size: Size
+  membershipCue?: 'accept' | 'release' | null
 }
 
 const MIN_CLUSTER_WIDTH = 180
@@ -63,7 +64,7 @@ export function ClusterNode({ id, data, selected, positionAbsoluteX, positionAbs
   return (
     <>
       <div
-        className={`cluster-node cluster-node--${clusterData.color}${selected ? ' cluster-node--selected' : ''}${isResizing ? ' nodrag nopan' : ''}`}
+        className={`cluster-node cluster-node--${clusterData.color}${selected ? ' cluster-node--selected' : ''}${clusterData.membershipCue ? ` cluster-node--cue-${clusterData.membershipCue}` : ''}${isResizing ? ' nodrag nopan' : ''}`}
         style={{ width: localSize.w, height: localSize.h }}
         title={label}
       >
