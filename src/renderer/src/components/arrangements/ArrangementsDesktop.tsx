@@ -3,8 +3,8 @@ import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenCameraState } from '../../../../shared/arrangements'
 import './ArrangementsDesktop.css'
 
-const MIN_ZOOM = 0.25
-const MAX_ZOOM = 2.5
+const MIN_ZOOM = 0.9
+const MAX_ZOOM = 0.9
 const ZOOM_STEP = 0.0012
 const MATERIAL_MIME = 'application/x-wb-material-key'
 
@@ -188,8 +188,6 @@ export default function ArrangementsDesktop({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="arrangements-desktop__grid" aria-hidden="true" />
-
       <div
         className="arrangements-desktop__world"
         style={{ transform, transformOrigin: '0 0' }}
