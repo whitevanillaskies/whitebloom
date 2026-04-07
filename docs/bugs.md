@@ -28,6 +28,6 @@ The edge toolbar `EdgeToolbar.tsx` should only appear if there's one selected ed
 
 Clusters. The Command Fit Clusters to Children works on every edge except the right side one. It cuts through the rightmost node instead of fully wrapping it.
 
-### Bug UX-1
+### Bug UX-1 (FIXED)
 
 Resizing a cluster isn't smooth at all, it's laggy and choppy to the point it's unacceptable.

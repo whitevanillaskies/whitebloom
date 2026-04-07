@@ -28,9 +28,8 @@ export function ClusterNode({ id, data, selected, positionAbsoluteX, positionAbs
     ({ position, size }: { position: { x: number; y: number }; size: Size }) => {
       setLocalSize(size)
       updateNodePosition(id, position.x, position.y)
-      updateNodeSize(id, size.w, size.h)
     },
-    [id, updateNodePosition, updateNodeSize]
+    [id, updateNodePosition]
   )
 
   const handleResizeCommit = useCallback(
