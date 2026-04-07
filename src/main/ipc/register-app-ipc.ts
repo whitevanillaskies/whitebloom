@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
+import { t } from '../i18n'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
 import { listTransientBoards } from '../services/app-storage'
 import { listRecentBoards, type RecentBoardItem } from '../services/recent-boards-store'
@@ -30,24 +31,27 @@ export function registerAppIpc(context: MainProcessContext): void {
     return openResource(resource, context)
   })
 
-  ipcMain.handle('workspace:update-config', async (_event, workspaceRoot: string, patch: { name?: string; brief?: string }) => {
-    try {
-      const updated = await updateWorkspaceConfig(workspaceRoot, patch)
-      return { ok: true, config: updated }
-    } catch {
-      return { ok: false, config: null }
+  ipcMain.handle(
+    'workspace:update-config',
+    async (_event, workspaceRoot: string, patch: { name?: string; brief?: string }) => {
+      try {
+        const updated = await updateWorkspaceConfig(workspaceRoot, patch)
+        return { ok: true, config: updated }
+      } catch {
+        return { ok: false, config: null }
+      }
     }
-  })
+  )
 
   ipcMain.handle('file:confirm-large-import', async (_event, fileName: string, sizeMb: number) => {
     const { response } = await dialog.showMessageBox({
       type: 'warning',
-      buttons: ['Import anyway', 'Cancel'],
+      buttons: [t('dialogs.importAnywayButton'), t('dialogs.cancelButton')],
       defaultId: 1,
       cancelId: 1,
-      title: 'Large file',
-      message: `"${fileName}" is ${sizeMb} MB`,
-      detail: 'Importing will copy this file into your workspace. Consider linking it instead to avoid duplicating large files on disk.'
+      title: t('dialogs.largeFileTitle'),
+      message: t('dialogs.largeFileMessage', { fileName, sizeMb }),
+      detail: t('dialogs.largeFileDetail')
     })
     return response === 0
   })
@@ -55,12 +59,12 @@ export function registerAppIpc(context: MainProcessContext): void {
   ipcMain.handle('file:ask-import-or-link', async (_event, fileName: string) => {
     const { response } = await dialog.showMessageBox({
       type: 'question',
-      buttons: ['Import', 'Link'],
+      buttons: [t('dialogs.importButton'), t('dialogs.linkButton')],
       defaultId: 1,
       cancelId: 1,
-      title: 'Add file to workspace',
-      message: `How do you want to add "${fileName}"?`,
-      detail: 'Import copies the file into your workspace. Link keeps it at its current location — if the file moves, the node will break.'
+      title: t('dialogs.importOrLinkTitle'),
+      message: t('dialogs.importOrLinkMessage', { fileName }),
+      detail: t('dialogs.importOrLinkDetail')
     })
     return response === 0 ? 'import' : 'link'
   })

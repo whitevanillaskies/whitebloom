@@ -2,6 +2,7 @@ import { dialog, ipcMain } from 'electron'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { basename, dirname } from 'path'
 import type { MainProcessContext } from '../state/main-process-context'
+import { t } from '../i18n'
 import {
   createTransientQuickboard,
   promoteTransientBoard,
@@ -16,11 +17,7 @@ import {
   readWorkspace,
   writeBoard
 } from '../services/workspace-files'
-import {
-  discardThumbnail,
-  getThumbnailUri,
-  writeThumbnail
-} from '../services/board-thumbnails'
+import { discardThumbnail, getThumbnailUri, writeThumbnail } from '../services/board-thumbnails'
 import { recordBoardOpen } from '../services/recent-boards-store'
 import { resolveResource } from '../resource-uri'
 
@@ -86,10 +83,10 @@ function suggestBoardFileName(defaultName?: string): string {
 export function registerBoardIpc(context: MainProcessContext): void {
   ipcMain.handle('workspace:open-dialog', async (): Promise<WorkspaceOpenDialogResult> => {
     const { filePaths, canceled } = await dialog.showOpenDialog({
-      title: 'Open workspace or board',
+      title: t('dialogs.openWorkspaceBoardTitle'),
       filters: [
-        { name: 'Whitebloom workspace', extensions: ['wbconfig'] },
-        { name: 'Whitebloom board', extensions: ['wb.json'] }
+        { name: t('dialogs.workspaceFilter'), extensions: ['wbconfig'] },
+        { name: t('dialogs.boardFilter'), extensions: ['wb.json'] }
       ],
       properties: ['openFile']
     })
@@ -118,7 +115,7 @@ export function registerBoardIpc(context: MainProcessContext): void {
 
   ipcMain.handle('workspace:create-dialog', async (): Promise<WorkspaceCreateDialogResult> => {
     const { filePaths, canceled } = await dialog.showOpenDialog({
-      title: 'Create workspace',
+      title: t('dialogs.createWorkspaceTitle'),
       properties: ['openDirectory', 'createDirectory']
     })
     if (canceled || filePaths.length === 0) return { ok: false }
@@ -165,9 +162,9 @@ export function registerBoardIpc(context: MainProcessContext): void {
     'board:save-dialog',
     async (_event, defaultName?: string): Promise<BoardSaveDialogResult> => {
       const { filePath, canceled } = await dialog.showSaveDialog({
-        title: 'Save board',
+        title: t('dialogs.saveBoardTitle'),
         defaultPath: suggestBoardFileName(defaultName),
-        filters: [{ name: 'Whitebloom board', extensions: ['wb.json'] }]
+        filters: [{ name: t('dialogs.boardFilter'), extensions: ['wb.json'] }]
       })
 
       if (canceled || !filePath) return { ok: false }
@@ -313,11 +310,7 @@ export function registerBoardIpc(context: MainProcessContext): void {
 
   ipcMain.handle(
     'thumbnail:discard',
-    async (
-      _event,
-      boardPath: string,
-      workspaceRoot: string
-    ): Promise<{ ok: boolean }> => {
+    async (_event, boardPath: string, workspaceRoot: string): Promise<{ ok: boolean }> => {
       if (!boardPath || !workspaceRoot) return { ok: false }
       try {
         await discardThumbnail(boardPath, workspaceRoot)

@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createMainWindow } from './create-window'
+import { initializeMainI18n } from './i18n'
 import { registerAppIpc } from './ipc/register-app-ipc'
 import { registerBoardIpc } from './ipc/register-board-ipc'
 import {
@@ -24,6 +25,7 @@ app.whenReady().then(async () => {
 
   const context = createMainProcessContext()
   await ensureAppStorageDirectories()
+  await initializeMainI18n()
 
   registerResourceProtocols(context)
   registerBoardIpc(context)

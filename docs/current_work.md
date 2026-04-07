@@ -154,7 +154,7 @@ One top-level namespace per process boundary is sufficient for now. Keys should 
 **Implementation order.**
 1. Add `i18next` and `react-i18next` dependencies. DONE.
 2. Create `src/locales/en.json` with all current English strings extracted. DONE.
-3. Wire up renderer `i18n.ts`; replace hardcoded strings in components one file at a time.
+3. Wire up renderer `i18n.ts`; replace hardcoded strings in components one file at a time. DONE.
 4. Wire up main `i18n.ts`; replace dialog strings in `register-app-ipc.ts`.
 5. Add `language` field to `AppSettings`; hook detection + persistence.
 6. Add `app:set-language` IPC handler; wire to settings modal.
