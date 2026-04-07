@@ -69,6 +69,8 @@ const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 const LARGE_IMPORT_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
 const DEFAULT_CLUSTER_SIZE = { w: 320, h: 220 }
 const CLUSTER_SELECTION_PADDING = 48
+const CLUSTER_EDGE_Z_INDEX = -1
+const INTERNAL_CLUSTER_EDGE_Z_INDEX = 5
 
 const WEB_RESOURCE_DROP_ERROR = 'Can\'t embed web resources — save the image to your local drive first, then drop it.'
 
@@ -432,20 +434,44 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     setPendingNodeSelectionId(id)
   }, [createClusterFromNodes, createEmptyCluster, screenToFlowPosition, selectedClusterableNodes])
 
+  const owningClusterByNodeId = useMemo(() => {
+    const clusterByChildId = new Map<string, string>()
+
+    for (const node of boardNodes) {
+      if (!isClusterNode(node)) continue
+
+      for (const childId of node.children) {
+        clusterByChildId.set(childId, node.id)
+      }
+    }
+
+    return clusterByChildId
+  }, [boardNodes])
+
   // Derive RF edges from store
   const schemaEdges: RFEdge[] = useMemo(
     () =>
-      boardEdges.map((e) => ({
-        id: e.id,
-        source: e.from,
-        target: e.to,
-        sourceHandle: e.sourceHandle ?? null,
-        targetHandle: e.targetHandle ?? null,
-        type: 'wb',
-        label: e.label,
-        data: { style: e.style, color: e.color } satisfies WbEdgeData,
-      })),
-    [boardEdges]
+      boardEdges.map((e) => {
+        const sourceClusterId = owningClusterByNodeId.get(e.from) ?? null
+        const targetClusterId = owningClusterByNodeId.get(e.to) ?? null
+        const isFullyInternal =
+          sourceClusterId !== null &&
+          targetClusterId !== null &&
+          sourceClusterId === targetClusterId
+
+        return {
+          id: e.id,
+          source: e.from,
+          target: e.to,
+          sourceHandle: e.sourceHandle ?? null,
+          targetHandle: e.targetHandle ?? null,
+          type: 'wb',
+          label: e.label,
+          zIndex: isFullyInternal ? INTERNAL_CLUSTER_EDGE_Z_INDEX : CLUSTER_EDGE_Z_INDEX,
+          data: { style: e.style, color: e.color } satisfies WbEdgeData,
+        }
+      }),
+    [boardEdges, owningClusterByNodeId]
   )
 
   const [edges, setEdges] = useState<RFEdge[]>(schemaEdges)
@@ -1286,6 +1312,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        zIndexMode="manual"
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}

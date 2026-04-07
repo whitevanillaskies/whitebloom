@@ -1,7 +1,7 @@
 .cluster-node {
   position: relative;
   border-radius: var(--radius-border-frame);
-  /* border: 1px solid var(--cluster-border); */
+  border: 1px solid var(--cluster-border);
   /* background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.3)),
     var(--cluster-fill); */
