@@ -1,6 +1,6 @@
 # Current Work
 
-Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only.
+Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only. Keep `design_language.md` in mind when implementing new user-facing features.
 
 ---
 
@@ -40,6 +40,89 @@ A cluster is a visual grouping of nodes on the canvas. It is not a file, not a m
 **Edges cross cluster boundaries freely.** A cluster is not a namespace. An edge from node-1 (inside cluster A) to node-7 (outside) is fully valid. The cluster is a visual annotation, not a semantic isolation boundary.
 
 **Agent context boundary.** The cluster `brief` enables scoped agent passes. Asking an agent to "work on the auth cluster" gives it a bounded context: the cluster brief as the primary directive, and only the child nodes as the graph it operates on. This is a significant improvement over full-board agent passes for large boards.
+
+#### Phase 1 implementation plan
+
+This is implementable in a focused pass, but not quite "just add a new node type." It touches schema typing, board-store mutations, React Flow adaptation, canvas rendering order, selection/drag behavior, and creation affordances. Best approach: ship a canvas-first vertical slice, then tighten edge cases.
+
+**1. Extend the board schema and types.**
+
+STATUS: DONE.
+
+- Add `kind: "cluster"` to the board node union instead of forcing clusters through the existing bud/leaf shape.
+- Define cluster-specific fields: `label`, optional `brief`, `children`, `color`, `position`, `size`, authorship timestamps.
+- Keep cluster children as plain node IDs referencing siblings in the same top-level `nodes` array.
+- Preserve board version at `3` for now unless we explicitly decide schema additions require a bump immediately.
+
+**2. Add store-level cluster mutations before UI work.**
+
+STATUS: DONE.
+
+- Add helpers to create, update, and delete clusters.
+- Add a single "translate cluster" mutation that moves the cluster and all child nodes by the same delta.
+- Add membership operations: create cluster from selected nodes, add node to cluster, remove node from cluster.
+- Decide and enforce the v1 invariant that a node may belong to at most one cluster. This keeps drag semantics simple and avoids ambiguous rendering.
+- On node deletion, automatically remove the deleted ID from any cluster `children` arrays.
+
+**3. Teach the canvas adapter about clusters.**
+
+STATUS: DONE.
+
+- Add a dedicated React Flow node type for clusters instead of pretending they are buds or leaves.
+- Derive cluster bounds from stored `position` + `size`, while children keep absolute coordinates.
+- Render clusters behind ordinary nodes and keep edges free to cross boundaries.
+- Make sure save/load round-trips preserve cluster data without special casing elsewhere.
+
+**4. Implement cluster visuals as a lightweight canvas annotation.**
+
+STATUS: DONE.
+
+- Build a `ClusterNode` with the floating-surface treatment from the spec: soft fill, thin tinted border, internal top-left label chip.
+- Use the existing accent token family for `blue`, `pink`, `red`, `purple`, `green`.
+- Keep the cluster visually quiet: it should read as board organization, not as an interactive card competing with real nodes.
+
+**5. Implement drag and selection semantics carefully.**
+
+STATUS: DONE.
+
+- Dragging a cluster should move every child by the same delta and persist all resulting absolute positions.
+- Selecting a cluster should not implicitly select all children in v1; treat movement as the special grouped behavior and keep selection semantics simple.
+- Dragging a child should not move the cluster; instead, cluster membership remains until explicitly changed.
+- If a child is dragged fully outside the cluster bounds, do nothing automatically in v1. Auto-eject sounds nice but creates surprise and extra policy questions.
+
+**6. Add a minimal creation flow.**
+
+STATUS: DONE.
+
+- Palette action: `Create Cluster`.
+- Better palette action: `Cluster Selected Nodes` when there is an active multi-selection.
+- First pass can create a default labeled cluster with the current selection's bounding box plus padding.
+- Editing cluster label/brief/color can live in the existing board-side UI pattern rather than requiring a new modal.
+
+**7. Define v1 bounds behavior explicitly.**
+
+STATUS: DONE.
+
+- Store cluster `position` and `size` directly rather than recomputing them from children on every render.
+- On creation from selected nodes, initialize bounds from child extents + padding.
+- When children move independently later, do not auto-resize the cluster in v1.
+- Add an explicit future action like `Fit Cluster to Children` instead of hidden auto-magic.
+
+**8. Leave agent-scoped behavior schema-ready but implementation-light.**
+
+- Store `brief` now so the data model is correct.
+- Do not block phase 1 on agent integration unless the agent entrypoint already exists and is easy to thread through.
+- If agent scope wiring is already near at hand, scope should be: workspace brief + board brief + cluster brief + child nodes only.
+
+**9. Verify with a tight acceptance pass.**
+
+- Create/save/reopen a board with multiple clusters.
+- Drag cluster, verify all child coordinates persist correctly.
+- Delete child, verify cluster membership cleans up.
+- Connect edges across cluster boundaries.
+- Open old boards with no clusters and confirm nothing regresses.
+
+**Recommended implementation order in code:** shared types -> board store invariants/mutations -> cluster node component/CSS -> canvas mapping and drag behavior -> palette affordance -> persistence verification.
 
 ### Phase 2: Arrangements
 

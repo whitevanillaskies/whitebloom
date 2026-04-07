@@ -23,3 +23,7 @@ On the start screen, just new quickboards won't be added neither to the quickboa
 ### Bug UI-5 (FIXED)
 
 The edge toolbar `EdgeToolbar.tsx` should only appear if there's one selected edge and nothing more. If there's two selected edges, the toolbar correctly doesn't appear, but if there's multiple nodes selected and one edge, the toolbar appears. This is incorrect. If the number of seleted items is greater than 1, no matter what they are, the toolbar shouldn't show up.
+
+### Bug UI-6
+
+Clusters. The Command Fit Clusters to Children works on every edge except the right side one. It cuts through the rightmost node instead of fully wrapping it.

@@ -62,6 +62,9 @@
     "moveToTrashMenuItem": "Move to Trash",
     "searchPalettePlaceholder": "Search Palette",
     "paletteTextLabel": "Text",
+    "paletteClusterLabel": "Create Cluster",
+    "paletteClusterSelectionLabel": "Cluster Selected Nodes",
+    "paletteFitClusterLabel": "Fit Cluster to Children",
     "paletteFocusWriterLabel": "Focus Writer",
     "paletteSchemaBloomLabel": "DB Schema Drafter"
   },

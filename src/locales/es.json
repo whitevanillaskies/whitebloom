@@ -62,6 +62,9 @@
     "moveToTrashMenuItem": "Mover a la papelera",
     "searchPalettePlaceholder": "Buscar en la paleta",
     "paletteTextLabel": "Texto",
+    "paletteClusterLabel": "Crear clúster",
+    "paletteClusterSelectionLabel": "Agrupar nodos seleccionados",
+    "paletteFitClusterLabel": "Ajustar clúster a sus nodos",
     "paletteFocusWriterLabel": "Escritor enfocado",
     "paletteSchemaBloomLabel": "Diseñador de esquema de BD"
   },

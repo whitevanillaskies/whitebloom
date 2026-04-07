@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useConnection, type Node as RFNode } from '@xyflow/react'
-import type { BoardNode } from '@renderer/shared/types'
+import { isClusterNode, type BoardNode } from '@renderer/shared/types'
 import { CONNECTION_PROXIMITY_THRESHOLD } from './canvas-constants'
 
 type Props = {
@@ -39,6 +39,7 @@ export function ProximityTracker({ boardNodes, setNodes }: Props) {
 
     for (const node of boardNodes) {
       if (node.id === sourceId) continue
+      if (isClusterNode(node)) continue
       // Distance from cursor to nearest point on node bounding box
       const dx = Math.max(node.position.x - x, 0, x - (node.position.x + node.size.w))
       const dy = Math.max(node.position.y - y, 0, y - (node.position.y + node.size.h))

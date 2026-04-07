@@ -121,4 +121,191 @@ describe('board store', () => {
     expect(state.nodes[0].created.length).toBeGreaterThan(0)
     expect(state.nodes[0].updatedAt.length).toBeGreaterThan(0)
   })
+
+  it('sanitizes cluster children on load so only real nodes remain and membership stays exclusive', () => {
+    const board = {
+      version: CURRENT_BOARD_VERSION,
+      nodes: [
+        {
+          id: 'node-a',
+          kind: 'leaf',
+          type: 'text',
+          position: { x: 0, y: 0 },
+          size: { w: 120, h: 40 },
+          content: makeLexicalContent('alpha')
+        },
+        {
+          id: 'node-b',
+          kind: 'leaf',
+          type: 'text',
+          position: { x: 40, y: 20 },
+          size: { w: 120, h: 40 },
+          content: makeLexicalContent('beta')
+        },
+        {
+          id: 'cluster-1',
+          kind: 'cluster',
+          type: null,
+          position: { x: -20, y: -20 },
+          size: { w: 240, h: 160 },
+          label: 'One',
+          color: 'blue',
+          children: ['node-a', 'missing-node', 'node-a']
+        },
+        {
+          id: 'cluster-2',
+          kind: 'cluster',
+          type: null,
+          position: { x: 220, y: 0 },
+          size: { w: 240, h: 160 },
+          label: 'Two',
+          color: 'pink',
+          children: ['node-a', 'node-b']
+        }
+      ],
+      edges: []
+    } as Board
+
+    useBoardStore.getState().loadBoard(board, 'D:/boards/clusters.wb.json')
+
+    const state = useBoardStore.getState()
+    const cluster1 = state.nodes.find((node) => node.id === 'cluster-1')
+    const cluster2 = state.nodes.find((node) => node.id === 'cluster-2')
+
+    expect(cluster1?.kind).toBe('cluster')
+    expect(cluster2?.kind).toBe('cluster')
+    if (cluster1?.kind !== 'cluster' || cluster2?.kind !== 'cluster') {
+      throw new Error('Expected cluster nodes to load as clusters')
+    }
+
+    expect(cluster1.children).toEqual(['node-a'])
+    expect(cluster2.children).toEqual(['node-b'])
+  })
+
+  it('removes deleted nodes from cluster membership', () => {
+    useBoardStore.getState().addNode({
+      id: 'node-a',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 0, y: 0 },
+      size: { w: 120, h: 40 },
+      content: makeLexicalContent('alpha')
+    })
+    useBoardStore.getState().addNode({
+      id: 'node-b',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 40, y: 20 },
+      size: { w: 120, h: 40 },
+      content: makeLexicalContent('beta')
+    })
+    useBoardStore.getState().addCluster({
+      id: 'cluster-1',
+      kind: 'cluster',
+      type: null,
+      position: { x: -20, y: -20 },
+      size: { w: 240, h: 160 },
+      label: 'Main',
+      color: 'blue',
+      children: ['node-a', 'node-b']
+    })
+    useBoardStore.getState().markSaved()
+
+    useBoardStore.getState().deleteNode('node-a')
+
+    const cluster = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-1')
+    expect(cluster?.kind).toBe('cluster')
+    if (cluster?.kind !== 'cluster') {
+      throw new Error('Expected cluster node to remain after deleting a child')
+    }
+
+    expect(cluster.children).toEqual(['node-b'])
+    expect(useBoardStore.getState().isDirty).toBe(true)
+  })
+
+  it('reassigns a node to a new cluster exclusively', () => {
+    useBoardStore.getState().addNode({
+      id: 'node-a',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 0, y: 0 },
+      size: { w: 120, h: 40 },
+      content: makeLexicalContent('alpha')
+    })
+    useBoardStore.getState().addCluster({
+      id: 'cluster-1',
+      kind: 'cluster',
+      type: null,
+      position: { x: -20, y: -20 },
+      size: { w: 240, h: 160 },
+      label: 'One',
+      color: 'blue',
+      children: ['node-a']
+    })
+    useBoardStore.getState().addCluster({
+      id: 'cluster-2',
+      kind: 'cluster',
+      type: null,
+      position: { x: 280, y: -20 },
+      size: { w: 240, h: 160 },
+      label: 'Two',
+      color: 'pink',
+      children: []
+    })
+
+    useBoardStore.getState().addNodeToCluster('cluster-2', 'node-a')
+
+    const cluster1 = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-1')
+    const cluster2 = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-2')
+    expect(cluster1?.kind).toBe('cluster')
+    expect(cluster2?.kind).toBe('cluster')
+    if (cluster1?.kind !== 'cluster' || cluster2?.kind !== 'cluster') {
+      throw new Error('Expected both clusters to remain')
+    }
+
+    expect(cluster1.children).toEqual([])
+    expect(cluster2.children).toEqual(['node-a'])
+  })
+
+  it('translates a cluster and all of its children by the same delta', () => {
+    useBoardStore.getState().addNode({
+      id: 'node-a',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 10, y: 20 },
+      size: { w: 120, h: 40 },
+      content: makeLexicalContent('alpha')
+    })
+    useBoardStore.getState().addNode({
+      id: 'node-b',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 90, y: 70 },
+      size: { w: 120, h: 40 },
+      content: makeLexicalContent('beta')
+    })
+    useBoardStore.getState().addCluster({
+      id: 'cluster-1',
+      kind: 'cluster',
+      type: null,
+      position: { x: 0, y: 0 },
+      size: { w: 280, h: 180 },
+      label: 'Main',
+      color: 'green',
+      children: ['node-a', 'node-b']
+    })
+    useBoardStore.getState().markSaved()
+
+    useBoardStore.getState().translateCluster('cluster-1', 25, -10)
+
+    const state = useBoardStore.getState()
+    const cluster = state.nodes.find((node) => node.id === 'cluster-1')
+    const nodeA = state.nodes.find((node) => node.id === 'node-a')
+    const nodeB = state.nodes.find((node) => node.id === 'node-b')
+
+    expect(cluster?.position).toEqual({ x: 25, y: -10 })
+    expect(nodeA?.position).toEqual({ x: 35, y: 10 })
+    expect(nodeB?.position).toEqual({ x: 115, y: 60 })
+    expect(state.isDirty).toBe(true)
+  })
 })

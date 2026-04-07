@@ -1,6 +1,7 @@
 export type Position = { x: number; y: number }
 export type Size = { w: number; h: number }
 export type WidthMode = 'auto' | 'fixed'
+export type ClusterColor = 'blue' | 'pink' | 'red' | 'purple' | 'green'
 
 export const CURRENT_WORKSPACE_CONFIG_VERSION = 1
 export const CURRENT_BOARD_VERSION = 3
@@ -23,11 +24,9 @@ export type Workspace = {
   boards: string[]
 }
 
-export type BoardNode = {
+type BaseBoardNode = {
   id: string
-  kind: 'bud' | 'leaf'
   /** Module id for concrete-typed buds; null for void-typed buds (no handler — open with OS default). */
-  type: string | null
   position: Position
   size: Size
   created: string
@@ -41,6 +40,26 @@ export type BoardNode = {
   wrapWidth?: number | null
   resource?: string
 }
+
+export type BudNode = BaseBoardNode & {
+  kind: 'bud'
+  type: string | null
+}
+
+export type LeafNode = BaseBoardNode & {
+  kind: 'leaf'
+  type: string | null
+}
+
+export type ClusterNode = BaseBoardNode & {
+  kind: 'cluster'
+  type: null
+  brief?: string
+  children: string[]
+  color: ClusterColor
+}
+
+export type BoardNode = BudNode | LeafNode | ClusterNode
 
 export type BoardEdge = {
   id: string
@@ -65,6 +84,14 @@ export type Board = {
   nodes: BoardNode[]
   edges: BoardEdge[]
   viewport?: BoardViewport
+}
+
+export function isClusterNode(node: BoardNode): node is ClusterNode {
+  return node.kind === 'cluster'
+}
+
+export function isTextLeafNode(node: BoardNode): node is LeafNode & { kind: 'leaf'; type: 'text' } {
+  return node.kind === 'leaf' && node.type === 'text'
 }
 
 /** Create a minimal Lexical EditorState JSON for a plain-text string. */

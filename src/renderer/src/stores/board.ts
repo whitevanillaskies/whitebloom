@@ -4,8 +4,11 @@ import {
   type Board,
   type BoardEdge,
   type BoardNode,
+  type ClusterColor,
+  type ClusterNode,
   type BoardViewport,
-  type WidthMode
+  type WidthMode,
+  isClusterNode
 } from '@renderer/shared/types'
 import { DEFAULT_USERNAME, normalizeUsername } from '../../../shared/app-settings'
 
@@ -15,14 +18,22 @@ type TextLayoutPatch = {
   wrapWidth?: number | null
 }
 
-type BoardNodeDraft = Omit<BoardNode, 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'> &
-  Partial<Pick<BoardNode, 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'>>
+type NodeMetadataFields = 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'
+type NodeMetadataCarrier = Partial<Record<NodeMetadataFields, string>>
+type NonClusterBoardNode = Exclude<BoardNode, ClusterNode>
+
+export type BoardNodeDraft = Omit<NonClusterBoardNode, NodeMetadataFields> &
+  Partial<Pick<NonClusterBoardNode, NodeMetadataFields>>
+
+export type ClusterNodeDraft = Omit<ClusterNode, NodeMetadataFields> &
+  Partial<Pick<ClusterNode, NodeMetadataFields>>
 
 type BoardState = Board & {
   path: string | null
   activeUsername: string
   isDirty: boolean
   addNode: (node: BoardNodeDraft) => void
+  addCluster: (cluster: ClusterNodeDraft) => void
   deleteNode: (id: string) => void
   deleteNodes: (ids: string[]) => void
   addEdge: (edge: BoardEdge) => void
@@ -31,6 +42,25 @@ type BoardState = Board & {
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
+  updateCluster: (
+    id: string,
+    patch: Partial<Pick<ClusterNode, 'label' | 'brief' | 'color' | 'children'>>
+  ) => void
+  translateCluster: (id: string, dx: number, dy: number) => void
+  addNodeToCluster: (clusterId: string, nodeId: string) => void
+  removeNodeFromCluster: (clusterId: string, nodeId: string) => void
+  createClusterFromNodes: (input: {
+    id: string
+    label?: string
+    brief?: string
+    color?: ClusterColor
+    childIds: string[]
+    position: { x: number; y: number }
+    size: { w: number; h: number }
+  }) => void
+  reconcileNodeClusterMembership: (nodeId: string) => void
+  reconcileClusterMembershipsForCluster: (clusterId: string) => void
+  fitClusterToChildren: (clusterId: string, padding?: number) => void
   updateBoardMeta: (patch: { name?: string; brief?: string }) => void
   updateViewport: (viewport: BoardViewport) => void
   setActiveUsername: (username: string) => void
@@ -48,11 +78,11 @@ function isValidIsoTimestamp(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0
 }
 
-function normalizeNodeMetadata(
-  node: BoardNodeDraft,
+function normalizeNodeMetadata<TNode extends NodeMetadataCarrier>(
+  node: TNode,
   fallbackTimestamp: string,
   fallbackUsername: string
-): BoardNode {
+): TNode & Record<NodeMetadataFields, string> {
   const created = isValidIsoTimestamp(node.created)
     ? node.created
     : isValidIsoTimestamp(node.updatedAt)
@@ -73,10 +103,189 @@ function normalizeNodeMetadata(
   return { ...node, created, createdBy, updatedAt, updatedBy }
 }
 
-function touchNode(node: BoardNode, timestamp: string, username: string): BoardNode {
+function touchNode<TNode extends BoardNode>(node: TNode, timestamp: string, username: string): TNode {
   const normalized = normalizeNodeMetadata(node, timestamp, username)
-  if (normalized.updatedAt === timestamp && normalized.updatedBy === username) return normalized
-  return { ...normalized, updatedAt: timestamp, updatedBy: username }
+  if (normalized.updatedAt === timestamp && normalized.updatedBy === username) return normalized as TNode
+  return { ...normalized, updatedAt: timestamp, updatedBy: username } as TNode
+}
+
+function sanitizeClusterChildren(nodes: BoardNode[]): BoardNode[] {
+  const validNodeIds = new Set(nodes.filter((node) => !isClusterNode(node)).map((node) => node.id))
+  const claimedChildIds = new Set<string>()
+
+  return nodes.map((node) => {
+    if (!isClusterNode(node)) return node
+
+    const nextChildren: string[] = []
+    for (const childId of node.children) {
+      if (!validNodeIds.has(childId)) continue
+      if (claimedChildIds.has(childId)) continue
+      claimedChildIds.add(childId)
+      nextChildren.push(childId)
+    }
+
+    return nextChildren.length === node.children.length &&
+      nextChildren.every((childId, index) => childId === node.children[index])
+      ? node
+      : { ...node, children: nextChildren }
+  })
+}
+
+function removeNodeIdsFromClusters(nodes: BoardNode[], removedIds: Set<string>): BoardNode[] {
+  let changed = false
+
+  const nextNodes = nodes
+    .filter((node) => !removedIds.has(node.id))
+    .map((node) => {
+      if (!isClusterNode(node)) return node
+      const nextChildren = node.children.filter((childId) => !removedIds.has(childId))
+      if (nextChildren.length === node.children.length) return node
+      changed = true
+      return { ...node, children: nextChildren }
+    })
+
+  return changed ? nextNodes : nextNodes
+}
+
+function assignNodeToCluster(nodes: BoardNode[], clusterId: string, nodeId: string): BoardNode[] {
+  const targetCluster = nodes.find(
+    (node): node is ClusterNode => isClusterNode(node) && node.id === clusterId
+  )
+  if (!targetCluster) return nodes
+  if (!nodes.some((node) => node.id === nodeId && !isClusterNode(node))) return nodes
+
+  let changed = false
+  const nextNodes = nodes.map((node) => {
+    if (!isClusterNode(node)) return node
+
+    if (node.id === clusterId) {
+      if (node.children.includes(nodeId)) return node
+      changed = true
+      return { ...node, children: [...node.children, nodeId] }
+    }
+
+    if (!node.children.includes(nodeId)) return node
+    changed = true
+    return { ...node, children: node.children.filter((childId) => childId !== nodeId) }
+  })
+
+  return changed ? nextNodes : nodes
+}
+
+function removeNodeFromSingleCluster(nodes: BoardNode[], clusterId: string, nodeId: string): BoardNode[] {
+  let changed = false
+  const nextNodes = nodes.map((node) => {
+    if (!isClusterNode(node) || node.id !== clusterId || !node.children.includes(nodeId)) return node
+    changed = true
+    return { ...node, children: node.children.filter((childId) => childId !== nodeId) }
+  })
+
+  return changed ? nextNodes : nodes
+}
+
+function getNodeBounds(node: Pick<BoardNode, 'position' | 'size'>) {
+  return {
+    left: node.position.x,
+    top: node.position.y,
+    right: node.position.x + node.size.w,
+    bottom: node.position.y + node.size.h
+  }
+}
+
+function isNodeFullyInsideCluster(node: BoardNode, cluster: ClusterNode): boolean {
+  const nodeBounds = getNodeBounds(node)
+  const clusterBounds = getNodeBounds(cluster)
+
+  return (
+    nodeBounds.left >= clusterBounds.left &&
+    nodeBounds.top >= clusterBounds.top &&
+    nodeBounds.right <= clusterBounds.right &&
+    nodeBounds.bottom <= clusterBounds.bottom
+  )
+}
+
+function isNodeFullyOutsideCluster(node: BoardNode, cluster: ClusterNode): boolean {
+  const nodeBounds = getNodeBounds(node)
+  const clusterBounds = getNodeBounds(cluster)
+
+  return (
+    nodeBounds.right < clusterBounds.left ||
+    nodeBounds.left > clusterBounds.right ||
+    nodeBounds.bottom < clusterBounds.top ||
+    nodeBounds.top > clusterBounds.bottom
+  )
+}
+
+function findOwningCluster(nodes: BoardNode[], nodeId: string): ClusterNode | null {
+  return (
+    nodes.find(
+      (node): node is ClusterNode => isClusterNode(node) && node.children.includes(nodeId)
+    ) ?? null
+  )
+}
+
+function getContainingClusters(nodes: BoardNode[], targetNode: BoardNode): ClusterNode[] {
+  return nodes
+    .filter((node): node is ClusterNode => isClusterNode(node))
+    .filter((cluster) => isNodeFullyInsideCluster(targetNode, cluster))
+}
+
+function getSmallestCluster(clusters: ClusterNode[]): ClusterNode | null {
+  if (clusters.length === 0) return null
+
+  return [...clusters].sort((left, right) => {
+    const leftArea = left.size.w * left.size.h
+    const rightArea = right.size.w * right.size.h
+    return leftArea - rightArea
+  })[0]
+}
+
+function reconcileNodeClusterMemberships(
+  nodes: BoardNode[],
+  nodeIds: string[],
+  timestamp: string,
+  username: string
+): BoardNode[] {
+  let nextNodes = nodes
+
+  for (const nodeId of nodeIds) {
+    const targetNode = nextNodes.find((node) => node.id === nodeId && !isClusterNode(node))
+    if (!targetNode) continue
+
+    const owningCluster = findOwningCluster(nextNodes, nodeId)
+    const desiredCluster = getSmallestCluster(getContainingClusters(nextNodes, targetNode))
+
+    if (desiredCluster) {
+      const beforeMembership = new Set(
+        nextNodes
+          .filter((node) => isClusterNode(node) && node.children.includes(nodeId))
+          .map((node) => node.id)
+      )
+      const reassignedNodes = assignNodeToCluster(nextNodes, desiredCluster.id, nodeId)
+      if (reassignedNodes !== nextNodes) {
+        nextNodes = reassignedNodes.map((node) => {
+          if (!isClusterNode(node)) return node
+          if (node.id !== desiredCluster.id && !beforeMembership.has(node.id)) return node
+          return touchNode(node, timestamp, username)
+        })
+      }
+      continue
+    }
+
+    if (!owningCluster) continue
+    if (!isNodeFullyOutsideCluster(targetNode, owningCluster)) continue
+
+    const removedNodes = removeNodeFromSingleCluster(nextNodes, owningCluster.id, nodeId)
+    if (removedNodes !== nextNodes) {
+      nextNodes = removedNodes.map((node) =>
+        isClusterNode(node) && node.id === owningCluster.id
+          ? touchNode(node, timestamp, username)
+          : node
+      )
+    }
+  }
+
+  return nextNodes
 }
 
 export const useBoardStore = create<BoardState>((set) => ({
@@ -101,18 +310,33 @@ export const useBoardStore = create<BoardState>((set) => ({
       }
     }),
 
+  addCluster: (cluster) =>
+    set((state) => {
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const normalizedCluster = normalizeNodeMetadata(cluster, timestamp, username)
+      const nodes = sanitizeClusterChildren([...state.nodes, normalizedCluster])
+      return {
+        nodes,
+        isDirty: shouldMarkBoardDirty(state)
+      }
+    }),
+
   deleteNode: (id) =>
-    set((state) => ({
-      nodes: state.nodes.filter((n) => n.id !== id),
-      edges: state.edges.filter((e) => e.from !== id && e.to !== id),
-      isDirty: shouldMarkBoardDirty(state)
-    })),
+    set((state) => {
+      const removedIds = new Set([id])
+      return {
+        nodes: removeNodeIdsFromClusters(state.nodes, removedIds),
+        edges: state.edges.filter((e) => e.from !== id && e.to !== id),
+        isDirty: shouldMarkBoardDirty(state)
+      }
+    }),
 
   deleteNodes: (ids) =>
     set((state) => {
       const idSet = new Set(ids)
       return {
-        nodes: state.nodes.filter((n) => !idSet.has(n.id)),
+        nodes: removeNodeIdsFromClusters(state.nodes, idSet),
         edges: state.edges.filter((e) => !idSet.has(e.from) && !idSet.has(e.to)),
         isDirty: shouldMarkBoardDirty(state)
       }
@@ -204,6 +428,210 @@ export const useBoardStore = create<BoardState>((set) => ({
       return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
+  updateCluster: (id, patch) =>
+    set((state) => {
+      let changed = false
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const candidateNodes = sanitizeClusterChildren(
+        state.nodes.map((node) => {
+          if (!isClusterNode(node) || node.id !== id) return node
+
+          const next: ClusterNode = {
+            ...touchNode(node, timestamp, username),
+            ...patch
+          }
+
+          if (
+            next.label === node.label &&
+            next.brief === node.brief &&
+            next.color === node.color &&
+            next.children.length === node.children.length &&
+            next.children.every((childId, index) => childId === node.children[index])
+          ) {
+            return node
+          }
+
+          changed = true
+          return next
+        })
+      )
+      const nodesChanged =
+        candidateNodes.length !== state.nodes.length ||
+        candidateNodes.some((node, index) => node !== state.nodes[index])
+
+      return changed || nodesChanged
+        ? { nodes: candidateNodes, isDirty: shouldMarkBoardDirty(state) }
+        : state
+    }),
+
+  translateCluster: (id, dx, dy) =>
+    set((state) => {
+      if (dx === 0 && dy === 0) return state
+
+      const cluster = state.nodes.find(
+        (node): node is ClusterNode => isClusterNode(node) && node.id === id
+      )
+      if (!cluster) return state
+
+      const childIds = new Set(cluster.children)
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      let changed = false
+
+      const nodes = state.nodes.map((node) => {
+        if (node.id !== id && !childIds.has(node.id)) return node
+        changed = true
+        return {
+          ...touchNode(node, timestamp, username),
+          position: {
+            x: node.position.x + dx,
+            y: node.position.y + dy
+          }
+        }
+      })
+
+      return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  addNodeToCluster: (clusterId, nodeId) =>
+    set((state) => {
+      const previousMembership = new Set(
+        state.nodes
+          .filter((node) => isClusterNode(node) && node.children.includes(nodeId))
+          .map((node) => node.id)
+      )
+      const nextNodes = assignNodeToCluster(state.nodes, clusterId, nodeId)
+      if (nextNodes === state.nodes) return state
+
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const touchedNodes = nextNodes.map((node) => {
+        if (!isClusterNode(node)) return node
+        if (node.id !== clusterId && !previousMembership.has(node.id)) return node
+        return touchNode(node, timestamp, username)
+      })
+
+      return { nodes: touchedNodes, isDirty: shouldMarkBoardDirty(state) }
+    }),
+
+  removeNodeFromCluster: (clusterId, nodeId) =>
+    set((state) => {
+      const nodes = removeNodeFromSingleCluster(state.nodes, clusterId, nodeId)
+      if (nodes === state.nodes) return state
+
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const touchedNodes = nodes.map((node) =>
+        isClusterNode(node) && node.id === clusterId ? touchNode(node, timestamp, username) : node
+      )
+
+      return { nodes: touchedNodes, isDirty: shouldMarkBoardDirty(state) }
+    }),
+
+  createClusterFromNodes: (input) =>
+    set((state) => {
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const cluster: ClusterNodeDraft = {
+        id: input.id,
+        kind: 'cluster',
+        type: null,
+        label: input.label,
+        brief: input.brief,
+        children: input.childIds,
+        color: input.color ?? 'blue',
+        position: input.position,
+        size: input.size
+      }
+
+      const nodes = sanitizeClusterChildren([
+        ...state.nodes,
+        normalizeNodeMetadata(cluster, timestamp, username)
+      ])
+
+      return { nodes, isDirty: shouldMarkBoardDirty(state) }
+    }),
+
+  reconcileNodeClusterMembership: (nodeId) =>
+    set((state) => {
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const nodes = reconcileNodeClusterMemberships(state.nodes, [nodeId], timestamp, username)
+      return nodes === state.nodes ? state : { nodes, isDirty: shouldMarkBoardDirty(state) }
+    }),
+
+  reconcileClusterMembershipsForCluster: (clusterId) =>
+    set((state) => {
+      const cluster = state.nodes.find(
+        (node): node is ClusterNode => isClusterNode(node) && node.id === clusterId
+      )
+      if (!cluster) return state
+
+      const candidateNodeIds = state.nodes
+        .filter((node) => !isClusterNode(node))
+        .map((node) => node.id)
+
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const nodes = reconcileNodeClusterMemberships(state.nodes, candidateNodeIds, timestamp, username)
+      return nodes === state.nodes ? state : { nodes, isDirty: shouldMarkBoardDirty(state) }
+    }),
+
+  fitClusterToChildren: (clusterId, padding = 48) =>
+    set((state) => {
+      const cluster = state.nodes.find(
+        (node): node is ClusterNode => isClusterNode(node) && node.id === clusterId
+      )
+      if (!cluster || cluster.children.length === 0) return state
+
+      const children = state.nodes.filter((node) => cluster.children.includes(node.id))
+      if (children.length === 0) return state
+
+      const minX = Math.min(...children.map((node) => node.position.x))
+      const minY = Math.min(...children.map((node) => node.position.y))
+      const maxX = Math.max(...children.map((node) => node.position.x + node.size.w))
+      const maxY = Math.max(...children.map((node) => node.position.y + node.size.h))
+
+      const nextPosition = {
+        x: Math.round(minX - padding),
+        y: Math.round(minY - padding)
+      }
+      const nextSize = {
+        w: Math.round(maxX - minX + padding * 2),
+        h: Math.round(maxY - minY + padding * 2)
+      }
+
+      if (
+        cluster.position.x === nextPosition.x &&
+        cluster.position.y === nextPosition.y &&
+        cluster.size.w === nextSize.w &&
+        cluster.size.h === nextSize.h
+      ) {
+        return state
+      }
+
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const updatedNodes = state.nodes.map((node) =>
+        isClusterNode(node) && node.id === clusterId
+          ? {
+              ...touchNode(node, timestamp, username),
+              position: nextPosition,
+              size: nextSize
+            }
+          : node
+      )
+      const nodes = reconcileNodeClusterMemberships(
+        updatedNodes,
+        updatedNodes.filter((node) => !isClusterNode(node)).map((node) => node.id),
+        timestamp,
+        username
+      )
+
+      return { nodes, isDirty: shouldMarkBoardDirty(state) }
+    }),
+
   updateBoardMeta: (patch) =>
     set((state) => {
       const updates: Partial<BoardState> = {}
@@ -257,15 +685,18 @@ export const useBoardStore = create<BoardState>((set) => ({
   loadBoard: (board, path) =>
     set(() => {
       const fallbackTimestamp = new Date().toISOString()
+      const nodes = sanitizeClusterChildren(
+        board.nodes.map((node) =>
+          normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME)
+        )
+      )
       return {
         version: CURRENT_BOARD_VERSION,
         path,
         transient: board.transient === true ? true : undefined,
         name: board.name,
         brief: board.brief,
-        nodes: board.nodes.map((node) =>
-          normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME)
-        ),
+        nodes,
         edges: board.edges,
         viewport: board.viewport,
         isDirty: false

@@ -22,6 +22,8 @@ import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
 import { BudNode } from './BudNode'
+import { ClusterNode } from './ClusterNode'
+import type { ClusterData } from './ClusterNode'
 import { ProximityTracker } from './ProximityTracker'
 import { WbEdge } from './WbEdge'
 import type { WbEdgeData } from './WbEdge'
@@ -33,7 +35,7 @@ import { dispatchDirectory, dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
-import { Database, FileText, FolderPlus, Settings2, Trash2, Type } from 'lucide-react'
+import { Boxes, Database, FileText, FolderPlus, Scan, Settings2, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
 import { focusWriterModule } from '../modules/focus-writer'
@@ -42,6 +44,8 @@ import { absolutePathToFileUri } from '@renderer/shared/resource-url'
 import type { Board } from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
+import { isClusterNode } from '@renderer/shared/types'
+import { isTextLeafNode } from '@renderer/shared/types'
 import type { Tool } from './tools'
 import { captureBoardThumbnail } from './captureBoardThumbnail'
 import './Canvas.css'
@@ -59,12 +63,42 @@ async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string)
   }
 }
 
-const nodeTypes = { text: TextNode, bud: BudNode }
+const nodeTypes = { text: TextNode, bud: BudNode, cluster: ClusterNode }
 const edgeTypes = { wb: WbEdge }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 const LARGE_IMPORT_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
+const DEFAULT_CLUSTER_SIZE = { w: 320, h: 220 }
+const CLUSTER_SELECTION_PADDING = 48
 
 const WEB_RESOURCE_DROP_ERROR = 'Can\'t embed web resources — save the image to your local drive first, then drop it.'
+
+type NodeBounds = {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
+function getRenderedNodeBounds(
+  nodeId: string,
+  screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number }
+): NodeBounds | null {
+  const nodeElement = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${nodeId}"]`)
+  if (!nodeElement) return null
+
+  const rect = nodeElement.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return null
+
+  const topLeft = screenToFlowPosition({ x: rect.left, y: rect.top })
+  const bottomRight = screenToFlowPosition({ x: rect.right, y: rect.bottom })
+
+  return {
+    left: topLeft.x,
+    top: topLeft.y,
+    right: bottomRight.x,
+    bottom: bottomRight.y
+  }
+}
 
 function getDroppedFilePath(file: File & { path?: string }): string {
   try {
@@ -166,9 +200,15 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const boardViewport = useBoardStore((s) => s.viewport)
   const isDirty = useBoardStore((s) => s.isDirty)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
+  const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
+  const translateCluster = useBoardStore((s) => s.translateCluster)
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const updateViewport = useBoardStore((s) => s.updateViewport)
   const addNode = useBoardStore((s) => s.addNode)
+  const addCluster = useBoardStore((s) => s.addCluster)
+  const createClusterFromNodes = useBoardStore((s) => s.createClusterFromNodes)
+  const reconcileNodeClusterMembership = useBoardStore((s) => s.reconcileNodeClusterMembership)
+  const reconcileClusterMembershipsForCluster = useBoardStore((s) => s.reconcileClusterMembershipsForCluster)
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
   const storeAddEdge = useBoardStore((s) => s.addEdge)
   const storeDeleteEdge = useBoardStore((s) => s.deleteEdge)
@@ -194,6 +234,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [imageDropError, setImageDropError] = useState<string | null>(null)
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
+  const [pendingNodeSelectionId, setPendingNodeSelectionId] = useState<string | null>(null)
   const [promoteInFlight, setPromoteInFlight] = useState(false)
   const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
   const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
@@ -230,6 +271,25 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     setActiveBloom({ nodeId: id, module: schemaBloomModule, resource })
   }, [workspaceRoot, screenToFlowPosition, addNode])
 
+  const createEmptyCluster = useCallback(() => {
+    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    const id = crypto.randomUUID()
+    addCluster({
+      id,
+      kind: 'cluster',
+      type: null,
+      label: 'Cluster',
+      color: 'blue',
+      children: [],
+      position: {
+        x: Math.round(position.x - DEFAULT_CLUSTER_SIZE.w / 2),
+        y: Math.round(position.y - DEFAULT_CLUSTER_SIZE.h / 2)
+      },
+      size: DEFAULT_CLUSTER_SIZE
+    })
+    setPendingNodeSelectionId(id)
+  }, [addCluster, screenToFlowPosition])
+
   const activeToolRef = useRef(activeTool)
   useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
 
@@ -255,6 +315,21 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const schemaNodes: RFNode[] = useMemo(
     () =>
       boardNodes.map((n) => {
+        if (n.kind === 'cluster') {
+          return {
+            id: n.id,
+            type: 'cluster',
+            position: { x: n.position.x, y: n.position.y },
+            data: {
+              label: n.label,
+              color: n.color,
+              size: n.size
+            } satisfies ClusterData,
+            zIndex: 0,
+            draggable: true
+          }
+        }
+
         if (n.kind === 'leaf' && n.type === 'text') {
           return {
             id: n.id,
@@ -266,7 +341,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
               wrapWidth: n.wrapWidth ?? null,
               size: n.size,
               autoEditToken: autoEditRequest?.id === n.id ? autoEditRequest.token : undefined
-            }
+            },
+            zIndex: 10
           }
         }
         // Bud node — moduleType carries the module id; unknown types show UnknownBudNode
@@ -279,7 +355,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
             resource: n.resource ?? '',
             size: n.size,
             label: n.label
-          }
+          },
+          zIndex: 10
         }
       }),
     [autoEditRequest, boardNodes]
@@ -295,6 +372,14 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   }, [schemaNodes])
 
   useEffect(() => {
+    if (!pendingNodeSelectionId) return
+    if (!schemaNodes.some((node) => node.id === pendingNodeSelectionId)) return
+
+    setNodes(schemaNodes.map((node) => ({ ...node, selected: node.id === pendingNodeSelectionId })))
+    setPendingNodeSelectionId(null)
+  }, [pendingNodeSelectionId, schemaNodes])
+
+  useEffect(() => {
     if (activeTool === 'pointer') return
 
     setNodes((prev) => {
@@ -302,6 +387,50 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       return prev.map((n) => ({ ...n, selected: false }))
     })
   }, [activeTool])
+
+  const selectedClusterableNodes = useMemo(() => {
+    const selectedIds = new Set(nodes.filter((node) => node.selected).map((node) => node.id))
+    return boardNodes.filter((node) => selectedIds.has(node.id) && node.kind !== 'cluster')
+  }, [boardNodes, nodes])
+
+  const createClusterFromSelection = useCallback(() => {
+    if (selectedClusterableNodes.length === 0) {
+      createEmptyCluster()
+      return
+    }
+
+    const selectedBounds = selectedClusterableNodes.map((node) => {
+      return (
+        getRenderedNodeBounds(node.id, screenToFlowPosition) ?? {
+          left: node.position.x,
+          top: node.position.y,
+          right: node.position.x + node.size.w,
+          bottom: node.position.y + node.size.h
+        }
+      )
+    })
+    const minX = Math.min(...selectedBounds.map((bounds) => bounds.left))
+    const minY = Math.min(...selectedBounds.map((bounds) => bounds.top))
+    const maxX = Math.max(...selectedBounds.map((bounds) => bounds.right))
+    const maxY = Math.max(...selectedBounds.map((bounds) => bounds.bottom))
+    const id = crypto.randomUUID()
+
+    createClusterFromNodes({
+      id,
+      label: 'Cluster',
+      color: 'blue',
+      childIds: selectedClusterableNodes.map((node) => node.id),
+      position: {
+        x: Math.round(minX - CLUSTER_SELECTION_PADDING),
+        y: Math.round(minY - CLUSTER_SELECTION_PADDING)
+      },
+      size: {
+        w: Math.round(maxX - minX + CLUSTER_SELECTION_PADDING * 2),
+        h: Math.round(maxY - minY + CLUSTER_SELECTION_PADDING * 2)
+      }
+    })
+    setPendingNodeSelectionId(id)
+  }, [createClusterFromNodes, createEmptyCluster, screenToFlowPosition, selectedClusterableNodes])
 
   // Derive RF edges from store
   const schemaEdges: RFEdge[] = useMemo(
@@ -332,16 +461,159 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     return selected.length === 1 ? selected[0].id : null
   }, [nodes])
 
+  const selectedCluster = useMemo(() => {
+    if (!singleSelectedNodeId) return null
+    const node = boardNodes.find((candidate) => candidate.id === singleSelectedNodeId)
+    return node && isClusterNode(node) ? node : null
+  }, [boardNodes, singleSelectedNodeId])
+
+  const fitSelectedClusterToChildren = useCallback(() => {
+    if (!selectedCluster || selectedCluster.children.length === 0) return
+
+    const liveNodesById = new Map(nodes.map((node) => [node.id, node] as const))
+    const childBounds = selectedCluster.children
+      .map((childId) => {
+        const boardNode = boardNodes.find((node) => node.id === childId)
+        if (!boardNode || isClusterNode(boardNode)) return null
+
+        const renderedBounds = getRenderedNodeBounds(childId, screenToFlowPosition)
+        if (renderedBounds) return renderedBounds
+
+        const liveNode = liveNodesById.get(childId)
+        const width =
+          typeof liveNode?.width === 'number' && liveNode.width > 0 ? liveNode.width : boardNode.size.w
+        const height =
+          typeof liveNode?.height === 'number' && liveNode.height > 0 ? liveNode.height : boardNode.size.h
+        const position = liveNode?.position ?? boardNode.position
+
+        return {
+          left: position.x,
+          top: position.y,
+          right: position.x + width,
+          bottom: position.y + height
+        }
+      })
+      .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null)
+
+    if (childBounds.length === 0) return
+
+    const minX = Math.min(...childBounds.map((bounds) => bounds.left))
+    const minY = Math.min(...childBounds.map((bounds) => bounds.top))
+    const maxX = Math.max(...childBounds.map((bounds) => bounds.right))
+    const maxY = Math.max(...childBounds.map((bounds) => bounds.bottom))
+
+    const nextPosition = {
+      x: Math.round(minX - CLUSTER_SELECTION_PADDING),
+      y: Math.round(minY - CLUSTER_SELECTION_PADDING)
+    }
+    const nextSize = {
+      w: Math.round(maxX - minX + CLUSTER_SELECTION_PADDING * 2),
+      h: Math.round(maxY - minY + CLUSTER_SELECTION_PADDING * 2)
+    }
+
+    updateNodePosition(selectedCluster.id, nextPosition.x, nextPosition.y)
+    updateNodeSize(selectedCluster.id, nextSize.w, nextSize.h)
+    reconcileClusterMembershipsForCluster(selectedCluster.id)
+  }, [
+    boardNodes,
+    nodes,
+    screenToFlowPosition,
+    reconcileClusterMembershipsForCluster,
+    selectedCluster,
+    updateNodePosition,
+    updateNodeSize
+  ])
+
+  const clusterChildrenById = useMemo(() => {
+    const mapping = new Map<string, string[]>()
+    for (const node of boardNodes) {
+      if (!isClusterNode(node)) continue
+      mapping.set(node.id, node.children)
+    }
+    return mapping
+  }, [boardNodes])
+
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds))
+      const isClusterPositionChange = (
+        change: NodeChange
+      ): change is Extract<NodeChange, { type: 'position' }> =>
+        change.type === 'position' &&
+        'id' in change &&
+        Boolean(change.position) &&
+        clusterChildrenById.has(change.id)
+
+      const clusterPositionChanges = changes.filter(
+        isClusterPositionChange
+      )
+      const childIdsMovedByClusters = new Set<string>()
+      for (const change of clusterPositionChanges) {
+        for (const childId of clusterChildrenById.get(change.id) ?? []) {
+          childIdsMovedByClusters.add(childId)
+        }
+      }
+
+      setNodes((currentNodes) => {
+        const otherChanges = changes.filter(
+          (change) =>
+            change.type !== 'position' ||
+            !('id' in change) ||
+            !change.position ||
+            (!clusterChildrenById.has(change.id) && !childIdsMovedByClusters.has(change.id))
+        )
+
+        let nextNodes = otherChanges.length > 0 ? applyNodeChanges(otherChanges, currentNodes) : currentNodes
+
+        for (const change of clusterPositionChanges) {
+          if (change.type !== 'position' || !change.position) continue
+
+          const clusterNode = nextNodes.find((node) => node.id === change.id)
+          if (!clusterNode) continue
+
+          const dx = change.position.x - clusterNode.position.x
+          const dy = change.position.y - clusterNode.position.y
+          if (dx === 0 && dy === 0) continue
+
+          const childIds = new Set(clusterChildrenById.get(change.id) ?? [])
+          nextNodes = nextNodes.map((node) => {
+            if (node.id !== change.id && !childIds.has(node.id)) return node
+            return {
+              ...node,
+              position: {
+                x: node.position.x + dx,
+                y: node.position.y + dy
+              }
+            }
+          })
+        }
+
+        return nextNodes
+      })
+
       for (const change of changes) {
         if (change.type === 'position' && change.position && !change.dragging) {
+          if (clusterChildrenById.has(change.id)) {
+            const cluster = boardNodes.find(
+              (node) => node.id === change.id && isClusterNode(node)
+            )
+            if (!cluster) continue
+
+            const dx = change.position.x - cluster.position.x
+            const dy = change.position.y - cluster.position.y
+            if (dx !== 0 || dy !== 0) {
+              translateCluster(change.id, dx, dy)
+            }
+            continue
+          }
+
+          if (childIdsMovedByClusters.has(change.id)) continue
+
           updateNodePosition(change.id, change.position.x, change.position.y)
+          reconcileNodeClusterMembership(change.id)
         }
       }
     },
-    [updateNodePosition]
+    [boardNodes, clusterChildrenById, reconcileNodeClusterMembership, translateCluster, updateNodePosition]
   )
 
   const onEdgesChange = useCallback(
@@ -411,7 +683,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
   const buildBoardSnapshot = useCallback((options?: { transient?: boolean }): Board => {
     const nodes = boardNodes.map((node) => {
-      if (node.type !== 'text') return node
+      if (!isTextLeafNode(node)) return node
 
       const content = node.content ?? makeLexicalContent(node.label ?? '')
       return {
@@ -738,8 +1010,38 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           setAutoEditRequest({ id, token: nextToken })
           addNode({ id, kind: 'leaf', type: 'text', position, size: { w: 200, h: 40 }, content: makeLexicalContent(''), widthMode: 'auto', wrapWidth: null })
         }
+      },
+      {
+        id: 'create-cluster',
+        label: t('canvas.paletteClusterLabel'),
+        icon: <Boxes size={14} strokeWidth={1.8} />,
+        onActivate: () => {
+          createEmptyCluster()
+        }
       }
     ]
+
+    if (selectedCluster) {
+      items.unshift({
+        id: 'fit-cluster-to-children',
+        label: t('canvas.paletteFitClusterLabel'),
+        icon: <Scan size={14} strokeWidth={1.8} />,
+        onActivate: () => {
+          fitSelectedClusterToChildren()
+        }
+      })
+    }
+
+    if (selectedClusterableNodes.length > 0) {
+      items.unshift({
+        id: 'create-cluster-from-selection',
+        label: t('canvas.paletteClusterSelectionLabel'),
+        icon: <Boxes size={14} strokeWidth={1.8} />,
+        onActivate: () => {
+          createClusterFromSelection()
+        }
+      })
+    }
 
     if (workspaceRoot !== null) {
       items.push({
@@ -757,7 +1059,19 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     }
 
     return items
-  }, [workspaceRoot, screenToFlowPosition, addNode, createFocusWriterBud, createSchemaBloomBud])
+  }, [
+    fitSelectedClusterToChildren,
+    workspaceRoot,
+    screenToFlowPosition,
+    addNode,
+    createClusterFromSelection,
+    createEmptyCluster,
+    createFocusWriterBud,
+    createSchemaBloomBud,
+    selectedCluster,
+    selectedClusterableNodes.length,
+    t
+  ])
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]
@@ -990,6 +1304,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         nodesDraggable={activeTool === 'pointer'}
         nodesConnectable={activeTool === 'pointer'}
         selectionOnDrag={activeTool === 'pointer'}
+        elevateNodesOnSelect={false}
         panOnDrag={panOnDragButtons}
         connectionMode={ConnectionMode.Loose}
         connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
