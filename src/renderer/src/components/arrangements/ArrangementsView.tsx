@@ -3,17 +3,21 @@ import { ArrowLeft } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import ArrangementsDesktop from './ArrangementsDesktop'
+import DesktopBinItems, { DesktopTrashBin } from './DesktopBinItems'
+import DesktopMaterialItems from './DesktopMaterialItems'
 import SetsIsland from './SetsIsland'
 import './ArrangementsView.css'
 
 type ArrangementsViewProps = {
   workspaceName?: string
   onBack: () => void
+  onOpenBoard: (boardPath: string) => void
 }
 
 export default function ArrangementsView({
   workspaceName,
-  onBack
+  onBack,
+  onOpenBoard
 }: ArrangementsViewProps): React.JSX.Element {
   const isHydrated = useArrangementsStore((s) => s.isHydrated)
   const loadArrangements = useArrangementsStore((s) => s.loadArrangements)
@@ -51,7 +55,10 @@ export default function ArrangementsView({
 
         {/* Desktop — step 3 */}
         <main className="arrangements-view__desktop">
-          <ArrangementsDesktop />
+          <ArrangementsDesktop overlay={<DesktopTrashBin />}>
+            <DesktopMaterialItems onOpenBoard={onOpenBoard} />
+            <DesktopBinItems />
+          </ArrangementsDesktop>
         </main>
       </div>
     </div>

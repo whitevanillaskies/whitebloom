@@ -269,10 +269,10 @@ main content for the Arrangements view. Contains the actual area for arranging m
 ##### 4. Sets Island (DONE)
 left-docked `PetalContainer`. Contains the hierarchical set tree (expandable like a code editor project tree) and a separate smart sets section at the bottom. Double-click expands/collapses one level. Drag target for materials. Smart set entries are read-only. `Linked` smart set shows in v1; `Stale` deferred.
 
-##### 5. Material items on desktop
+##### 5. Material items on desktop (DONE)
 icon + label layout objects placed at `desktopPlacements` coordinates. Boards use a distinct icon; other materials use file-type icons from the existing `getSystemFileIcon` IPC. Selection state with keyboard `Delete` to assign to Trash. Double-click dispatches bloom (material) or board open.
 
-##### 6. Bins on desktop
+##### 6. Bins on desktop (DONE)
 same icon + label treatment as material items, but typed as bins. `Trash` is a fixed anchor (bottom-right or equivalent). User bins are repositionable. Double-click enters Bin View.
 
 ##### 7. Bin View

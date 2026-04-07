@@ -620,6 +620,7 @@ function App(): React.JSX.Element {
         <ArrangementsView
           workspaceName={workspaceConfig?.name}
           onBack={handleReturnFromArrangements}
+          onOpenBoard={(boardPath) => void openBoardByPath(boardPath)}
         />
         {pendingNavigationDialog}
       </>
