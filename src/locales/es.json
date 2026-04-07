@@ -57,7 +57,7 @@
     "dropError": "No se puede soltar el archivo.",
     "promoteError": "No se puede promover este tablero rápido a un espacio de trabajo.",
     "trashError": "No se puede mover este tablero a wbapp:trash.",
-    "boardSettingsMenuItem": "Configuración del tablero",
+    "boardSettingsMenuItem": "Configuración",
     "promoteToWorkspaceMenuItem": "Promover a espacio de trabajo",
     "moveToTrashMenuItem": "Mover a la papelera",
     "searchPalettePlaceholder": "Buscar en la paleta",
