@@ -6,6 +6,7 @@ import './ArrangementsDesktop.css'
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 2.5
 const ZOOM_STEP = 0.0012
+const MATERIAL_MIME = 'application/x-wb-material-key'
 
 type ArrangementsDesktopProps = {
   children?: React.ReactNode
@@ -19,6 +20,8 @@ export default function ArrangementsDesktop({
 }: ArrangementsDesktopProps): React.JSX.Element {
   const storedCamera = useArrangementsStore((s) => s.cameraState)
   const setCamera = useArrangementsStore((s) => s.setCamera)
+  const removeFromBin = useArrangementsStore((s) => s.removeFromBin)
+  const moveMaterialOnDesktop = useArrangementsStore((s) => s.moveMaterialOnDesktop)
 
   // Local camera state for low-latency pan/zoom, synced to store on pointer up.
   const [camera, setLocalCamera] = useState<GardenCameraState>(storedCamera)
@@ -111,6 +114,41 @@ export default function ArrangementsDesktop({
   }, [handleWheel])
 
   const [spaceHeld, setSpaceHeld] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes(MATERIAL_MIME)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    // Only clear when the drag leaves the container itself (not a child element)
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setIsDragOver(false)
+    }
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      setIsDragOver(false)
+      const materialKey = e.dataTransfer.getData(MATERIAL_MIME)
+      if (!materialKey) return
+      e.preventDefault()
+
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      const cam = cameraRef.current
+      const worldX = (e.clientX - rect.left - cam.x) / cam.zoom
+      const worldY = (e.clientY - rect.top - cam.y) / cam.zoom
+
+      removeFromBin(materialKey) // no-op if not in a bin
+      moveMaterialOnDesktop(materialKey, { x: worldX, y: worldY })
+    },
+    [removeFromBin, moveMaterialOnDesktop]
+  )
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -137,7 +175,8 @@ export default function ArrangementsDesktop({
       ref={containerRef}
       className={[
         'arrangements-desktop',
-        spaceHeld ? 'arrangements-desktop--pan-cursor' : ''
+        spaceHeld ? 'arrangements-desktop--pan-cursor' : '',
+        isDragOver ? 'arrangements-desktop--drag-over' : ''
       ]
         .filter(Boolean)
         .join(' ')}
@@ -145,6 +184,9 @@ export default function ArrangementsDesktop({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <div className="arrangements-desktop__grid" aria-hidden="true" />
 

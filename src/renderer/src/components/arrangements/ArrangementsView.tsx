@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import ArrangementsDesktop from './ArrangementsDesktop'
+import BinView from './BinView'
 import DesktopBinItems, { DesktopTrashBin } from './DesktopBinItems'
 import DesktopMaterialItems from './DesktopMaterialItems'
 import SetsIsland from './SetsIsland'
@@ -59,6 +60,9 @@ export default function ArrangementsView({
             <DesktopMaterialItems onOpenBoard={onOpenBoard} />
             <DesktopBinItems />
           </ArrangementsDesktop>
+
+          {/* Bin View — step 7: PetalWindow absolute on top of desktop */}
+          <BinView onOpenBoard={onOpenBoard} />
         </main>
       </div>
     </div>

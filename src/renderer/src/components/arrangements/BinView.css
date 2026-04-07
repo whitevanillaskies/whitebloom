@@ -1,0 +1,298 @@
+/*
+ * BinView — a PetalWindow sitting on top of the Arrangements desktop.
+ * Positioned absolute within .arrangements-view__desktop (position: relative).
+ * The canvas, bins, Trash, and Sets Island all remain visible around it.
+ */
+
+/* ── Window inset ─────────────────────────────────────────── */
+
+.bin-view {
+  top: 20px;
+  left: 20px;
+  right: 200px;   /* leave room for Trash anchor at bottom-right */
+  bottom: 72px;
+  z-index: 10;
+}
+
+/* ── Header action cluster ────────────────────────────────── */
+
+.bin-view__mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-border-inner);
+  background: transparent;
+  color: var(--color-secondary-fg);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bin-view__mode-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-primary-fg);
+}
+
+.bin-view__mode-btn--active {
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--color-primary-fg);
+}
+
+.bin-view__search {
+  width: 140px;
+  height: 24px;
+  padding: 0 7px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-border-inner);
+  background: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-primary-fg);
+  outline: none;
+}
+
+.bin-view__search:focus {
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 2px rgba(30, 135, 255, 0.15);
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+
+.bin-view__sidebar-list {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.bin-view__sidebar-row {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  height: 28px;
+  cursor: pointer;
+  border-radius: 0;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.bin-view__sidebar-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.bin-view__sidebar-row--active {
+  background: rgba(30, 135, 255, 0.08);
+  border-left: 2px solid var(--color-accent-blue);
+  padding-left: 8px;
+}
+
+.bin-view__sidebar-row--active .bin-view__sidebar-row-name {
+  color: var(--color-accent-blue);
+  font-weight: 520;
+}
+
+.bin-view__sidebar-row--drag-over {
+  background: rgba(30, 135, 255, 0.12);
+  outline: 1px solid var(--color-accent-blue);
+  outline-offset: -1px;
+}
+
+.bin-view__sidebar-row-name {
+  font-size: 12px;
+  color: var(--color-primary-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Shared icon helpers ──────────────────────────────────── */
+
+.bin-view__icon-board {
+  color: var(--color-accent-blue);
+}
+
+.bin-view__icon-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-border-inner);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.bin-view__icon-placeholder--sm {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Icon grid view ───────────────────────────────────────── */
+
+.bin-view__icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+.bin-view__icon-item {
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 4px;
+  border-radius: var(--radius-border-inner);
+  cursor: default;
+  user-select: none;
+}
+
+.bin-view__icon-item:hover .bin-view__icon-item-wrap {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.bin-view__icon-item--selected .bin-view__icon-item-wrap {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+  background: rgba(30, 135, 255, 0.08);
+}
+
+.bin-view__icon-item--selected .bin-view__icon-item-label {
+  color: var(--color-accent-blue);
+}
+
+.bin-view__icon-item-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-border-inner);
+  flex-shrink: 0;
+}
+
+.bin-view__icon-item-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.bin-view__icon-link-badge {
+  position: absolute;
+  bottom: 0;
+  right: -2px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--color-secondary-fg);
+}
+
+.bin-view__icon-item-label {
+  font-size: 11px;
+  font-weight: 440;
+  color: var(--color-primary-fg);
+  text-align: center;
+  line-height: 1.35;
+  max-width: 64px;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ── List view ────────────────────────────────────────────── */
+
+.bin-view__list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 100%;
+  padding: 4px 0;
+}
+
+.bin-view__list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 30px;
+  cursor: default;
+  user-select: none;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+
+.bin-view__list-row:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.bin-view__list-row--selected {
+  background: rgba(30, 135, 255, 0.08);
+  outline: 1px solid rgba(30, 135, 255, 0.3);
+  outline-offset: -1px;
+}
+
+.bin-view__list-row-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bin-view__list-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.bin-view__list-row-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--color-primary-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bin-view__list-row-ext {
+  font-size: 11px;
+  color: var(--color-muted-fg);
+  flex-shrink: 0;
+  text-transform: lowercase;
+}
+
+.bin-view__list-row-link-icon {
+  color: var(--color-muted-fg);
+  flex-shrink: 0;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+
+.bin-view__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 13px;
+  color: var(--color-muted-fg);
+  user-select: none;
+}
+
+/* ── Content drop target wrapper ──────────────────────────── */
+
+.bin-view__content-drop {
+  display: contents; /* invisible wrapper — layout unchanged */
+}
+
+.bin-view__content-drop--over > * {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: -2px;
+}

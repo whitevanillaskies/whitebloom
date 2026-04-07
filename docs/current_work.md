@@ -250,7 +250,7 @@ Build in this order:
 
 ---
 
-#### UI Build
+#### UI Build (DONE)
 
 Build in this order, shipping incrementally:
 
@@ -275,10 +275,10 @@ icon + label layout objects placed at `desktopPlacements` coordinates. Boards us
 ##### 6. Bins on desktop (DONE)
 same icon + label treatment as material items, but typed as bins. `Trash` is a fixed anchor (bottom-right or equivalent). User bins are repositionable. Double-click enters Bin View.
 
-##### 7. Bin View
+##### 7. Bin View (DONE)
 rendered as a `PetalWindow` sitting on the Arrangements desktop. Does not replace or obscure the desktop; bins, Trash, and the Sets Island remain visible and interactable around it. Window chrome: back button (returns to desktop), view mode toggle (icon/list), search input. Main content: the bin's materials. Sidebar inside the window: flat list of all bins for drag-target reassignment. Trash Bin View is the same model; selection + `Delete` triggers permanent deletion with reference warning before executing.
 
-##### 8. Drag and drop
+##### 8. Drag and drop (DONE)
 wire HTML5 drag across desktop ↔ bins ↔ Trash ↔ Sets Island. Affordances appear on hover during drag; no persistent clutter.
 
 ---

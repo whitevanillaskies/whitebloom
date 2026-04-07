@@ -17,6 +17,12 @@
   cursor: grabbing;
 }
 
+/* ── Drag-over affordance ─────────────────────────────────── */
+
+.arrangements-desktop--drag-over .arrangements-desktop__grid {
+  background-image: radial-gradient(circle, rgba(30, 135, 255, 0.3) 1px, transparent 1px);
+}
+
 /* ── Dot-grid background ──────────────────────────────────── */
 
 .arrangements-desktop__grid {
