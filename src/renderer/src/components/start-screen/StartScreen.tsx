@@ -131,7 +131,7 @@ export default function StartScreen({
                     <div className="start-screen__board-preview">
                       {item.thumbnailUri ? (
                         <img
-                          src={resourceToImageSrc(item.thumbnailUri)}
+                          src={resourceToImageSrc(item.thumbnailUri, item.workspaceRoot)}
                           alt=""
                           className="start-screen__board-thumbnail"
                           draggable={false}

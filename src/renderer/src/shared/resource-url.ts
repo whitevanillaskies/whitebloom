@@ -12,7 +12,7 @@ export function absolutePathToFileUri(filePath: string): string {
   throw new Error(`Expected an absolute filesystem path, received: ${filePath}`)
 }
 
-export function resourceToImageSrc(resource: string): string {
+export function resourceToImageSrc(resource: string, workspaceRoot?: string): string {
   const trimmed = resource.trim()
 
   if (trimmed.startsWith('wloc://') || trimmed.startsWith('wbapp://')) {
@@ -24,7 +24,9 @@ export function resourceToImageSrc(resource: string): string {
   // form so they arrive as a proper standard URL with a known authority.
   if (trimmed.startsWith('wloc:') || trimmed.startsWith('wbapp:')) {
     const scheme = trimmed.startsWith('wloc:') ? 'wloc' : 'wbapp'
-    return `${scheme}://local?resource=${encodeURIComponent(trimmed)}`
+    const params = new URLSearchParams({ resource: trimmed })
+    if (workspaceRoot) params.set('workspaceRoot', workspaceRoot)
+    return `${scheme}://local?${params.toString()}`
   }
 
   if (trimmed.startsWith('file:///')) {
