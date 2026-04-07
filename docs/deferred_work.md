@@ -77,6 +77,18 @@ A portable, single-file format for sharing a complete workspace without requirin
 **Implementation notes.** Node's built-in `zlib` handles zip at the stream level; for a friendlier API, `archiver` (write) and `unzipper` or `adm-zip` (read) are the standard Electron-compatible choices. The export dialog should let the user pick destination and filename. Import should warn if the target directory is non-empty.
 
 
+## Arrangements state file
+
+Arrangements does not change CoreData. Bins, set membership, desktop placement, and other Arrangements-only metadata are app-level workspace state rather than board data. They belong in a separate workspace file, not in `.wbconfig`, `*.wb.json`, or HEP.
+
+Working assumption: store this in a dedicated JSON file at the workspace root, such as `blossoms-garden.json`. The exact filename is app-level and may still change; the important boundary is:
+
+- It is not part of the open CoreData spec.
+- It is not required for third-party consumers that only read boards and resources.
+- It is part of Whitebloom's Layer 3 workspace UX.
+- Smart sets are not stored there; they are derived on demand.
+
+
 ## Alert node
 
 A native, canvas-level `kind: "leaf"`, `type: "alert"` node. No module, no external resource — all data is inline. Fields: `label`, `deadline` (ISO timestamp), `description`, and optional `remindBefore` (integer days before deadline).

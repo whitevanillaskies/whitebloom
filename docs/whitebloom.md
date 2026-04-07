@@ -16,6 +16,8 @@ Thus it's a whiteboard that blooms. Not everything has to bloom. A plain text no
 
 Whitebloom follows the Unix philosophy applied to knowledge work. The board is a filesystem. Each module is a small program that does one thing well to one asset type. Text is the universal primitive — the thing that makes assets diffable, portable, and readable by both humans and LLM agents.
 
+Within the app, Whitebloom also distinguishes between **material** and **massless** things. Material is any workspace item with backing file substance — boards, markdown files, images, schemas, imported media. Massless things are canvas-local leaves such as text notes and sticky annotations. This distinction is philosophical and UI-level, not schema-level: it shapes Arrangements and workspace stewardship without changing CoreData.
+
 The core principles:
 
 - **Everything is a file.** Every asset on the board is a file on disk. No databases, no binary blobs, no opaque stores.
@@ -979,7 +981,7 @@ This is a canvas-level concern — modules and bloom editors don't know about mu
 ### Future (v2+)
 
 - **Thumbnail providers.** Editors can register a `Thumbnail` component for richer board-level previews. External modules (images, video) will generate thumbnails automatically into `res/.thumbs/`; the board switches between thumbnail and full-resolution based on zoom level.
-- **Media library panel.** A sidebar listing all `res/` assets grouped by type, with thumbnails. Supports drag-from-panel-to-canvas to create nodes from already-resident files.
+- **Arrangements desktop.** A workspace-level material view where boards and other file-backed materials appear as peers. Material may lie loose on the desktop, be placed into flat bins, be included in sets, or be sent to Trash. This is app-level organizational UX, not CoreData.
 - **Commands API.** An optional `activate(api)` hook where editors can register commands, shortcuts, and menu items — like Maya's `cmds` or Blender's `bpy.ops`.
 - **Conflict resolution UI.** When two modules claim the same type, the user picks which one to use.
 - **Module marketplace.** Discovery from a remote registry. Editors, shells, lenses, and skills are all independently publishable.

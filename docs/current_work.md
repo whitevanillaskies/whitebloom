@@ -45,37 +45,42 @@ A cluster is a visual grouping of nodes on the canvas. It is not a file, not a m
 
 ### Phase 2: Arrangements
 
-The Arrangements view is a modal management interface for organizing workspace resources into bins and sets. It is not a canvas feature — it lives in a dedicated modal accessed via the palette or keyboard shortcut. The canvas shows clusters and subboards; organizational structure lives in Arrangements.
+The Arrangements view is the workspace desktop. Boards and resources live here as material. It is not a canvas feature and not a file manager — it lives in a dedicated modal accessed via the palette or keyboard shortcut where the app manages files on disk and the user manages logical placement and meaning.
 
-**What goes in Arrangements: buds with backing files only.** Only nodes that reference a file on disk are eligible for bins and sets. This includes:
-- Any bud (markdown, schema, image, etc.)
-- Boards (`.wb.json` files) — a board is a file and a valid resource to organize
+**What goes in Arrangements: material only.** Material means any workspace item with backing file substance. This includes:
+- Any bud-backed file (markdown, schema, image, etc.)
+- Boards (`.wb.json` files) — a board is material too
 
-Leaf nodes (text, sticky notes) are not eligible. They have no file lifecycle, no path, nothing to organize at the workspace level.
+Leaf nodes (text, sticky notes) are not material. They have no workspace file lifecycle and never appear in Arrangements.
 
-**Adding a board to a set adds the board only.** If a board references ten images and five markdown files, adding that board to a set does not pull in any of its resources. Membership is always a single explicit action per item. Non-recursive.
+**The default state is the desktop itself.** There is no `Unclassified` bin. A material may simply lie loose on the Arrangements desktop with no bin assignment. This is a valid, intentional state.
 
-**Nothing is auto-added to sets.** The user decides what enters a set. The system never populates sets automatically. (Bins are different — new resources land in `Unclassified` by default, which is a system bin. But sets are always user-initiated.)
+**Adding a board to a set adds the board only.** If a board references ten images and five markdown files, including that board in a set does not pull in any of its referenced materials. Membership is always a single explicit action per item. Non-recursive.
 
-**Bins — exclusive ownership, flat.**
+**Bins — broad placement, exclusive, flat.**
 
-- A resource belongs to exactly one bin.
-- System bins (read-only): `Unclassified` (default for all new resources), `Trash` (soft delete).
-- User bins: named by the user, no nesting. Examples: "Boards", "Images", "References", "Data".
-- Deleting a node from the canvas does not move its resource to Trash. The resource stays in its bin and may become stale. Trash is an explicit user action inside Arrangements.
-- Emptying Trash permanently deletes files from disk and removes their records.
+- A material belongs to zero or one bin.
+- Bin assignment is virtual only. It must never move files on disk.
+- User bins are named by the user and never nest.
+- `Trash` is the only required system bin.
+- Deleting a node from the canvas does not move its material to Trash. The material stays wherever it already lives in Arrangements and may become stale.
+- Sending material to Trash is an explicit Arrangements action.
+- Emptying Trash permanently deletes files from disk and removes their Arrangements records.
+- Before destructive deletion, the UI should surface whether the material is still referenced by any board.
 
-**Sets — non-exclusive, hierarchical.**
+**Sets — conceptual, non-exclusive, hierarchical.**
 
-- A resource can appear in any number of sets simultaneously.
+- A material can be included in any number of sets simultaneously.
 - Sets can nest arbitrarily. A set "Q2" can contain a child set "Sprint 3".
-- Sets are always manual. The user drags resources into them.
-- A resource in a set retains its bin assignment independently.
+- Sets are always manual. The user includes materials in them explicitly.
+- A material in a set retains its bin assignment independently.
+- Use inclusion language: `Include in Set`, `Exclude from Set`.
+- Avoid `Move to Set` or wording that implies exclusive ownership.
 
 **Smart sets — computed, read-only.**
 
-- `Stale` — resources not referenced by any `*.wb.json` in the workspace. Computed by scanning all board files. Stale resources retain their bin assignment; the user decides whether to trash them.
-- `Linked` — resources with `file:///` URIs (externally linked, not workspace-owned). The natural home for the "Import to Local" action.
+- `Stale` — material not referenced by any `*.wb.json` in the workspace. Computed by scanning all board files. Stale material retains its bin assignment; the user decides whether to trash it.
+- `Linked` — materials with `file:///` URIs (externally linked, not workspace-owned). The natural home for the "Import to Local" action.
 - Smart sets are never stored — they are derived on demand. They cannot be modified.
 
 **Accessing Arrangements.**
@@ -86,15 +91,15 @@ Leaf nodes (text, sticky notes) are not eligible. They have no file lifecycle, n
 
 **Arrangements modal layout.**
 
-The modal follows the standard modal surface pattern from the design language. Two-panel layout:
-- Left panel: bin list + set tree (hierarchical). Drag targets.
-- Right panel: resources in the selected bin or set, shown as a grid or list. Draggable into bins/sets on the left.
+The modal follows the standard modal surface pattern from the design language.
+- Main field: the Arrangements desktop itself — loose material is visible here and bins appear as broad placement targets within the field.
+- Sidebar: sets and smart sets as conceptual overlays and selection views.
 
-The split is conceptually similar to a music library: left panel is the "sidebar" (playlists = sets, library sections = bins), right panel is the track list for the selected view.
+The main plane should feel more like a desktop or tabletop than a file browser. Sets belong in the sidebar because they are conceptual inclusion layers, not physical placement.
 
 No canvas interaction while the Arrangements modal is open. It is a focused management task.
 
-**Storage.** The `blossoms-garden.json` file at the workspace root (per the Arrangements spec in `deferred_work.md`) stores bins, sets, and resource metadata. Smart sets are not stored. Quickboards have no Arrangements view — the modal is unavailable without a workspace.
+**Storage.** Arrangements state lives in an app-specific workspace file (see `deferred_work.md`), not in board CoreData. Smart sets are not stored. Quickboards have no Arrangements view — the modal is unavailable without a workspace.
 
 
 ### Subboards (deferred, design only)

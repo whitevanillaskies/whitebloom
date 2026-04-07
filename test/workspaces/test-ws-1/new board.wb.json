@@ -7,8 +7,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 111.03286164878114,
-        "y": 369.4622239362934
+        "x": 17.013400812799773,
+        "y": 329.41689802467175
       },
       "size": {
         "w": 312,
@@ -19,7 +19,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:29:56.060Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedAt": "2026-04-07T13:54:56.196Z",
       "updatedBy": "anon",
       "plain": "organization and management of knowledge"
     },
@@ -28,8 +28,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 111.97703465497875,
-        "y": 408.8798926032797
+        "x": 45.81519184447336,
+        "y": 396.69218471713407
       },
       "size": {
         "w": 401,
@@ -40,7 +40,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:04.687Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedAt": "2026-04-07T13:55:06.563Z",
       "updatedBy": "anon",
       "plain": "mind graphs, etc. are useful, but I'm thinking also of assets"
     },
@@ -49,8 +49,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 311.8429744381575,
-        "y": 518.8608519554571
+        "x": 296.6632919168852,
+        "y": 488.97477288924443
       },
       "size": {
         "w": 326,
@@ -61,7 +61,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:20.846Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedAt": "2026-04-07T14:10:34.609Z",
       "updatedBy": "anon",
       "plain": "asset management is knowledge management"
     },
@@ -70,8 +70,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 126.34443398824362,
-        "y": 619.96499575157
+        "x": 32.32497315226226,
+        "y": 579.9196698399483
       },
       "size": {
         "w": 246,
@@ -82,7 +82,7 @@
       "wrapWidth": 246,
       "created": "2026-04-05T22:30:32.216Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedAt": "2026-04-07T13:54:56.196Z",
       "updatedBy": "anon",
       "plain": "asset organization is thus knowledge management"
     },
@@ -91,8 +91,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 396.5801176795949,
-        "y": 621.0929547407405
+        "x": 302.5606568436135,
+        "y": 581.0476288291188
       },
       "size": {
         "w": 371,
@@ -103,7 +103,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:46.378Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedAt": "2026-04-07T13:54:56.196Z",
       "updatedBy": "anon",
       "plain": "how does knowledge management in scrivener work?\nfirst, you have ........ what?"
     },
@@ -175,7 +175,7 @@
       "kind": "bud",
       "type": "com.whitebloom.image",
       "position": {
-        "x": 259.75747965251895,
+        "x": 256.27527739933447,
         "y": -383.83587881351633
       },
       "size": {
@@ -185,7 +185,7 @@
       "resource": "wloc:res/1d0ff473584c87908b1bf02aded2a8dd.jpg",
       "created": "2026-04-06T01:17:43.238Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:25:10.829Z",
+      "updatedAt": "2026-04-07T13:56:36.979Z",
       "updatedBy": "anon"
     },
     {
@@ -193,8 +193,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 486.42934634974563,
-        "y": -394.5517726636362
+        "x": 517.769166628406,
+        "y": -368.43525576475247
       },
       "size": {
         "w": 261,
@@ -205,7 +205,7 @@
       "wrapWidth": 261,
       "created": "2026-04-06T01:42:33.048Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:28:40.334Z",
+      "updatedAt": "2026-04-07T14:02:31.720Z",
       "updatedBy": "anon",
       "plain": "Features added\nWe coded the architecture to support modular plugins where each module supports a file extension. For example, we coded a focus writer mode.\nOther features\nRefactored files into workspaces and quickboards\nAdded support for portable boards with embedded files like pictures\nTools palette\nWorkspace home screen, start screen."
     },
@@ -214,8 +214,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": -280.50648891287415,
-        "y": -220.26468919147146
+        "x": -289.2119945458354,
+        "y": -213.30028468510247
       },
       "size": {
         "w": 220,
@@ -224,7 +224,7 @@
       "resource": "wloc:blossoms/note-1775439811494.blt",
       "created": "2026-04-06T01:43:31.501Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:35:58.685Z",
+      "updatedAt": "2026-04-07T13:56:37.888Z",
       "updatedBy": "anon"
     },
     {
@@ -232,8 +232,8 @@
       "kind": "bud",
       "type": "com.whitebloom.schemabloom",
       "position": {
-        "x": 1322.3774620810227,
-        "y": -359.5954316144376
+        "x": 1296.2609451821388,
+        "y": -363.0776338676221
       },
       "size": {
         "w": 240,
@@ -242,7 +242,7 @@
       "resource": "wloc:res/sample_schema_jk 6.bdb",
       "created": "2026-04-06T13:39:50.489Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:12:31.639Z",
+      "updatedAt": "2026-04-07T14:05:23.617Z",
       "updatedBy": "anon"
     },
     {
@@ -250,8 +250,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 1167.2879620168455,
-        "y": -414.66951352190256
+        "x": 1075.0096023074561,
+        "y": -411.18731126871825
       },
       "size": {
         "w": 88,
@@ -260,7 +260,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:12:30.752Z",
+      "updatedAt": "2026-04-07T14:04:28.967Z",
       "updatedBy": "anon"
     },
     {
@@ -268,8 +268,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 832.1110093594705,
-        "y": 57.85199348469479
+        "x": 883.6974796033522,
+        "y": 63.667699636066715
       },
       "size": {
         "w": 88,
@@ -278,7 +278,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:48:03.071Z",
+      "updatedAt": "2026-04-07T14:04:26.951Z",
       "updatedBy": "anon"
     },
     {
@@ -343,7 +343,7 @@
       },
       "created": "2026-04-07T12:50:43.105Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:46:27.414Z",
+      "updatedAt": "2026-04-07T13:53:47.047Z",
       "updatedBy": "anon"
     },
     {
@@ -360,8 +360,8 @@
       ],
       "color": "blue",
       "position": {
-        "x": 62.98719152068168,
-        "y": 320.96440450636896
+        "x": -31.032269315299686,
+        "y": 280.9190785947473
       },
       "size": {
         "w": 731,
@@ -369,29 +369,51 @@
       },
       "created": "2026-04-07T13:17:47.429Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedAt": "2026-04-07T13:54:56.196Z",
       "updatedBy": "anon"
     },
     {
-      "id": "ed1a8423-4658-458c-828f-85d7e15decc7",
+      "id": "b5e1220c-10fe-4b2e-a0cf-293d93301b75",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1168.2667724561788,
-        "y": 361.6176229853534
+        "x": 1093.903161798844,
+        "y": 454.8808889812377
       },
       "size": {
-        "w": 695,
-        "h": 57
+        "w": 411,
+        "h": 97
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"stop showing node handles on drag, they're visual cluster because it's quite literally impossible for the user to use the handles during a move op.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 695,
-      "created": "2026-04-07T13:48:07.080Z",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cluster Features\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Double click to edit cluster name.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cluster toolbar for locking maybe, and absolutely for colors.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-07T14:05:28.869Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:48:28.933Z",
+      "updatedAt": "2026-04-07T14:05:58.514Z",
       "updatedBy": "anon",
-      "plain": "stop showing node handles on drag, they're visual cluster because it's quite literally impossible for the user to use the handles during a move op."
+      "plain": "Cluster Features\nDouble click to edit cluster name.\nCluster toolbar for locking maybe, and absolutely for colors."
+    },
+    {
+      "id": "0a1a6747-c36e-48d7-bb7f-f75607383e27",
+      "kind": "cluster",
+      "type": null,
+      "label": "Cluster",
+      "children": [
+        "b5e1220c-10fe-4b2e-a0cf-293d93301b75"
+      ],
+      "color": "blue",
+      "position": {
+        "x": 1046,
+        "y": 407
+      },
+      "size": {
+        "w": 507,
+        "h": 193
+      },
+      "created": "2026-04-07T14:06:00.633Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T14:06:00.633Z",
+      "updatedBy": "anon"
     }
   ],
   "edges": [
@@ -415,11 +437,25 @@
       "to": "f4e188da-b01c-49c9-adb8-d4a0f644d9cd",
       "sourceHandle": "right",
       "targetHandle": "left"
+    },
+    {
+      "id": "c38acade-b691-4000-9d22-4fee4846cf78",
+      "from": "153ea151-bff7-4b3f-bf86-223b531d5cec",
+      "to": "bd858ab0-058c-42da-9b19-acf166917508",
+      "sourceHandle": "right",
+      "targetHandle": "left"
+    },
+    {
+      "id": "d74869de-ce1a-4ace-8884-a063609a5ae1",
+      "from": "f909b4b0-8860-47be-b5d6-be1d8283dc50",
+      "to": "153ea151-bff7-4b3f-bf86-223b531d5cec",
+      "sourceHandle": "right",
+      "targetHandle": "left"
     }
   ],
   "viewport": {
-    "x": 257.61934944226596,
-    "y": 406.9450890494936,
-    "zoom": 0.7578582832552008
+    "x": 331.8080819371155,
+    "y": 392.2705694333378,
+    "zoom": 0.6597539553864477
   }
 }

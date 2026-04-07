@@ -100,7 +100,9 @@ Shells are portable across all domain bindings. A shell written for a React app 
 
 ## Layer 3: Domain Bindings
 
-Framework-specific specs that translate HEP into the platform's component model. Each binding spec is thin — mostly mapping `read/save` to props, stores, or IPC calls. Only **editors** live at this layer. Shells (lenses, skills, agent notes) are defined at Layer 2 and are shared across all bindings.
+Framework-specific specs that translate HEP into the platform's component model. Each binding spec is thin — mostly mapping `read/save` to props, stores, or IPC calls. Only **editors** and other host-specific UI surfaces live at this layer. Shells (lenses, skills, agent notes) are defined at Layer 2 and are shared across all bindings.
+
+App-specific organizational surfaces such as Whitebloom's Arrangements desktop also belong here. They may introduce useful product concepts such as "material" (file-backed workspace items) versus canvas-local leaves, but they do not alter CoreData, HEP, or module packaging unless they become true cross-implementation requirements.
 
 ### Structure
 
@@ -119,7 +121,7 @@ Whitebloom Native Binding Spec
   └── IPC protocol mapping for read/save
 ```
 
-Binding specs are community-driven. Whoever builds a viewer for a new platform writes the binding spec. The core spec, HEP, and all shells work unchanged across every binding.
+Binding specs are community-driven. Whoever builds a viewer for a new platform writes the binding spec. The core spec, HEP, and all shells work unchanged across every binding. Product-specific workspace UX may vary substantially between bindings without fragmenting the open spec.
 
 
 ## Module packaging
