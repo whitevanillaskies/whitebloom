@@ -45,7 +45,7 @@ A cluster is a visual grouping of nodes on the canvas. It is not a file, not a m
 
 ### Phase 2: Arrangements
 
-The Arrangements view is the workspace desktop. Boards and resources live here as material. It is not a canvas feature and not a file manager — it lives in a dedicated modal accessed via the palette or keyboard shortcut where the app manages files on disk and the user manages logical placement and meaning.
+The Arrangements view is the workspace desktop. Boards and resources live here as material. It is not a canvas feature and not a file manager — it is a dedicated, full-window view accessed via the palette or keyboard shortcut where the app manages files on disk and the user manages logical placement and meaning. It should feel calm, focused, and uncomplex.
 
 **What goes in Arrangements: material only.** Material means any workspace item with backing file substance. This includes:
 - Any bud-backed file (markdown, schema, image, etc.)
@@ -62,7 +62,9 @@ Leaf nodes (text, sticky notes) are not material. They have no workspace file li
 - A material belongs to zero or one bin.
 - Bin assignment is virtual only. It must never move files on disk.
 - User bins are named by the user and never nest.
+- User bins may be placed anywhere on the Arrangements desktop.
 - `Trash` is the only required system bin.
+- `Trash` is visually represented as a trash bin and stays fixed in place.
 - Deleting a node from the canvas does not move its material to Trash. The material stays wherever it already lives in Arrangements and may become stale.
 - Sending material to Trash is an explicit Arrangements action.
 - Emptying Trash permanently deletes files from disk and removes their Arrangements records.
@@ -74,8 +76,15 @@ Leaf nodes (text, sticky notes) are not material. They have no workspace file li
 - Sets can nest arbitrarily. A set "Q2" can contain a child set "Sprint 3".
 - Sets are always manual. The user includes materials in them explicitly.
 - A material in a set retains its bin assignment independently.
+- Set membership is explicit and independent at every level.
+- A material included in a child set is not automatically included in any ancestor set.
+- A material included in a parent set is not automatically included in any child set.
+- Hierarchy exists for organization and scoped operations, not implicit inheritance.
 - Use inclusion language: `Include in Set`, `Exclude from Set`.
 - Avoid `Move to Set` or wording that implies exclusive ownership.
+- Parent-level exclusion may offer a hierarchy-aware prompt when child memberships exist.
+- Example: excluding from `Refs` may ask whether to also exclude the material from child sets.
+- The default should preserve explicit child memberships unless the user opts into the broader exclusion.
 
 **Smart sets — computed, read-only.**
 
@@ -85,19 +94,67 @@ Leaf nodes (text, sticky notes) are not material. They have no workspace file li
 
 **Accessing Arrangements.**
 
-- Palette (TAB): type "arr" or "arrangements" → select → modal opens.
+- Palette (TAB): type "arr" or "arrangements" → select → Arrangements opens as a full-window view.
 - Right-click any eligible node on the canvas → "Add to set..." → opens Arrangements with that node pre-selected, or a quick inline set-picker for the micro-action case.
 - Keyboard shortcut (TBD).
 
-**Arrangements modal layout.**
+**Arrangements desktop layout.**
 
-The modal follows the standard modal surface pattern from the design language.
-- Main field: the Arrangements desktop itself — loose material is visible here and bins appear as broad placement targets within the field.
-- Sidebar: sets and smart sets as conceptual overlays and selection views.
+Arrangements is a full-window infinite canvas with minimap support.
+- Main field: the Arrangements desktop itself — loose material and user bins live here as icon + label objects.
+- `Trash` stays visible as a fixed anchor.
+- Boards use a distinct icon but are otherwise treated like any other material.
+- Sets are presented through a persistent `Sets Island`.
+- The `Sets Island` remains visible and interactable from the Arrangements Desktop.
+- The `Sets Island` holds the hierarchical set tree and smart sets.
+- Loose materials can be included in sets directly from the desktop via the `Sets Island`.
+- The `Sets Island` is docked to the left edge.
+- The `Sets Island` is always visible in v1.
+- The `Sets Island` is not floating and not collapsible in v1.
 
-The main plane should feel more like a desktop or tabletop than a file browser. Sets belong in the sidebar because they are conceptual inclusion layers, not physical placement.
+The main plane should feel more like a desktop or tabletop than a file browser.
 
-No canvas interaction while the Arrangements modal is open. It is a focused management task.
+**Desktop interactions.**
+
+- Double-clicking a bloomable material blooms it.
+- Double-clicking a board opens that board.
+- If opening a board would discard unsaved board edits, the app prompts first.
+- Double-clicking a bin opens Bin View.
+- Camera position should persist whenever possible.
+- Materials should support drag and drop between Arrangements Desktop and Bin View.
+- A material may be dragged from Bin View onto desktop bins.
+- A material may be dragged from Bin View onto desktop `Trash`.
+- A material may be dragged from Bin View onto the `Sets Island`.
+- These interactions should exist as natural affordances without extra clutter.
+
+No canvas interaction while Arrangements is open. It is a focused management task.
+
+**Bin View.**
+
+Opening a bin enters Bin View: a focused interior view of one bin. It should be Finder-like in clarity but intentionally reduced and uncomplex.
+- Top bar: view mode toggle and search.
+- Main content area: the bin's materials.
+- Sidebar: all bins as a flat mirrored list.
+- The sidebar exists primarily so materials can be reassigned between bins.
+- Sets are not mirrored in the Bin View sidebar.
+- The persistent `Sets Island` remains visible and interactable from Bin View.
+- Avoid breadcrumbs, inspectors, and file-manager complexity.
+- Features should stay minimal: icon view, list view, and search are enough for v1.
+- Trash uses the same Bin View model.
+- In Trash Bin View, deletion via selection + `Delete` is valid.
+
+**Sets Island interactions.**
+
+- Avoid relying on single-click as a primary action.
+- Double-clicking a set expands or collapses that set by one level.
+- Hierarchy expansion should behave like a code editor project tree.
+- Dragging a material onto a set includes that material in the set.
+- Dragging a material out of a set context may surface an exclusion affordance such as `Exclude From Set`.
+- Dragging a set out of the tree may surface a removal affordance such as `Remove Set`.
+- These affordances should appear only when relevant and should not add persistent clutter.
+- Smart sets use a distinct icon but otherwise live in the same `Sets Island`.
+- Smart sets appear at the bottom in their own section.
+- Smart sets are read-only and not removable.
 
 **Storage.** Arrangements state lives in an app-specific workspace file (see `deferred_work.md`), not in board CoreData. Smart sets are not stored. Quickboards have no Arrangements view — the modal is unavailable without a workspace.
 

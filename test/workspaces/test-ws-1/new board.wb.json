@@ -399,7 +399,10 @@
       "type": null,
       "label": "Cluster",
       "children": [
-        "b5e1220c-10fe-4b2e-a0cf-293d93301b75"
+        "b5e1220c-10fe-4b2e-a0cf-293d93301b75",
+        "34448da9-2500-4ec4-9c70-f1a6da107563",
+        "e7718394-4e1e-4e0d-9a4c-617044224b0b",
+        "cddee476-83c8-4bf0-86f0-58cd398eadc1"
       ],
       "color": "blue",
       "position": {
@@ -407,13 +410,97 @@
         "y": 407
       },
       "size": {
-        "w": 507,
-        "h": 193
+        "w": 672,
+        "h": 362
       },
       "created": "2026-04-07T14:06:00.633Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T14:06:00.633Z",
+      "updatedAt": "2026-04-07T16:25:52.494Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "5eef75d5-0e23-4a90-a9a0-1f41bb9c2099",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1607.8431938700767,
+        "y": 433.44289814337856
+      },
+      "size": {
+        "w": 673,
+        "h": 78
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Canvas Features\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Don't cut words on icon labels, probably. Extend up to a certain character limit and add ... if needed?\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-07T14:55:38.641Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T16:26:02.754Z",
+      "updatedBy": "anon",
+      "plain": "Canvas Features\nDon't cut words on icon labels, probably. Extend up to a certain character limit and add ... if needed?"
+    },
+    {
+      "id": "34448da9-2500-4ec4-9c70-f1a6da107563",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1063.852721443812,
+        "y": 592.7844927766341
+      },
+      "size": {
+        "w": 271,
+        "h": 58
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"maybe extremely subtle accent glows\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"yes, I think that may work\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-07T16:24:39.711Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T16:25:47.528Z",
+      "updatedBy": "anon",
+      "plain": "maybe extremely subtle accent glows\nyes, I think that may work"
+    },
+    {
+      "id": "e7718394-4e1e-4e0d-9a4c-617044224b0b",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1211.7064967230401,
+        "y": 682.5453813267595
+      },
+      "size": {
+        "w": 330,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"a button on clusters to autofit them to content\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-07T16:25:03.916Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T16:25:20.553Z",
+      "updatedBy": "anon",
+      "plain": "a button on clusters to autofit them to content"
+    },
+    {
+      "id": "cddee476-83c8-4bf0-86f0-58cd398eadc1",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1380.1080401377899,
+        "y": 562.3378005197527
+      },
+      "size": {
+        "w": 320,
+        "h": 75
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 320,
+      "created": "2026-04-07T16:25:21.991Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T16:25:53.611Z",
+      "updatedBy": "anon",
+      "plain": "not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them."
     }
   ],
   "edges": [
@@ -454,8 +541,8 @@
     }
   ],
   "viewport": {
-    "x": 331.8080819371155,
-    "y": 392.2705694333378,
+    "x": -42.53173834154495,
+    "y": 303.9954118437781,
     "zoom": 0.6597539553864477
   }
 }
