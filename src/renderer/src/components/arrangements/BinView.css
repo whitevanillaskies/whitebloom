@@ -7,10 +7,14 @@
 /* ── Window inset ─────────────────────────────────────────── */
 
 .bin-view {
-  top: 20px;
-  left: 20px;
-  right: 200px;   /* leave room for Trash anchor at bottom-right */
-  bottom: 72px;
+  top: 28px;
+  left: 28px;
+  width: min(650px, calc(100% - 550px));
+  height: min(500px, calc(100% - 120px));
+  min-width: 480px;
+  min-height: 360px;
+  max-width: calc(100% - 240px);   /* leave room for Trash anchor at bottom-right */
+  max-height: calc(100% - 120px);
   z-index: 10;
 }
 
