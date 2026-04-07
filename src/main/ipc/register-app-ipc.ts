@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
-import { t } from '../i18n'
+import { changeMainLanguage, t } from '../i18n'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
 import { listTransientBoards } from '../services/app-storage'
 import { listRecentBoards, type RecentBoardItem } from '../services/recent-boards-store'
@@ -118,6 +118,10 @@ export function registerAppIpc(context: MainProcessContext): void {
     } catch {
       return { ok: false, boards: [] }
     }
+  })
+
+  ipcMain.handle('app:set-language', async (_event, lang: string) => {
+    await changeMainLanguage(lang)
   })
 
   ipcMain.on('app:confirm-close', () => {

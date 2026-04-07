@@ -9,6 +9,7 @@ import {
   registerResourceSchemes
 } from './protocol/register-wloc-protocol'
 import { ensureAppStorageDirectories } from './services/app-storage'
+import { readAppSettings } from './services/app-settings-store'
 import { createMainProcessContext } from './state/main-process-context'
 
 registerResourceSchemes()
@@ -25,7 +26,8 @@ app.whenReady().then(async () => {
 
   const context = createMainProcessContext()
   await ensureAppStorageDirectories()
-  await initializeMainI18n()
+  const settings = await readAppSettings()
+  await initializeMainI18n(settings.language)
 
   registerResourceProtocols(context)
   registerBoardIpc(context)

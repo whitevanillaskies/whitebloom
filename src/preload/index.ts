@@ -111,18 +111,16 @@ const api = {
     ipcRenderer.invoke('app:list-recent-boards'),
   readBlossom: (workspaceRoot: string, resource: string): Promise<string> =>
     ipcRenderer.invoke('blossom:read', workspaceRoot, resource),
-  writeBlossom: (
-    workspaceRoot: string,
-    resource: string,
-    data: string
-  ): Promise<{ ok: boolean }> => ipcRenderer.invoke('blossom:write', workspaceRoot, resource, data),
+  writeBlossom: (workspaceRoot: string, resource: string, data: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('blossom:write', workspaceRoot, resource, data),
   openFile: (filePath: string): Promise<void> => ipcRenderer.invoke('file:open', filePath),
-  getFileIcon: (workspaceRoot: string, resource: string): Promise<{ ok: boolean; dataUrl: string | null }> =>
+  getFileIcon: (
+    workspaceRoot: string,
+    resource: string
+  ): Promise<{ ok: boolean; dataUrl: string | null }> =>
     ipcRenderer.invoke('file:get-icon', workspaceRoot, resource),
-  checkProtocol: (scheme: string): Promise<boolean> =>
-    ipcRenderer.invoke('protocol:check', scheme),
-  openUrl: (url: string): Promise<void> =>
-    ipcRenderer.invoke('url:open', url),
+  checkProtocol: (scheme: string): Promise<boolean> => ipcRenderer.invoke('protocol:check', scheme),
+  openUrl: (url: string): Promise<void> => ipcRenderer.invoke('url:open', url),
   isDirectory: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('path:is-directory', filePath),
   confirmLargeImport: (fileName: string, sizeMb: number): Promise<boolean> =>
@@ -154,11 +152,9 @@ const api = {
     workspaceRoot: string
   ): Promise<{ ok: boolean; uri: string | null }> =>
     ipcRenderer.invoke('thumbnail:get-uri', boardPath, workspaceRoot),
-  discardThumbnail: (
-    boardPath: string,
-    workspaceRoot: string
-  ): Promise<{ ok: boolean }> =>
-    ipcRenderer.invoke('thumbnail:discard', boardPath, workspaceRoot)
+  discardThumbnail: (boardPath: string, workspaceRoot: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('thumbnail:discard', boardPath, workspaceRoot),
+  setLanguage: (lang: string): Promise<void> => ipcRenderer.invoke('app:set-language', lang)
 }
 
 if (process.contextIsolated) {

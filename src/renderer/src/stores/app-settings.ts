@@ -2,10 +2,12 @@ import { create } from 'zustand'
 import {
   DEFAULT_APP_SETTINGS,
   normalizeAppSettings,
+  normalizeLanguage,
   normalizeUsername,
   type AppSettings,
   type UnhandledDropBehavior
 } from '../../../shared/app-settings'
+import i18n from '../i18n'
 import { useBoardStore } from './board'
 
 type AppSettingsState = AppSettings & {
@@ -14,6 +16,7 @@ type AppSettingsState = AppSettings & {
   updateUsername: (username: string) => Promise<void>
   updateUnhandledDrop: (behavior: UnhandledDropBehavior) => Promise<void>
   updateWarnLargeImport: (warn: boolean) => Promise<void>
+  updateLanguage: (lang: string) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
@@ -24,6 +27,7 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     const settings = normalizeAppSettings(await window.api.loadAppSettings())
     set({ ...settings, isHydrated: true })
     useBoardStore.getState().setActiveUsername(settings.user.username)
+    await i18n.changeLanguage(settings.language)
   },
 
   updateUsername: async (username) => {
@@ -51,6 +55,17 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     set(next)
     const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
+    if (!result.ok) console.error('Failed to persist app settings')
+  },
+
+  updateLanguage: async (lang) => {
+    const normalized = normalizeLanguage(lang)
+    const next: AppSettings = { ...get(), language: normalized }
+    set(next)
+    await i18n.changeLanguage(normalized)
+    const result = await window.api.saveAppSettings(next)
+    set({ ...normalizeAppSettings(result.settings) })
+    await window.api.setLanguage(normalized)
     if (!result.ok) console.error('Failed to persist app settings')
   }
 }))

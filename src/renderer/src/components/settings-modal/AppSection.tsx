@@ -15,9 +15,11 @@ export default function AppSection() {
   ]
 
   const username = useAppSettingsStore((s) => s.user.username)
+  const language = useAppSettingsStore((s) => s.language)
   const unhandledDrop = useAppSettingsStore((s) => s.files.unhandledDrop)
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
   const updateUsername = useAppSettingsStore((s) => s.updateUsername)
+  const updateLanguage = useAppSettingsStore((s) => s.updateLanguage)
   const updateUnhandledDrop = useAppSettingsStore((s) => s.updateUnhandledDrop)
   const updateWarnLargeImport = useAppSettingsStore((s) => s.updateWarnLargeImport)
 
@@ -53,6 +55,18 @@ export default function AppSection() {
           placeholder={t('appSettings.usernamePlaceholder')}
           onChange={(e) => void updateUsername(e.target.value)}
         />
+
+        <div className="settings-field">
+          <span className="settings-field__label">{t('appSettings.languageLabel')}</span>
+          <select
+            className="settings-select"
+            value={language}
+            onChange={(e) => void updateLanguage(e.target.value)}
+          >
+            <option value="en">{t('appSettings.languageEnglish')}</option>
+            <option value="es">{t('appSettings.languageSpanish')}</option>
+          </select>
+        </div>
 
         <div className="settings-field">
           <span className="settings-field__label">{t('appSettings.unhandledDropLabel')}</span>

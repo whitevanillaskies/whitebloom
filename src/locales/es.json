@@ -1,0 +1,206 @@
+{
+  "startScreen": {
+    "logo": "WHITEBLOOM",
+    "backToBoard": "Volver al tablero",
+    "openAction": "Abrir",
+    "newWorkspaceAction": "Nuevo espacio de trabajo",
+    "newQuickboardAction": "Nuevo tablero rápido",
+    "recentSection": "Recientes",
+    "unsavedQuickboards": "Tableros rápidos sin guardar",
+    "noRecentBoards": "Sin tableros recientes",
+    "moveToTrashTitle": "Mover a la papelera",
+    "moveToTrashAria": "Mover {{name}} a la papelera"
+  },
+  "workspaceHome": {
+    "workspaceLabel": "Espacio de trabajo",
+    "untitledWorkspace": "Espacio de trabajo sin título",
+    "backToBoard": "Volver al tablero",
+    "newBoardAction": "Nuevo tablero",
+    "closeWorkspaceAction": "Cerrar espacio de trabajo",
+    "boardsSection": "Tableros",
+    "newBoardTile": "Nuevo tablero",
+    "untitledBoard": "Tablero sin título",
+    "moveToTrashTitle": "Mover a la papelera",
+    "moveToTrashAria": "Mover {{name}} a la papelera"
+  },
+  "createBoardModal": {
+    "title": "Crear tablero",
+    "description": "Elige un nombre. Whitebloom creará un archivo .wb.json en este espacio de trabajo.",
+    "boardNameLabel": "Nombre del tablero",
+    "boardNamePlaceholder": "Tablero",
+    "cancelButton": "Cancelar",
+    "submitButton": "Crear tablero",
+    "creatingButton": "Creando…"
+  },
+  "confirmTrashModal": {
+    "title": "¿Mover tablero a la papelera?",
+    "description": "El archivo del tablero se moverá a wbapp:trash. Puedes restaurarlo manualmente desde el sistema de archivos durante el desarrollo.",
+    "cancelButton": "Cancelar",
+    "movingButton": "Moviendo…",
+    "moveButton": "Mover a la papelera"
+  },
+  "canvas": {
+    "dropFailedTitle": "Error al soltar",
+    "workspaceActionFailedTitle": "Error en acción del espacio de trabajo",
+    "discardChangesTitle": "¿Descartar cambios sin guardar?",
+    "discardChangesBody": "Tienes cambios sin guardar. ¿Deseas descartarlos y abrir un nuevo tablero?",
+    "exitWithoutSavingTitle": "¿Salir sin guardar?",
+    "exitWithoutSavingBody": "Tienes cambios sin guardar. ¿Deseas descartarlos y salir?",
+    "discardButton": "Descartar",
+    "exitButton": "Salir",
+    "cancelButton": "Cancelar",
+    "closeButton": "Cerrar",
+    "moveToTrashTitle": "¿Mover tablero a la papelera?",
+    "moveToTrashBody": "Esto mueve el archivo del tablero a wbapp:trash. Se perderán los cambios en memoria sin guardar.",
+    "moveToTrashButton": "Mover a la papelera",
+    "webResourceDropError": "No se pueden incrustar recursos web — guarda la imagen en tu disco local primero y luego suéltala.",
+    "dropError": "No se puede soltar el archivo.",
+    "promoteError": "No se puede promover este tablero rápido a un espacio de trabajo.",
+    "trashError": "No se puede mover este tablero a wbapp:trash.",
+    "boardSettingsMenuItem": "Configuración del tablero",
+    "promoteToWorkspaceMenuItem": "Promover a espacio de trabajo",
+    "moveToTrashMenuItem": "Mover a la papelera",
+    "searchPalettePlaceholder": "Buscar en la paleta",
+    "paletteTextLabel": "Texto",
+    "paletteFocusWriterLabel": "Escritor enfocado",
+    "paletteSchemaBloomLabel": "Diseñador de esquema de BD"
+  },
+  "boardContextBar": {
+    "homeLabel": "Inicio",
+    "untitledPlaceholder": "Sin título",
+    "saveLabel": "Guardar",
+    "newBoardLabel": "Nuevo tablero",
+    "newQuickboardLabel": "Nuevo tablero rápido",
+    "moreActionsLabel": "Más acciones"
+  },
+  "boardTitle": {
+    "untitledPlaceholder": "Sin título",
+    "settingsLabel": "Configuración del tablero"
+  },
+  "settingsModal": {
+    "title": "Configuración",
+    "boardTab": "Tablero",
+    "workspaceTab": "Espacio de trabajo",
+    "appTab": "Aplicación",
+    "closeLabel": "Cerrar configuración"
+  },
+  "boardSettings": {
+    "title": "Tablero",
+    "nameLabel": "Nombre del tablero",
+    "namePlaceholder": "Sin título",
+    "briefLabel": "Descripción",
+    "briefHint": "Un mensaje para los agentes de IA — describe para qué es este tablero, el contexto que deben tener en cuenta o cómo te gustaría que te ayuden.",
+    "briefPlaceholder": "Este tablero es para…"
+  },
+  "workspaceSettings": {
+    "title": "Espacio de trabajo",
+    "nameLabel": "Nombre del espacio de trabajo",
+    "namePlaceholder": "Espacio de trabajo sin título",
+    "briefLabel": "Descripción",
+    "briefHint": "Un mensaje para los agentes de IA — describe de qué trata este espacio de trabajo, el contexto del proyecto y cómo los agentes deben abordarlo en todos los tableros.",
+    "briefPlaceholder": "Este espacio de trabajo es para…"
+  },
+  "appSettings": {
+    "title": "Aplicación",
+    "usernameLabel": "Nombre de usuario",
+    "usernameHint": "Se almacena una vez para la aplicación y se usa en los metadatos de autoría de los nodos en todos los tableros.",
+    "usernamePlaceholder": "anon",
+    "languageLabel": "Idioma",
+    "languageEnglish": "English",
+    "languageSpanish": "Español",
+    "unhandledDropLabel": "Archivos sin controlador",
+    "unhandledDropHint": "Qué hacer cuando sueltas un archivo que ningún módulo sabe cómo abrir.",
+    "linkOption": "Enlazar",
+    "linkDescription": "Mantener el archivo en su ubicación actual.",
+    "importOption": "Importar",
+    "importDescription": "Copiar el archivo en el espacio de trabajo.",
+    "askOption": "Preguntar",
+    "askDescription": "Preguntar cada vez que se suelte un archivo.",
+    "advancedToggle": "Avanzado",
+    "warnLargeFilesLabel": "Avisar antes de importar archivos grandes",
+    "warnLargeFilesHint": "Muestra un aviso al importar un archivo de más de 50 MB.",
+    "confirmDisableWarnText": "Los archivos grandes pueden llenar tu espacio de trabajo rápidamente. ¿Estás seguro?",
+    "disableWarningButton": "Deshabilitar aviso",
+    "keepWarningButton": "Mantenerlo activo"
+  },
+  "petalPalette": {
+    "ariaLabel": "Paleta de comandos",
+    "searchPlaceholder": "Buscar…",
+    "noResults": "Sin resultados"
+  },
+  "petalMenu": {
+    "empty": "Sin acciones"
+  },
+  "bloomModal": {
+    "readError": "No se puede leer el archivo blossom.",
+    "saveError": "No se puede guardar el archivo blossom.",
+    "noEditor": "No hay editor disponible para este módulo.",
+    "closeButton": "Cerrar"
+  },
+  "focusWriter": {
+    "placeholder": "Comienza a escribir…",
+    "emptyPreview": "Aún no se ha escrito nada.",
+    "previewMode": "vista previa",
+    "dynamicMode": "dinámico",
+    "typewriterMode": "máquina de escribir"
+  },
+  "canvasToolbar": {
+    "pointerLabel": "Puntero",
+    "handLabel": "Mano",
+    "addTextLabel": "Agregar texto",
+    "alertsLabel": "TODO - alertas",
+    "commentsLabel": "TODO - comentarios",
+    "shapesLabel": "TODO - formas"
+  },
+  "schemaBloomToolbar": {
+    "addTableLabel": "Agregar tabla",
+    "saveLabel": "Guardar"
+  },
+  "tableNode": {
+    "deleteColumnTitle": "Eliminar columna",
+    "addColumnTitle": "Agregar columna"
+  },
+  "formatToolbar": {
+    "boldLabel": "Negrita",
+    "italicLabel": "Cursiva"
+  },
+  "edgeToolbar": {
+    "styleLabel": "Estilo de conexión"
+  },
+  "nodeResizeHandles": {
+    "topLeftAria": "Redimensionar desde arriba a la izquierda",
+    "topRightAria": "Redimensionar desde arriba a la derecha",
+    "bottomRightAria": "Redimensionar desde abajo a la derecha",
+    "bottomLeftAria": "Redimensionar desde abajo a la izquierda"
+  },
+  "slashCommand": {
+    "paragraphLabel": "Párrafo",
+    "heading1Label": "Encabezado 1",
+    "heading2Label": "Encabezado 2",
+    "heading3Label": "Encabezado 3",
+    "bulletedListLabel": "Lista con viñetas",
+    "numberedListLabel": "Lista numerada",
+    "quoteLabel": "Cita",
+    "noResults": "Sin resultados"
+  },
+  "textNode": {
+    "placeholder": "Texto"
+  },
+  "dialogs": {
+    "largeFileTitle": "Archivo grande",
+    "largeFileMessage": "\"{{fileName}}\" pesa {{sizeMb}} MB",
+    "largeFileDetail": "Al importar se copiará este archivo en tu espacio de trabajo. Considera enlazarlo en su lugar para evitar duplicar archivos grandes en el disco.",
+    "importAnywayButton": "Importar de todas formas",
+    "cancelButton": "Cancelar",
+    "importOrLinkTitle": "Agregar archivo al espacio de trabajo",
+    "importOrLinkMessage": "¿Cómo deseas agregar \"{{fileName}}\"?",
+    "importOrLinkDetail": "Importar copia el archivo en tu espacio de trabajo. Enlazar lo mantiene en su ubicación actual — si el archivo se mueve, el nodo se romperá.",
+    "importButton": "Importar",
+    "linkButton": "Enlazar",
+    "openWorkspaceBoardTitle": "Abrir espacio de trabajo o tablero",
+    "workspaceFilter": "Espacio de trabajo Whitebloom",
+    "boardFilter": "Tablero Whitebloom",
+    "createWorkspaceTitle": "Crear espacio de trabajo",
+    "saveBoardTitle": "Guardar tablero"
+  }
+}

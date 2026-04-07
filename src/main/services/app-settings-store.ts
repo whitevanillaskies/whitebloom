@@ -1,19 +1,35 @@
 import { app } from 'electron'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
-import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
+import {
+  normalizeAppSettings,
+  normalizeLanguage,
+  type AppSettings
+} from '../../shared/app-settings'
 
 function getAppSettingsPath(): string {
   return join(app.getPath('userData'), 'settings.json')
 }
 
 export async function readAppSettings(): Promise<AppSettings> {
+  let raw: unknown = undefined
   try {
     const json = await readFile(getAppSettingsPath(), 'utf-8')
-    return normalizeAppSettings(JSON.parse(json))
+    raw = JSON.parse(json)
   } catch {
-    return normalizeAppSettings(undefined)
+    // ignore
   }
+
+  const settings = normalizeAppSettings(raw)
+
+  // First launch or upgrade from pre-i18n build: no language stored → detect from system locale.
+  const hasLanguage = raw !== null && typeof raw === 'object' && 'language' in (raw as object)
+  if (!hasLanguage) {
+    settings.language = normalizeLanguage(app.getLocale())
+    await writeAppSettings(settings).catch(() => {})
+  }
+
+  return settings
 }
 
 export async function writeAppSettings(settings: AppSettings): Promise<AppSettings> {

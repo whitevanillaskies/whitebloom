@@ -101,9 +101,16 @@ declare global {
       listTransientBoards: () => Promise<ListTransientBoardsResult>
       listRecentBoards: () => Promise<ListRecentBoardsResult>
       readBlossom: (workspaceRoot: string, resource: string) => Promise<string>
-      writeBlossom: (workspaceRoot: string, resource: string, data: string) => Promise<{ ok: boolean }>
+      writeBlossom: (
+        workspaceRoot: string,
+        resource: string,
+        data: string
+      ) => Promise<{ ok: boolean }>
       openFile: (filePath: string) => Promise<void>
-      getFileIcon: (workspaceRoot: string, resource: string) => Promise<{ ok: boolean; dataUrl: string | null }>
+      getFileIcon: (
+        workspaceRoot: string,
+        resource: string
+      ) => Promise<{ ok: boolean; dataUrl: string | null }>
       checkProtocol: (scheme: string) => Promise<boolean>
       openUrl: (url: string) => Promise<void>
       isDirectory: (filePath: string) => Promise<boolean>
@@ -112,7 +119,10 @@ declare global {
       updateWorkspaceConfig: (
         workspaceRoot: string,
         patch: { name?: string; brief?: string }
-      ) => Promise<{ ok: boolean; config: { version: number; name?: string; brief?: string } | null }>
+      ) => Promise<{
+        ok: boolean
+        config: { version: number; name?: string; brief?: string } | null
+      }>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
       onCloseRequested: (cb: () => void) => () => void
@@ -126,10 +136,8 @@ declare global {
         boardPath: string,
         workspaceRoot: string
       ) => Promise<{ ok: boolean; uri: string | null }>
-      discardThumbnail: (
-        boardPath: string,
-        workspaceRoot: string
-      ) => Promise<{ ok: boolean }>
+      discardThumbnail: (boardPath: string, workspaceRoot: string) => Promise<{ ok: boolean }>
+      setLanguage: (lang: string) => Promise<void>
     }
   }
 }
