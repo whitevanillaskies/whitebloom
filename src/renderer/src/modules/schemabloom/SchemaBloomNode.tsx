@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { PetalBudNode, PetalIconBadge } from '@renderer/components/petal'
 import type { BudNodeProps } from '../types'
-import { loadSchema } from './schema'
 import { SchemaBloomIcon } from './SchemaBloomIcon'
 import { BUD_ICON_PX, BUD_ICON_NODE_W } from '@renderer/canvas/canvas-constants'
 import './SchemaBloomNode.css'
@@ -12,7 +9,7 @@ function deriveLabel(resource: string): string {
   return segment.replace(/\.bdb$/, '')
 }
 
-export function SchemaBloomNode({ resource, label, size, selected, onBloom }: BudNodeProps) {
+export function SchemaBloomNode({ resource, label, selected, onBloom }: BudNodeProps) {
   return (
     <PetalBudNode
       size={{ w: BUD_ICON_NODE_W }}

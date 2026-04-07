@@ -25,15 +25,13 @@ A cluster is a visual grouping of nodes on the canvas. It is not a file, not a m
   "label": "Auth subsystem",
   "brief": "Everything related to authentication: login, session, token refresh.",
   "children": ["node-1", "node-2", "node-3"],
-  "color": "blue",
-  "collapsed": false
+  "color": "blue"
 }
 ```
 
 - `children` — array of node IDs contained in this cluster. Children remain in the top-level `nodes` array at their absolute board coordinates. The cluster does not wrap them in a nested structure.
 - `brief` — optional agent context scoped to this cluster. When an agent is invoked with a cluster as scope, it receives workspace brief + board brief + cluster brief + only the child nodes.
 - `color` — one of the design token accent colors (`blue`, `pink`, `red`, `purple`, `green`). Used for the border and label background.
-- `collapsed` — when true, the cluster renders as a single compact node. The interface nodes (if defined) remain visible as ports. All other children are hidden.
 
 **Positions are absolute.** Children are always stored at their true board coordinates, not relative to the cluster origin. Dragging the cluster translates all children by the delta. No coordinate frame indirection.
 
@@ -41,12 +39,7 @@ A cluster is a visual grouping of nodes on the canvas. It is not a file, not a m
 
 **Edges cross cluster boundaries freely.** A cluster is not a namespace. An edge from node-1 (inside cluster A) to node-7 (outside) is fully valid. The cluster is a visual annotation, not a semantic isolation boundary.
 
-**Collapsing.** When a cluster is collapsed, it becomes a compact single-node representation showing the label, the cluster color, and a child count badge. The children are hidden (not removed from the board). Edges that connected to children of a collapsed cluster route to the cluster node itself during collapsed state, and restore on expand. This is a rendering concern — the board data does not change on collapse/expand.
-
 **Agent context boundary.** The cluster `brief` enables scoped agent passes. Asking an agent to "work on the auth cluster" gives it a bounded context: the cluster brief as the primary directive, and only the child nodes as the graph it operates on. This is a significant improvement over full-board agent passes for large boards.
-
-**Agent proposals.** Agents may propose new clusters or propose adding/removing nodes from existing clusters via the inbox, using the standard proposal flow. Ghost clusters appear as dashed outlines with a rationale label. The user accepts or denies.
-
 
 ### Phase 2: Arrangements
 

@@ -61,7 +61,7 @@ function App(): React.JSX.Element {
   const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
 
   useEffect(() => {
-    if (boardPath !== null || workspaceRoot !== null) return
+    if (view !== 'start') return
 
     let cancelled = false
 
@@ -75,10 +75,10 @@ function App(): React.JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [boardPath, workspaceRoot])
+  }, [view])
 
   useEffect(() => {
-    if (boardPath !== null || workspaceRoot !== null) return
+    if (view !== 'start') return
 
     let cancelled = false
 
@@ -92,7 +92,7 @@ function App(): React.JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [boardPath, workspaceRoot])
+  }, [view])
 
   useEffect(() => {
     if (view !== 'workspace-home' || !workspaceRoot || workspaceBoards.length === 0) {
@@ -271,17 +271,26 @@ function App(): React.JSX.Element {
     setShellError(null)
 
     try {
-      const result = await window.api.trashBoard(pendingTrashBoard.boardPath)
+      const trashedBoardPath = pendingTrashBoard.boardPath
+      const result = await window.api.trashBoard(trashedBoardPath)
       if (!result.ok) {
         throw new Error('Unable to move that board into trash.')
       }
 
       if (pendingTrashBoard.removeFromWorkspace) {
-        removeBoard(pendingTrashBoard.boardPath)
+        removeBoard(trashedBoardPath)
       } else {
         setTransientBoards((current) =>
-          current.filter((boardPath) => boardPath !== pendingTrashBoard.boardPath)
+          current.filter((boardPath) => boardPath !== trashedBoardPath)
         )
+      }
+
+      setRecentBoards((current) =>
+        current.filter((item) => item.path !== trashedBoardPath)
+      )
+
+      if (boardPath === trashedBoardPath) {
+        clearBoard()
       }
 
       if (pendingTrashBoard.clearWorkspace) {
@@ -294,7 +303,7 @@ function App(): React.JSX.Element {
     } finally {
       setBusyAction(null)
     }
-  }, [clearWorkspace, pendingTrashBoard, removeBoard])
+  }, [boardPath, clearBoard, clearWorkspace, pendingTrashBoard, removeBoard])
 
   const handleOpenWorkspaceBoard = useCallback(
     async (nextBoardPath: string) => {

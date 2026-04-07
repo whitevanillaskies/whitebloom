@@ -155,3 +155,22 @@ Reserved for cases where neither the iOS badge pattern nor the system icon is ap
 - Use `clamp()` or `@media` breakpoints — this is a desktop app with a fixed layout
 - Hard-code color hex values for text or background — use CSS variables
 - Apply `backdrop-filter` to inline (non-floating) surfaces
+
+
+# References
+
+## DCCs (maya, Houdini, Blender, max, Photoshop, Substance)
+
+For their power user, no gimmick approach to things. No nonsense, professional. Features above security, trust that your users are not idiots.
+
+## Aperture
+
+The old macOS software that apparently had a great reputation and people were sad it was replaced by photos. Especially when it comes to Arrangements and Sets (Sets being basically Albums in Aperture).
+
+## Linear
+
+App for management, apparently it has a great command palette where you can find all app actions.
+
+## macOS
+
+Desktop, filesystem, apps, the look, etc. Not exactly the new liquid glass look, it's too round and Fisher Price looking for me.
