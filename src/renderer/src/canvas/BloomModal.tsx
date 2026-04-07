@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ReactFlowProvider } from '@xyflow/react'
 import type { ActiveBloom } from './BloomContext'
 import './BloomModal.css'
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
+  const { t } = useTranslation()
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
       .catch((err) =>
         setLoadState({
           status: 'error',
-          message: err instanceof Error ? err.message : 'Unable to read blossom file.'
+          message: err instanceof Error ? err.message : t('bloomModal.readError')
         })
       )
   }, [workspaceRoot, bloom.resource])
@@ -33,7 +35,7 @@ export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
   const handleSave = useCallback(
     async (data: string): Promise<void> => {
       const result = await window.api.writeBlossom(workspaceRoot, bloom.resource, data)
-      if (!result.ok) throw new Error('Unable to save blossom file.')
+      if (!result.ok) throw new Error(t('bloomModal.saveError'))
     },
     [workspaceRoot, bloom.resource]
   )
@@ -48,16 +50,16 @@ export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
         <div className="bloom-modal__error">
           <p className="bloom-modal__error-message">{loadState.message}</p>
           <button type="button" className="bloom-modal__error-close" onClick={onClose}>
-            Close
+            {t('bloomModal.closeButton')}
           </button>
         </div>
       )}
 
       {loadState.status === 'ready' && !EditorComponent && (
         <div className="bloom-modal__error">
-          <p className="bloom-modal__error-message">No editor available for this module.</p>
+          <p className="bloom-modal__error-message">{t('bloomModal.noEditor')}</p>
           <button type="button" className="bloom-modal__error-close" onClick={onClose}>
-            Close
+            {t('bloomModal.closeButton')}
           </button>
         </div>
       )}

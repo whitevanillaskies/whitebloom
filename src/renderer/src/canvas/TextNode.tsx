@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Handle, NodeToolbar, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
 import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants'
 import { useBoardStore } from '@renderer/stores/board'
@@ -173,6 +174,7 @@ function TextEditorPlugins({
 
 // ── Text node ────────────────────────────────────────────────────
 export function TextNode({ id, data, selected, dragging, positionAbsoluteX, positionAbsoluteY }: NodeProps) {
+  const { t } = useTranslation()
   const { content, widthMode, wrapWidth, size, autoEditToken } = data as TextNodeData
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
@@ -596,7 +598,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
                     onMouseDown={(e) => e.stopPropagation()}
                   />
                 }
-                placeholder={<span className="text-node__placeholder">Text</span>}
+                placeholder={<span className="text-node__placeholder">{t('textNode.placeholder')}</span>}
                 ErrorBoundary={LexicalErrorBoundary}
               />
               <OnChangePlugin

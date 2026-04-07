@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import BoardSection from './BoardSection'
 import WorkspaceSection from './WorkspaceSection'
@@ -15,14 +16,15 @@ type Props = {
 type Section = 'board' | 'workspace' | 'app'
 
 export default function SettingsModal({ name, brief, onChange, onClose }: Props) {
+  const { t } = useTranslation()
   const hasWorkspace = useWorkspaceStore((s) => s.root !== null)
   const [activeSection, setActiveSection] = useState<Section>('board')
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const sections: { id: Section; label: string }[] = [
-    { id: 'board', label: 'Board' },
-    ...(hasWorkspace ? [{ id: 'workspace' as Section, label: 'Workspace' }] : []),
-    { id: 'app', label: 'App' }
+    { id: 'board', label: t('settingsModal.boardTab') },
+    ...(hasWorkspace ? [{ id: 'workspace' as Section, label: t('settingsModal.workspaceTab') }] : []),
+    { id: 'app', label: t('settingsModal.appTab') }
   ]
 
   useEffect(() => {
@@ -42,9 +44,9 @@ export default function SettingsModal({ name, brief, onChange, onClose }: Props)
       role="presentation"
       onClick={handleOverlayClick}
     >
-      <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
+      <div className="settings-modal" role="dialog" aria-modal="true" aria-label={t('settingsModal.title')}>
         <nav className="settings-modal__sidebar">
-          <span className="settings-modal__sidebar-heading">Settings</span>
+          <span className="settings-modal__sidebar-heading">{t('settingsModal.title')}</span>
           {sections.map((s) => (
             <button
               key={s.id}
@@ -69,7 +71,7 @@ export default function SettingsModal({ name, brief, onChange, onClose }: Props)
           type="button"
           className="settings-modal__close"
           onClick={onClose}
-          aria-label="Close settings"
+          aria-label={t('settingsModal.closeLabel')}
         >
           ✕
         </button>

@@ -1,4 +1,5 @@
 import { PetalField } from '@renderer/components/petal'
+import { useTranslation } from 'react-i18next'
 
 type BoardSectionProps = {
   name: string | undefined
@@ -7,22 +8,24 @@ type BoardSectionProps = {
 }
 
 export default function BoardSection({ name, brief, onChange }: BoardSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="settings-section">
-      <h2 className="settings-section__title">Board</h2>
+      <h2 className="settings-section__title">{t('boardSettings.title')}</h2>
       <div className="settings-section__fields">
         <PetalField
-          label="Board name"
+          label={t('boardSettings.nameLabel')}
           value={name ?? ''}
-          placeholder="Untitled"
+          placeholder={t('boardSettings.namePlaceholder')}
           onChange={(e) => onChange({ name: e.target.value })}
         />
         <PetalField
           as="textarea"
-          label="Brief"
-          hint="A message for AI agents — describe what this board is for, what context they should keep in mind, or how you'd like them to help."
+          label={t('boardSettings.briefLabel')}
+          hint={t('boardSettings.briefHint')}
           value={brief ?? ''}
-          placeholder="This board is for…"
+          placeholder={t('boardSettings.briefPlaceholder')}
           rows={6}
           onChange={(e) => onChange({ brief: e.target.value })}
         />

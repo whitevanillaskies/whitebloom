@@ -1,4 +1,5 @@
 import { ChevronLeft, FolderOpen, FolderPlus, LayoutGrid, Trash2, Zap } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { resourceToImageSrc } from '../../shared/resource-url'
 import './StartScreen.css'
 
@@ -61,10 +62,12 @@ export default function StartScreen({
   onOpenRecentBoard,
   onTrashBoard
 }: StartScreenProps) {
+  const { t } = useTranslation()
+
   return (
     <main className="start-screen">
       <aside className="start-screen__sidebar">
-        <h1 className="start-screen__logo">WHITEBLOOM</h1>
+        <h1 className="start-screen__logo">{t('startScreen.logo')}</h1>
 
         <nav className="start-screen__nav">
           {onReturnToBoard ? (
@@ -74,7 +77,7 @@ export default function StartScreen({
               onClick={onReturnToBoard}
             >
               <ChevronLeft size={14} strokeWidth={1.8} className="start-screen__action-icon" />
-              {currentBoardName ?? 'Back to board'}
+              {currentBoardName ?? t('startScreen.backToBoard')}
             </button>
           ) : null}
 
@@ -85,7 +88,7 @@ export default function StartScreen({
             disabled={busy}
           >
             <FolderOpen size={14} strokeWidth={1.8} className="start-screen__action-icon" />
-            Open
+            {t('startScreen.openAction')}
           </button>
 
           <button
@@ -95,7 +98,7 @@ export default function StartScreen({
             disabled={busy}
           >
             <FolderPlus size={14} strokeWidth={1.8} className="start-screen__action-icon" />
-            New workspace
+            {t('startScreen.newWorkspaceAction')}
           </button>
 
           <button
@@ -105,7 +108,7 @@ export default function StartScreen({
             disabled={busy}
           >
             <Zap size={14} strokeWidth={1.8} className="start-screen__action-icon" />
-            New quickboard
+            {t('startScreen.newQuickboardAction')}
           </button>
         </nav>
 
@@ -115,7 +118,7 @@ export default function StartScreen({
       <section className="start-screen__recent" aria-label="Recent boards">
         {recentBoards.length > 0 && (
           <>
-            <p className="start-screen__recent-eyebrow">Recent</p>
+            <p className="start-screen__recent-eyebrow">{t('startScreen.recentSection')}</p>
             <div className="start-screen__board-grid">
               {recentBoards.map((item) => (
                 <div key={item.path} className="start-screen__board-tile">
@@ -152,7 +155,7 @@ export default function StartScreen({
         {transientBoards.length > 0 && (
           <>
             <p className="start-screen__recent-eyebrow" style={recentBoards.length > 0 ? { marginTop: 32 } : undefined}>
-              Unsaved quickboards
+              {t('startScreen.unsavedQuickboards')}
             </p>
             <div className="start-screen__board-grid">
               {transientBoards.map((boardPath) => (
@@ -177,8 +180,8 @@ export default function StartScreen({
                     className="start-screen__board-discard"
                     onClick={() => onTrashBoard(boardPath)}
                     disabled={busy}
-                    aria-label={`Move ${getBoardLabel(boardPath)} to trash`}
-                    title="Move to trash"
+                    aria-label={t('startScreen.moveToTrashAria', { name: getBoardLabel(boardPath) })}
+                    title={t('startScreen.moveToTrashTitle')}
                   >
                     <Trash2 size={11} strokeWidth={1.8} />
                   </button>
@@ -189,7 +192,7 @@ export default function StartScreen({
         )}
 
         {recentBoards.length === 0 && transientBoards.length === 0 && (
-          <p className="start-screen__empty">No recent boards</p>
+          <p className="start-screen__empty">{t('startScreen.noRecentBoards')}</p>
         )}
       </section>
     </main>

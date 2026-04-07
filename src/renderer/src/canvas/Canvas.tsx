@@ -16,6 +16,7 @@ import {
   MiniMap
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { useTranslation } from 'react-i18next'
 import { useBoardStore } from '@renderer/stores/board'
 import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
@@ -153,6 +154,8 @@ type CanvasProps = {
 }
 
 export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProps) {
+  const { t } = useTranslation()
+
   const boardNodes = useBoardStore((s) => s.nodes)
   const boardEdges = useBoardStore((s) => s.edges)
   const version = useBoardStore((s) => s.version)
@@ -525,7 +528,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       loadBoard(snapshot, createBoardResult.boardPath)
     } catch (error) {
       setWorkspaceActionError(
-        error instanceof Error ? error.message : 'Unable to promote this quickboard into a workspace.'
+        error instanceof Error ? error.message : t('canvas.promoteError')
       )
     } finally {
       setPromoteInFlight(false)
@@ -541,7 +544,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     try {
       const result = await window.api.trashBoard(boardPath)
       if (!result.ok) {
-        throw new Error('Unable to move this board into wbapp:trash.')
+        throw new Error(t('canvas.trashError'))
       }
 
       if (workspaceRoot !== null) {
@@ -552,7 +555,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       clearBoard()
     } catch (error) {
       setWorkspaceActionError(
-        error instanceof Error ? error.message : 'Unable to move this board into wbapp:trash.'
+        error instanceof Error ? error.message : t('canvas.trashError')
       )
     } finally {
       setTrashBoardInFlight(false)
@@ -713,18 +716,18 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   }, [isDirty, onNewBoard])
 
   const confirmDialogTitle = pendingDocumentAction === 'newBoard'
-    ? 'Discard unsaved changes?'
-    : 'Exit without saving?'
+    ? t('canvas.discardChangestitle')
+    : t('canvas.exitWithoutSavingTitle')
   const confirmDialogBody = pendingDocumentAction === 'newBoard'
-    ? 'You have unsaved changes. Do you want to discard them and open a new board?'
-    : 'You have unsaved changes. Do you want to discard them and exit?'
-  const confirmDialogConfirmLabel = pendingDocumentAction === 'newBoard' ? 'Discard' : 'Exit'
+    ? t('canvas.discardChangesBody')
+    : t('canvas.exitWithoutSavingBody')
+  const confirmDialogConfirmLabel = pendingDocumentAction === 'newBoard' ? t('canvas.discardButton') : t('canvas.exitButton')
 
   const paletteItems = useMemo((): PaletteItem[] => {
     const items: PaletteItem[] = [
       {
         id: 'create-text',
-        label: 'Text',
+        label: t('canvas.paletteTextLabel'),
         icon: <Type size={14} strokeWidth={1.8} />,
         hint: 'T',
         onActivate: () => {
@@ -741,13 +744,13 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
     if (workspaceRoot !== null) {
       items.push({
         id: 'create-focus-writer',
-        label: 'Focus Writer',
+        label: t('canvas.paletteFocusWriterLabel'),
         icon: <FileText size={14} strokeWidth={1.8} />,
         onActivate: () => { void createFocusWriterBud() }
       })
       items.push({
         id: 'create-schema-bloom',
-        label: 'DB Schema Drafter',
+        label: t('canvas.paletteSchemaBloomLabel'),
         icon: <Database size={14} strokeWidth={1.8} />,
         onActivate: () => { void createSchemaBloomBud() }
       })
@@ -928,7 +931,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
       settled.forEach((result) => {
         if (result.status === 'rejected') {
-          firstFailure ??= result.reason instanceof Error ? result.reason.message : 'Unable to drop file.'
+          firstFailure ??= result.reason instanceof Error ? result.reason.message : t('canvas.dropError')
           return
         }
 
@@ -1042,7 +1045,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       )}
 
       {imageDropError ? (
-        <PetalPanel title="Drop failed" body={imageDropError} onClose={() => setImageDropError(null)}>
+        <PetalPanel title={t('canvas.dropFailedTitle')} body={imageDropError} onClose={() => setImageDropError(null)}>
           <div className="petal-panel__actions">
             <PetalButton onClick={() => setImageDropError(null)}>Close</PetalButton>
           </div>
@@ -1050,9 +1053,9 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       ) : null}
 
       {workspaceActionError ? (
-        <PetalPanel title="Workspace action failed" body={workspaceActionError} onClose={() => setWorkspaceActionError(null)}>
+        <PetalPanel title={t('canvas.workspaceActionFailedTitle')} body={workspaceActionError} onClose={() => setWorkspaceActionError(null)}>
           <div className="petal-panel__actions">
-            <PetalButton onClick={() => setWorkspaceActionError(null)}>Close</PetalButton>
+            <PetalButton onClick={() => setWorkspaceActionError(null)}>{t('canvas.closeButton')}</PetalButton>
           </div>
         </PetalPanel>
       ) : null}
@@ -1060,7 +1063,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       {pendingDocumentAction ? (
         <PetalPanel title={confirmDialogTitle} body={confirmDialogBody} onClose={handleCancelDocumentAction}>
           <div className="petal-panel__actions">
-            <PetalButton onClick={handleCancelDocumentAction}>Cancel</PetalButton>
+            <PetalButton onClick={handleCancelDocumentAction}>{t('canvas.cancelButton')}</PetalButton>
             <PetalButton intent="destructive" onClick={handleConfirmDocumentAction}>
               {confirmDialogConfirmLabel}
             </PetalButton>
@@ -1070,18 +1073,18 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
       {trashBoardConfirmOpen ? (
         <PetalPanel
-          title="Move board to trash?"
-          body="This moves the board file into wbapp:trash. Any unsaved in-memory edits will be lost."
+          title={t('canvas.moveToTrashTitle')}
+          body={t('canvas.moveToTrashBody')}
           onClose={() => setTrashBoardConfirmOpen(false)}
         >
           <div className="petal-panel__actions">
-            <PetalButton onClick={() => setTrashBoardConfirmOpen(false)}>Cancel</PetalButton>
+            <PetalButton onClick={() => setTrashBoardConfirmOpen(false)}>{t('canvas.cancelButton')}</PetalButton>
             <PetalButton
               intent="destructive"
               onClick={() => void handleTrashBoard()}
               disabled={trashBoardInFlight}
             >
-              Move to trash
+              {t('canvas.moveToTrashButton')}
             </PetalButton>
           </div>
         </PetalPanel>
@@ -1099,7 +1102,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         <PetalPalette
           items={paletteItems}
           onClose={() => setPaletteOpen(false)}
-          placeholder="Search Palette"
+          placeholder={t('canvas.searchPalettePlaceholder')}
         />
       )}
 
@@ -1107,14 +1110,14 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         const items: PetalMenuItem[] = [
           {
             id: 'settings',
-            label: 'Board Settings',
+            label: t('canvas.boardSettingsMenuItem'),
             icon: <Settings2 size={14} strokeWidth={1.8} />,
             onActivate: () => setSettingsOpen(true)
           },
           ...(workspaceRoot === null
             ? [{
                 id: 'promote',
-                label: 'Promote to Workspace',
+                label: t('canvas.promoteToWorkspaceMenuItem'),
                 icon: <FolderPlus size={14} strokeWidth={1.8} />,
                 onActivate: () => void handlePromoteToWorkspace(),
                 disabled: promoteInFlight
@@ -1122,7 +1125,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
             : []),
           {
             id: 'trash',
-            label: 'Move to Trash',
+            label: t('canvas.moveToTrashMenuItem'),
             icon: <Trash2 size={14} strokeWidth={1.8} />,
             intent: 'destructive' as const,
             onActivate: () => setTrashBoardConfirmOpen(true),

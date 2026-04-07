@@ -1,4 +1,5 @@
 import { PetalButton, PetalPanel } from '../petal'
+import { useTranslation } from 'react-i18next'
 
 type ConfirmTrashModalProps = {
   busy: boolean
@@ -11,16 +12,18 @@ export default function ConfirmTrashModal({
   onClose,
   onConfirm
 }: ConfirmTrashModalProps) {
+  const { t } = useTranslation()
+
   return (
     <PetalPanel
-      title="Move board to trash?"
-      body="The board file will be moved into wbapp:trash. You can still restore it manually from the filesystem during development."
+      title={t('confirmTrashModal.title')}
+      body={t('confirmTrashModal.description')}
       onClose={busy ? () => {} : onClose}
     >
       <div className="petal-panel__actions">
-        <PetalButton onClick={onClose} disabled={busy}>Cancel</PetalButton>
+        <PetalButton onClick={onClose} disabled={busy}>{t('confirmTrashModal.cancelButton')}</PetalButton>
         <PetalButton intent="destructive" onClick={onConfirm} disabled={busy}>
-          {busy ? 'Moving…' : 'Move to trash'}
+          {busy ? t('confirmTrashModal.movingButton') : t('confirmTrashModal.moveButton')}
         </PetalButton>
       </div>
     </PetalPanel>

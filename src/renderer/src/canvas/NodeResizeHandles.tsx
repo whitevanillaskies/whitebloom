@@ -1,5 +1,6 @@
 import { NodeToolbar, Position } from '@xyflow/react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ResizeCorner } from './useFixedCornerResize'
 import './NodeResizeHandles.css'
 
@@ -9,22 +10,19 @@ type NodeResizeHandlesProps = {
   onPointerDown: (corner: ResizeCorner, event: ReactPointerEvent<HTMLButtonElement>) => void
 }
 
-const HANDLE_CONFIG: Array<{
-  align: 'start' | 'end'
-  ariaLabel: string
-  corner: ResizeCorner
-  position: Position
-}> = [
-  { align: 'start', ariaLabel: 'Resize from top left', corner: 'nw', position: Position.Top },
-  { align: 'end', ariaLabel: 'Resize from top right', corner: 'ne', position: Position.Top },
-  { align: 'end', ariaLabel: 'Resize from bottom right', corner: 'se', position: Position.Bottom },
-  { align: 'start', ariaLabel: 'Resize from bottom left', corner: 'sw', position: Position.Bottom }
-]
-
 export function NodeResizeHandles({ visible, activeCorner, onPointerDown }: NodeResizeHandlesProps) {
+  const { t } = useTranslation()
+
+  const handleConfig = [
+    { align: 'start' as const, ariaLabel: t('nodeResizeHandles.topLeftAria'),     corner: 'nw' as ResizeCorner, position: Position.Top },
+    { align: 'end'   as const, ariaLabel: t('nodeResizeHandles.topRightAria'),    corner: 'ne' as ResizeCorner, position: Position.Top },
+    { align: 'end'   as const, ariaLabel: t('nodeResizeHandles.bottomRightAria'), corner: 'se' as ResizeCorner, position: Position.Bottom },
+    { align: 'start' as const, ariaLabel: t('nodeResizeHandles.bottomLeftAria'),  corner: 'sw' as ResizeCorner, position: Position.Bottom }
+  ]
+
   return (
     <>
-      {HANDLE_CONFIG.map(({ align, ariaLabel, corner, position }) => (
+      {handleConfig.map(({ align, ariaLabel, corner, position }) => (
         <NodeToolbar
           key={corner}
           isVisible={visible}

@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   $createParagraphNode,
@@ -21,13 +22,14 @@ import '../components/petal/PetalMenu.css'
 // ── Block definitions ─────────────────────────────────────────────
 
 type BlockDef =
-  | { id: string; label: string; keywords: string[]; kind: 'block'; create: () => ElementNode }
-  | { id: string; label: string; keywords: string[]; kind: 'list'; command: LexicalCommand<void> }
+  | { id: string; label: string; labelKey: string; keywords: string[]; kind: 'block'; create: () => ElementNode }
+  | { id: string; label: string; labelKey: string; keywords: string[]; kind: 'list'; command: LexicalCommand<void> }
 
 const BLOCKS: BlockDef[] = [
   {
     id: 'paragraph',
     label: 'Paragraph',
+    labelKey: 'slashCommand.paragraphLabel',
     keywords: ['paragraph', 'text', 'p'],
     kind: 'block',
     create: () => $createParagraphNode(),
@@ -35,6 +37,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'h1',
     label: 'Heading 1',
+    labelKey: 'slashCommand.heading1Label',
     keywords: ['heading', 'h1', 'title'],
     kind: 'block',
     create: () => $createHeadingNode('h1'),
@@ -42,6 +45,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'h2',
     label: 'Heading 2',
+    labelKey: 'slashCommand.heading2Label',
     keywords: ['heading', 'h2', 'subtitle'],
     kind: 'block',
     create: () => $createHeadingNode('h2'),
@@ -49,6 +53,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'h3',
     label: 'Heading 3',
+    labelKey: 'slashCommand.heading3Label',
     keywords: ['heading', 'h3'],
     kind: 'block',
     create: () => $createHeadingNode('h3'),
@@ -56,6 +61,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'bullet',
     label: 'Bulleted List',
+    labelKey: 'slashCommand.bulletedListLabel',
     keywords: ['bullet', 'list', 'ul', 'unordered'],
     kind: 'list',
     command: INSERT_UNORDERED_LIST_COMMAND,
@@ -63,6 +69,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'numbered',
     label: 'Numbered List',
+    labelKey: 'slashCommand.numberedListLabel',
     keywords: ['number', 'numbered', 'list', 'ol', 'ordered'],
     kind: 'list',
     command: INSERT_ORDERED_LIST_COMMAND,
@@ -70,6 +77,7 @@ const BLOCKS: BlockDef[] = [
   {
     id: 'quote',
     label: 'Quote',
+    labelKey: 'slashCommand.quoteLabel',
     keywords: ['quote', 'blockquote'],
     kind: 'block',
     create: () => $createQuoteNode(),
@@ -95,6 +103,7 @@ type SlashMenuProps = {
 }
 
 function SlashMenu({ items, activeIndex, position, onSelect, onHover }: SlashMenuProps) {
+  const { t } = useTranslation()
   const activeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -108,7 +117,7 @@ function SlashMenu({ items, activeIndex, position, onSelect, onHover }: SlashMen
       onMouseDown={(e) => e.preventDefault()}
     >
       {items.length === 0 ? (
-        <div className="petal-menu__empty">No results</div>
+        <div className="petal-menu__empty">{t('slashCommand.noResults')}</div>
       ) : (
         items.map((item, i) => (
           <button
@@ -119,7 +128,7 @@ function SlashMenu({ items, activeIndex, position, onSelect, onHover }: SlashMen
             onMouseEnter={() => onHover(i)}
             tabIndex={-1}
           >
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))
       )}

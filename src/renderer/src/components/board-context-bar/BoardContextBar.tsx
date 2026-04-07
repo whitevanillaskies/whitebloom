@@ -1,5 +1,6 @@
 import { File, FilePlus, Home, MoreHorizontal, Save, Zap } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PetalToolbarButton } from '../petal'
 import './BoardContextBar.css'
 
@@ -32,12 +33,13 @@ export default function BoardContextBar({
   onNewBoard,
   onOverflow
 }: BoardContextBarProps) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const overflowRef = useRef<HTMLButtonElement>(null)
 
-  const displayName = name?.trim() || 'Untitled'
+  const displayName = name?.trim() || t('boardContextBar.untitledPlaceholder')
   const isUntitled = !name?.trim()
   const isWorkspace = workspaceRoot !== null
 
@@ -68,7 +70,7 @@ export default function BoardContextBar({
         type="button"
         className="board-context-bar__home"
         onClick={onGoHome}
-        aria-label="Home"
+        aria-label={t('boardContextBar.homeLabel')}
       >
         <Home size={13} strokeWidth={2} />
       </button>
@@ -100,7 +102,7 @@ export default function BoardContextBar({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={handleKeyDown}
-          placeholder="Untitled"
+          placeholder={t('boardContextBar.untitledPlaceholder')}
         />
       ) : (
         <span
@@ -119,7 +121,7 @@ export default function BoardContextBar({
       {/* Save — dirty indicator when unsaved changes */}
       <PetalToolbarButton
         icon={<Save size={15} strokeWidth={2} />}
-        label="Save"
+        label={t('boardContextBar.saveLabel')}
         onClick={onSave}
         indicator={isDirty}
       />
@@ -127,7 +129,7 @@ export default function BoardContextBar({
       {/* New board / New quickboard */}
       <PetalToolbarButton
         icon={isWorkspace ? <FilePlus size={15} strokeWidth={2} /> : <File size={15} strokeWidth={2} />}
-        label={isWorkspace ? 'New board' : 'New quickboard'}
+        label={isWorkspace ? t('boardContextBar.newBoardLabel') : t('boardContextBar.newQuickboardLabel')}
         onClick={onNewBoard}
       />
 
@@ -135,7 +137,7 @@ export default function BoardContextBar({
       <PetalToolbarButton
         ref={overflowRef}
         icon={<MoreHorizontal size={15} strokeWidth={2} />}
-        label="More actions"
+        label={t('boardContextBar.moreActionsLabel')}
         onClick={handleOverflowClick}
       />
     </div>

@@ -1,4 +1,5 @@
 import { ArrowLeft, ChevronLeft, FilePlus, LayoutGrid, Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { resourceToImageSrc } from '../../shared/resource-url'
 import './WorkspaceHome.css'
 
@@ -21,10 +22,10 @@ type WorkspaceHomeProps = {
   onCloseWorkspace: () => void
 }
 
-function getBoardLabel(boardPath: string): string {
+function getBoardLabel(boardPath: string, untitledLabel: string): string {
   const normalized = boardPath.replace(/\\/g, '/')
   const fileName = normalized.slice(normalized.lastIndexOf('/') + 1)
-  return fileName.replace(/\.wb\.json$/i, '') || fileName || 'Untitled board'
+  return fileName.replace(/\.wb\.json$/i, '') || fileName || untitledLabel
 }
 
 export default function WorkspaceHome({
@@ -40,12 +41,14 @@ export default function WorkspaceHome({
   onTrashBoard,
   onCloseWorkspace
 }: WorkspaceHomeProps) {
+  const { t } = useTranslation()
+
   return (
     <main className="workspace-home">
       <aside className="workspace-home__sidebar">
         <div className="workspace-home__identity">
-          <p className="workspace-home__eyebrow">Workspace</p>
-          <h1 className="workspace-home__title">{workspaceName?.trim() || 'Untitled workspace'}</h1>
+          <p className="workspace-home__eyebrow">{t('workspaceHome.workspaceLabel')}</p>
+          <h1 className="workspace-home__title">{workspaceName?.trim() || t('workspaceHome.untitledWorkspace')}</h1>
           {workspaceBrief?.trim() ? (
             <p className="workspace-home__brief">{workspaceBrief.trim()}</p>
           ) : null}
@@ -59,7 +62,7 @@ export default function WorkspaceHome({
               onClick={onReturnToBoard}
             >
               <ChevronLeft size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
-              {currentBoardName ?? 'Back to board'}
+              {currentBoardName ?? t('workspaceHome.backToBoard')}
             </button>
           ) : null}
 
@@ -70,7 +73,7 @@ export default function WorkspaceHome({
             disabled={busy}
           >
             <FilePlus size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
-            New board
+            {t('workspaceHome.newBoardAction')}
           </button>
 
           <button
@@ -79,7 +82,7 @@ export default function WorkspaceHome({
             onClick={onCloseWorkspace}
           >
             <ArrowLeft size={14} strokeWidth={1.8} className="workspace-home__action-icon" />
-            Close workspace
+            {t('workspaceHome.closeWorkspaceAction')}
           </button>
         </nav>
 
@@ -87,7 +90,7 @@ export default function WorkspaceHome({
       </aside>
 
       <section className="workspace-home__main" aria-label="Workspace boards">
-        <p className="workspace-home__boards-eyebrow">Boards</p>
+        <p className="workspace-home__boards-eyebrow">{t('workspaceHome.boardsSection')}</p>
         <div className="workspace-home__board-grid">
           <div className="workspace-home__board-tile workspace-home__board-tile--new">
             <button
@@ -100,7 +103,7 @@ export default function WorkspaceHome({
                 <Plus size={28} strokeWidth={1.4} />
               </div>
               <div className="workspace-home__board-info">
-                <span className="workspace-home__board-label">New board</span>
+                <span className="workspace-home__board-label">{t('workspaceHome.newBoardTile')}</span>
               </div>
             </button>
           </div>
@@ -126,7 +129,7 @@ export default function WorkspaceHome({
                   )}
                 </div>
                 <div className="workspace-home__board-info">
-                  <span className="workspace-home__board-label">{getBoardLabel(boardPath)}</span>
+                  <span className="workspace-home__board-label">{getBoardLabel(boardPath, t('workspaceHome.untitledBoard'))}</span>
                   <span className="workspace-home__board-path">{boardPath}</span>
                 </div>
               </button>
@@ -136,8 +139,8 @@ export default function WorkspaceHome({
                 className="workspace-home__board-discard"
                 onClick={() => onTrashBoard(boardPath)}
                 disabled={busy}
-                aria-label={`Move ${getBoardLabel(boardPath)} to trash`}
-                title="Move to trash"
+                aria-label={t('workspaceHome.moveToTrashAria', { name: getBoardLabel(boardPath, t('workspaceHome.untitledBoard')) })}
+                title={t('workspaceHome.moveToTrashTitle')}
               >
                 <Trash2 size={11} strokeWidth={1.8} />
               </button>

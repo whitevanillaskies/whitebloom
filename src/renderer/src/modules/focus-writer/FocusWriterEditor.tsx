@@ -1,8 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { BudEditorProps } from '../types'
+import { useTranslation } from 'react-i18next'
 import './FocusWriterEditor.css'
 
 const AUTOSAVE_DELAY_MS = 600
+const MODE_TRANSLATION_KEYS = {
+  typewriter: 'focusWriter.typewriterMode',
+  dynamic: 'focusWriter.dynamicMode',
+  preview: 'focusWriter.previewMode',
+} as const
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,8 +49,9 @@ function MirrorContent({
   activePara: number
   allBright: boolean
 }) {
+  const { t } = useTranslation()
   if (!text) {
-    return <span className="fw-editor__placeholder">Start writing…</span>
+    return <span className="fw-editor__placeholder">{t('focusWriter.placeholder')}</span>
   }
 
   const parts = text.split(/(\n\n+)/)
@@ -73,9 +80,10 @@ function MirrorContent({
 // ---------------------------------------------------------------------------
 
 function PreviewContent({ text }: { text: string }) {
+  const { t } = useTranslation()
   const paragraphs = text.split(/\n\n+/).filter((p) => p.trim())
   if (paragraphs.length === 0) {
-    return <p className="fw-editor__preview-empty">Nothing written yet.</p>
+    return <p className="fw-editor__preview-empty">{t('focusWriter.emptyPreview')}</p>
   }
   return (
     <>
@@ -93,6 +101,7 @@ function PreviewContent({ text }: { text: string }) {
 // ---------------------------------------------------------------------------
 
 export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorProps) {
+  const { t } = useTranslation()
   const [text, setText] = useState(initialData)
   const [mode, setMode] = useState<'typewriter' | 'dynamic' | 'preview'>('dynamic')
   const [activePara, setActivePara] = useState(0)
@@ -109,6 +118,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
   // Refs for values needed inside rAF callbacks (avoids stale closures)
   const activeParaRef = useRef(0)
   const modeRef = useRef<'typewriter' | 'dynamic' | 'preview'>('dynamic')
+  const modeLabel = t(MODE_TRANSLATION_KEYS[mode])
 
   // ── Textarea auto-grow ──────────────────────────────────────────────────
 
@@ -322,7 +332,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
         <div className="fw-editor__column">
           <PreviewContent text={text} />
         </div>
-        <span className="fw-editor__mode-indicator" aria-hidden="true">preview</span>
+        <span className="fw-editor__mode-indicator" aria-hidden="true">{modeLabel}</span>
       </div>
     )
   }
@@ -357,7 +367,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
           <div className="fw-editor__typewriter-spacer" aria-hidden="true" />
         )}
       </div>
-      <span className="fw-editor__mode-indicator" aria-hidden="true">{mode}</span>
+      <span className="fw-editor__mode-indicator" aria-hidden="true">{modeLabel}</span>
     </div>
   )
 }

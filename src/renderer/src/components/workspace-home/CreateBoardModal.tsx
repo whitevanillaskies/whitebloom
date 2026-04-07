@@ -1,4 +1,5 @@
 import { PetalButton, PetalField, PetalPanel } from '@renderer/components/petal'
+import { useTranslation } from 'react-i18next'
 
 type CreateBoardModalProps = {
   boardName: string
@@ -15,6 +16,8 @@ export default function CreateBoardModal({
   onClose,
   onSubmit
 }: CreateBoardModalProps) {
+  const { t } = useTranslation()
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit()
@@ -22,25 +25,25 @@ export default function CreateBoardModal({
 
   return (
     <PetalPanel
-      title="Create board"
-      body="Choose a name. Whitebloom will create a .wb.json file in this workspace."
+      title={t('createBoardModal.title')}
+      body={t('createBoardModal.description')}
       onClose={busy ? () => {} : onClose}
     >
       <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
         <PetalField
-          label="Board name"
+          label={t('createBoardModal.boardNameLabel')}
           value={boardName}
           onChange={(e) => onBoardNameChange(e.target.value)}
-          placeholder="Board"
+          placeholder={t('createBoardModal.boardNamePlaceholder')}
           disabled={busy}
           autoFocus
         />
         <div className="petal-panel__actions">
           <PetalButton type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('createBoardModal.cancelButton')}
           </PetalButton>
           <PetalButton type="submit" intent="primary" disabled={busy}>
-            {busy ? 'Creating…' : 'Create board'}
+            {busy ? t('createBoardModal.creatingButton') : t('createBoardModal.submitButton')}
           </PetalButton>
         </div>
       </form>

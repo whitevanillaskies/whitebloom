@@ -1,0 +1,203 @@
+{
+  "startScreen": {
+    "logo": "WHITEBLOOM",
+    "backToBoard": "Back to board",
+    "openAction": "Open",
+    "newWorkspaceAction": "New workspace",
+    "newQuickboardAction": "New quickboard",
+    "recentSection": "Recent",
+    "unsavedQuickboards": "Unsaved quickboards",
+    "noRecentBoards": "No recent boards",
+    "moveToTrashTitle": "Move to trash",
+    "moveToTrashAria": "Move {{name}} to trash"
+  },
+  "workspaceHome": {
+    "workspaceLabel": "Workspace",
+    "untitledWorkspace": "Untitled workspace",
+    "backToBoard": "Back to board",
+    "newBoardAction": "New board",
+    "closeWorkspaceAction": "Close workspace",
+    "boardsSection": "Boards",
+    "newBoardTile": "New board",
+    "untitledBoard": "Untitled board",
+    "moveToTrashTitle": "Move to trash",
+    "moveToTrashAria": "Move {{name}} to trash"
+  },
+  "createBoardModal": {
+    "title": "Create board",
+    "description": "Choose a name. Whitebloom will create a .wb.json file in this workspace.",
+    "boardNameLabel": "Board name",
+    "boardNamePlaceholder": "Board",
+    "cancelButton": "Cancel",
+    "submitButton": "Create board",
+    "creatingButton": "Creating…"
+  },
+  "confirmTrashModal": {
+    "title": "Move board to trash?",
+    "description": "The board file will be moved into wbapp:trash. You can still restore it manually from the filesystem during development.",
+    "cancelButton": "Cancel",
+    "movingButton": "Moving…",
+    "moveButton": "Move to trash"
+  },
+  "canvas": {
+    "dropFailedTitle": "Drop failed",
+    "workspaceActionFailedTitle": "Workspace action failed",
+    "discardChangesTitle": "Discard unsaved changes?",
+    "discardChangesBody": "You have unsaved changes. Do you want to discard them and open a new board?",
+    "exitWithoutSavingTitle": "Exit without saving?",
+    "exitWithoutSavingBody": "You have unsaved changes. Do you want to discard them and exit?",
+    "discardButton": "Discard",
+    "exitButton": "Exit",
+    "cancelButton": "Cancel",
+    "closeButton": "Close",
+    "moveToTrashTitle": "Move board to trash?",
+    "moveToTrashBody": "This moves the board file into wbapp:trash. Any unsaved in-memory edits will be lost.",
+    "moveToTrashButton": "Move to trash",
+    "webResourceDropError": "Can't embed web resources — save the image to your local drive first, then drop it.",
+    "dropError": "Unable to drop file.",
+    "promoteError": "Unable to promote this quickboard into a workspace.",
+    "trashError": "Unable to move this board into wbapp:trash.",
+    "boardSettingsMenuItem": "Board Settings",
+    "promoteToWorkspaceMenuItem": "Promote to Workspace",
+    "moveToTrashMenuItem": "Move to Trash",
+    "searchPalettePlaceholder": "Search Palette",
+    "paletteTextLabel": "Text",
+    "paletteFocusWriterLabel": "Focus Writer",
+    "paletteSchemaBloomLabel": "DB Schema Drafter"
+  },
+  "boardContextBar": {
+    "homeLabel": "Home",
+    "untitledPlaceholder": "Untitled",
+    "saveLabel": "Save",
+    "newBoardLabel": "New board",
+    "newQuickboardLabel": "New quickboard",
+    "moreActionsLabel": "More actions"
+  },
+  "boardTitle": {
+    "untitledPlaceholder": "Untitled",
+    "settingsLabel": "Board settings"
+  },
+  "settingsModal": {
+    "title": "Settings",
+    "boardTab": "Board",
+    "workspaceTab": "Workspace",
+    "appTab": "App",
+    "closeLabel": "Close settings"
+  },
+  "boardSettings": {
+    "title": "Board",
+    "nameLabel": "Board name",
+    "namePlaceholder": "Untitled",
+    "briefLabel": "Brief",
+    "briefHint": "A message for AI agents — describe what this board is for, what context they should keep in mind, or how you'd like them to help.",
+    "briefPlaceholder": "This board is for…"
+  },
+  "workspaceSettings": {
+    "title": "Workspace",
+    "nameLabel": "Workspace name",
+    "namePlaceholder": "Untitled workspace",
+    "briefLabel": "Brief",
+    "briefHint": "A message for AI agents — describe what this workspace is about, the project context, and how agents should approach it across all boards.",
+    "briefPlaceholder": "This workspace is for…"
+  },
+  "appSettings": {
+    "title": "App",
+    "usernameLabel": "Username",
+    "usernameHint": "Stored once for the app and used for node authorship metadata across all boards.",
+    "usernamePlaceholder": "anon",
+    "unhandledDropLabel": "Files without a handler",
+    "unhandledDropHint": "What to do when you drop a file that no module knows how to open.",
+    "linkOption": "Link",
+    "linkDescription": "Keep the file at its current location.",
+    "importOption": "Import",
+    "importDescription": "Copy the file into the workspace.",
+    "askOption": "Ask",
+    "askDescription": "Ask each time a file is dropped.",
+    "advancedToggle": "Advanced",
+    "warnLargeFilesLabel": "Warn before importing large files",
+    "warnLargeFilesHint": "Shows a warning when importing a file over 50 MB.",
+    "confirmDisableWarnText": "Large files can fill your workspace quickly. Are you sure?",
+    "disableWarningButton": "Disable warning",
+    "keepWarningButton": "Keep it on"
+  },
+  "petalPalette": {
+    "ariaLabel": "Command palette",
+    "searchPlaceholder": "Search…",
+    "noResults": "No results"
+  },
+  "petalMenu": {
+    "empty": "No actions"
+  },
+  "bloomModal": {
+    "readError": "Unable to read blossom file.",
+    "saveError": "Unable to save blossom file.",
+    "noEditor": "No editor available for this module.",
+    "closeButton": "Close"
+  },
+  "focusWriter": {
+    "placeholder": "Start writing…",
+    "emptyPreview": "Nothing written yet.",
+    "previewMode": "preview",
+    "dynamicMode": "dynamic",
+    "typewriterMode": "typewriter"
+  },
+  "canvasToolbar": {
+    "pointerLabel": "Pointer",
+    "handLabel": "Hand",
+    "addTextLabel": "Add text",
+    "alertsLabel": "TODO - alerts",
+    "commentsLabel": "TODO - comments",
+    "shapesLabel": "TODO - shapes"
+  },
+  "schemaBloomToolbar": {
+    "addTableLabel": "Add table",
+    "saveLabel": "Save"
+  },
+  "tableNode": {
+    "deleteColumnTitle": "Delete column",
+    "addColumnTitle": "Add column"
+  },
+  "formatToolbar": {
+    "boldLabel": "Bold",
+    "italicLabel": "Italic"
+  },
+  "edgeToolbar": {
+    "styleLabel": "Edge style"
+  },
+  "nodeResizeHandles": {
+    "topLeftAria": "Resize from top left",
+    "topRightAria": "Resize from top right",
+    "bottomRightAria": "Resize from bottom right",
+    "bottomLeftAria": "Resize from bottom left"
+  },
+  "slashCommand": {
+    "paragraphLabel": "Paragraph",
+    "heading1Label": "Heading 1",
+    "heading2Label": "Heading 2",
+    "heading3Label": "Heading 3",
+    "bulletedListLabel": "Bulleted List",
+    "numberedListLabel": "Numbered List",
+    "quoteLabel": "Quote",
+    "noResults": "No results"
+  },
+  "textNode": {
+    "placeholder": "Text"
+  },
+  "dialogs": {
+    "largeFileTitle": "Large file",
+    "largeFileMessage": "\"{{fileName}}\" is {{sizeMb}} MB",
+    "largeFileDetail": "Importing will copy this file into your workspace. Consider linking it instead to avoid duplicating large files on disk.",
+    "importAnywayButton": "Import anyway",
+    "cancelButton": "Cancel",
+    "importOrLinkTitle": "Add file to workspace",
+    "importOrLinkMessage": "How do you want to add \"{{fileName}}\"?",
+    "importOrLinkDetail": "Import copies the file into your workspace. Link keeps it at its current location — if the file moves, the node will break.",
+    "importButton": "Import",
+    "linkButton": "Link",
+    "openWorkspaceBoardTitle": "Open workspace or board",
+    "workspaceFilter": "Whitebloom workspace",
+    "boardFilter": "Whitebloom board",
+    "createWorkspaceTitle": "Create workspace",
+    "saveBoardTitle": "Save board"
+  }
+}

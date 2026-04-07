@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Handle, Position } from '@xyflow/react'
 import type { Column } from './schema'
 import { Plus, Trash2 } from 'lucide-react'
@@ -100,6 +101,8 @@ function ColumnRow({
   onRename: (newName: string) => void
   onDrop: () => void
 }) {
+  const { t } = useTranslation()
+
   return (
     <div className="sbn-column">
       {/*
@@ -114,7 +117,7 @@ function ColumnRow({
 
       <EditableText value={column.name} onCommit={onRename} className="sbn-column-name" />
 
-      <button type="button" className="sbn-column-delete" onClick={onDrop} title="Delete column">
+      <button type="button" className="sbn-column-delete" onClick={onDrop} title={t('tableNode.deleteColumnTitle')}>
         <Trash2 size={12} />
       </button>
 
@@ -129,6 +132,8 @@ function ColumnRow({
 
 // ── Main node component ─────────────────────────────────────────
 export default function TableNode({ data }: { data: TableNodeData }) {
+  const { t } = useTranslation()
+
   return (
     <div className="sbn-root">
       <div className="sbn-header">
@@ -137,7 +142,7 @@ export default function TableNode({ data }: { data: TableNodeData }) {
           type="button"
           className="sbn-add-column"
           onClick={data.onAddColumn}
-          title="Add column"
+          title={t("tableNode.addColumnTitle")}
         >
           <Plus size={12} />
         </button>

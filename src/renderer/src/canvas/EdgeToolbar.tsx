@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReactFlow, useNodes, useStore } from '@xyflow/react'
 import type { Edge as RFEdge } from '@xyflow/react'
 import { Spline } from 'lucide-react'
@@ -9,6 +10,7 @@ type EdgeToolbarProps = {
 }
 
 export function EdgeToolbar({ edges }: EdgeToolbarProps) {
+  const { t } = useTranslation()
   const { flowToScreenPosition } = useReactFlow()
   const rfNodes = useNodes()
 
@@ -68,7 +70,7 @@ export function EdgeToolbar({ edges }: EdgeToolbarProps) {
       style={{ left: screen.x, top: screen.y - 12 }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <button className="edge-toolbar__btn" aria-label="Edge style" tabIndex={-1}>
+      <button className="edge-toolbar__btn" aria-label={t('edgeToolbar.styleLabel')} tabIndex={-1}>
         <Spline size={13} strokeWidth={2} />
       </button>
     </div>

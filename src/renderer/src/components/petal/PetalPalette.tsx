@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import './PetalPalette.css'
 
 export type PaletteItem = {
@@ -22,6 +23,7 @@ const MAX_VISIBLE_ITEMS = 8
 const ITEM_HEIGHT_PX = 36
 
 export default function PetalPalette({ items, onClose, placeholder }: PetalPaletteProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -121,7 +123,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
         className="petal-palette"
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
+        aria-label={t('petalPalette.ariaLabel')}
         onMouseDown={(e) => e.preventDefault()}
       >
         <div className="petal-palette__search">
@@ -131,7 +133,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={placeholder ?? 'Search…'}
+            placeholder={placeholder ?? t('petalPalette.searchPlaceholder')}
             autoComplete="off"
             spellCheck={false}
           />
@@ -144,7 +146,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
           role="listbox"
         >
           {filtered.length === 0 ? (
-            <div className="petal-palette__empty">No results</div>
+            <div className="petal-palette__empty">{t('petalPalette.noResults')}</div>
           ) : (
             filtered.map((item, i) => (
               <button

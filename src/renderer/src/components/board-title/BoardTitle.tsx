@@ -1,5 +1,6 @@
 import { Settings2 } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import './BoardTitle.css'
 
 type Props = {
@@ -13,7 +14,8 @@ export default function BoardTitle({ name, onNameChange, onOpenSettings }: Props
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const displayName = name?.trim() || 'Untitled'
+  const { t } = useTranslation()
+  const displayName = name?.trim() || t('boardTitle.untitledPlaceholder')
   const isUntitled = !name?.trim()
 
   const startEditing = () => {
@@ -49,7 +51,7 @@ export default function BoardTitle({ name, onNameChange, onOpenSettings }: Props
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={handleKeyDown}
-          placeholder="Untitled"
+          placeholder={t('boardTitle.untitledPlaceholder')}
         />
       ) : (
         <span
@@ -69,7 +71,7 @@ export default function BoardTitle({ name, onNameChange, onOpenSettings }: Props
         className="board-title__settings-btn"
         onMouseDown={preventMouseFocus}
         onClick={onOpenSettings}
-        aria-label="Board settings"
+        aria-label={t('boardTitle.settingsLabel')}
       >
         <Settings2 size={14} strokeWidth={1.8} />
       </button>

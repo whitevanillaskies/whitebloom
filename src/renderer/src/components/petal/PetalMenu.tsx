@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import './PetalMenu.css'
 
 export type PetalMenuItem = {
@@ -19,6 +20,7 @@ type PetalMenuProps = {
 }
 
 export default function PetalMenu({ items, anchor, onClose }: PetalMenuProps) {
+  const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -81,7 +83,7 @@ export default function PetalMenu({ items, anchor, onClose }: PetalMenuProps) {
       onMouseDown={(e) => e.preventDefault()}
     >
       {items.length === 0 ? (
-        <div className="petal-menu__empty">No actions</div>
+        <div className="petal-menu__empty">{t('petalMenu.empty')}</div>
       ) : (
         items.map((item, i) => (
           <button

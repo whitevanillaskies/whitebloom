@@ -1,4 +1,5 @@
 import { CalendarClock, Hand, Hexagon, MessageCircleMore, MousePointer2, Type } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import './CanvasToolbar.css'
 import type { Tool } from '@renderer/canvas/tools'
 
@@ -8,6 +9,8 @@ type CanvasToolbarProps = {
 }
 
 export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolbarProps) {
+    const { t } = useTranslation()
+
     const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
     }
@@ -19,7 +22,7 @@ export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolba
                 onMouseDown={preventMouseFocus}
                 onClick={() => onToolChange('pointer')}
                 className={`canvas-toolbar__button${activeTool === 'pointer' ? ' canvas-toolbar__button--active' : ''}`}
-                aria-label="Pointer"
+                aria-label={t('canvasToolbar.pointerLabel')}
             >
                 <MousePointer2 size={16} strokeWidth={2} />
             </button>
@@ -28,7 +31,7 @@ export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolba
                 onMouseDown={preventMouseFocus}
                 onClick={() => onToolChange('hand')}
                 className={`canvas-toolbar__button${activeTool === 'hand' ? ' canvas-toolbar__button--active' : ''}`}
-                aria-label="Hand"
+                aria-label={t('canvasToolbar.handLabel')}
             >
                 <Hand size={16} strokeWidth={2} />
             </button>
@@ -37,28 +40,28 @@ export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolba
                 onMouseDown={preventMouseFocus}
                 onClick={() => onToolChange('text')}
                 className={`canvas-toolbar__button${activeTool === 'text' ? ' canvas-toolbar__button--active' : ''}`}
-                aria-label="Add text"
+                aria-label={t('canvasToolbar.addTextLabel')}
             >
                 <Type size={16} strokeWidth={2} />
             </button>
             <button
                 type="button"
                  className={'canvas-toolbar__button'}
-                aria-label='TODO - alerts'>
+                aria-label={t('canvasToolbar.alertsLabel')}>
                     <CalendarClock size={16} strokeWidth={2} />
             </button>
             <button
                 type="button"
                  className={'canvas-toolbar__button'}
-                aria-label='TODO - comments'>
+                aria-label={t('canvasToolbar.commentsLabel')}>
                     <MessageCircleMore size={16} strokeWidth={2} />
             </button>
             <button
                 type="button"
                  className={'canvas-toolbar__button'}
-                aria-label='TODO - shapes'>
+                aria-label={t('canvasToolbar.shapesLabel')}>
                     <Hexagon size={16} strokeWidth={2} />
-            </button>            
+            </button>
         </div>
     )
 }

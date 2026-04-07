@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PetalField } from '@renderer/components/petal'
 import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import type { UnhandledDropBehavior } from '../../../../shared/app-settings'
 
-const UNHANDLED_DROP_OPTIONS: { value: UnhandledDropBehavior; label: string; description: string }[] = [
-  { value: 'link',   label: 'Link',   description: 'Keep the file at its current location.' },
-  { value: 'import', label: 'Import', description: 'Copy the file into the workspace.' },
-  { value: 'ask',    label: 'Ask',    description: 'Ask each time a file is dropped.' }
-]
-
 export default function AppSection() {
+  const { t } = useTranslation()
+
+  const unhandledDropOptions: { value: UnhandledDropBehavior; label: string; description: string }[] = [
+    { value: 'link',   label: t('appSettings.linkOption'),   description: t('appSettings.linkDescription') },
+    { value: 'import', label: t('appSettings.importOption'), description: t('appSettings.importDescription') },
+    { value: 'ask',    label: t('appSettings.askOption'),    description: t('appSettings.askDescription') }
+  ]
+
   const username = useAppSettingsStore((s) => s.user.username)
   const unhandledDrop = useAppSettingsStore((s) => s.files.unhandledDrop)
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
@@ -41,21 +44,21 @@ export default function AppSection() {
 
   return (
     <div className="settings-section">
-      <h2 className="settings-section__title">App</h2>
+      <h2 className="settings-section__title">{t('appSettings.title')}</h2>
       <div className="settings-section__fields">
         <PetalField
-          label="Username"
-          hint="Stored once for the app and used for node authorship metadata across all boards."
+          label={t('appSettings.usernameLabel')}
+          hint={t('appSettings.usernameHint')}
           value={username}
-          placeholder="anon"
+          placeholder={t('appSettings.usernamePlaceholder')}
           onChange={(e) => void updateUsername(e.target.value)}
         />
 
         <div className="settings-field">
-          <span className="settings-field__label">Files without a handler</span>
-          <span className="settings-field__hint">What to do when you drop a file that no module knows how to open.</span>
+          <span className="settings-field__label">{t('appSettings.unhandledDropLabel')}</span>
+          <span className="settings-field__hint">{t('appSettings.unhandledDropHint')}</span>
           <div className="settings-radio-group">
-            {UNHANDLED_DROP_OPTIONS.map(({ value, label, description }) => (
+            {unhandledDropOptions.map(({ value, label, description }) => (
               <label key={value} className="settings-radio">
                 <input
                   type="radio"
@@ -78,7 +81,7 @@ export default function AppSection() {
             onClick={() => setAdvancedOpen((v) => !v)}
           >
             <ChevronRight size={12} strokeWidth={2} className="settings-advanced__chevron" />
-            Advanced
+            {t('appSettings.advancedToggle')}
           </button>
 
           {advancedOpen && (
@@ -90,23 +93,23 @@ export default function AppSection() {
                     checked={warnLargeImport}
                     onChange={handleWarnToggle}
                   />
-                  <span className="settings-toggle__label">Warn before importing large files</span>
+                  <span className="settings-toggle__label">{t('appSettings.warnLargeFilesLabel')}</span>
                 </label>
                 <span className="settings-field__hint" style={{ paddingLeft: 22 }}>
-                  Shows a warning when importing a file over 50 MB.
+                  {t('appSettings.warnLargeFilesHint')}
                 </span>
 
                 {confirmingDisableWarn && (
                   <div className="settings-confirm">
                     <span className="settings-confirm__text">
-                      Large files can fill your workspace quickly. Are you sure?
+                      {t('appSettings.confirmDisableWarnText')}
                     </span>
                     <div className="settings-confirm__actions">
                       <button type="button" className="settings-confirm__btn settings-confirm__btn--danger" onClick={handleConfirmDisable}>
-                        Disable warning
+                        {t('appSettings.disableWarningButton')}
                       </button>
                       <button type="button" className="settings-confirm__btn" onClick={handleCancelDisable}>
-                        Keep it on
+                        {t('appSettings.keepWarningButton')}
                       </button>
                     </div>
                   </div>
