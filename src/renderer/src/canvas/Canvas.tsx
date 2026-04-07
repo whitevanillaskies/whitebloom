@@ -331,6 +331,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   const spacebarModeRef = useRef<'idle' | 'pressing' | 'tap-held'>('idle')
   const spacebarPreviousToolRef = useRef<Tool>('pointer')
   const spacebarPressTimeRef = useRef(0)
+  const hadPendingAcceptRef = useRef(false)
 
   useEffect(() => {
     void loadAppSettings()
@@ -347,55 +348,58 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
   }, [isDirty])
 
   // Derive RF nodes from store
-  const schemaNodes: RFNode[] = useMemo(
-    () =>
-      boardNodes.map((n) => {
-        if (n.kind === 'cluster') {
-          return {
-            id: n.id,
-            type: 'cluster',
-            position: { x: n.position.x, y: n.position.y },
-            data: {
-              label: n.label,
-              color: n.color,
-              size: n.size
-            } satisfies ClusterData,
-            zIndex: 0,
-            draggable: true
-          }
-        }
-
-        if (n.kind === 'leaf' && n.type === 'text') {
-          return {
-            id: n.id,
-            type: 'text',
-            position: { x: n.position.x, y: n.position.y },
-            data: {
-              content: n.content ?? makeLexicalContent(n.label ?? ''),
-              widthMode: n.widthMode ?? 'auto',
-              wrapWidth: n.wrapWidth ?? null,
-              size: n.size,
-              autoEditToken: autoEditRequest?.id === n.id ? autoEditRequest.token : undefined
-            },
-            zIndex: 10
-          }
-        }
-        // Bud node — moduleType carries the module id; unknown types show UnknownBudNode
+  const schemaNodes: RFNode[] = useMemo(() => {
+    const clusteredIds = new Set(
+      boardNodes.filter(isClusterNode).flatMap((n) => n.children)
+    )
+    return boardNodes.map((n) => {
+      if (n.kind === 'cluster') {
         return {
           id: n.id,
-          type: 'bud',
+          type: 'cluster',
           position: { x: n.position.x, y: n.position.y },
           data: {
-            moduleType: n.type,
-            resource: n.resource ?? '',
-            size: n.size,
-            label: n.label
-          },
-          zIndex: 10
+            label: n.label,
+            color: n.color,
+            size: n.size
+          } satisfies ClusterData,
+          zIndex: 2,
+          draggable: true
         }
-      }),
-    [autoEditRequest, boardNodes]
-  )
+      }
+
+      const isClustered = clusteredIds.has(n.id)
+
+      if (n.kind === 'leaf' && n.type === 'text') {
+        return {
+          id: n.id,
+          type: 'text',
+          position: { x: n.position.x, y: n.position.y },
+          data: {
+            content: n.content ?? makeLexicalContent(n.label ?? ''),
+            widthMode: n.widthMode ?? 'auto',
+            wrapWidth: n.wrapWidth ?? null,
+            size: n.size,
+            autoEditToken: autoEditRequest?.id === n.id ? autoEditRequest.token : undefined
+          },
+          zIndex: isClustered ? 10 : 1
+        }
+      }
+      // Bud node — moduleType carries the module id; unknown types show UnknownBudNode
+      return {
+        id: n.id,
+        type: 'bud',
+        position: { x: n.position.x, y: n.position.y },
+        data: {
+          moduleType: n.type,
+          resource: n.resource ?? '',
+          size: n.size,
+          label: n.label
+        },
+        zIndex: isClustered ? 10 : 1
+      }
+    })
+  }, [autoEditRequest, boardNodes])
 
   // Local state so RF can update positions during drag
   const [nodes, setNodes] = useState<RFNode[]>(schemaNodes)
@@ -621,6 +625,40 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         }
       }
 
+      const draggingNodeChanges = changes.filter(
+        (change): change is Extract<NodeChange, { type: 'position' }> =>
+          change.type === 'position' &&
+          'id' in change &&
+          Boolean(change.position) &&
+          change.dragging === true &&
+          !clusterChildrenById.has(change.id)
+      )
+
+      // Compute which unclustered dragging nodes are fully inside a cluster.
+      // Used to elevate edge z-index so connections to already-clustered nodes
+      // surface above the cluster pane alongside the dragging node.
+      const pendingAcceptClusterByNodeId = new Map<string, string>()
+      for (const change of draggingNodeChanges) {
+        const draggedBoardNode = boardNodes.find((n) => n.id === change.id && !isClusterNode(n))
+        if (!draggedBoardNode || !change.position) continue
+        const isAlreadyClustered = Array.from(clusterChildrenById.values()).some((ids) =>
+          ids.includes(change.id)
+        )
+        if (isAlreadyClustered) continue
+        const draggedBounds = getNodeBounds({ position: change.position }, draggedBoardNode.size)
+        if (!draggedBounds) continue
+        const containingCluster = boardNodes
+          .filter(isClusterNode)
+          .filter((c) => {
+            const b = getNodeBounds({ position: c.position }, c.size)
+            return b ? isBoundsFullyInside(draggedBounds, b) : false
+          })
+          .sort((a, b) => a.size.w * a.size.h - b.size.w * b.size.h)[0]
+        if (containingCluster) {
+          pendingAcceptClusterByNodeId.set(change.id, containingCluster.id)
+        }
+      }
+
       setNodes((currentNodes) => {
         const otherChanges = changes.filter(
           (change) =>
@@ -655,16 +693,8 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
           })
         }
 
-        const draggingNodeChanges = changes.filter(
-          (change): change is Extract<NodeChange, { type: 'position' }> =>
-            change.type === 'position' &&
-            'id' in change &&
-            Boolean(change.position) &&
-            change.dragging === true &&
-            !clusterChildrenById.has(change.id)
-        )
-
         const nextCues: Record<string, ClusterMembershipCue> = {}
+        const pendingAcceptNodeIds = new Set<string>()
 
         for (const change of draggingNodeChanges) {
           const draggedBoardNode = boardNodes.find(
@@ -705,6 +735,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
 
           if (!owningClusterId && containingClusters.length > 0) {
             nextCues[containingClusters[0].id] = 'accept'
+            pendingAcceptNodeIds.add(change.id)
           }
 
           if (owningClusterId) {
@@ -732,21 +763,48 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
         }
 
         return nextNodes.map((node) => {
-          if (node.type !== 'cluster') return node
-
-          const currentData = node.data as ClusterData
-          const membershipCue = nextCues[node.id] ?? null
-          if ((currentData.membershipCue ?? null) === membershipCue) return node
-
-          return {
-            ...node,
-            data: {
-              ...currentData,
-              membershipCue
-            } satisfies ClusterData
+          if (node.type === 'cluster') {
+            const currentData = node.data as ClusterData
+            const membershipCue = nextCues[node.id] ?? null
+            if ((currentData.membershipCue ?? null) === membershipCue) return node
+            return {
+              ...node,
+              data: { ...currentData, membershipCue } satisfies ClusterData
+            }
           }
+
+          // Unclustered node dragged fully inside a cluster: surface it above the cluster pane
+          const isPendingAccept = pendingAcceptNodeIds.has(node.id)
+          const isUnclustered = node.zIndex === 1 || isPendingAccept
+          if (!isUnclustered) return node
+          const targetZIndex = isPendingAccept ? 10 : 1
+          if (node.zIndex === targetZIndex) return node
+          return { ...node, zIndex: targetZIndex }
         })
       })
+
+      const hasPendingAccept = pendingAcceptClusterByNodeId.size > 0
+      if (hasPendingAccept || hadPendingAcceptRef.current) {
+        setEdges((currentEdges) =>
+          currentEdges.map((edge) => {
+            const sourceCluster = owningClusterByNodeId.get(edge.source) ?? null
+            const targetCluster = owningClusterByNodeId.get(edge.target) ?? null
+            const isAlreadyInternal =
+              sourceCluster !== null && targetCluster !== null && sourceCluster === targetCluster
+            const sourcePendingCluster = pendingAcceptClusterByNodeId.get(edge.source)
+            const targetPendingCluster = pendingAcceptClusterByNodeId.get(edge.target)
+            const isPendingInternal =
+              (sourcePendingCluster !== undefined && targetCluster === sourcePendingCluster) ||
+              (targetPendingCluster !== undefined && sourceCluster === targetPendingCluster)
+            const targetZIndex =
+              isAlreadyInternal || isPendingInternal
+                ? INTERNAL_CLUSTER_EDGE_Z_INDEX
+                : CLUSTER_EDGE_Z_INDEX
+            return edge.zIndex === targetZIndex ? edge : { ...edge, zIndex: targetZIndex }
+          })
+        )
+      }
+      hadPendingAcceptRef.current = hasPendingAccept
 
       for (const change of changes) {
         if (change.type === 'position' && change.position && !change.dragging) {
@@ -775,6 +833,7 @@ export function Canvas({ onGoHome, onGoToWorkspaceHome, onNewBoard }: CanvasProp
       boardNodes,
       clusterChildrenById,
       clusterNodesById,
+      owningClusterByNodeId,
       reconcileNodeClusterMembership,
       translateCluster,
       updateNodePosition

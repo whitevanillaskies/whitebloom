@@ -7,8 +7,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": -184.95432987190048,
-        "y": 160.61310908167195
+        "x": 111.03286164878114,
+        "y": 369.4622239362934
       },
       "size": {
         "w": 312,
@@ -19,7 +19,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:29:56.060Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:11:20.703Z",
+      "updatedAt": "2026-04-07T13:41:13.909Z",
       "updatedBy": "anon",
       "plain": "organization and management of knowledge"
     },
@@ -28,8 +28,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": -184.0101568657029,
-        "y": 200.0307777486582
+        "x": 111.97703465497875,
+        "y": 408.8798926032797
       },
       "size": {
         "w": 401,
@@ -40,7 +40,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:04.687Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:11:20.703Z",
+      "updatedAt": "2026-04-07T13:41:13.909Z",
       "updatedBy": "anon",
       "plain": "mind graphs, etc. are useful, but I'm thinking also of assets"
     },
@@ -49,8 +49,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 15.85578291747592,
-        "y": 310.0117371008356
+        "x": 311.8429744381575,
+        "y": 518.8608519554571
       },
       "size": {
         "w": 326,
@@ -61,7 +61,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:20.846Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:11:20.703Z",
+      "updatedAt": "2026-04-07T13:41:13.909Z",
       "updatedBy": "anon",
       "plain": "asset management is knowledge management"
     },
@@ -70,8 +70,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": -169.64275753243794,
-        "y": 411.1158808969485
+        "x": 126.34443398824362,
+        "y": 619.96499575157
       },
       "size": {
         "w": 246,
@@ -82,7 +82,7 @@
       "wrapWidth": 246,
       "created": "2026-04-05T22:30:32.216Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:11:20.703Z",
+      "updatedAt": "2026-04-07T13:41:13.909Z",
       "updatedBy": "anon",
       "plain": "asset organization is thus knowledge management"
     },
@@ -91,8 +91,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 197.23099621747582,
-        "y": 427.09792772546837
+        "x": 396.5801176795949,
+        "y": 621.0929547407405
       },
       "size": {
         "w": 371,
@@ -103,7 +103,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:46.378Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:11:24.264Z",
+      "updatedAt": "2026-04-07T13:41:13.909Z",
       "updatedBy": "anon",
       "plain": "how does knowledge management in scrivener work?\nfirst, you have ........ what?"
     },
@@ -112,8 +112,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1729.831375165872,
-        "y": 107.61075765997836
+        "x": 1629.4591738565757,
+        "y": 88.97061415776469
       },
       "size": {
         "w": 165,
@@ -124,7 +124,7 @@
       "wrapWidth": 283,
       "created": "2026-04-05T22:31:49.473Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:10:42.808Z",
+      "updatedAt": "2026-04-07T13:43:53.924Z",
       "updatedBy": "anon",
       "plain": "ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ..."
     },
@@ -133,8 +133,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1223.2579731270619,
-        "y": -54.24564771244595
+        "x": 1119.403569564581,
+        "y": -79.8501957210286
       },
       "size": {
         "w": 264,
@@ -145,7 +145,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:32:13.442Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:07:41.467Z",
+      "updatedAt": "2026-04-07T13:47:52.017Z",
       "updatedBy": "anon",
       "plain": "text error highlighting settings in app"
     },
@@ -154,8 +154,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1538.51681828291,
-        "y": -97.35382548607623
+        "x": 1438.1446169736137,
+        "y": -115.99396898828991
       },
       "size": {
         "w": 397,
@@ -166,7 +166,7 @@
       "wrapWidth": 397,
       "created": "2026-04-05T22:33:08.012Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:07:41.467Z",
+      "updatedAt": "2026-04-07T13:43:53.924Z",
       "updatedBy": "anon",
       "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
     },
@@ -179,13 +179,13 @@
         "y": -383.83587881351633
       },
       "size": {
-        "w": 205,
-        "h": 354
+        "w": 211,
+        "h": 364
       },
       "resource": "wloc:res/1d0ff473584c87908b1bf02aded2a8dd.jpg",
       "created": "2026-04-06T01:17:43.238Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T01:45:52.578Z",
+      "updatedAt": "2026-04-07T13:25:10.829Z",
       "updatedBy": "anon"
     },
     {
@@ -214,8 +214,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": -193.45143258326192,
-        "y": -262.05111622968536
+        "x": -280.50648891287415,
+        "y": -220.26468919147146
       },
       "size": {
         "w": 220,
@@ -224,7 +224,7 @@
       "resource": "wloc:blossoms/note-1775439811494.blt",
       "created": "2026-04-06T01:43:31.501Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:21:13.529Z",
+      "updatedAt": "2026-04-07T13:35:58.685Z",
       "updatedBy": "anon"
     },
     {
@@ -232,8 +232,8 @@
       "kind": "bud",
       "type": "com.whitebloom.schemabloom",
       "position": {
-        "x": 1123.131767554316,
-        "y": -475.7121277624521
+        "x": 1322.3774620810227,
+        "y": -359.5954316144376
       },
       "size": {
         "w": 240,
@@ -242,7 +242,7 @@
       "resource": "wloc:res/sample_schema_jk 6.bdb",
       "created": "2026-04-06T13:39:50.489Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:43:47.589Z",
+      "updatedAt": "2026-04-07T13:12:31.639Z",
       "updatedBy": "anon"
     },
     {
@@ -250,8 +250,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 862.4816346283073,
-        "y": -508.3545751867779
+        "x": 1167.2879620168455,
+        "y": -414.66951352190256
       },
       "size": {
         "w": 88,
@@ -260,7 +260,7 @@
       "resource": "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx",
       "created": "2026-04-06T15:48:42.018Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-06T23:38:32.571Z",
+      "updatedAt": "2026-04-07T13:12:30.752Z",
       "updatedBy": "anon"
     },
     {
@@ -268,8 +268,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 893.8380069585226,
-        "y": 102.22270808113963
+        "x": 832.1110093594705,
+        "y": 57.85199348469479
       },
       "size": {
         "w": 88,
@@ -278,7 +278,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:07:43.995Z",
+      "updatedAt": "2026-04-07T13:48:03.071Z",
       "updatedBy": "anon"
     },
     {
@@ -286,8 +286,8 @@
       "kind": "bud",
       "type": "io.obsidianbloom.vault",
       "position": {
-        "x": 1420.3602822846394,
-        "y": 65.80942924949343
+        "x": 1319.988080975343,
+        "y": 47.16928574727976
       },
       "size": {
         "w": 88,
@@ -296,7 +296,7 @@
       "resource": "file:///D:/persona/personal_notes/Mindstorm",
       "created": "2026-04-06T16:59:09.183Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:07:41.467Z",
+      "updatedAt": "2026-04-07T13:43:53.924Z",
       "updatedBy": "anon"
     },
     {
@@ -304,8 +304,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1795.257580129877,
-        "y": -1.9661023495388292
+        "x": 1694.8853788205806,
+        "y": -20.606245851752504
       },
       "size": {
         "w": 26,
@@ -316,7 +316,7 @@
       "wrapWidth": 244,
       "created": "2026-04-07T12:00:37.225Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:07:41.467Z",
+      "updatedAt": "2026-04-07T13:43:53.924Z",
       "updatedBy": "anon",
       "plain": "automatically arranging elements in a grid, etc. maybe packing pictures like pureref"
     },
@@ -334,8 +334,8 @@
       ],
       "color": "blue",
       "position": {
-        "x": 1175,
-        "y": -145
+        "x": 1074.6277986907037,
+        "y": -163.64014350221368
       },
       "size": {
         "w": 912,
@@ -343,8 +343,55 @@
       },
       "created": "2026-04-07T12:50:43.105Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:10:46.792Z",
+      "updatedAt": "2026-04-07T13:46:27.414Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "9d4fdf96-3be0-4086-b985-df32da0ec8e9",
+      "kind": "cluster",
+      "type": null,
+      "label": "Cluster",
+      "children": [
+        "b195b691-431d-4030-8b96-37f779c25256",
+        "fcdb9c85-b098-4ebc-830e-5c4124060be6",
+        "c4af7130-1610-427f-82ae-96c58fb077d0",
+        "fa9fa309-1ae1-4ff6-bc99-e1a6449cba8c",
+        "6d8985e3-fb31-43e7-93f0-5a8dc0f44a2b"
+      ],
+      "color": "blue",
+      "position": {
+        "x": 62.98719152068168,
+        "y": 320.96440450636896
+      },
+      "size": {
+        "w": 731,
+        "h": 414
+      },
+      "created": "2026-04-07T13:17:47.429Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T13:41:13.909Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "ed1a8423-4658-458c-828f-85d7e15decc7",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1168.2667724561788,
+        "y": 361.6176229853534
+      },
+      "size": {
+        "w": 695,
+        "h": 57
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"stop showing node handles on drag, they're visual cluster because it's quite literally impossible for the user to use the handles during a move op.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 695,
+      "created": "2026-04-07T13:48:07.080Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-07T13:48:28.933Z",
+      "updatedBy": "anon",
+      "plain": "stop showing node handles on drag, they're visual cluster because it's quite literally impossible for the user to use the handles during a move op."
     }
   ],
   "edges": [
@@ -371,8 +418,8 @@
     }
   ],
   "viewport": {
-    "x": 640.4676486639579,
-    "y": 272.2273550753626,
-    "zoom": 0.7578582832552003
+    "x": 257.61934944226596,
+    "y": 406.9450890494936,
+    "zoom": 0.7578582832552008
   }
 }
