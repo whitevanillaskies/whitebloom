@@ -254,21 +254,32 @@ Build in this order:
 
 Build in this order, shipping incrementally:
 
-1. **Arrangements view shell** — a full-window `<div>` rendered when `view === 'arrangements'`. Top bar with title and back button. No canvas, no React Flow. Background uses the workspace-home field treatment (`WorkspaceHome.css` as the starting reference).
+##### 1. Arrangements view shell (DONE)
+a full-window `<div>` rendered when `view === 'arrangements'`. 
 
-2. **`PetalContainer` component** — new addition to the Petal component library. A non-modal, non-floating docked panel with its own rounded, elevated surface. Inspired by JetBrains Islands: each tool window is a discrete "island" with its own background, rounded frame, and thin border — giving it visual identity without relying on backdrop-filter or heavy shadows. Unlike `PetalPanel` (which is a centered floating modal with overlay), `PetalContainer` is always-present, embedded in layout flow, and carries no overlay or dismiss behavior. It accepts a `title` slot and a `children` content area. Add to `petal/index.ts`.
+##### 2.1 PetalIsland component (DONE)
+new addition to the Petal component library. A non-modal, non-floating docked panel with its own rounded, elevated surface. Inspired by JetBrains Islands: each tool window is a discrete "island" with its own background, rounded frame, and thin border — giving it visual identity without relying on backdrop-filter or heavy shadows. Unlike `PetalPanel` (which is a centered floating modal with overlay), `PetalIsland` is always-present, embedded in layout flow, and carries no overlay or dismiss behavior. It accepts a `title` slot and a `children` content area. Add to `petal/index.ts`.
 
-   **`PetalWindow` component** — also new to the Petal library. A Finder-window-on-the-desktop primitive: has window chrome (title bar, back/close button, view toggle slot, search slot), sits *on top of* the Arrangements desktop surface without overlaying it or blocking surrounding elements. No backdrop, no modal behavior, no dismiss-on-outside-click. The desktop behind and around it remains fully visible and interactable — desktop bins, Trash, and the Sets Island all stay live as drag targets. Think of it as an application window placed on a tabletop: it occupies space within the content zone but the tabletop itself is still there. Structurally distinct from `PetalPanel` (modal overlay) and `PetalContainer` (docked layout island). Add to `petal/index.ts`.
+##### 2.2 PetalWindow component (DONE)
+also new to the Petal library. A Finder-window-on-the-desktop primitive: has window chrome (title bar, back/close button, view toggle slot, search slot), sits *on top of* the Arrangements desktop surface without overlaying it or blocking surrounding elements. No backdrop, no modal behavior, no dismiss-on-outside-click. The desktop behind and around it remains fully visible and interactable — desktop bins, Trash, and the Sets Island all stay live as drag targets. Think of it as an application window placed on a tabletop: it occupies space within the content zone but the tabletop itself is still there. Structurally distinct from `PetalPanel` (modal overlay) and `PetalContainer` (docked layout island). Add to `petal/index.ts`.
 
-3. **Sets Island** — left-docked `PetalContainer`. Contains the hierarchical set tree (expandable like a code editor project tree) and a separate smart sets section at the bottom. Double-click expands/collapses one level. Drag target for materials. Smart set entries are read-only. `Linked` smart set shows in v1; `Stale` deferred.
+##### 3. Desktop Island (DONE)
+main content for the Arrangements view. Contains the actual area for arranging materials.
 
-4. **Material items on desktop** — icon + label layout objects placed at `desktopPlacements` coordinates. Boards use a distinct icon; other materials use file-type icons from the existing `getSystemFileIcon` IPC. Selection state with keyboard `Delete` to assign to Trash. Double-click dispatches bloom (material) or board open.
+##### 4. Sets Island (DONE)
+left-docked `PetalContainer`. Contains the hierarchical set tree (expandable like a code editor project tree) and a separate smart sets section at the bottom. Double-click expands/collapses one level. Drag target for materials. Smart set entries are read-only. `Linked` smart set shows in v1; `Stale` deferred.
 
-5. **Bins on desktop** — same icon + label treatment as material items, but typed as bins. `Trash` is a fixed anchor (bottom-right or equivalent). User bins are repositionable. Double-click enters Bin View.
+##### 5. Material items on desktop
+icon + label layout objects placed at `desktopPlacements` coordinates. Boards use a distinct icon; other materials use file-type icons from the existing `getSystemFileIcon` IPC. Selection state with keyboard `Delete` to assign to Trash. Double-click dispatches bloom (material) or board open.
 
-6. **Bin View** — rendered as a `PetalWindow` sitting on the Arrangements desktop. Does not replace or obscure the desktop; bins, Trash, and the Sets Island remain visible and interactable around it. Window chrome: back button (returns to desktop), view mode toggle (icon/list), search input. Main content: the bin's materials. Sidebar inside the window: flat list of all bins for drag-target reassignment. Trash Bin View is the same model; selection + `Delete` triggers permanent deletion with reference warning before executing.
+##### 6. Bins on desktop
+same icon + label treatment as material items, but typed as bins. `Trash` is a fixed anchor (bottom-right or equivalent). User bins are repositionable. Double-click enters Bin View.
 
-7. **Drag and drop** — wire HTML5 drag across desktop ↔ bins ↔ Trash ↔ Sets Island. Affordances appear on hover during drag; no persistent clutter.
+##### 7. Bin View
+rendered as a `PetalWindow` sitting on the Arrangements desktop. Does not replace or obscure the desktop; bins, Trash, and the Sets Island remain visible and interactable around it. Window chrome: back button (returns to desktop), view mode toggle (icon/list), search input. Main content: the bin's materials. Sidebar inside the window: flat list of all bins for drag-target reassignment. Trash Bin View is the same model; selection + `Delete` triggers permanent deletion with reference warning before executing.
+
+##### 8. Drag and drop
+wire HTML5 drag across desktop ↔ bins ↔ Trash ↔ Sets Island. Affordances appear on hover during drag; no persistent clutter.
 
 ---
 

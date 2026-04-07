@@ -1,0 +1,101 @@
+/* ── Root ─────────────────────────────────────────────────── */
+
+/*
+ * PetalWindow sits *on top of* the Arrangements desktop as an absolute-
+ * positioned surface — like a macOS application window placed on a tabletop.
+ * It does NOT act as a modal overlay: the desktop, bins, Trash, and the Sets
+ * Island around it remain fully visible and interactable.
+ */
+
+.petal-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(248, 249, 250, 0.97);
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  /* Callers control inset and size via inline style or a wrapper class. */
+}
+
+/* ── Title bar ──────────────────────────────────────────────── */
+
+.petal-window__titlebar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: 38px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  background: rgba(245, 246, 248, 0.98);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.petal-window__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--color-secondary-fg);
+  cursor: pointer;
+  border-radius: var(--radius-border-inner);
+  flex-shrink: 0;
+}
+
+.petal-window__back:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-primary-fg);
+}
+
+.petal-window__title {
+  font-size: 12.5px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: var(--color-primary-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.petal-window__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: end;
+}
+
+/* ── Content area ───────────────────────────────────────────── */
+
+.petal-window__content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Optional sidebar ───────────────────────────────────────── */
+
+.petal-window__sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(0, 0, 0, 0.07);
+  background: rgba(243, 244, 246, 0.6);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Main content slot ──────────────────────────────────────── */
+
+.petal-window__main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
