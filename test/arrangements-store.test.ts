@@ -103,6 +103,13 @@ describe('arrangements store', () => {
     ])
   })
 
+  it('returns null when asked to create a nested set under a missing parent', () => {
+    const setId = useArrangementsStore.getState().createSet('Child set', 'missing-parent')
+
+    expect(setId).toBeNull()
+    expect(useArrangementsStore.getState().sets).toEqual([])
+  })
+
   it('empties trash through IPC, removes trashed materials, and persists the new garden state', async () => {
     useWorkspaceStore.setState({ root: 'D:/workspace' })
     useArrangementsStore.setState({
@@ -131,5 +138,52 @@ describe('arrangements store', () => {
     ])
     expect(useArrangementsStore.getState().memberships).toEqual([])
     expect(useArrangementsStore.getState().activeBinView).toBeNull()
+  })
+
+  it('saves the persisted garden shape without duplicating trash assignments', async () => {
+    useWorkspaceStore.setState({ root: 'D:/workspace' })
+    useArrangementsStore.setState({
+      materials: [
+        { key: 'wloc:res/keep.png', kind: 'resource', displayName: 'keep', extension: '.png' },
+        { key: 'wloc:res/trash.png', kind: 'resource', displayName: 'trash', extension: '.png' }
+      ],
+      bins: [
+        { id: SYSTEM_TRASH_BIN_ID, name: 'Trash', kind: 'system' },
+        { id: 'bin-1', name: 'Inbox', kind: 'user' }
+      ],
+      sets: [{ id: 'set-1', name: 'Research', children: [] }],
+      memberships: [{ materialKey: 'wloc:res/keep.png', setId: 'set-1' }],
+      binAssignments: {
+        'wloc:res/keep.png': 'bin-1',
+        'wloc:res/trash.png': SYSTEM_TRASH_BIN_ID
+      },
+      desktopPlacements: {
+        'wloc:res/keep.png': { x: 10, y: 20 },
+        'bin:bin-1': { x: 100, y: 200 }
+      },
+      cameraState: { x: 1, y: 2, zoom: 1.25 }
+    })
+
+    const ok = await useArrangementsStore.getState().saveArrangements()
+
+    expect(ok).toBe(true)
+    expect(window.api.saveArrangements).toHaveBeenCalledWith('D:/workspace', {
+      version: 1,
+      bins: [
+        { id: SYSTEM_TRASH_BIN_ID, name: 'Trash', kind: 'system' },
+        { id: 'bin-1', name: 'Inbox', kind: 'user' }
+      ],
+      sets: [{ id: 'set-1', name: 'Research', children: [] }],
+      memberships: [{ materialKey: 'wloc:res/keep.png', setId: 'set-1' }],
+      binAssignments: {
+        'wloc:res/keep.png': 'bin-1'
+      },
+      desktopPlacements: {
+        'wloc:res/keep.png': { x: 10, y: 20 },
+        'bin:bin-1': { x: 100, y: 200 }
+      },
+      cameraState: { x: 1, y: 2, zoom: 1.25 },
+      trashContents: ['wloc:res/trash.png']
+    })
   })
 })

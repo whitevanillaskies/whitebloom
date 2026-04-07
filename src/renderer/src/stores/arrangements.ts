@@ -358,16 +358,22 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       children: []
     }
 
+    let created = false
+
     set((state) => {
       if (!parentSetId) {
+        created = true
         return { sets: [...state.sets, nextSet] }
       }
 
       const nextSets = insertSetNode(state.sets, parentSetId, nextSet)
+      if (nextSets !== state.sets) {
+        created = true
+      }
       return nextSets === state.sets ? state : { sets: nextSets }
     })
 
-    return nextSet.id
+    return created ? nextSet.id : null
   },
 
   deleteSet: (setId) =>

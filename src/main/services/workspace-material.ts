@@ -1,6 +1,6 @@
 import { readdir, readFile, rm } from 'fs/promises'
 import { basename, extname, join, parse, relative } from 'path'
-import { pathToFileURL } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import type { Board, BoardNode } from '../../renderer/src/shared/types'
 import type { ArrangementsMaterial } from '../../shared/arrangements'
 import { resolveResource } from '../resource-uri'
@@ -8,6 +8,7 @@ import { readWorkspace } from './workspace-files'
 
 const BLOSSOMS_DIRECTORY_NAME = 'blossoms'
 const RES_DIRECTORY_NAME = 'res'
+const BOARD_FILE_SUFFIX = '.wb.json'
 const SKIPPED_DIRECTORY_NAMES = new Set(['.thumbs', '.wbthumbs', '.inbox-snapshots'])
 
 function toPosixPath(pathValue: string): string {
@@ -70,6 +71,27 @@ async function collectFilesRecursively(directoryPath: string): Promise<string[]>
   return files
 }
 
+async function collectBoardFilesRecursively(workspaceRoot: string): Promise<string[]> {
+  const entries = await readdir(workspaceRoot, { withFileTypes: true })
+  const boardPaths: string[] = []
+
+  for (const entry of entries) {
+    const absolutePath = join(workspaceRoot, entry.name)
+
+    if (entry.isDirectory()) {
+      if (SKIPPED_DIRECTORY_NAMES.has(entry.name)) continue
+      boardPaths.push(...(await collectBoardFilesRecursively(absolutePath)))
+      continue
+    }
+
+    if (!entry.isFile()) continue
+    if (!entry.name.toLowerCase().endsWith(BOARD_FILE_SUFFIX)) continue
+    boardPaths.push(absolutePath)
+  }
+
+  return boardPaths
+}
+
 async function collectWorkspaceOwnedMaterials(
   workspaceRoot: string,
   directoryName: typeof BLOSSOMS_DIRECTORY_NAME | typeof RES_DIRECTORY_NAME,
@@ -101,6 +123,15 @@ function collectLinkedResourceUris(board: Board): string[] {
   return linkedUris
 }
 
+function createLinkedMaterial(uri: string): ArrangementsMaterial | null {
+  try {
+    const absolutePath = fileURLToPath(uri)
+    return createMaterial('linked', uri, basename(absolutePath))
+  } catch {
+    return null
+  }
+}
+
 async function collectLinkedMaterials(boardPaths: string[]): Promise<ArrangementsMaterial[]> {
   const linkedMaterials = new Map<string, ArrangementsMaterial>()
 
@@ -109,9 +140,9 @@ async function collectLinkedMaterials(boardPaths: string[]): Promise<Arrangement
       const board = JSON.parse(await readFile(boardPath, 'utf-8')) as Board
       for (const uri of collectLinkedResourceUris(board)) {
         if (linkedMaterials.has(uri)) continue
-
-        const fileName = basename(new URL(uri).pathname)
-        linkedMaterials.set(uri, createMaterial('linked', uri, fileName))
+        const material = createLinkedMaterial(uri)
+        if (!material) continue
+        linkedMaterials.set(uri, material)
       }
     } catch {
       // Ignore invalid boards for now. Enumeration should stay best-effort.
@@ -125,15 +156,18 @@ export async function findBoardsReferencingMaterial(
   workspaceRoot: string,
   materialKey: string
 ): Promise<string[]> {
-  const workspace = await readWorkspace(workspaceRoot)
+  const normalizedMaterialKey = materialKey.trim()
+  if (!normalizedMaterialKey) return []
+
+  const boardPaths = await collectBoardFilesRecursively(workspaceRoot)
   const referencingBoards: string[] = []
 
-  for (const boardPath of workspace.boards) {
+  for (const boardPath of boardPaths) {
     try {
       const board = JSON.parse(await readFile(boardPath, 'utf-8')) as Board
       const referencesMaterial = board.nodes.some((node) => {
         const resource = (node as BoardNode).resource
-        return typeof resource === 'string' && resource.trim() === materialKey
+        return typeof resource === 'string' && resource.trim() === normalizedMaterialKey
       })
 
       if (referencesMaterial) {
@@ -144,6 +178,7 @@ export async function findBoardsReferencingMaterial(
     }
   }
 
+  referencingBoards.sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }))
   return referencingBoards
 }
 

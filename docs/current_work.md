@@ -164,7 +164,7 @@ Opening a bin enters Bin View: a focused interior view of one bin. It should be 
 
 ### Phase 2 Implementation Plan
 
-#### Pre-work (decisions and scaffolding before any UI) 
+#### Pre-work (decisions and scaffolding before any UI)  (DONE)
 
 **1. State file: `.garden`** (DONE)
 
@@ -232,21 +232,21 @@ Add to `register-app-ipc.ts` and `preload/index.ts`:
 
 ---
 
-#### Logic / Structural Work
+#### Logic / Structural Work (DONE)
 
 Build in this order:
 
-1. **`.garden` service** (`src/main/services/garden-store.ts`) — read/write JSON, with safe atomic write (write to `.garden.tmp`, rename). Schema validation on read; corrupt file falls back to empty state with a warning.
+1. (STATUS: DONE, TEST OK) **`.garden` service** (`src/main/services/garden-store.ts`) — read/write JSON, with safe atomic write (write to `.garden.tmp`, rename). Schema validation on read; corrupt file falls back to empty state with a warning.
 
-2. **Material enumerator** (`src/main/services/workspace-material.ts`) — scans `blossoms/` and `res/` for non-thumbnail files, reads top-level `*.wb.json` list, returns a flat `ArrangementsMaterial[]` with type, `wloc:` key, display name, and file extension. Board scan for `file:///` URIs runs in the same pass.
+2. (STATUS: DONE, TEST OK) **Material enumerator** (`src/main/services/workspace-material.ts`) — scans `blossoms/` and `res/` for non-thumbnail files, reads top-level `*.wb.json` list, returns a flat `ArrangementsMaterial[]` with type, `wloc:` key, display name, and file extension. Board scan for `file:///` URIs runs in the same pass.
 
-3. **Reference checker** — on-demand scan of all `*.wb.json` in the workspace for references to a specific material key. Called only at trash-empty time or explicit "referenced by" UI query. Not cached in v1.
+3. (STATUS: DONE, TEST OK) **Reference checker** — on-demand scan of all `*.wb.json` in the workspace for references to a specific material key. Called only at trash-empty time or explicit "referenced by" UI query. Not cached in v1.
 
-4. **Register IPC channels** in `register-app-ipc.ts` and expose through `preload/index.ts`.
+4. (STATUS: DONE, TEST OK) **Register IPC channels** in `register-app-ipc.ts` and expose through `preload/index.ts`.
 
-5. **Arrangements store** — implement the Zustand store with actions: `loadArrangements`, `saveArrangements`, `assignToBin`, `removeFromBin`, `addToSet`, `removeFromSet`, `moveMaterialOnDesktop`, `moveBinOnDesktop`, `sendToTrash`, `emptyTrash`, `createBin`, `deleteBin`, `createSet`, `deleteSet`, `setCamera`.
+5. (STATUS: DONE, TEST OK) **Arrangements store** — implement the Zustand store with actions: `loadArrangements`, `saveArrangements`, `assignToBin`, `removeFromBin`, `includeInSet`, `excludeFromSet`, `moveMaterialOnDesktop`, `moveBinOnDesktop`, `sendToTrash`, `emptyTrash`, `createBin`, `deleteBin`, `createSet`, `deleteSet`, `setCamera`.
 
-6. **Palette integration** — add "Open Arrangements" command to the `Tab` palette in `Canvas.tsx` and to the workspace home shortcut surface. Both call `setView('arrangements')` on the app view state.
+6. (STATUS: DONE, TEST OK) **Palette integration** — add "Open Arrangements" command to the `Tab` palette in `Canvas.tsx` and to the workspace home shortcut surface. Both call `setView('arrangements')` on the app view state.
 
 ---
 

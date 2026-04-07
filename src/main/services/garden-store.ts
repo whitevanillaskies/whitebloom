@@ -14,12 +14,23 @@ function getGardenTempPath(workspaceRoot: string): string {
   return join(workspaceRoot, GARDEN_TEMP_FILENAME)
 }
 
+function isGardenStateDocument(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
 export async function readGardenState(workspaceRoot: string): Promise<GardenState> {
   const gardenPath = getGardenPath(workspaceRoot)
 
   try {
     const json = await readFile(gardenPath, 'utf-8')
-    return normalizeGardenState(JSON.parse(json))
+    const parsed = JSON.parse(json) as unknown
+
+    if (!isGardenStateDocument(parsed)) {
+      console.warn(`[garden-store] falling back to empty state for ${gardenPath}: invalid garden schema`)
+      return createEmptyGardenState()
+    }
+
+    return normalizeGardenState(parsed)
   } catch (error) {
     if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[garden-store] falling back to empty state for ${gardenPath}:`, error)

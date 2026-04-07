@@ -44,6 +44,17 @@ describe('garden-store', () => {
     expect(warnSpy).toHaveBeenCalledOnce()
   })
 
+  it('falls back to the empty default state and warns when .garden has an invalid top-level shape', async () => {
+    const workspaceRoot = await createTempRoot()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await writeFile(getGardenPath(workspaceRoot), '[]', 'utf-8')
+
+    const state = await readGardenState(workspaceRoot)
+
+    expect(state).toEqual(createEmptyGardenState())
+    expect(warnSpy).toHaveBeenCalledOnce()
+  })
+
   it('normalizes invalid records and preserves valid arrangements data', async () => {
     const normalized = normalizeGardenState({
       version: 999,
@@ -98,9 +109,23 @@ describe('garden-store', () => {
   it('writes normalized state through a temp file and persists .garden JSON', async () => {
     const workspaceRoot = await createTempRoot()
 
-    await writeGardenState(workspaceRoot, {
+    const savedState = await writeGardenState(workspaceRoot, {
       version: 1,
       bins: [{ id: 'refs', name: 'Refs', kind: 'user' }],
+      sets: [],
+      memberships: [],
+      binAssignments: {},
+      desktopPlacements: {},
+      cameraState: { x: 4, y: 5, zoom: 2 },
+      trashContents: []
+    })
+
+    expect(savedState).toEqual({
+      version: 1,
+      bins: [
+        { id: SYSTEM_TRASH_BIN_ID, name: 'Trash', kind: 'system' },
+        { id: 'refs', name: 'Refs', kind: 'user' }
+      ],
       sets: [],
       memberships: [],
       binAssignments: {},
