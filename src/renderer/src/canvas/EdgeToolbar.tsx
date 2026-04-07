@@ -35,7 +35,9 @@ export function EdgeToolbar({ edges }: EdgeToolbarProps) {
   }, [transform])
 
   const selectedEdges = edges.filter((e) => e.selected)
-  if (selectedEdges.length !== 1 || isPanning) return null
+  const selectedNodes = rfNodes.filter((node) => node.selected)
+  const totalSelectedItems = selectedEdges.length + selectedNodes.length
+  if (selectedEdges.length !== 1 || totalSelectedItems !== 1 || isPanning) return null
 
   const edge = selectedEdges[0]
   const sourceNode = rfNodes.find((n) => n.id === edge.source)

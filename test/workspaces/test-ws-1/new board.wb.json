@@ -300,25 +300,25 @@
       "updatedBy": "anon"
     },
     {
-      "id": "17fcbaf8-5c81-449e-9ff3-ebd1b3b5bc8b",
+      "id": "29a50916-8658-48fd-b506-988623fffdaa",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 971.5308899433878,
-        "y": 108.30323374925096
+        "x": 947.2654050373715,
+        "y": 134.7917067745557
       },
       "size": {
         "w": 26,
         "h": 19
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"if multiple things are selected and only one edge, the edge will show its toolbar (wrong)\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"automatically arranging elements in a grid, etc. maybe packing pictures like pureref\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "fixed",
-      "wrapWidth": 390,
-      "created": "2026-04-07T00:24:28.162Z",
+      "wrapWidth": 244,
+      "created": "2026-04-07T12:00:37.225Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T00:24:43.156Z",
+      "updatedAt": "2026-04-07T12:00:52.243Z",
       "updatedBy": "anon",
-      "plain": "if multiple things are selected and only one edge, the edge will show its toolbar (wrong)"
+      "plain": "automatically arranging elements in a grid, etc. maybe packing pictures like pureref"
     }
   ],
   "edges": [
@@ -338,8 +338,8 @@
     }
   ],
   "viewport": {
-    "x": -263.2827323818916,
-    "y": 242.92149719980614,
-    "zoom": 0.757858283255199
+    "x": -122.71419702364665,
+    "y": 245.54352287862937,
+    "zoom": 0.7578582832551993
   }
 }
