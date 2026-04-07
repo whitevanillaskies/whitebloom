@@ -239,9 +239,14 @@ const budHandles = (
   </>
 )
 
-export function BudNode({ id, data, selected }: NodeProps) {
+export function BudNode({ id, data, selected, dragging }: NodeProps) {
   const budData = data as BudData
   const module = resolveModuleById(budData.moduleType)
+  const handles = (
+    <span style={{ visibility: dragging ? 'hidden' : undefined }}>
+      {budHandles}
+    </span>
+  )
 
   // Void-typed bud (type: null) — no handler registered, open with OS default
   if (budData.moduleType === null) {
@@ -255,7 +260,7 @@ export function BudNode({ id, data, selected }: NodeProps) {
           selected={selected ?? false}
           onOpen={() => void window.api.openFile(budData.resource)}
         />
-        {budHandles}
+        {handles}
       </>
     )
   }
@@ -270,7 +275,7 @@ export function BudNode({ id, data, selected }: NodeProps) {
           size={budData.size}
           selected={selected ?? false}
         />
-        {budHandles}
+        {handles}
       </>
     )
   }
@@ -283,7 +288,7 @@ export function BudNode({ id, data, selected }: NodeProps) {
         selected={selected ?? false}
         module={module}
       />
-      {budHandles}
+      {handles}
     </>
   )
 }

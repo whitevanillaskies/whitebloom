@@ -688,30 +688,32 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
           </div>
         )}
 
-        <Handle
-          id={NODE_HANDLE_IDS.top}
-          type="target"
-          position={Position.Top}
-          style={{ top: -CONNECTION_HANDLE_OUTSET_PX }}
-        />
-        <Handle
-          id={NODE_HANDLE_IDS.left}
-          type="target"
-          position={Position.Left}
-          style={{ left: -CONNECTION_HANDLE_OUTSET_PX }}
-        />
-        <Handle
-          id={NODE_HANDLE_IDS.bottom}
-          type="source"
-          position={Position.Bottom}
-          style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }}
-        />
-        <Handle
-          id={NODE_HANDLE_IDS.right}
-          type="source"
-          position={Position.Right}
-          style={{ right: -CONNECTION_HANDLE_OUTSET_PX }}
-        />
+        <span style={{ visibility: dragging ? 'hidden' : undefined }}>
+          <Handle
+            id={NODE_HANDLE_IDS.top}
+            type="target"
+            position={Position.Top}
+            style={{ top: -CONNECTION_HANDLE_OUTSET_PX }}
+          />
+          <Handle
+            id={NODE_HANDLE_IDS.left}
+            type="target"
+            position={Position.Left}
+            style={{ left: -CONNECTION_HANDLE_OUTSET_PX }}
+          />
+          <Handle
+            id={NODE_HANDLE_IDS.bottom}
+            type="source"
+            position={Position.Bottom}
+            style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }}
+          />
+          <Handle
+            id={NODE_HANDLE_IDS.right}
+            type="source"
+            position={Position.Right}
+            style={{ right: -CONNECTION_HANDLE_OUTSET_PX }}
+          />
+        </span>
       </div>
     </>
   )
