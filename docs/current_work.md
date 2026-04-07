@@ -204,7 +204,7 @@ Defer implementation until clusters and Arrangements are shipped and stable.
 `Mica` is the Arrangements window manager: a lightweight UI layer above the desktop plane, named after the layered stone. It should behave like a tiny Quartz, but intentionally constrained for Whitebloom's calmer surface language.
 - `Mica` owns floating window instances, not bin data.
 - A window instance must have its own UI identity independent from any bin ID.
-- In v1, `Mica` should allow only one primary floating window at a time.
+- In v1, `Mica` should allow only one primary floating window at a time. Even if we end up allowing more than one window, the functionality to only have one window of a kind (for example, with `id:'bin-view'`) should remain. 
 - Opening a different bin while a window is already open should retarget that same window to the new bin instead of spawning another one.
 - The window should remain screen-space relative to the Arrangements desktop container, not world-space inside the panning desktop plane.
 - Window position should persist when switching between bins within the same open window.
@@ -235,6 +235,8 @@ Defer implementation until clusters and Arrangements are shipped and stable.
 - Whether selection always clears on bin switch. It probably should.
 - Whether the window remembers position across Arrangements sessions or only while Arrangements stays open.
 - Whether future non-bin windows are in scope for the same manager. The state shape should leave room for that even if v1 implements only bin windows.
+- Window chrome convention: if `Mica` adopts a left-side close control, that placement should become the long-term pattern for all Whitebloom windows and modals, not just Arrangements. The current app is not yet consistent here, so this should be treated as a normalization pass over time rather than a one-off exception.
+- The close control should not be a literal macOS traffic light by default. Whitebloom should leave room for a custom close button that respects the same placement and interaction pattern while developing its own visual identity.
 
 **Why this is worth doing.**
 
