@@ -285,9 +285,13 @@ type BinViewProps = {
   binId: string
   uiState: {
     kind: 'bin-view'
-    viewMode: ViewMode
-    searchQuery: string
-    selectedKeys: string[]
+    preferences: {
+      viewMode: ViewMode
+    }
+    ephemeral: {
+      searchQuery: string
+      selectedKeys: string[]
+    }
   }
   onOpenBoard: (boardPath: string) => void
   onOpenBin: (binId: string) => void
@@ -317,7 +321,7 @@ export default function BinView({
   const workspaceRoot = useWorkspaceStore((s) => s.root)
 
   const [isContentDragOver, setIsContentDragOver] = useState(false)
-  const selectedKeys = uiState.selectedKeys
+  const selectedKeys = uiState.ephemeral.selectedKeys
   const selectedKeySet = new Set(selectedKeys)
 
   const handleContentDragOver = useCallback(
@@ -440,7 +444,7 @@ export default function BinView({
   if (!activeBin) return null
 
   const binMaterials = materials.filter((m) => binAssignments[m.key] === binId)
-  const q = uiState.searchQuery.trim().toLowerCase()
+  const q = uiState.ephemeral.searchQuery.trim().toLowerCase()
   const filteredMaterials = q
     ? binMaterials.filter((m) => m.displayName.toLowerCase().includes(q))
     : binMaterials
@@ -465,7 +469,7 @@ export default function BinView({
         type="button"
         className={[
           'bin-view__mode-btn',
-          uiState.viewMode === 'icon' ? 'bin-view__mode-btn--active' : ''
+          uiState.preferences.viewMode === 'icon' ? 'bin-view__mode-btn--active' : ''
         ]
           .filter(Boolean)
           .join(' ')}
@@ -479,7 +483,7 @@ export default function BinView({
         type="button"
         className={[
           'bin-view__mode-btn',
-          uiState.viewMode === 'list' ? 'bin-view__mode-btn--active' : ''
+          uiState.preferences.viewMode === 'list' ? 'bin-view__mode-btn--active' : ''
         ]
           .filter(Boolean)
           .join(' ')}
@@ -494,7 +498,7 @@ export default function BinView({
         className="bin-view__search"
         type="search"
         placeholder="Search…"
-        value={uiState.searchQuery}
+        value={uiState.ephemeral.searchQuery}
         onChange={(e) => onSearchQueryChange(e.target.value)}
         aria-label="Search materials"
         data-mica-no-drag="true"
@@ -522,7 +526,7 @@ export default function BinView({
         <p className="bin-view__empty">
           {q ? 'No matching items.' : 'Empty.'}
         </p>
-      ) : uiState.viewMode === 'icon' ? (
+      ) : uiState.preferences.viewMode === 'icon' ? (
         <div
           className="bin-view__icon-grid"
           role="listbox"

@@ -132,10 +132,13 @@ export function useMicaHost<
         const reusableIndex = findReusableWindowIndex(current.windows, input, resolvedPolicy)
         if (reusableIndex >= 0) {
           const existingWindow = current.windows[reusableIndex]
+          const nextGeometry =
+            existingWindow.visibility === 'closed' ? input.geometry : existingWindow.geometry
           nextWindow = {
             ...existingWindow,
             kind: input.kind,
             payload: input.payload,
+            geometry: nextGeometry,
             visibility: input.visibility ?? 'open',
             focusState: input.focusState ?? 'focused',
             uiState: input.uiState

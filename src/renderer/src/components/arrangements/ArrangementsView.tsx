@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { MicaHost, useMicaHost } from '../../mica'
+import { MICA_PERSISTENCE_BOUNDARY, MicaHost, useMicaHost } from '../../mica'
 import ArrangementsDesktop from './ArrangementsDesktop'
 import BinView from './BinView'
 import DesktopBinItems, { DesktopTrashBin } from './DesktopBinItems'
@@ -25,9 +25,13 @@ type ArrangementsWindowRoute = {
 
 type ArrangementsWindowUiState = {
   kind: 'bin-view'
-  viewMode: 'icon' | 'list'
-  searchQuery: string
-  selectedKeys: string[]
+  preferences: {
+    viewMode: 'icon' | 'list'
+  }
+  ephemeral: {
+    searchQuery: string
+    selectedKeys: string[]
+  }
 }
 
 const ARRANGEMENTS_MICA_HOST_ID = 'arrangements-desktop'
@@ -44,9 +48,13 @@ const DEFAULT_BIN_VIEW_GEOMETRY = {
 function createDefaultBinViewUiState(): ArrangementsWindowUiState {
   return {
     kind: 'bin-view',
-    viewMode: 'icon',
-    searchQuery: '',
-    selectedKeys: []
+    preferences: {
+      viewMode: 'icon'
+    },
+    ephemeral: {
+      searchQuery: '',
+      selectedKeys: []
+    }
   }
 }
 
@@ -63,7 +71,15 @@ export default function ArrangementsView({
       hostId: ARRANGEMENTS_MICA_HOST_ID,
       placementMode: 'screen-space' as const,
       windowLimit: 'single' as const,
-      allowedKinds: ['bin-view'] as const
+      allowedKinds: ['bin-view'] as const,
+      persistence: {
+        ...MICA_PERSISTENCE_BOUNDARY,
+        route: 'session' as const,
+        geometry: 'session' as const,
+        visibility: 'session' as const,
+        focus: 'session' as const,
+        uiState: 'session' as const
+      }
     }),
     []
   )
@@ -89,9 +105,14 @@ export default function ArrangementsView({
           {
             uiState: (current) => ({
               kind: 'bin-view',
-              viewMode: current.kind === 'bin-view' ? current.viewMode : 'icon',
-              searchQuery: '',
-              selectedKeys: []
+              preferences: {
+                viewMode:
+                  current.kind === 'bin-view' ? current.preferences.viewMode : 'icon'
+              },
+              ephemeral: {
+                searchQuery: '',
+                selectedKeys: []
+              }
             })
           }
         )
@@ -158,19 +179,28 @@ export default function ArrangementsView({
                       onViewModeChange={(viewMode) =>
                         arrangementsMica.setWindowUiState(window.id, (current) => ({
                           ...current,
-                          viewMode
+                          preferences: {
+                            ...current.preferences,
+                            viewMode
+                          }
                         }))
                       }
                       onSearchQueryChange={(searchQuery) =>
                         arrangementsMica.setWindowUiState(window.id, (current) => ({
                           ...current,
-                          searchQuery
+                          ephemeral: {
+                            ...current.ephemeral,
+                            searchQuery
+                          }
                         }))
                       }
                       onSelectedKeysChange={(selectedKeys) =>
                         arrangementsMica.setWindowUiState(window.id, (current) => ({
                           ...current,
-                          selectedKeys
+                          ephemeral: {
+                            ...current.ephemeral,
+                            selectedKeys
+                          }
                         }))
                       }
                     />
