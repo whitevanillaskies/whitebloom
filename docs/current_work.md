@@ -201,46 +201,149 @@ Defer implementation until clusters and Arrangements are shipped and stable.
 
 ## Mica window manager.
 
-`Mica` is the Arrangements window manager: a lightweight UI layer above the desktop plane, named after the layered stone. It should behave like a tiny Quartz, but intentionally constrained for Whitebloom's calmer surface language.
-- `Mica` owns floating window instances, not bin data.
-- A window instance must have its own UI identity independent from any bin ID.
-- In v1, `Mica` should allow only one primary floating window at a time. Even if we end up allowing more than one window, the functionality to only have one window of a kind (for example, with `id:'bin-view'`) should remain. 
-- Opening a different bin while a window is already open should retarget that same window to the new bin instead of spawning another one.
-- The window should remain screen-space relative to the Arrangements desktop container, not world-space inside the panning desktop plane.
-- Window position should persist when switching between bins within the same open window.
-- The floating window layer should remain visually separate from the material/tabletop layer beneath it.
+`Mica` is Whitebloom's generic window manager: a lightweight UI system for floating windows, named after the layered stone. It should behave like a tiny Quartz, but intentionally constrained for Whitebloom's calmer surface language. Arrangements is the first screen that should adopt it, but `Mica` should not be defined as Arrangements-only infrastructure.
+- `Mica` owns floating window instances.
+- A window instance must have its own id.
+- `Mica` should be host-based: each screen that needs floating windows provides a `Mica` host region with its own bounds and policy.
+- A host may choose whether it allows one window, multiple windows, or one window per kind.
+- In v1, the Arrangements host should allow only one primary floating window at a time. Even if more windows are supported later, the ability to enforce "only one window of this kind" should remain.
+- Opening a different bin while an Arrangements window is already open should retarget that same window to the new bin instead of spawning another one.
+- Windows should remain screen-space relative to their host container, not world-space inside transformed content.
+- Window position should persist when switching content within the same open window.
+- The floating window layer should remain visually separate from the content layer beneath it.
 
 **What `Mica` needs to manage.**
 
-- Window identity: a UI-level `windowId`, distinct from `binId`.
-- Window content routing: for now, `kind: "bin-view"` with a referenced `binId`.
+- Window identity: a UI-level `windowId`.
+- Window kind: a generic discriminator such as `bin-view`, `inspector`, or other future window types.
+- Window content routing: payload data owned by the feature using the window kind. For Arrangements v1, this is `kind: "bin-view"` with a referenced `binId`.
 - Window geometry: at minimum `x` and `y`; likely also `width` and `height` even if resize is deferred.
 - Window visibility lifecycle: open, retarget, close.
 - Window focus policy: with one window this is simple, but the model should still preserve the idea that windows are focusable UI entities.
 - Window chrome interactions: dragging by title bar, non-draggable controls inside the chrome, and safe pointer capture rules so canvas pan does not fight the window.
-- Desktop-layer coordination: the canvas/world layer and the window/overlay layer must remain separate so the Finder-style window does not move with the camera.
+- Host coordination: the content layer and the window/overlay layer must remain separate so a floating window never accidentally inherits transforms from the underlying screen content.
+- Renderer registration: features should be able to register how a given window kind is rendered inside a `Mica` host.
+- Host policy: each host should be able to define limits such as single-window-only, one-window-per-kind, or unrestricted multi-window behavior.
 
 **State model direction.**
 
-- Replace the special-case `activeBinView` model with a small window-manager state owned by Arrangements.
+- Build `Mica` as generic UI infrastructure rather than a special-case Arrangements store field.
 - Keep domain state and UI state separate: bins remain content; windows remain presentation instances.
+- Each host should own or scope the set of active windows that belong to it.
 - Even with a single open window, model it as a window record rather than "the active bin."
-- Bin switching should update the window's routed content, not recreate the window conceptually.
+- Feature-level payload changes should update a window's routed content, not recreate the window conceptually.
 - Local per-window UI state should be considered explicitly: view mode, search query, selection, and last geometry.
+- Arrangements should stop owning a bespoke `activeBinView` concept and instead talk to `Mica` through host-level open, retarget, move, and close actions.
 
 **Behavior rules to settle before implementation.**
 
 - Whether view mode is global to all bin windows or stored per window. Per window is probably cleaner.
 - Whether search resets when changing bins. Resetting is likely less confusing.
 - Whether selection always clears on bin switch. It probably should.
-- Whether the window remembers position across Arrangements sessions or only while Arrangements stays open.
+- Whether a host remembers window position across sessions or only while that host remains mounted.
 - Whether future non-bin windows are in scope for the same manager. The state shape should leave room for that even if v1 implements only bin windows.
 - Window chrome convention: if `Mica` adopts a left-side close control, that placement should become the long-term pattern for all Whitebloom windows and modals, not just Arrangements. The current app is not yet consistent here, so this should be treated as a normalization pass over time rather than a one-off exception.
 - The close control should not be a literal macOS traffic light by default. Whitebloom should leave room for a custom close button that respects the same placement and interaction pattern while developing its own visual identity.
+- How renderer registration works in practice: static registry, host-provided mapping, or explicit render prop wiring.
+- Whether `Mica` state lives in one shared app store, separate host stores built on common primitives, or a hybrid model. Favor a generic subsystem with per-host scoping rather than a single global pile of unrelated window state.
 
 **Why this is worth doing.**
 
 - It keeps Arrangements from accreting one-off overlay behaviors.
-- It creates a clean seam between the tabletop world and floating UI surfaces.
-- It lets Bin View feel movable and desktop-native without allowing clutter from multiple simultaneous windows.
+- It gives Whitebloom a single window grammar instead of separate local patterns per feature.
+- It creates a clean seam between feature content and floating UI surfaces.
+- It lets Bin View feel movable and desktop-native without locking the architecture to Arrangements forever.
 - It gives Whitebloom a named UI primitive that can be extended later without rethinking the architecture from scratch.
+
+**Implementation plan.**
+
+1. Define `Mica` as a generic subsystem rather than an Arrangements feature.
+   - Create a shared `Mica` model for window records, host identity, geometry, focus, and lifecycle.
+   - Model a window as a UI record with its own `id`, `kind`, routed payload, geometry, and visibility state.
+   - Keep the shape generic enough for future window kinds even if v1 only implements `bin-view`.
+   - Decide which pieces belong in persisted UI state versus transient session state.
+
+2. Introduce the `MicaHost` concept.
+   - Each screen that wants floating windows should provide a host region with explicit bounds.
+   - A host should define its own policy: single-window-only, one-window-per-kind, or unrestricted multi-window.
+   - A host should provide the overlay plane where `Mica` windows render.
+   - A host should remain responsible for how its content layer and overlay layer coexist.
+
+3. Define window renderer registration.
+   - Choose how a host maps `window.kind` to a concrete renderer.
+   - Keep feature-owned content local to the feature rather than embedding feature logic inside `Mica` core.
+   - For Arrangements v1, register `bin-view` as the first concrete window kind.
+   - Leave room for future kinds such as inspectors or previews without changing the core model.
+
+4. Build the reusable `Mica` window shell.
+   - Upgrade `PetalWindow` or extract from it so the shell becomes generic `Mica` chrome rather than Bin View chrome.
+   - Add a left-side close control as the default window-closing affordance.
+   - Keep the control pattern compatible with a future Whitebloom-specific button treatment.
+   - Make the title bar the drag handle.
+   - Exclude buttons, search fields, toggles, and any other interactive controls from drag initiation.
+   - Preserve the current calm, reduced visual language: no minimize or maximize in v1.
+
+5. Implement generic draggable window geometry.
+   - Track live drag interaction locally for responsiveness and commit final geometry into `Mica` state.
+   - Use pointer capture so drag remains stable even if the pointer leaves the title bar.
+   - Clamp movement so the title bar cannot disappear completely outside the current host.
+   - Keep the initial implementation to movement only; defer resizing until the rest of the system is stable.
+
+6. Adopt `Mica` inside Arrangements as the first host.
+   - Replace the special-case `activeBinView` model with host-scoped `Mica` usage.
+   - Keep the existing panning desktop world for materials and bins.
+   - Add a dedicated `Mica` overlay plane as a sibling layer above the desktop world.
+   - Ensure the Arrangements host is screen-space relative to the desktop container, not transformed by camera pan or zoom.
+
+7. Refactor Arrangements open and close behavior around `Mica`.
+   - Double-clicking a bin should ask the Arrangements host to open or retarget a `bin-view` window.
+   - If no Arrangements window exists, create one with default geometry and route it to the chosen bin.
+   - If a compatible window already exists, preserve its identity and geometry while swapping its routed `binId`.
+   - Closing the window should clear Arrangements window UI state without mutating bin/domain data.
+
+8. Rework `BinView` to consume routed window content.
+   - Make `BinView` render from a `Mica` window record and its routed payload, rather than from a global active-bin singleton.
+   - Keep per-window presentation state explicit: view mode, search query, selection, and drag-over feedback.
+   - Reset selection on bin switches.
+   - Likely reset search on bin switches unless testing shows that persistence is more useful.
+   - Preserve geometry and the window instance itself while switching bins from the sidebar.
+
+9. Reconcile host-level window behavior with underlying screen interactions.
+   - Prevent title-bar dragging from triggering gestures in the host content underneath.
+   - Prevent clicks within a window from causing unwanted deselection or pan behavior in the host.
+   - Preserve Arrangements drag-and-drop between desktop, bins, Trash, Sets Island, and Bin View.
+   - Verify that a floating window does not block intended drop targets more than necessary.
+
+10. Decide persistence boundaries and app-wide conventions.
+   - Persist window geometry only where it helps the host feel stable across sessions.
+   - Do not persist ephemeral state such as current selection.
+   - Treat search query as session-local unless a stronger use case appears.
+   - Persist view mode only if it improves continuity without surprising the user.
+   - Treat `Mica` as the first concrete expression of a broader Whitebloom window pattern and plan a later consistency pass for existing windows and modals.
+
+11. Verify Arrangements as the proving ground before extending `Mica`.
+   - Test opening, retargeting, dragging, closing, and reopening the window.
+   - Test bin switching from the sidebar while the window is in a moved position.
+   - Test drag-and-drop from Bin View to desktop bins, Trash, and Sets Island, and from desktop into Bin View.
+   - Test edge cases around pointer capture, offscreen movement, and keyboard delete behavior in Trash.
+   - Only after this pass should `Mica` be considered ready for additional hosts, multiple windows, resizing, or new window kinds.
+
+**Suggested implementation order.**
+
+- Define the generic `Mica` model and host API.
+- Build the shared window shell and drag behavior.
+- Add renderer registration and host policy wiring.
+- Adopt `Mica` inside Arrangements as the first host.
+- Convert bin open/close flows to target the Arrangements host.
+- Adapt `BinView` to routed window content.
+- Reconcile interaction conflicts with desktop pan and drag-and-drop.
+- Add persistence and perform a consistency pass.
+
+**Out of scope for the first pass.**
+
+- Multiple simultaneous floating windows.
+- Window resizing.
+- Minimize and maximize controls.
+- Global cross-screen window sharing between unrelated hosts.
+- Modal stacking rules beyond what is needed for a host-local floating window system.
+- Non-bin window content types beyond what the state model and renderer registration should leave room for.
