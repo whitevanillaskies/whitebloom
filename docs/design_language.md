@@ -14,6 +14,8 @@ If I had to describe the target audience in one short sentence is this: "elitist
 
 Optimize this app for high precision pointer interactions. This is a desktop computer app. We do not care for responsive layouts nor touch gestures. Accessibility is not a concern for this app. Prefer compact, high density clusters with whitespace as boundaries.
 
+Avoid milquetoast design. Milquetoast design are shy, sickly, pale pastel colors (quite prevalent in modern design). This doesn't mean making everything a madhouse of clashing colors, but if we are going to use color, it needs to be vibrant, which is why color must be used to convey meaning. If something has color, there has to be reason for it. Maybe it's highlighting a selected element, maybe it signifies the button will close a window, etc.
+
 ## Variables
 
 Save variables to renderer/assets/base.css - if the number of variables grows too large, we can split it into more files.
@@ -147,15 +149,6 @@ Expose this as a preload API call (`window.api.getFileIcon(path) → dataURL`) a
 Reserved for cases where neither the iOS badge pattern nor the system icon is appropriate. When custom SVGs are added, they slot into the same layout contract as Lucide icons — the import changes, nothing else does.
 
 ---
-
-## Do Not
-
-- Use `border-radius` above 12px anywhere
-- Use shadow blur above 32px
-- Use `clamp()` or `@media` breakpoints — this is a desktop app with a fixed layout
-- Hard-code color hex values for text or background — use CSS variables
-- Apply `backdrop-filter` to inline (non-floating) surfaces
-
 
 # References
 

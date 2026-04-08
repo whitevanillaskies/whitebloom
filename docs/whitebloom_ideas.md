@@ -14,6 +14,26 @@ A top-level shell for the entire `.wb.json`:
 - "Generate a summary brief from current content" — doable now
 - "Propose new edges based on semantic similarity" — requires LLM reasoning over all `plain` fields; output lands in a *proposed-edges buffer* that humans review before committing, not directly into the board
 
+### Set Unions
+
+Sets and windows open up the possibility for set operations
+"give me all the files in Q2 but not in Q1"
+"give me all the files in campaign that are .xlsx"
+etc.
+File extensions are simply smart sets computed JIT
+We can have media smart sets
+"give me all pictures (smart set of .jpg, .png, etc.) in Q2 and Q1"
+
+### Workspace home gone, replaced by arrangements
+
+we remove the workspace home
+
+the arrangements screen is the workspace home
+
+and we add a docker. in this docker we add workspaces and the trash bin
+
+and we rename bins in general to folders
+
 ---
 
 ## Good, Needs Design Care
