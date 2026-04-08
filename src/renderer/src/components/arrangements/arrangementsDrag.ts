@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { GardenCameraState } from '../../../../shared/arrangements'
 import {
   MICA_DRAG_COORDINATE_SPACE,
+  useMicaDragHoverIntent,
   useMicaDragState,
   useMicaDragStore,
   useMicaDropTarget,
@@ -20,19 +21,56 @@ export const ARRANGEMENTS_DRAG_ACCEPTED_KINDS = [ARRANGEMENTS_MATERIAL_DRAG_KIND
 
 const ARRANGEMENTS_DRAG_THRESHOLD = 6
 const DESKTOP_DROP_SPACING = 22
+const ARRANGEMENTS_SPRING_LOAD_DELAY_MS = 600
 
-export type ArrangementsDragSourceContext = 'desktop' | 'bin' | 'trash'
+export type ArrangementsDragSource =
+  | {
+      kind: 'desktop'
+    }
+  | {
+      kind: 'bin'
+      binId: string
+    }
+  | {
+      kind: 'trash'
+    }
+  | {
+      kind: 'set'
+      setId: string
+    }
 
 export type ArrangementsMaterialDragPayload = {
   materialKeys: string[]
   primaryMaterialKey: string
-  sourceContext: ArrangementsDragSourceContext
+  source: ArrangementsDragSource
 }
 
 export type ArrangementsMaterialDragPreview = {
   label: string
   count: number
+  stackCount: number
 }
+
+export type ArrangementsMaterialDropCommand =
+  | {
+      kind: 'move-to-desktop'
+      materialKey: string
+      position: MicaScreenPoint
+    }
+  | {
+      kind: 'assign-to-bin'
+      materialKey: string
+      binId: string
+    }
+  | {
+      kind: 'send-to-trash'
+      materialKey: string
+    }
+  | {
+      kind: 'add-to-set'
+      materialKey: string
+      setId: string
+    }
 
 export type ArrangementsDropTargetMeta =
   | {
@@ -55,8 +93,7 @@ type UseArrangementsMaterialDragOptions = {
   materialKey: string
   materialLabel: string
   selectedKeys?: string[]
-  sourceContext: ArrangementsDragSourceContext
-  sourceBinId?: string
+  source: ArrangementsDragSource
   onSelect?: (key: string, additive: boolean) => void
   onDragCommitted?: (materialKeys: string[]) => void
 }
@@ -126,48 +163,78 @@ function resolveArrangementsDropTarget(): ArrangementsDropResolution | null {
   }
 }
 
-function commitArrangementsMaterialDrop(
+export function createArrangementsMaterialDropCommands(
   resolution: ArrangementsDropResolution,
   payload: ArrangementsMaterialDragPayload
-): boolean {
+): ArrangementsMaterialDropCommand[] {
   const { target, pointer } = resolution
-  if (!target?.meta) return false
+  if (!target?.meta) return []
   const meta = target.meta as ArrangementsDropTargetMeta
-
-  const { assignToBin, moveMaterialOnDesktop, removeFromBin, sendToTrash } =
-    useArrangementsStore.getState()
-  const addToSet = useArrangementsStore.getState().addToSet
 
   switch (meta.type) {
     case 'desktop': {
       const basePoint = getDesktopWorldPoint(pointer.screen, target.bounds, meta.camera)
-      payload.materialKeys.forEach((materialKey, index) => {
-        removeFromBin(materialKey)
-        moveMaterialOnDesktop(materialKey, offsetDesktopPlacement(basePoint, index))
-      })
-      return true
+      return payload.materialKeys.map((materialKey, index) => ({
+        kind: 'move-to-desktop',
+        materialKey,
+        position: offsetDesktopPlacement(basePoint, index)
+      }))
     }
     case 'bin': {
-      payload.materialKeys.forEach((materialKey) => {
-        assignToBin(materialKey, meta.binId)
-      })
-      return true
+      if (payload.source.kind === 'bin' && payload.source.binId === meta.binId) return []
+      return payload.materialKeys.map((materialKey) => ({
+        kind: 'assign-to-bin',
+        materialKey,
+        binId: meta.binId
+      }))
     }
     case 'set': {
-      payload.materialKeys.forEach((materialKey) => {
-        addToSet(materialKey, meta.setId)
-      })
-      return true
+      if (payload.source.kind === 'set' && payload.source.setId === meta.setId) return []
+      return payload.materialKeys.map((materialKey) => ({
+        kind: 'add-to-set',
+        materialKey,
+        setId: meta.setId
+      }))
     }
     case 'trash': {
-      payload.materialKeys.forEach((materialKey) => {
-        sendToTrash(materialKey)
-      })
-      return true
+      if (payload.source.kind === 'trash') return []
+      return payload.materialKeys.map((materialKey) => ({
+        kind: 'send-to-trash',
+        materialKey
+      }))
     }
     default:
-      return false
+      return []
   }
+}
+
+function applyArrangementsMaterialDropCommands(commands: ArrangementsMaterialDropCommand[]): boolean {
+  if (commands.length === 0) return false
+
+  const { addToSet, assignToBin, moveMaterialOnDesktop, removeFromBin, sendToTrash } =
+    useArrangementsStore.getState()
+
+  for (const command of commands) {
+    switch (command.kind) {
+      case 'move-to-desktop':
+        removeFromBin(command.materialKey)
+        moveMaterialOnDesktop(command.materialKey, command.position)
+        break
+      case 'assign-to-bin':
+        assignToBin(command.materialKey, command.binId)
+        break
+      case 'send-to-trash':
+        sendToTrash(command.materialKey)
+        break
+      case 'add-to-set':
+        addToSet(command.materialKey, command.setId)
+        break
+      default:
+        break
+    }
+  }
+
+  return true
 }
 
 type PendingDragState = {
@@ -192,10 +259,20 @@ export function useArrangementsDropTarget(
     element: HTMLElement | null
   }
 ): void {
+  const hoverIntentDelayMs =
+    descriptor.meta?.type === 'bin' || descriptor.meta?.type === 'set'
+      ? ARRANGEMENTS_SPRING_LOAD_DELAY_MS
+      : undefined
+
   useMicaDropTarget({
     ...descriptor,
+    hoverIntentDelayMs,
     acceptedPayloadKinds: ARRANGEMENTS_DRAG_ACCEPTED_KINDS
   })
+}
+
+export function useArrangementsSpringLoadHover(targetId: string): boolean {
+  return useMicaDragHoverIntent(targetId)
 }
 
 export function useArrangementsDragTargetActive(targetId: string): boolean {
@@ -219,8 +296,7 @@ export function useArrangementsMaterialDrag({
   materialKey,
   materialLabel,
   selectedKeys = [],
-  sourceContext,
-  sourceBinId,
+  source,
   onSelect,
   onDragCommitted
 }: UseArrangementsMaterialDragOptions): {
@@ -250,15 +326,13 @@ export function useArrangementsMaterialDrag({
         const completedSession = useMicaDragStore.getState().completeDrag()
         if (
           completedSession?.payload.kind === ARRANGEMENTS_MATERIAL_DRAG_KIND &&
-          resolution &&
-          commitArrangementsMaterialDrop(
-            resolution,
-            completedSession.payload.data as ArrangementsMaterialDragPayload
-          )
+          resolution
         ) {
-          onDragCommitted?.(
-            (completedSession.payload.data as ArrangementsMaterialDragPayload).materialKeys
-          )
+          const dragPayload = completedSession.payload.data as ArrangementsMaterialDragPayload
+          const commands = createArrangementsMaterialDropCommands(resolution, dragPayload)
+          if (applyArrangementsMaterialDropCommands(commands)) {
+            onDragCommitted?.(dragPayload.materialKeys)
+          }
         }
       } else if (isDragging) {
         useMicaDragStore.getState().cancelDrag()
@@ -317,18 +391,25 @@ export function useArrangementsMaterialDrag({
             data: {
               materialKeys: pending.materialKeys,
               primaryMaterialKey: materialKey,
-              sourceContext
+              source
             }
           },
           source: {
-            context: sourceContext,
-            data: sourceBinId ? { binId: sourceBinId } : undefined
+            context: source.kind,
+            data:
+              source.kind === 'bin'
+                ? { binId: source.binId }
+                : source.kind === 'set'
+                  ? { setId: source.setId }
+                  : undefined
           },
           pointer,
           preview: {
+            stackCount: pending.materialKeys.length,
             meta: {
               label: materialLabel,
-              count: pending.materialKeys.length
+              count: pending.materialKeys.length,
+              stackCount: pending.materialKeys.length
             } satisfies ArrangementsMaterialDragPreview
           }
         })
@@ -339,7 +420,7 @@ export function useArrangementsMaterialDrag({
 
       useMicaDragStore.getState().updateDrag(pointer)
     },
-    [isDragging, materialKey, materialLabel, sourceBinId, sourceContext]
+    [isDragging, materialKey, materialLabel, source]
   )
 
   const onPointerUp = useCallback(

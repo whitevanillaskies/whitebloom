@@ -77,6 +77,7 @@ function ArrangementsDragOverlay(): React.JSX.Element | null {
   const activeMeta = activeTarget?.meta as { type?: 'desktop' | 'bin' | 'trash' } | undefined
   const label = preview?.label ?? payload.primaryMaterialKey
   const count = preview?.count ?? payload.materialKeys.length
+  const stackCount = preview?.stackCount ?? count
   const tone =
     activeMeta?.type === 'trash'
       ? 'danger'
@@ -95,6 +96,13 @@ function ArrangementsDragOverlay(): React.JSX.Element | null {
         top: session.pointer.screen.y + 18
       }}
     >
+      {stackCount > 1 ? (
+        <span
+          className="arrangements-view__drag-preview-stack"
+          aria-hidden="true"
+          style={{ ['--arrangements-drag-stack-count' as string]: Math.min(stackCount, 3) }}
+        />
+      ) : null}
       <span className="arrangements-view__drag-preview-title">{label}</span>
       {count > 1 ? (
         <span className="arrangements-view__drag-preview-count">{count}</span>

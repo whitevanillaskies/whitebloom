@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { create } from 'zustand'
 
 export const MICA_DRAG_COORDINATE_SPACE = 'screen-space' as const
@@ -41,6 +41,7 @@ export type MicaDragPointer = {
 export type MicaDragPreview<TMeta = unknown> = {
   offset?: Partial<MicaScreenPoint>
   meta?: TMeta
+  stackCount?: number
 }
 
 export type MicaDragSession<
@@ -67,6 +68,7 @@ export type MicaDropTargetDescriptor<
   acceptedPayloadKinds: readonly TAcceptedKind[]
   bounds: MicaScreenRect | null
   disabled?: boolean
+  hoverIntentDelayMs?: number
   meta?: TMeta
 }
 
@@ -80,6 +82,7 @@ export type MicaRegisteredDropTarget<
 export type MicaDragHoverState = {
   targetId: string | null
   enteredAt: number | null
+  intentDelayMs: number | null
 }
 
 export type MicaDragHitTestResult = {
@@ -132,7 +135,8 @@ export type MicaDragState = {
 
 const EMPTY_HOVER_STATE: MicaDragHoverState = {
   targetId: null,
-  enteredAt: null
+  enteredAt: null,
+  intentDelayMs: null
 }
 
 function createDragSession(input: MicaDragStartInput): MicaDragSession {
@@ -150,12 +154,16 @@ function createDragSession(input: MicaDragStartInput): MicaDragSession {
 
 function resolveHoverState(
   previousHover: MicaDragHoverState,
-  nextTargetId: string | null
+  nextTarget: MicaRegisteredDropTarget | null
 ): MicaDragHoverState {
+  const nextTargetId = nextTarget?.id ?? null
   if (!nextTargetId) return EMPTY_HOVER_STATE
+  const nextIntentDelayMs = nextTarget?.hoverIntentDelayMs ?? null
   return {
     targetId: nextTargetId,
-    enteredAt: previousHover.targetId === nextTargetId ? previousHover.enteredAt : Date.now()
+    enteredAt: previousHover.targetId === nextTargetId ? previousHover.enteredAt : Date.now(),
+    intentDelayMs:
+      previousHover.targetId === nextTargetId ? previousHover.intentDelayMs : nextIntentDelayMs
   }
 }
 
@@ -234,7 +242,7 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
     set((state) => ({
       session,
       activeTargetId: hit.targetId,
-      hover: resolveHoverState(state.hover, hit.targetId)
+      hover: resolveHoverState(state.hover, hit.target)
     }))
     return session
   },
@@ -252,7 +260,7 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
       return {
         session,
         activeTargetId: hit.targetId,
-        hover: resolveHoverState(state.hover, hit.targetId)
+        hover: resolveHoverState(state.hover, hit.target)
       }
     }),
 
@@ -263,7 +271,8 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
         activeTargetId: targetId,
         hover: {
           targetId,
-          enteredAt: targetId ? enteredAt : null
+          enteredAt: targetId ? enteredAt : null,
+          intentDelayMs: targetId ? state.targets[targetId]?.hoverIntentDelayMs ?? null : null
         }
       }
     }),
@@ -282,7 +291,7 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
     const hit = getTopmostMatchingTarget(state.targets, state.session?.pointer, state.session)
     set({
       activeTargetId: hit.targetId,
-      hover: resolveHoverState(state.hover, hit.targetId)
+      hover: resolveHoverState(state.hover, hit.target)
     })
     return hit
   },
@@ -317,7 +326,7 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
       return {
         targets,
         activeTargetId: hit.targetId,
-        hover: resolveHoverState(state.hover, hit.targetId)
+        hover: resolveHoverState(state.hover, hit.target)
       }
     }),
 
@@ -339,7 +348,7 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
       return {
         targets,
         activeTargetId: hit.targetId,
-        hover: resolveHoverState(state.hover, hit.targetId)
+        hover: resolveHoverState(state.hover, hit.target)
       }
     }),
 
@@ -354,7 +363,7 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
       return {
         targets: nextTargets,
         activeTargetId: hit.targetId,
-        hover: resolveHoverState(state.hover, hit.targetId)
+        hover: resolveHoverState(state.hover, hit.target)
       }
     }),
 
@@ -388,6 +397,49 @@ export function useMicaDragState<TResult>(
   return useMicaDragStore(selector)
 }
 
+export function getMicaDragHoverElapsedMs(
+  hover: Pick<MicaDragHoverState, 'targetId' | 'enteredAt'>,
+  now = Date.now()
+): number {
+  if (!hover.targetId || hover.enteredAt === null) return 0
+  return Math.max(0, now - hover.enteredAt)
+}
+
+export function isMicaDragHoverIntentReady(
+  hover: Pick<MicaDragHoverState, 'targetId' | 'enteredAt' | 'intentDelayMs'>,
+  targetId: string,
+  now = Date.now()
+): boolean {
+  if (hover.targetId !== targetId || hover.enteredAt === null) return false
+  if (hover.intentDelayMs === null) return false
+  return getMicaDragHoverElapsedMs(hover, now) >= hover.intentDelayMs
+}
+
+export function useMicaDragHoverIntent(targetId: string): boolean {
+  const hover = useMicaDragState((state) => state.hover)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (hover.targetId !== targetId || hover.enteredAt === null || hover.intentDelayMs === null) {
+      return
+    }
+
+    if (isMicaDragHoverIntentReady(hover, targetId, Date.now())) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now())
+    }, 50)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [hover, targetId])
+
+  return isMicaDragHoverIntentReady(hover, targetId, now)
+}
+
 export function useMicaDropTarget<
   TAcceptedKind extends string = string,
   TMeta = unknown
@@ -396,6 +448,7 @@ export function useMicaDropTarget<
   hostId,
   acceptedPayloadKinds,
   disabled,
+  hoverIntentDelayMs,
   meta,
   element
 }: MicaDropTargetBindingOptions<TAcceptedKind, TMeta>): void {
@@ -412,6 +465,7 @@ export function useMicaDropTarget<
         acceptedPayloadKinds,
         bounds: measureMicaElementScreenRect(element),
         disabled,
+        hoverIntentDelayMs,
         meta
       } satisfies MicaDropTargetDescriptor<TAcceptedKind, TMeta>
 
@@ -435,5 +489,5 @@ export function useMicaDropTarget<
       window.removeEventListener('scroll', syncBounds, true)
       useMicaDragStore.getState().unregisterDropTarget(id)
     }
-  }, [acceptedPayloadKinds, disabled, element, hostId, id, meta])
+  }, [acceptedPayloadKinds, disabled, element, hostId, hoverIntentDelayMs, id, meta])
 }

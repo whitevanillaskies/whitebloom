@@ -62,6 +62,19 @@ describe('mica drag store', () => {
   })
 
   it('tracks hover state separately from the active session and clears it on completion', () => {
+    useMicaDragStore.getState().registerDropTarget({
+      id: 'target-bin-2',
+      hostId: 'arrangements-desktop',
+      acceptedPayloadKinds: ['arrangements-material'],
+      bounds: {
+        x: 0,
+        y: 0,
+        width: 80,
+        height: 80
+      },
+      hoverIntentDelayMs: 600
+    })
+
     useMicaDragStore.getState().startDrag({
       sessionId: 'drag-2',
       payload: {
@@ -80,10 +93,9 @@ describe('mica drag store', () => {
     })
 
     useMicaDragStore.getState().setHoverTarget('target-bin-2', 999)
-    expect(useMicaDragStore.getState().hover).toEqual({
-      targetId: 'target-bin-2',
-      enteredAt: 999
-    })
+    expect(useMicaDragStore.getState().hover.targetId).toBe('target-bin-2')
+    expect(useMicaDragStore.getState().hover.intentDelayMs).toBe(600)
+    expect(useMicaDragStore.getState().hover.enteredAt).toEqual(expect.any(Number))
 
     const completed = useMicaDragStore.getState().completeDrag()
 
@@ -91,7 +103,8 @@ describe('mica drag store', () => {
     expect(useMicaDragStore.getState().session).toBeNull()
     expect(useMicaDragStore.getState().hover).toEqual({
       targetId: null,
-      enteredAt: null
+      enteredAt: null,
+      intentDelayMs: null
     })
   })
 
@@ -134,6 +147,40 @@ describe('mica drag store', () => {
       disabled: true,
       registeredAt: 500
     })
+  })
+
+  it('copies hover intent delay from the active target during hit testing', () => {
+    useMicaDragStore.getState().registerDropTarget({
+      id: 'bin-target',
+      hostId: 'arrangements-desktop',
+      acceptedPayloadKinds: ['arrangements-material'],
+      bounds: {
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100
+      },
+      hoverIntentDelayMs: 600
+    })
+
+    useMicaDragStore.getState().startDrag({
+      sessionId: 'drag-4',
+      payload: {
+        kind: 'arrangements-material',
+        data: { materialKeys: ['wloc:res/test.png'] }
+      },
+      source: {
+        context: 'desktop'
+      },
+      pointer: {
+        pointerId: 4,
+        pointerType: 'mouse',
+        screen: { x: 20, y: 20 }
+      }
+    })
+
+    expect(useMicaDragStore.getState().hover.targetId).toBe('bin-target')
+    expect(useMicaDragStore.getState().hover.intentDelayMs).toBe(600)
   })
 
   it('hit-tests only compatible targets and prefers the most recently registered overlap', () => {

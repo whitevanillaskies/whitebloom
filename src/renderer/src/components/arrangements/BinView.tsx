@@ -18,8 +18,10 @@ import {
   useArrangementsDragTargetActive,
   useArrangementsDropTarget,
   useArrangementsMaterialDrag,
-  useArrangementsMaterialDragging
+  useArrangementsMaterialDragging,
+  useArrangementsSpringLoadHover
 } from './arrangementsDrag'
+import { useControlledArrangementsMaterialSelection } from './arrangementsSelection'
 import './BinView.css'
 
 type ViewMode = 'icon' | 'list'
@@ -73,6 +75,7 @@ function SidebarRow({
   const rowRef = useRef<HTMLDivElement>(null)
   const targetId = createArrangementsDropTargetId('bin', `sidebar-${bin.id}`)
   const isDropActive = useArrangementsDragTargetActive(targetId)
+  const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
 
   useArrangementsDropTarget({
     id: targetId,
@@ -90,7 +93,8 @@ function SidebarRow({
       className={[
         'bin-view__sidebar-row',
         isActive ? 'bin-view__sidebar-row--active' : '',
-        isDropActive ? 'bin-view__sidebar-row--drag-over' : ''
+        isDropActive ? 'bin-view__sidebar-row--drag-over' : '',
+        isSpringLoadReady ? 'bin-view__sidebar-row--intent-ready' : ''
       ]
         .filter(Boolean)
         .join(' ')}
@@ -135,8 +139,13 @@ function IconItem({
     materialKey: material.key,
     materialLabel: material.displayName,
     selectedKeys,
-    sourceContext: sourceBinId === SYSTEM_TRASH_BIN_ID ? 'trash' : 'bin',
-    sourceBinId,
+    source:
+      sourceBinId === SYSTEM_TRASH_BIN_ID
+        ? { kind: 'trash' }
+        : {
+            kind: 'bin',
+            binId: sourceBinId
+          },
     onSelect,
     onDragCommitted
   })
@@ -221,8 +230,13 @@ function ListRow({
     materialKey: material.key,
     materialLabel: material.displayName,
     selectedKeys,
-    sourceContext: sourceBinId === SYSTEM_TRASH_BIN_ID ? 'trash' : 'bin',
-    sourceBinId,
+    source:
+      sourceBinId === SYSTEM_TRASH_BIN_ID
+        ? { kind: 'trash' }
+        : {
+            kind: 'bin',
+            binId: sourceBinId
+          },
     onSelect,
     onDragCommitted
   })
@@ -330,8 +344,10 @@ export default function BinView({
     `content-${binId}`
   )
   const isContentDropActive = useArrangementsDragTargetActive(contentTargetId)
-  const selectedKeys = uiState.ephemeral.selectedKeys
-  const selectedKeySet = new Set(selectedKeys)
+  const { clear, isSelected, retain, select, selectedKeys } = useControlledArrangementsMaterialSelection(
+    uiState.ephemeral.selectedKeys,
+    onSelectedKeysChange
+  )
 
   useArrangementsDropTarget({
     id: contentTargetId,
@@ -346,21 +362,6 @@ export default function BinView({
           }
   })
 
-  const handleSelect = useCallback((key: string, additive: boolean) => {
-    const nextSelectedKeys = (() => {
-      const prev = selectedKeys
-      if (additive) {
-        const next = new Set(prev)
-        if (next.has(key)) next.delete(key)
-        else next.add(key)
-        return [...next]
-      }
-      return [key]
-    })()
-
-    onSelectedKeysChange(nextSelectedKeys)
-  }, [onSelectedKeysChange, selectedKeys])
-
   const handleDoubleClick = useCallback(
     (material: ArrangementsMaterial) => {
       if (material.kind === 'board' && workspaceRoot) {
@@ -374,8 +375,8 @@ export default function BinView({
   )
 
   const handleDragCommitted = useCallback(() => {
-    onSelectedKeysChange([])
-  }, [onSelectedKeysChange])
+    clear()
+  }, [clear])
 
   // Stable ref so the effect below doesn't re-run on every render
   const handleKeyDownRef = useRef<(e: KeyboardEvent) => Promise<void>>(async () => {})
@@ -415,11 +416,11 @@ export default function BinView({
       } else {
         // Move to trash
         for (const key of selectedKeys) sendToTrash(key)
-        onSelectedKeysChange([])
+        clear()
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedKeys, isTrash, workspaceRoot, emptyTrash, sendToTrash, onSelectedKeysChange]
+    [clear, selectedKeys, isTrash, workspaceRoot, emptyTrash, sendToTrash]
   )
 
   useEffect(() => {
@@ -436,6 +437,10 @@ export default function BinView({
   const filteredMaterials = q
     ? binMaterials.filter((m) => m.displayName.toLowerCase().includes(q))
     : binMaterials
+
+  useEffect(() => {
+    retain(filteredMaterials.map((material) => material.key))
+  }, [filteredMaterials, retain])
 
   const sidebar = (
     <div className="bin-view__sidebar-list">
@@ -521,10 +526,10 @@ export default function BinView({
               key={material.key}
               material={material}
               workspaceRoot={workspaceRoot ?? ''}
-              selected={selectedKeySet.has(material.key)}
+              selected={isSelected(material.key)}
               selectedKeys={selectedKeys}
               sourceBinId={binId}
-              onSelect={handleSelect}
+              onSelect={select}
               onDragCommitted={handleDragCommitted}
               onDoubleClick={handleDoubleClick}
             />
@@ -541,10 +546,10 @@ export default function BinView({
               key={material.key}
               material={material}
               workspaceRoot={workspaceRoot ?? ''}
-              selected={selectedKeySet.has(material.key)}
+              selected={isSelected(material.key)}
               selectedKeys={selectedKeys}
               sourceBinId={binId}
-              onSelect={handleSelect}
+              onSelect={select}
               onDragCommitted={handleDragCommitted}
               onDoubleClick={handleDoubleClick}
             />

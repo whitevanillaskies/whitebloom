@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import type { ArrangementsMaterial } from '../../../../shared/arrangements'
+import { useLocalArrangementsMaterialSelection } from './arrangementsSelection'
 import MaterialItem from './MaterialItem'
 
 // Auto-layout grid for materials without an explicit placement
@@ -38,28 +39,12 @@ export default function DesktopMaterialItems({
     (m) => !binAssignments[m.key]
   )
 
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const { clear, isSelected, retain, select, selectedKeys } = useLocalArrangementsMaterialSelection()
 
   // Clear or trim selection when the visible desktop set changes.
   useEffect(() => {
-    const visibleKeys = new Set(visibleMaterials.map((material) => material.key))
-    setSelectedKeys((prev) => new Set([...prev].filter((key) => visibleKeys.has(key))))
-  }, [visibleMaterials])
-
-  const handleSelect = useCallback((key: string, additive: boolean) => {
-    setSelectedKeys((prev) => {
-      if (additive) {
-        const next = new Set(prev)
-        if (next.has(key)) {
-          next.delete(key)
-        } else {
-          next.add(key)
-        }
-        return next
-      }
-      return new Set([key])
-    })
-  }, [])
+    retain(visibleMaterials.map((material) => material.key))
+  }, [retain, visibleMaterials])
 
   const handleDoubleClick = useCallback(
     (material: ArrangementsMaterial) => {
@@ -83,7 +68,7 @@ export default function DesktopMaterialItems({
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
-      if (selectedKeys.size === 0) return
+      if (selectedKeys.length === 0) return
       // Only act when focus is on the desktop, not in an input
       const tag = (document.activeElement?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
@@ -92,11 +77,11 @@ export default function DesktopMaterialItems({
       for (const key of selectedKeys) {
         sendToTrash(key)
       }
-      setSelectedKeys(new Set())
+      clear()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedKeys, sendToTrash])
+  }, [clear, selectedKeys, sendToTrash])
 
   // Click-off to deselect
   useEffect(() => {
@@ -106,12 +91,12 @@ export default function DesktopMaterialItems({
         return
       }
       if (!target?.closest('.material-item')) {
-        setSelectedKeys(new Set())
+        clear()
       }
     }
     window.addEventListener('pointerdown', onPointerDown, true)
     return () => window.removeEventListener('pointerdown', onPointerDown, true)
-  }, [])
+  }, [clear])
 
   if (!workspaceRoot) return <></>
 
@@ -127,9 +112,9 @@ export default function DesktopMaterialItems({
             workspaceRoot={workspaceRoot}
             x={pos.x}
             y={pos.y}
-            selected={selectedKeys.has(material.key)}
-            selectedKeys={[...selectedKeys]}
-            onSelect={handleSelect}
+            selected={isSelected(material.key)}
+            selectedKeys={selectedKeys}
+            onSelect={select}
             onDoubleClick={handleDoubleClick}
           />
         )

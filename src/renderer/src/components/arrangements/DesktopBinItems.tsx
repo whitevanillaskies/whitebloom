@@ -7,7 +7,8 @@ import {
   ARRANGEMENTS_MICA_HOST_ID,
   createArrangementsDropTargetId,
   useArrangementsDragTargetActive,
-  useArrangementsDropTarget
+  useArrangementsDropTarget,
+  useArrangementsSpringLoadHover
 } from './arrangementsDrag'
 import './DesktopBinItems.css'
 
@@ -43,6 +44,7 @@ function BinItem({
   const rootRef = useRef<HTMLDivElement>(null)
   const targetId = createArrangementsDropTargetId(isTrash ? 'trash' : 'bin', bin.id)
   const isDropActive = useArrangementsDragTargetActive(targetId)
+  const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
 
   // ── Drag-to-move (user bins only) ─────────────────────────
   const dragStart = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null)
@@ -121,6 +123,7 @@ function BinItem({
         'desktop-bin',
         isTrash ? 'desktop-bin--trash' : 'desktop-bin--user',
         isDropActive ? 'desktop-bin--drag-over' : '',
+        isSpringLoadReady ? 'desktop-bin--intent-ready' : '',
         dragging ? 'desktop-bin--dragging' : ''
       ]
         .filter(Boolean)

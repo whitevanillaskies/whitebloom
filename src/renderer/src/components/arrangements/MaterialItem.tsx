@@ -71,7 +71,9 @@ export default function MaterialItem({
     materialKey: material.key,
     materialLabel: material.displayName,
     selectedKeys,
-    sourceContext: 'desktop',
+    source: {
+      kind: 'desktop'
+    },
     onSelect
   })
 

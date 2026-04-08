@@ -7,7 +7,8 @@ import {
   ARRANGEMENTS_MICA_HOST_ID,
   createArrangementsDropTargetId,
   useArrangementsDragTargetActive,
-  useArrangementsDropTarget
+  useArrangementsDropTarget,
+  useArrangementsSpringLoadHover
 } from './arrangementsDrag'
 import './SetsIsland.css'
 
@@ -34,6 +35,7 @@ function SetTreeNode({
   const rowRef = useRef<HTMLDivElement>(null)
   const targetId = createArrangementsDropTargetId('set', node.id)
   const isDropActive = useArrangementsDragTargetActive(targetId)
+  const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
 
   useArrangementsDropTarget({
     id: targetId,
@@ -60,7 +62,8 @@ function SetTreeNode({
         ref={rowRef}
         className={[
           'sets-island__row',
-          isDropActive ? 'sets-island__row--drag-over' : ''
+          isDropActive ? 'sets-island__row--drag-over' : '',
+          isSpringLoadReady ? 'sets-island__row--intent-ready' : ''
         ]
           .filter(Boolean)
           .join(' ')}
@@ -141,12 +144,12 @@ export default function SetsIsland(): React.JSX.Element {
             {sets.map((node) => (
               <SetTreeNode
                 key={node.id}
-              node={node}
-              depth={0}
-              expandedIds={expandedIds}
-              onToggleExpand={handleToggleExpand}
-            />
-          ))}
+                node={node}
+                depth={0}
+                expandedIds={expandedIds}
+                onToggleExpand={handleToggleExpand}
+              />
+            ))}
           </ul>
         ) : (
           <p className="sets-island__empty">No sets yet</p>

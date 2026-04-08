@@ -21,105 +21,6 @@ The guiding split is:
 
 That means Mica should become the host-level interaction substrate for cross-window dragging, while Arrangements translates drops into domain commands such as `assignToBin`, `removeFromBin`, `moveMaterialOnDesktop`, and `sendToTrash`.
 
-## Architectural direction
-
-### 1. Introduce a generic `MicaDrag` subsystem
-
-Add a Mica-level drag session manager that is independent from Arrangements data structures. It should be able to power any future windowed interaction in Whitebloom, not just Arrangements.
-
-Core responsibilities:
-
-- Track an active drag session in **screen space**
-- Carry typed drag payload data
-- Register and unregister drop targets
-- Hit-test targets across Mica windows and the desktop host
-- Emit hover / enter / leave / drop state
-- Support a renderer-local implementation now, while keeping the API compatible with future main-process coordination for separate `BrowserWindow`s
-
-The Mica drag system should not decide what a drop means. It only decides:
-
-- what is being dragged
-- where the pointer is
-- which target is currently active
-- when a drop starts, hovers, exits, and completes
-
-### 2. Keep Arrangements as a consumer of Mica drag
-
-Arrangements should define its own drop target adapters on top of Mica:
-
-- **Desktop target**
-  - Accepts arrangement materials
-  - Converts screen coordinates into desktop world coordinates
-  - Removes the material from any bin assignment
-  - Persists desktop placement
-
-- **Bin target**
-  - Accepts arrangement materials
-  - Assigns the material to the target bin
-
-- **Trash target**
-  - Accepts arrangement materials
-  - Sends the material to trash
-
-This keeps desktop semantics, bin semantics, and later set semantics out of Mica itself.
-
-### 3. Stop relying on HTML5 drag/drop as the core interaction model
-
-The current HTML5 drag approach is acceptable as a temporary scaffold inside one renderer tree, but it should no longer be treated as the long-term foundation.
-
-Reasons:
-
-- HTML5 drag is awkward for custom multi-item previews
-- it becomes brittle across layered hosts and custom windows
-- it does not map cleanly to future native multi-window drag orchestration
-- it makes spring-loaded behaviors and richer hover state harder to control
-
-Short-term migration is acceptable, but the target state is pointer-driven custom drag managed by Mica.
-
-## Proposed shape of the Mica drag API
-
-The exact names can change, but the system should support concepts like:
-
-- `startDrag(payload, source)`
-- `updateDrag(pointer)`
-- `cancelDrag()`
-- `completeDrag()`
-- `registerDropTarget(descriptor)`
-- `unregisterDropTarget(targetId)`
-
-Drag payloads should be typed and generic, for example:
-
-- `arrangements-material`
-- `board-node`
-- `workspace-file`
-
-For Arrangements, the first real payload should support:
-
-- one or more material keys
-- source context
-  - desktop
-  - bin
-  - trash
-  - future set
-- drag preview metadata
-
-Drop targets should expose:
-
-- accepted payload kinds
-- target identity
-- target-local hit testing or bounds
-- optional hover callbacks
-- drop dispatch hooks that notify the consumer, not domain mutations inside Mica
-
-The active drag session should remain serializable enough that later we can mirror it across processes if we promote Mica windows into separate native windows.
-
-Important boundary:
-
-- Mica may determine which target is active and when a drop occurs
-- Mica should **not** directly mutate Arrangements state
-- Arrangements should translate drop outcomes into explicit domain commands such as `assignToBin`, `moveMaterialOnDesktop`, `removeFromBin`, and `sendToTrash`
-- Those commands should continue to flow through the normal store command path rather than bypassing it through drag callbacks
-
 ## Coordinate model
 
 This is the critical design constraint for future separate windows.
@@ -138,17 +39,6 @@ This is the main reason the drag system belongs in Mica-level infrastructure rat
 ## Windowing implications
 
 The current `MicaWindow` is still a renderer-hosted floating surface, but separate native windows are planned. Build this in two stages:
-
-### Stage A: single-renderer Mica host
-
-Implement the drag broker entirely in the renderer:
-
-- one drag store
-- one registry of live targets
-- one drag overlay / preview layer
-- Mica windows and desktop surfaces register targets against it
-
-This is the implementation path now.
 
 ### Stage B: native multi-window Mica
 
@@ -190,30 +80,6 @@ The Mica drag layer is infrastructure, but it will still be visible to the user 
 - never require the user to wait for an animation to regain control
 - any dismissal or drag-cancel visual state should clear immediately, never with a fade-out
 
-## Implementation plan
-
-### Phase 3: normalize domain commands and source semantics
-
-- Make sure Arrangements drag handlers express intent cleanly:
-  - move to desktop
-  - assign to bin
-  - send to trash
-- Define how source context affects behavior
-- Ensure future set support can plug in without changing Mica drag internals
-
-Deliverable:
-- Arrangements drag behavior is explicit, command-oriented, and ready for more target types
-
-### Phase 4: prepare for richer desktop interactions
-
-- Add shared selection primitives that can support multi-select later
-- Reserve shape for drag previews carrying multiple materials
-- Keep hover timing hooks ready for spring-loaded window or bin behaviors
-- Avoid hard-coding assumptions that only one item is ever dragged
-
-Deliverable:
-- architecture remains compatible with rubber-band selection and Finder-style polish
-
 ### Phase 5: native multi-window follow-up
 
 - Revisit Mica host ownership once separate native windows are introduced
@@ -223,35 +89,9 @@ Deliverable:
 Deliverable:
 - native-window migration path without changing Arrangements domain logic
 
-## Completed in this pass
-
-- Added a generic `MicaDrag` store and type layer under `src/renderer/src/mica/`
-- Added screen-space drop target registration and active-target hit testing
-- Added a Mica-level drag overlay path for Arrangements previews and active-target feedback
-- Converted Arrangements desktop, trash, desktop bins, bin rows, bin content, and bin item surfaces to registered Mica drop targets
-- Removed `dataTransfer` / HTML5 drag ownership for Arrangements material moves in the desktop and `BinView` flows
-
 ## Immediate coding priorities
 
-1. Finish the HTML5 removal by migrating `SetsIsland` off `dataTransfer` and onto the same Mica drag target contract.
-2. Tighten Arrangements drag semantics so source context is explicit and future set support can plug in without revisiting Mica internals.
-3. Add shared selection primitives so desktop and bin views can support multi-select cleanly beyond the current local state.
-4. Reserve richer preview and hover timing hooks for spring-loaded bins/windows and multi-item ghost stacks.
-
-## Sanity check
-
-The core architectural shift is in place:
-
-- Mica owns the drag session, pointer tracking, target registry, hit testing, and overlay state.
-- Arrangements owns drop meaning and translates drops into existing store commands.
-- Desktop-to-bin, bin-to-desktop, bin-to-bin, and trash flows no longer rely on HTML5 drag/drop.
-
-What still needs work:
-
-- `SetsIsland` still uses HTML5 drag/drop and should be migrated before this workstream is considered fully complete.
-- Selection state is still split across individual Arrangements surfaces instead of living in a shared primitive that can support richer Finder-like interactions.
-- The current drag preview is intentionally minimal; hover timing, spring-loaded behavior, and more expressive multi-item previews are still pending.
-- Native multi-window coordination is still future work; the current implementation is renderer-local by design.
+1. Revisit Mica host ownership and coordination once native separate windows are introduced.
 
 ## Non-goals for this pass
 

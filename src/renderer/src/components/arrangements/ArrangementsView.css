@@ -103,6 +103,33 @@
   backdrop-filter: blur(12px);
 }
 
+.arrangements-view__drag-preview-stack {
+  position: relative;
+  width: 18px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.arrangements-view__drag-preview-stack::before,
+.arrangements-view__drag-preview-stack::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.arrangements-view__drag-preview-stack::before {
+  transform: translate(4px, -3px);
+  opacity: calc(min(var(--arrangements-drag-stack-count, 1) - 1, 1) * 0.75);
+}
+
+.arrangements-view__drag-preview-stack::after {
+  transform: translate(2px, -1px);
+  opacity: calc(min(var(--arrangements-drag-stack-count, 1), 2) * 0.9);
+}
+
 .arrangements-view__drag-preview--accept {
   border-color: rgba(30, 135, 255, 0.22);
   box-shadow: 0 10px 24px rgba(30, 135, 255, 0.18);

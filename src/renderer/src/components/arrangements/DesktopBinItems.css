@@ -53,6 +53,10 @@
   background: rgba(var(--color-accent-red-rgb), 0.08);
 }
 
+.desktop-bin--intent-ready .desktop-bin__icon-wrap {
+  box-shadow: inset 0 0 0 1px rgba(30, 135, 255, 0.26);
+}
+
 /* ── Icon wrapper ─────────────────────────────────────────── */
 
 .desktop-bin__icon-wrap {

@@ -15,10 +15,13 @@ export { useMicaHost } from './useMicaHost'
 export {
   canMicaDropTargetAcceptPayload,
   createMicaScreenRect,
+  getMicaDragHoverElapsedMs,
+  isMicaDragHoverIntentReady,
   isMicaDragPayloadKind,
   isPointInMicaScreenRect,
   MICA_DRAG_COORDINATE_SPACE,
   measureMicaElementScreenRect,
+  useMicaDragHoverIntent,
   useMicaDragState,
   useMicaDragStore,
   useMicaDropTarget

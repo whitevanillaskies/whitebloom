@@ -59,6 +59,10 @@
   outline-offset: -1px;
 }
 
+.sets-island__row--intent-ready {
+  box-shadow: inset 2px 0 0 rgba(30, 135, 255, 0.42);
+}
+
 .sets-island__row--smart {
   cursor: default;
 }
