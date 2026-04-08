@@ -468,8 +468,10 @@ export default function BinView({
       <button
         type="button"
         className={[
-          'bin-view__mode-btn',
-          uiState.preferences.viewMode === 'icon' ? 'bin-view__mode-btn--active' : ''
+          'mica-window__toolbar-button',
+          uiState.preferences.viewMode === 'icon'
+            ? 'mica-window__toolbar-button--active'
+            : ''
         ]
           .filter(Boolean)
           .join(' ')}
@@ -482,8 +484,10 @@ export default function BinView({
       <button
         type="button"
         className={[
-          'bin-view__mode-btn',
-          uiState.preferences.viewMode === 'list' ? 'bin-view__mode-btn--active' : ''
+          'mica-window__toolbar-button',
+          uiState.preferences.viewMode === 'list'
+            ? 'mica-window__toolbar-button--active'
+            : ''
         ]
           .filter(Boolean)
           .join(' ')}
@@ -495,7 +499,7 @@ export default function BinView({
       </button>
 
       <input
-        className="bin-view__search"
+        className="mica-window__toolbar-search"
         type="search"
         placeholder="Search…"
         value={uiState.ephemeral.searchQuery}
