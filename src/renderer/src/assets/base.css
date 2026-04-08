@@ -91,4 +91,7 @@
   --radius-blur-soft: 1px;
   --radius-blur-medium: 2px;
   --radius-blur-heavy: 4px;
+
+  --size-window-toolbar-control: 24px;
+  --size-window-toolbar-segmented-inset: 1px;
 }

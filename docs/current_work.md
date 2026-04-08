@@ -215,6 +215,112 @@ This track is about cleaning up the existing structure without changing the conc
 - Update Bin View to consume the extracted control primitives instead of depending on `MicaWindow`-owned button/search styling.
 - Do a visual pass against `design_language.md` so the remaining titlebar chrome reads as premium macOS-inspired shell rather than boxed toolbar controls.
 
+#### Track 1 Audit Findings
+
+- `MicaWindow` currently conflates shell and controls. It owns frame and titlebar, which is correct, but it also styles arbitrary toolbar buttons and the search field, which is not. This is the core architectural problem.
+- `BinView` is currently the only `MicaWindow` consumer. That makes this a good refactor target because we can narrow the shell contract before more windows depend on the wrong model.
+- `BinView` is already expressing a Finder-like toolbar need: two related view-mode controls and one search field. The current `headerActions` slot can render them, but it cannot express grouping or spacing semantically.
+- The app already has at least two distinct button primitives in practice:
+- `PetalButton` for dialog and panel actions
+- `PetalToolbarButton` for floating icon-only toolbar controls
+- Several surfaces are still bypassing those primitives and styling buttons locally:
+- `MicaWindow` titlebar actions and search
+- `CanvasToolbar`
+- `SettingsModal` navigation, close button, confirmation actions, and select-like controls
+- `ArrangementsView` top bar back button
+- The codebase is therefore missing a formal hierarchy of interaction roles, not missing buttons in general.
+
+#### Proposed Primitive Hierarchy
+
+Use macOS as the mental model: AppKit does not use one button class for every role. Dialog buttons, toolbar items, sidebar selections, close controls, and segmented controls are distinct roles even when they are all clickable.
+
+- `PetalButton`
+- Purpose: dialog and panel actions, especially confirm, cancel, save, destructive.
+- macOS analogue: standard dialog `NSButton`.
+- Current home: `PetalPanel` action rows and confirmation prompts.
+- `PetalToolbarButton`
+- Purpose: floating icon-only controls on canvas-adjacent surfaces.
+- macOS analogue: compact toolbar or palette icon control, but for floating Whitebloom surfaces rather than window headers.
+- Current home: SchemaBloom canvas toolbar.
+- `WindowTrafficLightButton` or equivalent window-chrome control
+- Purpose: close/minimize/zoom-style titlebar chrome. This belongs to window shell, not to toolbar primitives.
+- macOS analogue: traffic-light window controls.
+- Current home: `MicaWindow` close button, but currently styled ad hoc inside the shell CSS.
+- `WindowToolbarButton`
+- Purpose: icon-only or icon-leading controls that live inside a window toolbar.
+- macOS analogue: `NSToolbarItem` button.
+- Not yet implemented; currently faked by raw buttons inside `MicaWindow`.
+- `WindowToolbarSegmented`
+- Purpose: tightly grouped mutually exclusive view toggles such as icon/list.
+- macOS analogue: segmented toolbar control used by Finder and many AppKit windows.
+- Not yet implemented; currently faked as two independent buttons in `BinView`.
+- `WindowToolbarSearch`
+- Purpose: search field specifically designed for window-toolbar placement.
+- macOS analogue: `NSSearchToolbarItem`.
+- Not yet implemented; currently styled through `MicaWindow.css`.
+- `TopbarNavButton` only if needed
+- Purpose: lightweight app-level navigation such as the Arrangements back button.
+- This should exist only if it proves materially different from the other primitives after refactor; otherwise it should be expressed through an existing primitive with a variant.
+
+#### Immediate Refactor Targets
+
+- Extract the `MicaWindow` close button into an explicit window-chrome control instead of leaving its look embedded in `MicaWindow.css`.
+- Stop `MicaWindow` from styling descendant `button` elements inside `.mica-window__actions`; window shell CSS should style slots and layout only.
+- Move `.mica-window__toolbar-search` out of `MicaWindow.css` into a dedicated control or temporary Bin View-specific style until `WindowToolbarSearch` exists.
+- Replace the two loose `BinView` view-mode buttons with a temporary grouped control abstraction, even before full `WindowToolbar` exists, so the semantics stop implying unrelated actions.
+- Decide whether `PetalToolbarButton` should remain canvas-specific or be generalized into a lower-level icon-button primitive with context-specific wrappers. Do not reuse it blindly for window toolbars without this decision.
+- Audit `CanvasToolbar` and migrate it away from bespoke `.canvas-toolbar__button` styling so it either uses `PetalToolbarButton` consistently or becomes a clearer separate primitive.
+- Audit `SettingsModal` for controls that should become reusable primitives:
+- close affordance
+- inline destructive confirmation actions
+- select/radio field wrappers where duplication already exists
+- Keep `PetalButton` scoped to dialog/panel actions. Do not let it become the universal answer for toolbar buttons, close controls, or sidebar rows.
+
+#### Track 1 Implementation Plan For Button Primitives
+
+- Implement `WindowTrafficLightButton` or equivalent first.
+- Scope: replace the current ad hoc close button styling in `MicaWindow`.
+- Responsibility: window chrome only, not toolbar controls.
+- Follow-up: leave room for minimize/zoom later even if v1 only renders close.
+
+- Implement `WindowToolbarButton` next.
+- Scope: the standard clickable item used inside a window toolbar.
+- Responsibility: icon-only and icon-leading toolbar actions inside windows.
+- Constraint: do not reuse `PetalButton`; dialog actions and toolbar items should remain separate primitives.
+
+- Implement `WindowToolbarSegmented` immediately after `WindowToolbarButton`.
+- Scope: grouped mutually exclusive view controls such as icon/list.
+- Responsibility: express semantic grouping before full `WindowToolbar` lands.
+- First consumer: `BinView` view mode switcher.
+
+- Implement `WindowToolbarSearch`.
+- Scope: a toolbar-specific search control with the right height, density, and focus styling for a Finder-like header.
+- Responsibility: remove search ownership from `MicaWindow.css`.
+- First consumer: `BinView` search field.
+
+- Evaluate `TopbarNavButton` only after the above are in place.
+- Scope: app-level back/navigation controls such as the Arrangements top bar.
+- Decision rule: only promote this to a primitive if it still feels materially distinct after the shell and toolbar controls are cleaned up.
+
+- Keep `PetalButton` as the dialog/panel action primitive and tighten its intended usage in docs and call sites.
+- First target surfaces: `PetalPanel` action rows and confirmation flows such as exit without saving.
+- Non-goal: using `PetalButton` for window toolbar actions, titlebar chrome, or floating canvas tool icons.
+
+- Keep `PetalToolbarButton` as the floating toolbar primitive for now, but audit it against the bespoke canvas toolbar implementation.
+- First target surfaces: SchemaBloom canvas toolbar and general canvas-adjacent floating palettes.
+- Decision rule: either migrate floating toolbars toward `PetalToolbarButton` or deliberately introduce a different canvas-toolbar primitive, but do not leave both patterns unconstrained.
+
+- Defer any formal sidebar-row primitive until more surfaces exist.
+- For now, sidebar rows in `BinView` and `SettingsModal` remain local implementations and should not drive the button taxonomy.
+
+#### Refactor Rules for Track 1
+
+- `MicaWindow` may own chrome, structure, and drag behavior.
+- `MicaWindow` may not own toolbar button, search field, or segmented-control styling.
+- A button primitive must be named by role, not merely by appearance.
+- If two clickable controls live in different UX contexts and behave differently in macOS terms, they should not be forced into the same primitive just because they are both small buttons.
+- Favor explicit wrappers over generic `variant` explosion. `PetalButton` and `WindowToolbarButton` should be siblings, not one mega-button with ten modes.
+
 ### Track 2: Refactor the Window Toolbar Into Its Own Thing
 
 This track establishes `WindowToolbar` as a dedicated layout and composition surface inspired by Finder/AppKit toolbar behavior.

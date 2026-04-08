@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { PetalControlButton } from '../components/petal/window'
 import './MicaWindow.css'
 
 type MicaWindowProps = {
@@ -32,15 +33,14 @@ export default function MicaWindow({
       <div className="mica-window__titlebar" data-mica-drag-handle="true">
         <div className="mica-window__leading">
           {onClose ? (
-            <button
-              type="button"
-              className="mica-window__close"
+            <PetalControlButton
+              variant="close"
               onClick={onClose}
-              aria-label="Close"
+              label="Close"
               data-mica-no-drag="true"
             >
               <X size={13} strokeWidth={1.8} />
-            </button>
+            </PetalControlButton>
           ) : (
             <div className="mica-window__close-placeholder" aria-hidden="true" />
           )}

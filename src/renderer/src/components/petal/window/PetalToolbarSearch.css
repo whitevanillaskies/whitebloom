@@ -1,0 +1,27 @@
+.petal-toolbar-search {
+  width: 140px;
+  height: var(--size-window-toolbar-control);
+  padding: 0 8px;
+  border: 0px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-border-inner);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-primary-fg);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.petal-toolbar-search::placeholder {
+  color: var(--color-muted-fg);
+}
+
+.petal-toolbar-search:focus {
+  border-color: rgba(var(--color-accent-blue-rgb), 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 0 2px rgba(var(--color-accent-blue-rgb), 0.12);
+}
