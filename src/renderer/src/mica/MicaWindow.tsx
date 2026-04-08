@@ -30,21 +30,23 @@ export default function MicaWindow({
       aria-label={ariaLabel ?? title}
     >
       <div className="mica-window__titlebar" data-mica-drag-handle="true">
-        {onClose ? (
-          <button
-            type="button"
-            className="mica-window__close"
-            onClick={onClose}
-            aria-label="Close"
-            data-mica-no-drag="true"
-          >
-            <X size={13} strokeWidth={1.8} />
-          </button>
-        ) : (
-          <div className="mica-window__close-placeholder" aria-hidden="true" />
-        )}
+        <div className="mica-window__leading">
+          {onClose ? (
+            <button
+              type="button"
+              className="mica-window__close"
+              onClick={onClose}
+              aria-label="Close"
+              data-mica-no-drag="true"
+            >
+              <X size={13} strokeWidth={1.8} />
+            </button>
+          ) : (
+            <div className="mica-window__close-placeholder" aria-hidden="true" />
+          )}
 
-        <span className="mica-window__title">{title}</span>
+          <span className="mica-window__title">{title}</span>
+        </div>
 
         <div className="mica-window__actions" data-mica-no-drag="true">
           {headerActions}
