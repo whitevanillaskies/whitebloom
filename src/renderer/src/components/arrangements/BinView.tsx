@@ -439,8 +439,6 @@ export default function BinView({
   }, [])
 
   const activeBin = bins.find((b) => b.id === binId)
-  if (!activeBin) return null
-
   const binMaterials = materials.filter((m) => binAssignments[m.key] === binId)
   const q = uiState.ephemeral.searchQuery.trim().toLowerCase()
   const filteredMaterials = q
@@ -450,6 +448,8 @@ export default function BinView({
   useEffect(() => {
     retain(filteredMaterials.map((material) => material.key))
   }, [filteredMaterials, retain])
+
+  if (!activeBin) return null
 
   const sidebar = (
     <div className="bin-view__sidebar-list">

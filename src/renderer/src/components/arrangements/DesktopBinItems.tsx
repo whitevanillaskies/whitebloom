@@ -278,17 +278,19 @@ function BinItem({
 
 type DesktopBinItemsProps = {
   onOpenBin: (binId: string) => void
+  onDeleteBin: (binId: string) => void
 }
 
-export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): React.JSX.Element {
+export default function DesktopBinItems({
+  onOpenBin,
+  onDeleteBin
+}: DesktopBinItemsProps): React.JSX.Element {
   const bins = useArrangementsStore((s) => s.bins)
   const desktopPlacements = useArrangementsStore((s) => s.desktopPlacements)
   const moveBinOnDesktop = useArrangementsStore((s) => s.moveBinOnDesktop)
   const pendingRenameTarget = useArrangementsStore((s) => s.pendingRenameTarget)
   const markPendingRenameTarget = useArrangementsStore((s) => s.markPendingRenameTarget)
   const renameBin = useArrangementsStore((s) => s.renameBin)
-  const deleteBin = useArrangementsStore((s) => s.deleteBin)
-  const saveArrangements = useArrangementsStore((s) => s.saveArrangements)
 
   const handleMoved = useCallback(
     (binId: string, x: number, y: number) => {
@@ -324,10 +326,9 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
 
   const handleDeleteBin = useCallback(
     (binId: string) => {
-      deleteBin(binId)
-      void saveArrangements()
+      onDeleteBin(binId)
     },
-    [deleteBin, saveArrangements]
+    [onDeleteBin]
   )
 
   const userBins = bins.filter((b) => b.kind === 'user')

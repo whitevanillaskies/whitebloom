@@ -196,6 +196,19 @@ export default function ArrangementsView({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [paletteOpen])
 
+  const handleDeleteBin = useCallback(
+    (binId: string) => {
+      for (const window of arrangementsMica.windows) {
+        if (window.kind !== 'bin-view') continue
+        if (window.payload.binId !== binId) continue
+        arrangementsMica.close(window.id)
+      }
+      deleteBin(binId)
+      void saveArrangements()
+    },
+    [arrangementsMica, deleteBin, saveArrangements]
+  )
+
   const paletteItems = useMemo<PaletteItem[]>(
     () => {
       const userBins = bins.filter((bin) => bin.kind === 'user')
@@ -237,8 +250,7 @@ export default function ArrangementsView({
           subtitle: 'Remove this bin from Arrangements',
           icon: <Trash2 size={14} strokeWidth={1.8} />,
           onActivate: () => {
-            deleteBin(bin.id)
-            void saveArrangements()
+            handleDeleteBin(bin.id)
             return { type: 'close' as const }
           }
         })),
@@ -392,8 +404,8 @@ export default function ArrangementsView({
       bins,
       createBinAtViewportCenter,
       createRootSet,
-      deleteBin,
       deleteSet,
+      handleDeleteBin,
       renameBin,
       renameSet,
       saveArrangements,
@@ -522,7 +534,7 @@ export default function ArrangementsView({
           >
             <ArrangementsDesktop overlay={<DesktopTrashBin onOpenBin={handleOpenBin} />}>
               <DesktopMaterialItems onOpenBoard={onOpenBoard} />
-              <DesktopBinItems onOpenBin={handleOpenBin} />
+              <DesktopBinItems onOpenBin={handleOpenBin} onDeleteBin={handleDeleteBin} />
             </ArrangementsDesktop>
 
             {/* Bin View — temporary direct MicaWindow usage before full Mica host adoption */}
