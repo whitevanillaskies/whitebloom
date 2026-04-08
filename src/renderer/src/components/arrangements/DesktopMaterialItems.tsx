@@ -43,6 +43,13 @@ export default function DesktopMaterialItems({
     () => visibleMaterials.map((material) => material.key),
     [visibleMaterials]
   )
+  const materialOrder = useMemo(
+    () =>
+      new Map(
+        materials.map((material, index) => [material.key, index] as const)
+      ),
+    [materials]
+  )
 
   const { clear, isSelected, retain, select, selectedKeys } = useLocalArrangementsMaterialSelection()
 
@@ -107,9 +114,10 @@ export default function DesktopMaterialItems({
 
   return (
     <>
-      {visibleMaterials.map((material, index) => {
+      {visibleMaterials.map((material) => {
         const stored = desktopPlacements[material.key]
-        const pos = stored ?? autoPosition(index)
+        const fallbackIndex = materialOrder.get(material.key) ?? 0
+        const pos = stored ?? autoPosition(fallbackIndex)
         return (
           <MaterialItem
             key={material.key}
