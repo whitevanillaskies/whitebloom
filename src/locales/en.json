@@ -210,7 +210,7 @@
   },
   "navigation": {
     "saveBeforeLeavingTitle": "Save changes before leaving?",
-    "saveBeforeLeavingBody": "This board has unsaved changes. You can save, discard those edits, or cancel this navigation.",
+    "saveBeforeLeavingBody": "This board has unsaved changes.",
     "saveButton": "Save",
     "discardButton": "Discard",
     "cancelButton": "Cancel"

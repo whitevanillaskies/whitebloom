@@ -47,17 +47,21 @@
 
 /* Destructive — irreversible, maps to NSButton role .destructive */
 
-.petal-button--destructive {
-  background: transparent;
-  border-color: rgba(var(--color-accent-red-rgb), 0.22);
-  box-shadow: none;
-  color: var(--color-accent-red);
+/* .petal-button--destructive {
+  background: var(--color-accent-red);
+  border-color: var(--color-accent-pink);
+  /* box-shadow: 6px 6px 12px rgba(255, 255, 255, 0.45), -6px -6px 12px rgba(0, 0, 0, 0.28); */
+  /* color: #fff;
+} */
+
+/* .petal-button--destructive:hover:not(:disabled) {
+  background: var(--color-accent-red);
+  border-color: var(--color-accent-pink);
 }
 
-.petal-button--destructive:hover:not(:disabled) {
-  background: rgba(var(--color-accent-red-rgb), 0.06);
-  border-color: rgba(var(--color-accent-red-rgb), 0.36);
-}
+.petal-button--destructive:active {
+  box-shadow: inset 4px 4px 12px rgba(160, 8, 40, 0.5), inset -4px -4px 12px rgba(255, 100, 130, 0.22);
+} */
 
 /* Small variant */
 

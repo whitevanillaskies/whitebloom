@@ -209,8 +209,8 @@
     "saveBoardTitle": "Guardar tablero"
   },
   "navigation": {
-    "saveBeforeLeavingTitle": "Â¿Guardar cambios antes de salir?",
-    "saveBeforeLeavingBody": "Este tablero tiene cambios sin guardar. Puedes guardarlos, descartar esas ediciones o cancelar esta navegaciÃ³n.",
+    "saveBeforeLeavingTitle": "¿Guardar cambios antes de salir?",
+    "saveBeforeLeavingBody": "Este tablero tiene cambios sin guardar.",
     "saveButton": "Guardar",
     "discardButton": "Descartar",
     "cancelButton": "Cancelar"

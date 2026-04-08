@@ -14,8 +14,6 @@
   display: flex;
   flex-direction: column;
   padding: 48px 0;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(248, 249, 250, 0.72);
   overflow: hidden;
 }
 
@@ -35,7 +33,6 @@
 }
 
 .workspace-home__title {
-  font-family: 'Source Serif 4', serif;
   font-size: 1.1rem;
   font-weight: 520;
   letter-spacing: -0.02em;
@@ -68,7 +65,9 @@
   border-left: 2px solid transparent;
   background: transparent;
   color: var(--color-primary-fg);
+  font-family: "DM Sans";
   font-size: 0.88rem;
+  letter-spacing: 1px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -190,7 +189,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.025);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   color: var(--color-muted-fg);
   transition: color 120ms ease;

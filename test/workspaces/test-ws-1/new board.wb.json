@@ -501,6 +501,69 @@
       "updatedAt": "2026-04-07T17:21:28.841Z",
       "updatedBy": "anon",
       "plain": "not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them."
+    },
+    {
+      "id": "3c23b58c-b477-4ff7-a1a2-9fe888d16d5d",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1059.3858056013473,
+        "y": 972.6785221541463
+      },
+      "size": {
+        "w": 306,
+        "h": 93
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 306,
+      "created": "2026-04-08T15:18:48.050Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T15:21:51.065Z",
+      "updatedBy": "anon",
+      "plain": "There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that"
+    },
+    {
+      "id": "18ac0d38-e041-4442-9d0a-d84d5ddd8c98",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1055.2248509320034,
+        "y": 892.596054870422
+      },
+      "size": {
+        "w": 363,
+        "h": 75
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Board previews are sharing styling across start screen and workspace home which is ridiculous. Extract somewhere.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 363,
+      "created": "2026-04-08T15:21:12.695Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T15:21:35.307Z",
+      "updatedBy": "anon",
+      "plain": "Board previews are sharing styling across start screen and workspace home which is ridiculous. Extract somewhere."
+    },
+    {
+      "id": "50a87a96-9c17-4c37-b619-67cbf4a422ff",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1449.0276809062473,
+        "y": 921.4165878021117
+      },
+      "size": {
+        "w": 451,
+        "h": 75
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 451,
+      "created": "2026-04-08T15:21:59.131Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T15:22:21.599Z",
+      "updatedBy": "anon",
+      "plain": "Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think"
     }
   ],
   "edges": [
@@ -541,8 +604,8 @@
     }
   ],
   "viewport": {
-    "x": 380.3285476977991,
-    "y": 527.923139205954,
-    "zoom": 0.5743491774985175
+    "x": -39.978042604351,
+    "y": -118.17130676207648,
+    "zoom": 0.8705505632961245
   }
 }

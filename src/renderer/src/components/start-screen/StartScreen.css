@@ -13,15 +13,12 @@
   display: flex;
   flex-direction: column;
   padding: 48px 0;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  background: var(--color-primary-bg);
 }
 
 .start-screen__logo {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--color-primary-fg);
   padding: 0 20px 28px;
   margin: 0;
 }
@@ -33,6 +30,7 @@
 }
 
 .start-screen__action {
+  font-family: "DM Sans";
   display: flex;
   align-items: center;
   gap: 9px;
@@ -45,6 +43,7 @@
   font-size: 0.88rem;
   font-weight: 500;
   text-align: left;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: background 80ms ease, border-color 80ms ease, color 80ms ease;
 }
@@ -159,7 +158,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.025);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   color: var(--color-muted-fg);
   transition: color 120ms ease;
