@@ -3,6 +3,12 @@ import { Trash2, Archive } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenBin } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
+import {
+  ARRANGEMENTS_MICA_HOST_ID,
+  createArrangementsDropTargetId,
+  useArrangementsDragTargetActive,
+  useArrangementsDropTarget
+} from './arrangementsDrag'
 import './DesktopBinItems.css'
 
 const BIN_PLACEMENT_PREFIX = 'bin:'
@@ -24,7 +30,6 @@ type BinItemProps = {
   y: number
   onDoubleClick: (bin: GardenBin) => void
   onMoved: (binId: string, x: number, y: number) => void
-  onDropMaterial: (materialKey: string, binId: string) => void
 }
 
 function BinItem({
@@ -32,10 +37,12 @@ function BinItem({
   x,
   y,
   onDoubleClick,
-  onMoved,
-  onDropMaterial
+  onMoved
 }: BinItemProps): React.JSX.Element {
   const isTrash = bin.id === SYSTEM_TRASH_BIN_ID
+  const rootRef = useRef<HTMLDivElement>(null)
+  const targetId = createArrangementsDropTargetId(isTrash ? 'trash' : 'bin', bin.id)
+  const isDropActive = useArrangementsDragTargetActive(targetId)
 
   // ── Drag-to-move (user bins only) ─────────────────────────
   const dragStart = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null)
@@ -84,28 +91,17 @@ function BinItem({
   )
 
   // ── Drop target for materials ──────────────────────────────
-  const [isDragOver, setIsDragOver] = useState(false)
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragOver(false)
-      const key = e.dataTransfer.getData('application/x-wb-material-key')
-      if (key) onDropMaterial(key, bin.id)
-    },
-    [bin.id, onDropMaterial]
-  )
+  useArrangementsDropTarget({
+    id: targetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: rootRef.current,
+    meta: isTrash
+      ? { type: 'trash' }
+      : {
+          type: 'bin',
+          binId: bin.id
+        }
+  })
 
   // ── Double-click opens Bin View ─────────────────────────────
   const handleDoubleClick = useCallback(
@@ -120,10 +116,11 @@ function BinItem({
 
   return (
     <div
+      ref={rootRef}
       className={[
         'desktop-bin',
         isTrash ? 'desktop-bin--trash' : 'desktop-bin--user',
-        isDragOver ? 'desktop-bin--drag-over' : '',
+        isDropActive ? 'desktop-bin--drag-over' : '',
         dragging ? 'desktop-bin--dragging' : ''
       ]
         .filter(Boolean)
@@ -137,9 +134,6 @@ function BinItem({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
       role="button"
       aria-label={`${bin.name} bin`}
     >
@@ -148,13 +142,13 @@ function BinItem({
           <Trash2
             size={30}
             strokeWidth={1.4}
-            className={['desktop-bin__icon', isDragOver ? 'desktop-bin__icon--hot' : ''].filter(Boolean).join(' ')}
+            className={['desktop-bin__icon', isDropActive ? 'desktop-bin__icon--hot' : ''].filter(Boolean).join(' ')}
           />
         ) : (
           <Archive
             size={30}
             strokeWidth={1.4}
-            className={['desktop-bin__icon', isDragOver ? 'desktop-bin__icon--hot' : ''].filter(Boolean).join(' ')}
+            className={['desktop-bin__icon', isDropActive ? 'desktop-bin__icon--hot' : ''].filter(Boolean).join(' ')}
           />
         )}
       </div>
@@ -173,8 +167,6 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
   const bins = useArrangementsStore((s) => s.bins)
   const desktopPlacements = useArrangementsStore((s) => s.desktopPlacements)
   const moveBinOnDesktop = useArrangementsStore((s) => s.moveBinOnDesktop)
-  const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
-  const assignToBin = useArrangementsStore((s) => s.assignToBin)
 
   const handleMoved = useCallback(
     (binId: string, x: number, y: number) => {
@@ -188,17 +180,6 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
       onOpenBin(bin.id)
     },
     [onOpenBin]
-  )
-
-  const handleDropMaterial = useCallback(
-    (materialKey: string, binId: string) => {
-      if (binId === SYSTEM_TRASH_BIN_ID) {
-        sendToTrash(materialKey)
-      } else {
-        assignToBin(materialKey, binId)
-      }
-    },
-    [sendToTrash, assignToBin]
   )
 
   const userBins = bins.filter((b) => b.kind === 'user')
@@ -216,7 +197,6 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
             y={pos.y}
             onDoubleClick={handleOpenBin}
             onMoved={handleMoved}
-            onDropMaterial={handleDropMaterial}
           />
         )
       })}
@@ -232,7 +212,6 @@ type DesktopTrashBinProps = {
 
 export function DesktopTrashBin({ onOpenBin }: DesktopTrashBinProps): React.JSX.Element | null {
   const bins = useArrangementsStore((s) => s.bins)
-  const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
 
   const trashBin = bins.find((b) => b.id === SYSTEM_TRASH_BIN_ID)
   if (!trashBin) return null
@@ -244,7 +223,6 @@ export function DesktopTrashBin({ onOpenBin }: DesktopTrashBinProps): React.JSX.
       y={0}
       onDoubleClick={(bin) => onOpenBin(bin.id)}
       onMoved={() => void 0}
-      onDropMaterial={(key) => sendToTrash(key)}
     />
   )
 }

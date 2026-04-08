@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { useMicaDragState } from '../../mica'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { MICA_PERSISTENCE_BOUNDARY, MicaHost, useMicaHost } from '../../mica'
@@ -7,6 +8,12 @@ import ArrangementsDesktop from './ArrangementsDesktop'
 import BinView from './BinView'
 import DesktopBinItems, { DesktopTrashBin } from './DesktopBinItems'
 import DesktopMaterialItems from './DesktopMaterialItems'
+import {
+  ARRANGEMENTS_MATERIAL_DRAG_KIND,
+  ARRANGEMENTS_MICA_HOST_ID,
+  type ArrangementsMaterialDragPayload,
+  type ArrangementsMaterialDragPreview
+} from './arrangementsDrag'
 import SetsIsland from './SetsIsland'
 import './ArrangementsView.css'
 
@@ -34,8 +41,6 @@ type ArrangementsWindowUiState = {
   }
 }
 
-const ARRANGEMENTS_MICA_HOST_ID = 'arrangements-desktop'
-
 const DEFAULT_BIN_VIEW_GEOMETRY = {
   x: 28,
   y: 48,
@@ -56,6 +61,46 @@ function createDefaultBinViewUiState(): ArrangementsWindowUiState {
       selectedKeys: []
     }
   }
+}
+
+function ArrangementsDragOverlay(): React.JSX.Element | null {
+  const session = useMicaDragState((state) => state.session)
+  const activeTargetId = useMicaDragState((state) => state.activeTargetId)
+  const activeTarget = useMicaDragState((state) =>
+    state.activeTargetId ? state.targets[state.activeTargetId] : null
+  )
+
+  if (session?.payload.kind !== ARRANGEMENTS_MATERIAL_DRAG_KIND) return null
+
+  const payload = session.payload.data as ArrangementsMaterialDragPayload
+  const preview = session.preview?.meta as ArrangementsMaterialDragPreview | undefined
+  const activeMeta = activeTarget?.meta as { type?: 'desktop' | 'bin' | 'trash' } | undefined
+  const label = preview?.label ?? payload.primaryMaterialKey
+  const count = preview?.count ?? payload.materialKeys.length
+  const tone =
+    activeMeta?.type === 'trash'
+      ? 'danger'
+      : activeTargetId
+        ? 'accept'
+        : 'neutral'
+
+  return (
+    <div
+      className={[
+        'arrangements-view__drag-preview',
+        `arrangements-view__drag-preview--${tone}`
+      ].join(' ')}
+      style={{
+        left: session.pointer.screen.x + 14,
+        top: session.pointer.screen.y + 18
+      }}
+    >
+      <span className="arrangements-view__drag-preview-title">{label}</span>
+      {count > 1 ? (
+        <span className="arrangements-view__drag-preview-count">{count}</span>
+      ) : null}
+    </div>
+  )
 }
 
 export default function ArrangementsView({
@@ -165,6 +210,7 @@ export default function ArrangementsView({
         <main className="arrangements-view__desktop">
           <MicaHost
             host={arrangementsMica}
+            renderOverlay={() => <ArrangementsDragOverlay />}
             renderWindow={({ window }) => {
               switch (window.kind) {
                 case 'bin-view':
@@ -215,7 +261,7 @@ export default function ArrangementsView({
               <DesktopBinItems onOpenBin={handleOpenBin} />
             </ArrangementsDesktop>
 
-          {/* Bin View — temporary direct MicaWindow usage before full Mica host adoption */}
+            {/* Bin View — temporary direct MicaWindow usage before full Mica host adoption */}
           </MicaHost>
         </main>
       </div>

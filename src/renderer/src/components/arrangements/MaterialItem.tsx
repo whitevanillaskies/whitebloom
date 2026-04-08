@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LayoutDashboard, Link } from 'lucide-react'
 import type { ArrangementsMaterial } from '../../../../shared/arrangements'
+import {
+  useArrangementsMaterialDrag,
+  useArrangementsMaterialDragging
+} from './arrangementsDrag'
 import './MaterialItem.css'
 
 // ── Icon resolution ────────────────────────────────────────────────────────────
@@ -44,6 +48,7 @@ type MaterialItemProps = {
   x: number
   y: number
   selected: boolean
+  selectedKeys: string[]
   onSelect: (key: string, additive: boolean) => void
   onDoubleClick: (material: ArrangementsMaterial) => void
 }
@@ -56,19 +61,19 @@ export default function MaterialItem({
   x,
   y,
   selected,
+  selectedKeys,
   onSelect,
   onDoubleClick
 }: MaterialItemProps): React.JSX.Element {
   const iconState = useMaterialIcon(material, workspaceRoot)
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      // Don't let the desktop's pan handler see left-button clicks on items
-      if (e.button === 0) e.stopPropagation()
-      onSelect(material.key, e.metaKey || e.ctrlKey)
-    },
-    [material.key, onSelect]
-  )
+  const draggedByMica = useArrangementsMaterialDragging(material.key)
+  const drag = useArrangementsMaterialDrag({
+    materialKey: material.key,
+    materialLabel: material.displayName,
+    selectedKeys,
+    sourceContext: 'desktop',
+    onSelect
+  })
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -78,22 +83,21 @@ export default function MaterialItem({
     [material, onDoubleClick]
   )
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = 'copy'
-      e.dataTransfer.setData('application/x-wb-material-key', material.key)
-    },
-    [material.key]
-  )
-
   return (
     <div
-      className={['material-item', selected ? 'material-item--selected' : ''].filter(Boolean).join(' ')}
+      className={[
+        'material-item',
+        selected ? 'material-item--selected' : '',
+        draggedByMica ? 'material-item--dragging' : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{ transform: `translate(${x}px, ${y}px)` }}
-      draggable
-      onPointerDown={handlePointerDown}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
       onDoubleClick={handleDoubleClick}
-      onDragStart={handleDragStart}
       role="option"
       aria-selected={selected}
       aria-label={material.displayName}

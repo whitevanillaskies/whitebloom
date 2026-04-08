@@ -40,10 +40,11 @@ export default function DesktopMaterialItems({
 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
 
-  // Clear selection when materials list changes
+  // Clear or trim selection when the visible desktop set changes.
   useEffect(() => {
-    setSelectedKeys(new Set())
-  }, [materials])
+    const visibleKeys = new Set(visibleMaterials.map((material) => material.key))
+    setSelectedKeys((prev) => new Set([...prev].filter((key) => visibleKeys.has(key))))
+  }, [visibleMaterials])
 
   const handleSelect = useCallback((key: string, additive: boolean) => {
     setSelectedKeys((prev) => {
@@ -127,6 +128,7 @@ export default function DesktopMaterialItems({
             x={pos.x}
             y={pos.y}
             selected={selectedKeys.has(material.key)}
+            selectedKeys={[...selectedKeys]}
             onSelect={handleSelect}
             onDoubleClick={handleDoubleClick}
           />

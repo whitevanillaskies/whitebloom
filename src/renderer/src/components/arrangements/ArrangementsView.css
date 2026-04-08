@@ -88,6 +88,51 @@
   background: var(--color-primary-bg);
 }
 
+.arrangements-view__drag-preview {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(12px);
+}
+
+.arrangements-view__drag-preview--accept {
+  border-color: rgba(30, 135, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(30, 135, 255, 0.18);
+}
+
+.arrangements-view__drag-preview--danger {
+  border-color: rgba(var(--color-accent-red-rgb), 0.22);
+  box-shadow: 0 10px 24px rgba(var(--color-accent-red-rgb), 0.16);
+}
+
+.arrangements-view__drag-preview-title {
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.arrangements-view__drag-preview-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 640;
+  color: #fff;
+  background: var(--color-accent-blue);
+}
+
 /* ── Legacy placeholder (removable once desktop is live) ──── */
 
 .arrangements-view__eyebrow {

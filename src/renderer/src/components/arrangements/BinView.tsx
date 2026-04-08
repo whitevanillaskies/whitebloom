@@ -12,6 +12,14 @@ import {
   PetalToolbarSegmented
 } from '../petal/window'
 import { MicaWindow } from '../../mica'
+import {
+  ARRANGEMENTS_MICA_HOST_ID,
+  createArrangementsDropTargetId,
+  useArrangementsDragTargetActive,
+  useArrangementsDropTarget,
+  useArrangementsMaterialDrag,
+  useArrangementsMaterialDragging
+} from './arrangementsDrag'
 import './BinView.css'
 
 type ViewMode = 'icon' | 'list'
@@ -55,44 +63,34 @@ type SidebarRowProps = {
   bin: GardenBin
   isActive: boolean
   onClick: () => void
-  onDropMaterial: (materialKey: string, binId: string) => void
 }
 
 function SidebarRow({
   bin,
   isActive,
-  onClick,
-  onDropMaterial
+  onClick
 }: SidebarRowProps): React.JSX.Element {
-  const [isDragOver, setIsDragOver] = useState(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const targetId = createArrangementsDropTargetId('bin', `sidebar-${bin.id}`)
+  const isDropActive = useArrangementsDragTargetActive(targetId)
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragOver(false)
-      const key = e.dataTransfer.getData('application/x-wb-material-key')
-      if (key) onDropMaterial(key, bin.id)
-    },
-    [bin.id, onDropMaterial]
-  )
+  useArrangementsDropTarget({
+    id: targetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: rowRef.current,
+    meta: {
+      type: 'bin',
+      binId: bin.id
+    }
+  })
 
   return (
     <div
+      ref={rowRef}
       className={[
         'bin-view__sidebar-row',
         isActive ? 'bin-view__sidebar-row--active' : '',
-        isDragOver ? 'bin-view__sidebar-row--drag-over' : ''
+        isDropActive ? 'bin-view__sidebar-row--drag-over' : ''
       ]
         .filter(Boolean)
         .join(' ')}
@@ -102,9 +100,6 @@ function SidebarRow({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onClick()
       }}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
     >
       <span className="bin-view__sidebar-row-name">{bin.name}</span>
     </div>
@@ -117,7 +112,10 @@ type IconItemProps = {
   material: ArrangementsMaterial
   workspaceRoot: string
   selected: boolean
+  selectedKeys: string[]
+  sourceBinId: string
   onSelect: (key: string, additive: boolean) => void
+  onDragCommitted: (materialKeys: string[]) => void
   onDoubleClick: (material: ArrangementsMaterial) => void
 }
 
@@ -125,18 +123,23 @@ function IconItem({
   material,
   workspaceRoot,
   selected,
+  selectedKeys,
+  sourceBinId,
   onSelect,
+  onDragCommitted,
   onDoubleClick
 }: IconItemProps): React.JSX.Element {
   const iconState = useMaterialIcon(material, workspaceRoot)
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button === 0) e.stopPropagation()
-      onSelect(material.key, e.metaKey || e.ctrlKey)
-    },
-    [material.key, onSelect]
-  )
+  const draggedByMica = useArrangementsMaterialDragging(material.key)
+  const drag = useArrangementsMaterialDrag({
+    materialKey: material.key,
+    materialLabel: material.displayName,
+    selectedKeys,
+    sourceContext: sourceBinId === SYSTEM_TRASH_BIN_ID ? 'trash' : 'bin',
+    sourceBinId,
+    onSelect,
+    onDragCommitted
+  })
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -146,26 +149,20 @@ function IconItem({
     [material, onDoubleClick]
   )
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = 'copy'
-      e.dataTransfer.setData('application/x-wb-material-key', material.key)
-    },
-    [material.key]
-  )
-
   return (
     <div
       className={[
         'bin-view__icon-item',
-        selected ? 'bin-view__icon-item--selected' : ''
+        selected ? 'bin-view__icon-item--selected' : '',
+        draggedByMica ? 'bin-view__icon-item--dragging' : ''
       ]
         .filter(Boolean)
         .join(' ')}
-      draggable
-      onPointerDown={handlePointerDown}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
       onDoubleClick={handleDoubleClick}
-      onDragStart={handleDragStart}
       role="option"
       aria-selected={selected}
       aria-label={material.displayName}
@@ -201,7 +198,10 @@ type ListRowProps = {
   material: ArrangementsMaterial
   workspaceRoot: string
   selected: boolean
+  selectedKeys: string[]
+  sourceBinId: string
   onSelect: (key: string, additive: boolean) => void
+  onDragCommitted: (materialKeys: string[]) => void
   onDoubleClick: (material: ArrangementsMaterial) => void
 }
 
@@ -209,18 +209,23 @@ function ListRow({
   material,
   workspaceRoot,
   selected,
+  selectedKeys,
+  sourceBinId,
   onSelect,
+  onDragCommitted,
   onDoubleClick
 }: ListRowProps): React.JSX.Element {
   const iconState = useMaterialIcon(material, workspaceRoot)
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button === 0) e.stopPropagation()
-      onSelect(material.key, e.metaKey || e.ctrlKey)
-    },
-    [material.key, onSelect]
-  )
+  const draggedByMica = useArrangementsMaterialDragging(material.key)
+  const drag = useArrangementsMaterialDrag({
+    materialKey: material.key,
+    materialLabel: material.displayName,
+    selectedKeys,
+    sourceContext: sourceBinId === SYSTEM_TRASH_BIN_ID ? 'trash' : 'bin',
+    sourceBinId,
+    onSelect,
+    onDragCommitted
+  })
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -230,26 +235,20 @@ function ListRow({
     [material, onDoubleClick]
   )
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = 'copy'
-      e.dataTransfer.setData('application/x-wb-material-key', material.key)
-    },
-    [material.key]
-  )
-
   return (
     <div
       className={[
         'bin-view__list-row',
-        selected ? 'bin-view__list-row--selected' : ''
+        selected ? 'bin-view__list-row--selected' : '',
+        draggedByMica ? 'bin-view__list-row--dragging' : ''
       ]
         .filter(Boolean)
         .join(' ')}
-      draggable
-      onPointerDown={handlePointerDown}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
       onDoubleClick={handleDoubleClick}
-      onDragStart={handleDragStart}
       role="option"
       aria-selected={selected}
       aria-label={material.displayName}
@@ -322,44 +321,30 @@ export default function BinView({
   const bins = useArrangementsStore((s) => s.bins)
   const materials = useArrangementsStore((s) => s.materials)
   const binAssignments = useArrangementsStore((s) => s.binAssignments)
-  const assignToBin = useArrangementsStore((s) => s.assignToBin)
   const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
   const emptyTrash = useArrangementsStore((s) => s.emptyTrash)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
-
-  const [isContentDragOver, setIsContentDragOver] = useState(false)
+  const contentDropRef = useRef<HTMLDivElement>(null)
+  const contentTargetId = createArrangementsDropTargetId(
+    binId === SYSTEM_TRASH_BIN_ID ? 'trash' : 'bin',
+    `content-${binId}`
+  )
+  const isContentDropActive = useArrangementsDragTargetActive(contentTargetId)
   const selectedKeys = uiState.ephemeral.selectedKeys
   const selectedKeySet = new Set(selectedKeys)
 
-  const handleContentDragOver = useCallback(
-    (e: React.DragEvent) => {
-      if (!e.dataTransfer.types.includes('application/x-wb-material-key')) return
-      e.preventDefault()
-      e.stopPropagation()
-      e.dataTransfer.dropEffect = 'move'
-      setIsContentDragOver(true)
-    },
-    []
-  )
-
-  const handleContentDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-      setIsContentDragOver(false)
-    }
-  }, [])
-
-  const handleContentDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsContentDragOver(false)
-      const materialKey = e.dataTransfer.getData('application/x-wb-material-key')
-      if (!materialKey) return
-      if (binId === SYSTEM_TRASH_BIN_ID) sendToTrash(materialKey)
-      else assignToBin(materialKey, binId)
-    },
-    [assignToBin, binId, sendToTrash]
-  )
+  useArrangementsDropTarget({
+    id: contentTargetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: contentDropRef.current,
+    meta:
+      binId === SYSTEM_TRASH_BIN_ID
+        ? { type: 'trash' }
+        : {
+            type: 'bin',
+            binId
+          }
+  })
 
   const handleSelect = useCallback((key: string, additive: boolean) => {
     const nextSelectedKeys = (() => {
@@ -388,13 +373,9 @@ export default function BinView({
     [workspaceRoot, onOpenBoard]
   )
 
-  const handleDropMaterial = useCallback(
-    (materialKey: string, binId: string) => {
-      if (binId === SYSTEM_TRASH_BIN_ID) sendToTrash(materialKey)
-      else assignToBin(materialKey, binId)
-    },
-    [sendToTrash, assignToBin]
-  )
+  const handleDragCommitted = useCallback(() => {
+    onSelectedKeysChange([])
+  }, [onSelectedKeysChange])
 
   // Stable ref so the effect below doesn't re-run on every render
   const handleKeyDownRef = useRef<(e: KeyboardEvent) => Promise<void>>(async () => {})
@@ -464,7 +445,6 @@ export default function BinView({
           bin={bin}
           isActive={bin.id === binId}
           onClick={() => onOpenBin(bin.id)}
-          onDropMaterial={handleDropMaterial}
         />
       ))}
     </div>
@@ -517,10 +497,14 @@ export default function BinView({
       aria-label={`${activeBin.name} bin view`}
     >
       <div
-        className={['bin-view__content-drop', isContentDragOver ? 'bin-view__content-drop--over' : ''].filter(Boolean).join(' ')}
-        onDragOver={handleContentDragOver}
-        onDragLeave={handleContentDragLeave}
-        onDrop={handleContentDrop}
+        ref={contentDropRef}
+        className={[
+          'bin-view__content-drop',
+          isContentDropActive ? 'bin-view__content-drop--over' : ''
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={{ display: 'block', height: '100%' }}
       >
       {filteredMaterials.length === 0 ? (
         <p className="bin-view__empty">
@@ -538,7 +522,10 @@ export default function BinView({
               material={material}
               workspaceRoot={workspaceRoot ?? ''}
               selected={selectedKeySet.has(material.key)}
+              selectedKeys={selectedKeys}
+              sourceBinId={binId}
               onSelect={handleSelect}
+              onDragCommitted={handleDragCommitted}
               onDoubleClick={handleDoubleClick}
             />
           ))}
@@ -555,7 +542,10 @@ export default function BinView({
               material={material}
               workspaceRoot={workspaceRoot ?? ''}
               selected={selectedKeySet.has(material.key)}
+              selectedKeys={selectedKeys}
+              sourceBinId={binId}
               onSelect={handleSelect}
+              onDragCommitted={handleDragCommitted}
               onDoubleClick={handleDoubleClick}
             />
           ))}
