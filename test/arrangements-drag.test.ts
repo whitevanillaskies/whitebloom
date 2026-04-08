@@ -111,4 +111,45 @@ describe('arrangements drag semantics', () => {
 
     expect(commands).toEqual([])
   })
+
+  it('preserves the pointer grab offset when moving a desktop item back onto the desktop', () => {
+    const payload: ArrangementsMaterialDragPayload = {
+      materialKeys: ['a'],
+      primaryMaterialKey: 'a',
+      source: { kind: 'desktop' },
+      desktopDrag: {
+        pointerOffset: { x: 30, y: 18 }
+      }
+    }
+
+    const commands = createArrangementsMaterialDropCommands(
+      {
+        pointer: {
+          pointerId: 1,
+          pointerType: 'mouse',
+          screen: { x: 210, y: 170 }
+        },
+        target: {
+          id: 'desktop',
+          hostId: 'arrangements-desktop',
+          acceptedPayloadKinds: ['arrangements-material'],
+          bounds: { x: 10, y: 20, width: 800, height: 600 },
+          meta: {
+            type: 'desktop',
+            camera: { x: 0, y: 0, zoom: 1 }
+          },
+          registeredAt: 1
+        }
+      },
+      payload
+    )
+
+    expect(commands).toEqual([
+      {
+        kind: 'move-to-desktop',
+        materialKey: 'a',
+        position: { x: 170, y: 132 }
+      }
+    ])
+  })
 })

@@ -28,6 +28,18 @@ The edge toolbar `EdgeToolbar.tsx` should only appear if there's one selected ed
 
 Clusters. The Command Fit Clusters to Children works on every edge except the right side one. It cuts through the rightmost node instead of fully wrapping it.
 
+### Bug UI-7 (FIXED)
+
+Arrangements view, desktop island. Open right click context menu on a bin, then drag desktop. The context menu doesn't disappear. However, if we open the menu on empty space (such as to create a new bin) then panning the desktop properly removes the context menu.
+
 ### Bug UX-1 (FIXED)
 
 Resizing a cluster isn't smooth at all, it's laggy and choppy to the point it's unacceptable.
+
+### Bug UX-2 (FIXED)
+
+Arrangements View. The drag and drop behavior of desktop items is broken. The target position does not correspond with the mouse pointer. This applies to both moving ops (drag and drop within the desktop) and drop into bins ops. A bin may highlight as the drop target when the mouse pointer is not above it, and not highlight itself when the pointer is directly above it.
+
+### Bug UX-3 (FIXED)
+
+Arrangements View. Right click context menu, clicking on items does nothing. On the sets island they work. However, for example, when we bring up the context menu from empty space (such as to create a new bin) it works. But when right clicking on a bin then it doesn't work. May be related to UI-7.

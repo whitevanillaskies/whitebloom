@@ -623,10 +623,20 @@ export function useMicaDropTarget<
     window.addEventListener('resize', syncBounds)
     window.addEventListener('scroll', syncBounds, true)
 
+    let frameId = 0
+    const syncDuringActiveDrag = () => {
+      if (getMicaDragCoordinator().getSnapshot().session) {
+        syncBounds()
+      }
+      frameId = window.requestAnimationFrame(syncDuringActiveDrag)
+    }
+    frameId = window.requestAnimationFrame(syncDuringActiveDrag)
+
     return () => {
       resizeObserver.disconnect()
       window.removeEventListener('resize', syncBounds)
       window.removeEventListener('scroll', syncBounds, true)
+      window.cancelAnimationFrame(frameId)
       getMicaDragCoordinator().unregisterDropTarget(id)
     }
   }, [element, id])

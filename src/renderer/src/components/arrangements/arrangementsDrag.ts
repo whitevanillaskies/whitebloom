@@ -43,6 +43,9 @@ export type ArrangementsMaterialDragPayload = {
   materialKeys: string[]
   primaryMaterialKey: string
   source: ArrangementsDragSource
+  desktopDrag?: {
+    pointerOffset: MicaScreenPoint
+  }
 }
 
 export type ArrangementsMaterialDragPreview = {
@@ -94,6 +97,7 @@ type UseArrangementsMaterialDragOptions = {
   materialLabel: string
   selectedKeys?: string[]
   source: ArrangementsDragSource
+  desktopPosition?: MicaScreenPoint
   onSelect?: (key: string, additive: boolean) => void
   onDragCommitted?: (materialKeys: string[]) => void
 }
@@ -145,6 +149,21 @@ function offsetDesktopPlacement(base: MicaScreenPoint, index: number): MicaScree
   }
 }
 
+function resolveDesktopDropBasePoint(
+  pointer: MicaScreenPoint,
+  bounds: MicaScreenRect,
+  camera: GardenCameraState,
+  payload: ArrangementsMaterialDragPayload
+): MicaScreenPoint {
+  const pointerWorldPoint = getDesktopWorldPoint(pointer, bounds, camera)
+  if (!payload.desktopDrag) return pointerWorldPoint
+
+  return {
+    x: pointerWorldPoint.x - payload.desktopDrag.pointerOffset.x / camera.zoom,
+    y: pointerWorldPoint.y - payload.desktopDrag.pointerOffset.y / camera.zoom
+  }
+}
+
 function resolveArrangementsDropTarget(): ArrangementsDropResolution | null {
   const dragState = getMicaDragCoordinator().getSnapshot()
   if (!dragState.session) return null
@@ -173,7 +192,12 @@ export function createArrangementsMaterialDropCommands(
 
   switch (meta.type) {
     case 'desktop': {
-      const basePoint = getDesktopWorldPoint(pointer.screen, target.bounds, meta.camera)
+      const basePoint = resolveDesktopDropBasePoint(
+        pointer.screen,
+        target.bounds,
+        meta.camera,
+        payload
+      )
       return payload.materialKeys.map((materialKey, index) => ({
         kind: 'move-to-desktop',
         materialKey,
@@ -242,6 +266,9 @@ type PendingDragState = {
   start: MicaScreenPoint
   materialKeys: string[]
   element: HTMLElement
+  desktopDrag?: {
+    pointerOffset: MicaScreenPoint
+  }
 }
 
 export function createArrangementsDropTargetId(
@@ -297,6 +324,7 @@ export function useArrangementsMaterialDrag({
   materialLabel,
   selectedKeys = [],
   source,
+  desktopPosition,
   onSelect,
   onDragCommitted
 }: UseArrangementsMaterialDragOptions): {
@@ -366,12 +394,24 @@ export function useArrangementsMaterialDrag({
           y: event.clientY
         },
         materialKeys,
-        element
+        element,
+        desktopDrag:
+          source.kind === 'desktop' && desktopPosition
+            ? (() => {
+                const rect = element.getBoundingClientRect()
+                return {
+                  pointerOffset: {
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top
+                  }
+                }
+              })()
+            : undefined
       }
 
       element.setPointerCapture(event.pointerId)
     },
-    [materialKey, onSelect, selectedKeys]
+    [desktopPosition, materialKey, onSelect, selectedKeys, source]
   )
 
   const onPointerMove = useCallback(
@@ -392,7 +432,8 @@ export function useArrangementsMaterialDrag({
             data: {
               materialKeys: pending.materialKeys,
               primaryMaterialKey: materialKey,
-              source
+              source,
+              desktopDrag: pending.desktopDrag
             }
           },
           source: {

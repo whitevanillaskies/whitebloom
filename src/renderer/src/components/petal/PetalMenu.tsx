@@ -156,6 +156,12 @@ export default function PetalMenu({ items, anchor, onClose }: PetalMenuProps) {
       style={{ top: position.y, left: position.x }}
       role="menu"
       aria-orientation="vertical"
+      // Portaled menu events still bubble through the React tree, so fence them
+      // off here before desktop/bin drag handlers can treat a menu click as a drag.
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.preventDefault()}
     >
       {items.length === 0 ? (

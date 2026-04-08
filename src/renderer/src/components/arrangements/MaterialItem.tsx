@@ -74,6 +74,7 @@ export default function MaterialItem({
     source: {
       kind: 'desktop'
     },
+    desktopPosition: { x, y },
     onSelect
   })
 
