@@ -1,4 +1,6 @@
 export { default as PetalControlButton } from './PetalControlButton'
+export { default as PetalToolbar } from './PetalToolbar'
 export { default as PetalToolbarButton } from './PetalToolbarButton'
+export { default as PetalToolbarGroup } from './PetalToolbarGroup'
 export { default as PetalToolbarSearch } from './PetalToolbarSearch'
 export { default as PetalToolbarSegmented } from './PetalToolbarSegmented'

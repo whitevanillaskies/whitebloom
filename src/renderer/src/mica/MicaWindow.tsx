@@ -5,6 +5,7 @@ import './MicaWindow.css'
 type MicaWindowProps = {
   title: string
   onClose?: () => void
+  toolbar?: React.ReactNode
   headerActions?: React.ReactNode
   sidebar?: React.ReactNode
   children?: React.ReactNode
@@ -16,6 +17,7 @@ type MicaWindowProps = {
 export default function MicaWindow({
   title,
   onClose,
+  toolbar,
   headerActions,
   sidebar,
   children,
@@ -23,6 +25,8 @@ export default function MicaWindow({
   style,
   'aria-label': ariaLabel
 }: MicaWindowProps): React.JSX.Element {
+  const resolvedToolbar = toolbar ?? headerActions
+
   return (
     <div
       className={['mica-window', className].filter(Boolean).join(' ')}
@@ -48,9 +52,11 @@ export default function MicaWindow({
           <span className="mica-window__title">{title}</span>
         </div>
 
-        <div className="mica-window__actions" data-mica-no-drag="true">
-          {headerActions}
-        </div>
+        {resolvedToolbar ? (
+          <div className="mica-window__actions" data-mica-no-drag="true">
+            {resolvedToolbar}
+          </div>
+        ) : null}
       </div>
 
       <div className="mica-window__content">

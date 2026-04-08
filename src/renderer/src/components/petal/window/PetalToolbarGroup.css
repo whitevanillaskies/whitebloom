@@ -1,0 +1,7 @@
+.petal-window-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-width: 0;
+}

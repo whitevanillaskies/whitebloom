@@ -319,24 +319,24 @@ Use macOS as the mental model: AppKit does not use one button class for every ro
 - `MicaWindow` may not own toolbar button, search field, or segmented-control styling.
 - A button primitive must be named by role, not merely by appearance.
 - If two clickable controls live in different UX contexts and behave differently in macOS terms, they should not be forced into the same primitive just because they are both small buttons.
-- Favor explicit wrappers over generic `variant` explosion. `PetalButton` and `WindowToolbarButton` should be siblings, not one mega-button with ten modes.
+- Favor explicit wrappers over generic `variant` explosion. `PetalButton` and `PetalToolbarButton` should be siblings, not one mega-button with ten modes.
 
 ### Track 2: Refactor the Window Toolbar Into Its Own Thing
 
-This track establishes `WindowToolbar` as a dedicated layout and composition surface inspired by Finder/AppKit toolbar behavior.
+This track establishes `PetalToolbar` as a dedicated layout and composition surface inspired by Finder/AppKit toolbar behavior.
 
-- Introduce a `WindowToolbar` component family separate from `MicaWindow`, with `MicaWindow` responsible only for shell and window structure.
+- Introduce a `PetalToolbar` component family separate from `MicaWindow`, with `MicaWindow` responsible only for shell and window structure.
 - Define explicit toolbar layout primitives so composition is semantic instead of incidental:
-- `WindowToolbar`
-- `WindowToolbarGroup`
-- `WindowToolbarSpacer` with fixed and flexible spacing behavior
-- `WindowToolbarButton`
-- `WindowToolbarSegmented` or an equivalent grouped toggle control for view mode switches
-- `WindowToolbarSearch`
+- `PetalToolbar`
+- `PetalToolbarGroup`
+- `PetalSpacer` with fixed and flexible spacing behavior
+- `PetalToolbarButton`
+- `PetalToolbarSegmented` or an equivalent grouped toggle control for view mode switches
+- `PetalToolbarSearch`
 - Decide whether the toolbar lives inside a `toolbar` prop on `MicaWindow` or as an explicit child slot, favoring an API that makes the toolbar feel like a first-class surface instead of a miscellaneous action area.
 - Ensure grouping and spacing are caller-controlled so layouts like “view toggles together, then gap, then search” are intentional and stable.
 - Make the toolbar surface itself visually distinct from the titlebar when appropriate, while still feeling like one coherent Finder-like window header.
-- Migrate `BinView` to the new `WindowToolbar` API and use it as the reference implementation for future windowed views.
+- Migrate `BinView` to the new `PetalToolbar` API and use it as the reference implementation for future windowed views.
 - After migration, remove obsolete `headerActions` assumptions and any remaining toolbar-specific selectors from `MicaWindow`.
 
 ### Sequencing

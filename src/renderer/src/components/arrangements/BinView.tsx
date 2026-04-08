@@ -5,7 +5,12 @@ import { useWorkspaceStore } from '../../stores/workspace'
 import type { ArrangementsMaterial, GardenBin } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
 import { PetalSpacer } from '../petal'
-import { PetalToolbarSearch, PetalToolbarSegmented } from '../petal/window'
+import {
+  PetalToolbar,
+  PetalToolbarGroup,
+  PetalToolbarSearch,
+  PetalToolbarSegmented
+} from '../petal/window'
 import { MicaWindow } from '../../mica'
 import './BinView.css'
 
@@ -465,36 +470,40 @@ export default function BinView({
     </div>
   )
 
-  const headerActions = (
-    <>
-      <PetalToolbarSegmented
-        value={uiState.preferences.viewMode}
-        onChange={onViewModeChange}
-        items={[
-          {
-            value: 'icon',
-            label: 'Icon view',
-            icon: <LayoutGrid size={13} strokeWidth={1.8} />
-          },
-          {
-            value: 'list',
-            label: 'List view',
-            icon: <List size={13} strokeWidth={1.8} />
-          }
-        ]}
-      />
+  const toolbar = (
+    <PetalToolbar>
+      <PetalToolbarGroup>
+        <PetalToolbarSegmented
+          value={uiState.preferences.viewMode}
+          onChange={onViewModeChange}
+          items={[
+            {
+              value: 'icon',
+              label: 'Icon view',
+              icon: <LayoutGrid size={13} strokeWidth={1.8} />
+            },
+            {
+              value: 'list',
+              label: 'List view',
+              icon: <List size={13} strokeWidth={1.8} />
+            }
+          ]}
+        />
+      </PetalToolbarGroup>
 
-      <PetalSpacer size={10} data-mica-no-drag="true" />
+      <PetalSpacer size={30} data-mica-no-drag="true" />
 
-      <PetalToolbarSearch
-        label="Search materials"
-        value={uiState.ephemeral.searchQuery}
-        onChange={(e) => onSearchQueryChange(e.target.value)}
-        // TODO: i18n
-        placeholder="Search"
-        data-mica-no-drag="true"
-      />
-    </>
+      <PetalToolbarGroup>
+        <PetalToolbarSearch
+          label="Search materials"
+          value={uiState.ephemeral.searchQuery}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
+          // TODO: i18n
+          placeholder="Search"
+          data-mica-no-drag="true"
+        />
+      </PetalToolbarGroup>
+    </PetalToolbar>
   )
 
   return (
@@ -503,7 +512,7 @@ export default function BinView({
       className="bin-view"
       title={activeBin.name}
       onClose={onClose}
-      headerActions={headerActions}
+      toolbar={toolbar}
       sidebar={sidebar}
       aria-label={`${activeBin.name} bin view`}
     >
