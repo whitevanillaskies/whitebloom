@@ -56,6 +56,13 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
     setMode(initialMode)
   }, [initialMode])
 
+  const closePalette = useCallback(() => {
+    setMode(initialMode)
+    setQuery('')
+    setActiveIndex(0)
+    onClose()
+  }, [initialMode, onClose])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return mode.items
@@ -85,7 +92,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
       const result = item.onActivate()
 
       if (!result || result.type === 'close') {
-        onClose()
+        closePalette()
         return
       }
 
@@ -95,7 +102,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
       setMode(result.mode)
     },
-    [onClose]
+    [closePalette, setMode]
   )
 
   // Keyboard — capture phase so it fires before Canvas bubble-phase listeners
@@ -104,7 +111,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
       if (e.key === 'Escape') {
         e.preventDefault()
         e.stopImmediatePropagation()
-        onClose()
+        closePalette()
         return
       }
 
@@ -112,7 +119,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
       if (e.key === 'Tab') {
         e.preventDefault()
         e.stopImmediatePropagation()
-        onClose()
+        closePalette()
         return
       }
 
@@ -137,18 +144,18 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [filtered, activeIndex, activate, onClose])
+  }, [filtered, activeIndex, activate, closePalette])
 
   // Dismiss on pointer down outside
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClose()
+        closePalette()
       }
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [onClose])
+  }, [closePalette])
 
   // Auto-focus input on mount
   useEffect(() => {
