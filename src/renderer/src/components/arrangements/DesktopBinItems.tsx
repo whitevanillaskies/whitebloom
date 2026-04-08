@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Trash2, Archive } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenBin } from '../../../../shared/arrangements'
@@ -45,6 +45,16 @@ function BinItem({
   const targetId = createArrangementsDropTargetId(isTrash ? 'trash' : 'bin', bin.id)
   const isDropActive = useArrangementsDragTargetActive(targetId)
   const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
+  const dropTargetMeta = useMemo(
+    () =>
+      isTrash
+        ? ({ type: 'trash' } as const)
+        : ({
+            type: 'bin',
+            binId: bin.id
+          } as const),
+    [bin.id, isTrash]
+  )
 
   // ── Drag-to-move (user bins only) ─────────────────────────
   const dragStart = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null)
@@ -97,12 +107,7 @@ function BinItem({
     id: targetId,
     hostId: ARRANGEMENTS_MICA_HOST_ID,
     element: rootRef.current,
-    meta: isTrash
-      ? { type: 'trash' }
-      : {
-          type: 'bin',
-          binId: bin.id
-        }
+    meta: dropTargetMeta
   })
 
   // ── Double-click opens Bin View ─────────────────────────────

@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import type { ArrangementsMaterial } from '../../../../shared/arrangements'
@@ -35,16 +35,21 @@ export default function DesktopMaterialItems({
   const workspaceRoot = useWorkspaceStore((s) => s.root)
 
   // Only show materials NOT in trash and with no bin assignment or dropped on desktop
-  const visibleMaterials = materials.filter(
-    (m) => !binAssignments[m.key]
+  const visibleMaterials = useMemo(
+    () => materials.filter((m) => !binAssignments[m.key]),
+    [binAssignments, materials]
+  )
+  const visibleMaterialKeys = useMemo(
+    () => visibleMaterials.map((material) => material.key),
+    [visibleMaterials]
   )
 
   const { clear, isSelected, retain, select, selectedKeys } = useLocalArrangementsMaterialSelection()
 
   // Clear or trim selection when the visible desktop set changes.
   useEffect(() => {
-    retain(visibleMaterials.map((material) => material.key))
-  }, [retain, visibleMaterials])
+    retain(visibleMaterialKeys)
+  }, [retain, visibleMaterialKeys])
 
   const handleDoubleClick = useCallback(
     (material: ArrangementsMaterial) => {

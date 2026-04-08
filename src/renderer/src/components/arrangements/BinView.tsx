@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LayoutGrid, List, LayoutDashboard, Link } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
@@ -76,15 +76,20 @@ function SidebarRow({
   const targetId = createArrangementsDropTargetId('bin', `sidebar-${bin.id}`)
   const isDropActive = useArrangementsDragTargetActive(targetId)
   const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
+  const dropTargetMeta = useMemo(
+    () =>
+      ({
+        type: 'bin',
+        binId: bin.id
+      } as const),
+    [bin.id]
+  )
 
   useArrangementsDropTarget({
     id: targetId,
     hostId: ARRANGEMENTS_MICA_HOST_ID,
     element: rowRef.current,
-    meta: {
-      type: 'bin',
-      binId: bin.id
-    }
+    meta: dropTargetMeta
   })
 
   return (
@@ -344,6 +349,16 @@ export default function BinView({
     `content-${binId}`
   )
   const isContentDropActive = useArrangementsDragTargetActive(contentTargetId)
+  const contentDropTargetMeta = useMemo(
+    () =>
+      binId === SYSTEM_TRASH_BIN_ID
+        ? ({ type: 'trash' } as const)
+        : ({
+            type: 'bin',
+            binId
+          } as const),
+    [binId]
+  )
   const { clear, isSelected, retain, select, selectedKeys } = useControlledArrangementsMaterialSelection(
     uiState.ephemeral.selectedKeys,
     onSelectedKeysChange
@@ -353,13 +368,7 @@ export default function BinView({
     id: contentTargetId,
     hostId: ARRANGEMENTS_MICA_HOST_ID,
     element: contentDropRef.current,
-    meta:
-      binId === SYSTEM_TRASH_BIN_ID
-        ? { type: 'trash' }
-        : {
-            type: 'bin',
-            binId
-          }
+    meta: contentDropTargetMeta
   })
 
   const handleDoubleClick = useCallback(

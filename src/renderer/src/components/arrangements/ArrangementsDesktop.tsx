@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenCameraState } from '../../../../shared/arrangements'
 import {
@@ -118,15 +118,20 @@ export default function ArrangementsDesktop({
   const [spaceHeld, setSpaceHeld] = useState(false)
   const desktopTargetId = createArrangementsDropTargetId('desktop')
   const isDropActive = useArrangementsDragTargetActive(desktopTargetId)
+  const dropTargetMeta = useMemo(
+    () =>
+      ({
+        type: 'desktop',
+        camera
+      } as const),
+    [camera]
+  )
 
   useArrangementsDropTarget({
     id: desktopTargetId,
     hostId: ARRANGEMENTS_MICA_HOST_ID,
     element: containerRef.current,
-    meta: {
-      type: 'desktop',
-      camera
-    }
+    meta: dropTargetMeta
   })
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react'
 import { create } from 'zustand'
 
 export const MICA_DRAG_COORDINATE_SPACE = 'screen-space' as const
@@ -133,6 +133,28 @@ export type MicaDragState = {
   reset: () => void
 }
 
+export type MicaDragSnapshot = Pick<
+  MicaDragState,
+  'coordinateSpace' | 'session' | 'hover' | 'targets' | 'activeTargetId'
+>
+
+export type MicaDragCoordinator = {
+  getSnapshot: () => MicaDragSnapshot
+  subscribe: (listener: () => void) => () => void
+  startDrag: MicaDragState['startDrag']
+  updateDrag: MicaDragState['updateDrag']
+  setHoverTarget: MicaDragState['setHoverTarget']
+  hitTestTargets: MicaDragState['hitTestTargets']
+  refreshActiveTarget: MicaDragState['refreshActiveTarget']
+  cancelDrag: MicaDragState['cancelDrag']
+  completeDrag: MicaDragState['completeDrag']
+  registerDropTarget: MicaDragState['registerDropTarget']
+  updateDropTarget: MicaDragState['updateDropTarget']
+  unregisterDropTarget: MicaDragState['unregisterDropTarget']
+  clearDropTargets: MicaDragState['clearDropTargets']
+  reset: MicaDragState['reset']
+}
+
 const EMPTY_HOVER_STATE: MicaDragHoverState = {
   targetId: null,
   enteredAt: null,
@@ -229,6 +251,38 @@ function getTopmostMatchingTarget(
   }
 }
 
+function areMicaScreenRectsEqual(
+  left: MicaScreenRect | null | undefined,
+  right: MicaScreenRect | null | undefined
+): boolean {
+  if (left === right) return true
+  if (!left || !right) return left === right
+
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.width === right.width &&
+    left.height === right.height
+  )
+}
+
+function areDropTargetsEquivalent(
+  left: MicaRegisteredDropTarget | undefined,
+  right: MicaDropTargetDescriptor
+): boolean {
+  if (!left) return false
+
+  return (
+    left.id === right.id &&
+    left.hostId === right.hostId &&
+    left.acceptedPayloadKinds === right.acceptedPayloadKinds &&
+    left.disabled === right.disabled &&
+    left.hoverIntentDelayMs === right.hoverIntentDelayMs &&
+    left.meta === right.meta &&
+    areMicaScreenRectsEqual(left.bounds, right.bounds)
+  )
+}
+
 export const useMicaDragStore = create<MicaDragState>((set, get) => ({
   coordinateSpace: MICA_DRAG_COORDINATE_SPACE,
   session: null,
@@ -315,9 +369,13 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
 
   registerDropTarget: (descriptor, registeredAt = Date.now()) =>
     set((state) => {
+      const existingTarget = state.targets[descriptor.id]
+      if (areDropTargetsEquivalent(existingTarget, descriptor)) return state
+
       const targets = {
         ...state.targets,
         [descriptor.id]: {
+          ...existingTarget,
           ...descriptor,
           registeredAt
         }
@@ -335,13 +393,16 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
       const target = state.targets[targetId]
       if (!target) return state
 
+      const nextTarget = {
+        ...target,
+        ...patch,
+        id: target.id
+      }
+      if (areDropTargetsEquivalent(target, nextTarget)) return state
+
       const targets = {
         ...state.targets,
-        [targetId]: {
-          ...target,
-          ...patch,
-          id: target.id
-        }
+        [targetId]: nextTarget
       }
       const hit = getTopmostMatchingTarget(targets, state.session?.pointer, state.session)
 
@@ -384,6 +445,40 @@ export const useMicaDragStore = create<MicaDragState>((set, get) => ({
     })
 }))
 
+function selectMicaDragSnapshot(state: MicaDragState): MicaDragSnapshot {
+  return {
+    coordinateSpace: state.coordinateSpace,
+    session: state.session,
+    hover: state.hover,
+    targets: state.targets,
+    activeTargetId: state.activeTargetId
+  }
+}
+
+function createStoreBackedMicaDragCoordinator(): MicaDragCoordinator {
+  return {
+    getSnapshot: () => selectMicaDragSnapshot(useMicaDragStore.getState()),
+    subscribe: (listener) => useMicaDragStore.subscribe(() => listener()),
+    startDrag: (input) => useMicaDragStore.getState().startDrag(input),
+    updateDrag: (pointer) => useMicaDragStore.getState().updateDrag(pointer),
+    setHoverTarget: (targetId, enteredAt) =>
+      useMicaDragStore.getState().setHoverTarget(targetId, enteredAt),
+    hitTestTargets: (pointer, session) => useMicaDragStore.getState().hitTestTargets(pointer, session),
+    refreshActiveTarget: () => useMicaDragStore.getState().refreshActiveTarget(),
+    cancelDrag: () => useMicaDragStore.getState().cancelDrag(),
+    completeDrag: () => useMicaDragStore.getState().completeDrag(),
+    registerDropTarget: (descriptor, registeredAt) =>
+      useMicaDragStore.getState().registerDropTarget(descriptor, registeredAt),
+    updateDropTarget: (targetId, patch) => useMicaDragStore.getState().updateDropTarget(targetId, patch),
+    unregisterDropTarget: (targetId) => useMicaDragStore.getState().unregisterDropTarget(targetId),
+    clearDropTargets: () => useMicaDragStore.getState().clearDropTargets(),
+    reset: () => useMicaDragStore.getState().reset()
+  }
+}
+
+const defaultMicaDragCoordinator = createStoreBackedMicaDragCoordinator()
+let activeMicaDragCoordinator: MicaDragCoordinator = defaultMicaDragCoordinator
+
 export function isMicaDragPayloadKind<
   TPayload extends MicaAnyDragPayload,
   TKind extends TPayload['kind']
@@ -394,7 +489,24 @@ export function isMicaDragPayloadKind<
 export function useMicaDragState<TResult>(
   selector: (state: MicaDragState) => TResult
 ): TResult {
-  return useMicaDragStore(selector)
+  const coordinator = getMicaDragCoordinator()
+  return useSyncExternalStore(
+    coordinator.subscribe,
+    () => selector(coordinator.getSnapshot() as MicaDragState),
+    () => selector(coordinator.getSnapshot() as MicaDragState)
+  )
+}
+
+export function getMicaDragCoordinator(): MicaDragCoordinator {
+  return activeMicaDragCoordinator
+}
+
+export function setMicaDragCoordinator(coordinator: MicaDragCoordinator): void {
+  activeMicaDragCoordinator = coordinator
+}
+
+export function resetMicaDragCoordinator(): void {
+  activeMicaDragCoordinator = defaultMicaDragCoordinator
 }
 
 export function getMicaDragHoverElapsedMs(
@@ -453,8 +565,34 @@ export function useMicaDropTarget<
   element
 }: MicaDropTargetBindingOptions<TAcceptedKind, TMeta>): void {
   useLayoutEffect(() => {
+    if (!element) return
+
+    const syncBounds = () => {
+      const descriptor = {
+        id,
+        hostId,
+        acceptedPayloadKinds,
+        bounds: measureMicaElementScreenRect(element),
+        disabled,
+        hoverIntentDelayMs,
+        meta
+      } satisfies MicaDropTargetDescriptor<TAcceptedKind, TMeta>
+
+      const coordinator = getMicaDragCoordinator()
+      const existingTarget = coordinator.getSnapshot().targets[id]
+      if (existingTarget) {
+        coordinator.updateDropTarget(id, descriptor)
+      } else {
+        coordinator.registerDropTarget(descriptor)
+      }
+    }
+
+    syncBounds()
+  }, [acceptedPayloadKinds, disabled, element, hostId, hoverIntentDelayMs, id, meta])
+
+  useLayoutEffect(() => {
     if (!element) {
-      useMicaDragStore.getState().unregisterDropTarget(id)
+      getMicaDragCoordinator().unregisterDropTarget(id)
       return
     }
 
@@ -469,10 +607,12 @@ export function useMicaDropTarget<
         meta
       } satisfies MicaDropTargetDescriptor<TAcceptedKind, TMeta>
 
-      if (useMicaDragStore.getState().targets[id]) {
-        useMicaDragStore.getState().updateDropTarget(id, descriptor)
+      const coordinator = getMicaDragCoordinator()
+      const existingTarget = coordinator.getSnapshot().targets[id]
+      if (existingTarget) {
+        coordinator.updateDropTarget(id, descriptor)
       } else {
-        useMicaDragStore.getState().registerDropTarget(descriptor)
+        coordinator.registerDropTarget(descriptor)
       }
     }
 
@@ -487,7 +627,7 @@ export function useMicaDropTarget<
       resizeObserver.disconnect()
       window.removeEventListener('resize', syncBounds)
       window.removeEventListener('scroll', syncBounds, true)
-      useMicaDragStore.getState().unregisterDropTarget(id)
+      getMicaDragCoordinator().unregisterDropTarget(id)
     }
-  }, [acceptedPayloadKinds, disabled, element, hostId, hoverIntentDelayMs, id, meta])
+  }, [element, id])
 }

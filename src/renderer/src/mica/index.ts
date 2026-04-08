@@ -13,14 +13,20 @@ export {
 } from './model'
 export { useMicaHost } from './useMicaHost'
 export {
+  createMicaHostCoordinator
+} from './hostCoordinator'
+export {
   canMicaDropTargetAcceptPayload,
   createMicaScreenRect,
+  getMicaDragCoordinator,
   getMicaDragHoverElapsedMs,
   isMicaDragHoverIntentReady,
   isMicaDragPayloadKind,
   isPointInMicaScreenRect,
   MICA_DRAG_COORDINATE_SPACE,
   measureMicaElementScreenRect,
+  resetMicaDragCoordinator,
+  setMicaDragCoordinator,
   useMicaDragHoverIntent,
   useMicaDragState,
   useMicaDragStore,
@@ -30,7 +36,13 @@ export type {
   MicaWindowRenderArgs
 } from './MicaHost'
 export type {
+  MicaHostCoordinator,
+  RetargetOptions,
+  WindowUiStateUpdater
+} from './hostCoordinator'
+export type {
   MicaAnyDragPayload,
+  MicaDragCoordinator,
   MicaAnyDragSource,
   MicaDragCoordinateSpace,
   MicaDragHitTestResult,
@@ -38,6 +50,7 @@ export type {
   MicaDragPayload,
   MicaDragPointer,
   MicaDragPreview,
+  MicaDragSnapshot,
   MicaDragSession,
   MicaDragSource,
   MicaDragStartInput,

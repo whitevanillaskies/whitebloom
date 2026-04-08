@@ -14,6 +14,11 @@ function dedupeSelection(keys: Iterable<string>): string[] {
   return [...new Set(keys)]
 }
 
+function areSelectionsEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false
+  return left.every((key, index) => key === right[index])
+}
+
 function toggleSelection(current: string[], key: string, additive: boolean): string[] {
   if (!additive) return [key]
 
@@ -25,7 +30,8 @@ function toggleSelection(current: string[], key: string, additive: boolean): str
 
 function retainSelection(current: string[], keys: Iterable<string>): string[] {
   const allowed = new Set(keys)
-  return current.filter((key) => allowed.has(key))
+  const next = current.filter((key) => allowed.has(key))
+  return areSelectionsEqual(current, next) ? current : next
 }
 
 function useArrangementsMaterialSelectionState(
@@ -36,13 +42,16 @@ function useArrangementsMaterialSelectionState(
 
   const replace = useCallback(
     (keys: Iterable<string>) => {
-      setSelectedKeys(dedupeSelection(keys))
+      setSelectedKeys((current) => {
+        const next = dedupeSelection(keys)
+        return areSelectionsEqual(current, next) ? current : next
+      })
     },
     [setSelectedKeys]
   )
 
   const clear = useCallback(() => {
-    setSelectedKeys([])
+    setSelectedKeys((current) => (current.length === 0 ? current : []))
   }, [setSelectedKeys])
 
   const retain = useCallback(
@@ -54,7 +63,10 @@ function useArrangementsMaterialSelectionState(
 
   const select = useCallback(
     (key: string, additive: boolean) => {
-      setSelectedKeys((current) => toggleSelection(current, key, additive))
+      setSelectedKeys((current) => {
+        const next = toggleSelection(current, key, additive)
+        return areSelectionsEqual(current, next) ? current : next
+      })
     },
     [setSelectedKeys]
   )
@@ -85,7 +97,9 @@ export function useControlledArrangementsMaterialSelection(
 ): ArrangementsMaterialSelection {
   const setSelectedKeys = useCallback(
     (next: string[] | ((current: string[]) => string[])) => {
-      onChange(typeof next === 'function' ? next(selectedKeys) : next)
+      const resolvedNext = typeof next === 'function' ? next(selectedKeys) : next
+      if (areSelectionsEqual(selectedKeys, resolvedNext)) return
+      onChange(resolvedNext)
     },
     [onChange, selectedKeys]
   )

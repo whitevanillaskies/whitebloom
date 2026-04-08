@@ -8,6 +8,7 @@ import {
   type UnhandledDropBehavior
 } from '../../../shared/app-settings'
 import i18n from '../i18n'
+import { createLogger } from '../../../shared/logger'
 import { useBoardStore } from './board'
 
 type AppSettingsState = AppSettings & {
@@ -18,6 +19,8 @@ type AppSettingsState = AppSettings & {
   updateWarnLargeImport: (warn: boolean) => Promise<void>
   updateLanguage: (lang: string) => Promise<void>
 }
+
+const logger = createLogger('app-settings')
 
 export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
   ...DEFAULT_APP_SETTINGS,
@@ -39,7 +42,7 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     useBoardStore.getState().setActiveUsername(next.user.username)
     const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
-    if (!result.ok) console.error('Failed to persist app settings')
+    if (!result.ok) logger.error('failed to persist app settings')
   },
 
   updateUnhandledDrop: async (behavior) => {
@@ -47,7 +50,7 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     set(next)
     const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
-    if (!result.ok) console.error('Failed to persist app settings')
+    if (!result.ok) logger.error('failed to persist app settings')
   },
 
   updateWarnLargeImport: async (warn) => {
@@ -55,7 +58,7 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     set(next)
     const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
-    if (!result.ok) console.error('Failed to persist app settings')
+    if (!result.ok) logger.error('failed to persist app settings')
   },
 
   updateLanguage: async (lang) => {
@@ -66,6 +69,6 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
     await window.api.setLanguage(normalized)
-    if (!result.ok) console.error('Failed to persist app settings')
+    if (!result.ok) logger.error('failed to persist app settings')
   }
 }))

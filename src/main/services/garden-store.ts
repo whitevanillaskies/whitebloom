@@ -2,9 +2,11 @@ import { rename } from 'fs/promises'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { createEmptyGardenState, normalizeGardenState, type GardenState } from '../../shared/arrangements'
+import { createLogger } from '../../shared/logger'
 
 const GARDEN_FILENAME = '.garden'
 const GARDEN_TEMP_FILENAME = '.garden.tmp'
+const logger = createLogger('garden-store')
 
 export function getGardenPath(workspaceRoot: string): string {
   return join(workspaceRoot, GARDEN_FILENAME)
@@ -26,14 +28,14 @@ export async function readGardenState(workspaceRoot: string): Promise<GardenStat
     const parsed = JSON.parse(json) as unknown
 
     if (!isGardenStateDocument(parsed)) {
-      console.warn(`[garden-store] falling back to empty state for ${gardenPath}: invalid garden schema`)
+      logger.warn(`falling back to empty state for ${gardenPath}: invalid garden schema`)
       return createEmptyGardenState()
     }
 
     return normalizeGardenState(parsed)
   } catch (error) {
     if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-      console.warn(`[garden-store] falling back to empty state for ${gardenPath}:`, error)
+      logger.warn(`falling back to empty state for ${gardenPath}:`, error)
     }
     return createEmptyGardenState()
   }

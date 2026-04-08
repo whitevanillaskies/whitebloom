@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Layers, Link } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenSetNode } from '../../../../shared/arrangements'
@@ -36,15 +36,20 @@ function SetTreeNode({
   const targetId = createArrangementsDropTargetId('set', node.id)
   const isDropActive = useArrangementsDragTargetActive(targetId)
   const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
+  const dropTargetMeta = useMemo(
+    () =>
+      ({
+        type: 'set',
+        setId: node.id
+      } as const),
+    [node.id]
+  )
 
   useArrangementsDropTarget({
     id: targetId,
     hostId: ARRANGEMENTS_MICA_HOST_ID,
     element: rowRef.current,
-    meta: {
-      type: 'set',
-      setId: node.id
-    }
+    meta: dropTargetMeta
   })
 
   const handleDoubleClick = useCallback(

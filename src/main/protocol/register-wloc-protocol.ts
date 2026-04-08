@@ -2,8 +2,10 @@ import { net, protocol } from 'electron'
 import { pathToFileURL } from 'url'
 import { resolveResource } from '../resource-uri'
 import type { MainProcessContext } from '../state/main-process-context'
+import { createLogger } from '../../shared/logger'
 
 type ManagedScheme = 'wloc' | 'wbapp'
+const logger = createLogger('resource-protocol')
 
 function registerScheme(scheme: ManagedScheme): void {
   protocol.registerSchemesAsPrivileged([
@@ -36,7 +38,7 @@ function registerProtocolHandler(scheme: ManagedScheme, context: MainProcessCont
       const absolutePath = resolveResource(resourceUri, workspaceRoot ?? '')
       return net.fetch(pathToFileURL(absolutePath).toString())
     } catch (err) {
-      console.error(`[${scheme}] Failed to resolve/fetch resource:`, resourceUri, err)
+      logger.error(`failed to resolve/fetch resource for ${scheme}:`, resourceUri, err)
       return new Response('Not Found', { status: 404 })
     }
   })

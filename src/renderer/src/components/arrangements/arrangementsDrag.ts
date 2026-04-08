@@ -3,9 +3,9 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { GardenCameraState } from '../../../../shared/arrangements'
 import {
   MICA_DRAG_COORDINATE_SPACE,
+  getMicaDragCoordinator,
   useMicaDragHoverIntent,
   useMicaDragState,
-  useMicaDragStore,
   useMicaDropTarget,
   type MicaDragPointer,
   type MicaDropTargetDescriptor,
@@ -146,7 +146,7 @@ function offsetDesktopPlacement(base: MicaScreenPoint, index: number): MicaScree
 }
 
 function resolveArrangementsDropTarget(): ArrangementsDropResolution | null {
-  const dragState = useMicaDragStore.getState()
+  const dragState = getMicaDragCoordinator().getSnapshot()
   if (!dragState.session) return null
 
   const activeTarget = dragState.activeTargetId ? dragState.targets[dragState.activeTargetId] : null
@@ -321,9 +321,10 @@ export function useArrangementsMaterialDrag({
 
       const pointer = createPointer(event.nativeEvent)
       if (!cancelled && isDragging) {
-        useMicaDragStore.getState().updateDrag(pointer)
+        const dragCoordinator = getMicaDragCoordinator()
+        dragCoordinator.updateDrag(pointer)
         const resolution = resolveArrangementsDropTarget()
-        const completedSession = useMicaDragStore.getState().completeDrag()
+        const completedSession = dragCoordinator.completeDrag()
         if (
           completedSession?.payload.kind === ARRANGEMENTS_MATERIAL_DRAG_KIND &&
           resolution
@@ -335,7 +336,7 @@ export function useArrangementsMaterialDrag({
           }
         }
       } else if (isDragging) {
-        useMicaDragStore.getState().cancelDrag()
+        getMicaDragCoordinator().cancelDrag()
       }
 
       pendingRef.current = null
@@ -385,7 +386,7 @@ export function useArrangementsMaterialDrag({
       if (!isDragging) {
         if (Math.hypot(dx, dy) < ARRANGEMENTS_DRAG_THRESHOLD) return
 
-        useMicaDragStore.getState().startDrag({
+        getMicaDragCoordinator().startDrag({
           payload: {
             kind: ARRANGEMENTS_MATERIAL_DRAG_KIND,
             data: {
@@ -418,7 +419,7 @@ export function useArrangementsMaterialDrag({
         return
       }
 
-      useMicaDragStore.getState().updateDrag(pointer)
+      getMicaDragCoordinator().updateDrag(pointer)
     },
     [isDragging, materialKey, materialLabel, source]
   )

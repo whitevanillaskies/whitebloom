@@ -33,7 +33,3 @@
   position: absolute;
   pointer-events: auto;
 }
-
-.mica-host__overlay-plane > * {
-  pointer-events: auto;
-}
