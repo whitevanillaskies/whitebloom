@@ -12,9 +12,39 @@ export {
   resolveMicaPersistenceBoundary
 } from './model'
 export { useMicaHost } from './useMicaHost'
+export {
+  canMicaDropTargetAcceptPayload,
+  createMicaScreenRect,
+  isMicaDragPayloadKind,
+  isPointInMicaScreenRect,
+  MICA_DRAG_COORDINATE_SPACE,
+  measureMicaElementScreenRect,
+  useMicaDragState,
+  useMicaDragStore,
+  useMicaDropTarget
+} from './drag'
 export type {
   MicaWindowRenderArgs
 } from './MicaHost'
+export type {
+  MicaAnyDragPayload,
+  MicaAnyDragSource,
+  MicaDragCoordinateSpace,
+  MicaDragHitTestResult,
+  MicaDragHoverState,
+  MicaDragPayload,
+  MicaDragPointer,
+  MicaDragPreview,
+  MicaDragSession,
+  MicaDragSource,
+  MicaDragStartInput,
+  MicaDragState,
+  MicaDropTargetBindingOptions,
+  MicaDropTargetDescriptor,
+  MicaRegisteredDropTarget,
+  MicaScreenPoint,
+  MicaScreenRect
+} from './drag'
 export type {
   MicaAnyWindowRoute,
   MicaHostBounds,
