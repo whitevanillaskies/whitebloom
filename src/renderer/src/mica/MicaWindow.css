@@ -1,0 +1,94 @@
+.mica-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-border-frame);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(248, 249, 250, 0.97);
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+
+.mica-window__titlebar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: 38px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  background: rgba(245, 246, 248, 0.98);
+  flex-shrink: 0;
+  user-select: none;
+  cursor: grab;
+}
+
+.mica-window__titlebar:active {
+  cursor: grabbing;
+}
+
+.mica-window__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--color-secondary-fg);
+  cursor: pointer;
+  border-radius: var(--radius-border-inner);
+  flex-shrink: 0;
+}
+
+.mica-window__close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-primary-fg);
+}
+
+.mica-window__close-placeholder {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.mica-window__title {
+  font-size: 12.5px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: var(--color-primary-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mica-window__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: end;
+}
+
+.mica-window__content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mica-window__sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(0, 0, 0, 0.07);
+  background: rgba(243, 244, 246, 0.6);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mica-window__main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}

@@ -61,7 +61,7 @@ export default function ArrangementsView({
             <DesktopBinItems />
           </ArrangementsDesktop>
 
-          {/* Bin View — step 7: PetalWindow absolute on top of desktop */}
+          {/* Bin View — temporary direct MicaWindow usage before full Mica host adoption */}
           <BinView onOpenBoard={onOpenBoard} />
         </main>
       </div>

@@ -1,9 +1,8 @@
-import { ArrowLeft } from 'lucide-react'
-import './PetalWindow.css'
+import { MicaWindow } from '../../mica'
 
 type PetalWindowProps = {
   title: string
-  /** Back button handler. If omitted the back button is not rendered. */
+  /** Legacy compatibility prop. Renders the new left-side close control. */
   onBack?: () => void
   /** Slot for right-side chrome actions: view toggles, search, etc. */
   headerActions?: React.ReactNode
@@ -11,6 +10,7 @@ type PetalWindowProps = {
   sidebar?: React.ReactNode
   children?: React.ReactNode
   className?: string
+  style?: React.CSSProperties
   'aria-label'?: string
 }
 
@@ -21,39 +21,20 @@ export default function PetalWindow({
   sidebar,
   children,
   className,
+  style,
   'aria-label': ariaLabel
 }: PetalWindowProps): React.JSX.Element {
   return (
-    <div
-      className={['petal-window', className].filter(Boolean).join(' ')}
-      role="region"
-      aria-label={ariaLabel ?? title}
+    <MicaWindow
+      title={title}
+      onClose={onBack}
+      headerActions={headerActions}
+      sidebar={sidebar}
+      className={className}
+      style={style}
+      aria-label={ariaLabel}
     >
-      <div className="petal-window__titlebar">
-        {onBack ? (
-          <button
-            type="button"
-            className="petal-window__back"
-            onClick={onBack}
-            aria-label="Back"
-          >
-            <ArrowLeft size={13} strokeWidth={1.8} />
-          </button>
-        ) : (
-          <div />
-        )}
-
-        <span className="petal-window__title">{title}</span>
-
-        <div className="petal-window__actions">{headerActions}</div>
-      </div>
-
-      <div className="petal-window__content">
-        {sidebar ? (
-          <aside className="petal-window__sidebar">{sidebar}</aside>
-        ) : null}
-        <div className="petal-window__main">{children}</div>
-      </div>
-    </div>
+      {children}
+    </MicaWindow>
   )
 }

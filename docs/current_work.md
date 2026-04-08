@@ -235,17 +235,20 @@ Defer implementation until clusters and Arrangements are shipped and stable.
 - Local per-window UI state should be considered explicitly: view mode, search query, selection, and last geometry.
 - Arrangements should stop owning a bespoke `activeBinView` concept and instead talk to `Mica` through host-level open, retarget, move, and close actions.
 
-**Behavior rules to settle before implementation.**
+**Behavior rules — settled.**
 
-- Whether view mode is global to all bin windows or stored per window. Per window is probably cleaner.
-- Whether search resets when changing bins. Resetting is likely less confusing.
-- Whether selection always clears on bin switch. It probably should.
-- Whether a host remembers window position across sessions or only while that host remains mounted.
-- Whether future non-bin windows are in scope for the same manager. The state shape should leave room for that even if v1 implements only bin windows.
-- Window chrome convention: if `Mica` adopts a left-side close control, that placement should become the long-term pattern for all Whitebloom windows and modals, not just Arrangements. The current app is not yet consistent here, so this should be treated as a normalization pass over time rather than a one-off exception.
-- The close control should not be a literal macOS traffic light by default. Whitebloom should leave room for a custom close button that respects the same placement and interaction pattern while developing its own visual identity.
-- How renderer registration works in practice: static registry, host-provided mapping, or explicit render prop wiring.
-- Whether `Mica` state lives in one shared app store, separate host stores built on common primitives, or a hybrid model. Favor a generic subsystem with per-host scoping rather than a single global pile of unrelated window state.
+- **View mode: per-window, preserved on bin switch.** The user chose icon or list view for the window, not for the bin. Switching bin content doesn't reconfigure the window. Same rule as Finder: the window remembers its view mode across navigations.
+- **Search: reset on bin change.** Search is a query against a specific bin's contents. Carrying a search term from one bin into another produces surprising results and bad empty states.
+- **Selection: always clear on bin switch.** Selection is bin-local, and carrying it forward creates a real hazard — a user with items selected in Bin A switches to Trash, hits Delete, and permanently deletes something they selected earlier. Clear immediately on retarget, before content re-renders.
+- **Window position: transient session state only; do not persist across restarts.** The benefit of position memory (not having to re-place the window after switching bins) is fully realized within a session. Cross-restart persistence adds fragile edge cases — off-screen windows, geometry from a different monitor, stale workspace context. Initialize to a sensible default on every app start. Add persistence later if usage shows a clear need.
+- **Default window geometry: small, macOS-sized, not maximized.** `width: 460px`, `height: 380px`, `top: 48px`, `left: 28px` (within the desktop column, already clear of the Sets Island which is a sibling layout column). Min-width ~380px, min-height ~300px. The window should feel like a deliberate tool on the desktop, not a panel that took over the screen.
+- **Retarget behavior: instant, no transition.** When double-clicking a bin while a window is already open, the content switches immediately. A crossfade or slide would feel more clever than helpful here and would complicate the implementation without user-facing benefit. Revisit only if testing reveals confusion.
+- **Future non-bin window kinds: leave room in the type model, build nothing.** Use a discriminated union for `kind + payload` from day one: `{ kind: 'bin-view'; binId: string }`. Additional kinds (`inspector`, `preview`, etc.) can be added later without reshaping the core record. The type system carries this cost; the runtime does not.
+- **Left-side close control: commit as the long-term Whitebloom pattern.** Any new window or modal going forward uses left-side close. Existing components get migrated opportunistically — no big-bang pass. The important thing is the decision is locked now so no new chrome is built in the old pattern.
+- **Close control visual: simple, not macOS traffic lights.** A small `X` from the existing Lucide icon set. Left-positioned. No color, no hover animation. Furniture, not a feature. Leave room for a Whitebloom-specific glyph later without committing to one now.
+- **Renderer registration: render prop for v1; no registry.** A global registry adds indirection with no payoff at one window kind and one host. Use a render prop instead: `<MicaHost policy={...} renderWindow={(win) => <BinView window={win} />}>`. Feature-owned rendering stays inside the feature. If a second host with multiple window kinds appears, that's the right moment to consider a registry.
+- **`Mica` state: per-host via a `useMicaHost(policy)` hook; not in the arrangements domain store.** The arrangements store owns domain data (bins, sets, memberships, placements). Window geometry is pure presentation state. Mixing them recreates the `activeBinView` problem in a larger box. The hook returns `{ windows, open, retarget, move, close }`. The Arrangements component calls it and owns the resulting host state locally. `BinView` renders from the window record the host passes down. Zero contamination of domain state.
+- **Render prop generic typing: discriminated union on `kind`, typed payload per kind, no `as` casts.** The render function receives a fully typed window record. The generic constraint on `MicaHost` ties the policy's known window kinds to the record union, so the render callback is typed to the exact payload shape for each kind. Worth specifying the type signature precisely before writing implementation code.
 
 **Why this is worth doing.**
 
@@ -257,25 +260,25 @@ Defer implementation until clusters and Arrangements are shipped and stable.
 
 **Implementation plan.**
 
-1. Define `Mica` as a generic subsystem rather than an Arrangements feature.
+1. (DONE) Define `Mica` as a generic subsystem rather than an Arrangements feature.
    - Create a shared `Mica` model for window records, host identity, geometry, focus, and lifecycle.
    - Model a window as a UI record with its own `id`, `kind`, routed payload, geometry, and visibility state.
    - Keep the shape generic enough for future window kinds even if v1 only implements `bin-view`.
    - Decide which pieces belong in persisted UI state versus transient session state.
 
-2. Introduce the `MicaHost` concept.
+2. (DONE) Introduce the `MicaHost` concept.
    - Each screen that wants floating windows should provide a host region with explicit bounds.
    - A host should define its own policy: single-window-only, one-window-per-kind, or unrestricted multi-window.
    - A host should provide the overlay plane where `Mica` windows render.
    - A host should remain responsible for how its content layer and overlay layer coexist.
 
-3. Define window renderer registration.
+3. (DONE) Define window renderer registration.
    - Choose how a host maps `window.kind` to a concrete renderer.
    - Keep feature-owned content local to the feature rather than embedding feature logic inside `Mica` core.
    - For Arrangements v1, register `bin-view` as the first concrete window kind.
    - Leave room for future kinds such as inspectors or previews without changing the core model.
 
-4. Build the reusable `Mica` window shell.
+4. (DONE) Build the reusable `Mica` window shell.
    - Upgrade `PetalWindow` or extract from it so the shell becomes generic `Mica` chrome rather than Bin View chrome.
    - Add a left-side close control as the default window-closing affordance.
    - Keep the control pattern compatible with a future Whitebloom-specific button treatment.

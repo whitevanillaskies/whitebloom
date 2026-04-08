@@ -1,5 +1,5 @@
 /*
- * BinView — a PetalWindow sitting on top of the Arrangements desktop.
+ * BinView — a MicaWindow sitting on top of the Arrangements desktop.
  * Positioned absolute within .arrangements-view__desktop (position: relative).
  * The canvas, bins, Trash, and Sets Island all remain visible around it.
  */

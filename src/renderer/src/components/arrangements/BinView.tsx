@@ -4,7 +4,7 @@ import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import type { ArrangementsMaterial, GardenBin } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
-import { PetalWindow } from '../petal'
+import { MicaWindow } from '../../mica'
 import './BinView.css'
 
 type ViewMode = 'icon' | 'list'
@@ -488,10 +488,10 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
   )
 
   return (
-    <PetalWindow
+    <MicaWindow
       className="bin-view"
       title={activeBin.name}
-      onBack={closeBinView}
+      onClose={closeBinView}
       headerActions={headerActions}
       sidebar={sidebar}
       aria-label={`${activeBin.name} bin view`}
@@ -542,6 +542,6 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
         </div>
       )}
       </div>
-    </PetalWindow>
+    </MicaWindow>
   )
 }
