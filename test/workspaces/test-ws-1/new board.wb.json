@@ -564,6 +564,27 @@
       "updatedAt": "2026-04-08T15:22:21.599Z",
       "updatedBy": "anon",
       "plain": "Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think"
+    },
+    {
+      "id": "3a47a02b-1ea2-407f-95a1-6acb747b67cd",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1448.4834032269985,
+        "y": 1024.835712453152
+      },
+      "size": {
+        "w": 390,
+        "h": 75
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"I don't think it makes any sense to show the filepath on the boards, after all one of the core points of \",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":1,\"mode\":\"normal\",\"style\":\"\",\"text\":\"WHITEBLOOM \",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"is abstracting away filesystem stuff.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 390,
+      "created": "2026-04-08T15:44:01.344Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T15:44:37.957Z",
+      "updatedBy": "anon",
+      "plain": "I don't think it makes any sense to show the filepath on the boards, after all one of the core points of WHITEBLOOM is abstracting away filesystem stuff."
     }
   ],
   "edges": [
@@ -604,8 +625,8 @@
     }
   ],
   "viewport": {
-    "x": -39.978042604351,
-    "y": -118.17130676207648,
+    "x": -327.978042604351,
+    "y": -297.1713067620765,
     "zoom": 0.8705505632961245
   }
 }
