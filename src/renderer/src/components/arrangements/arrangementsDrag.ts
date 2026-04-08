@@ -40,6 +40,10 @@ export type ArrangementsDropTargetMeta =
       camera: GardenCameraState
     }
   | {
+      type: 'set'
+      setId: string
+    }
+  | {
       type: 'bin'
       binId: string
     }
@@ -132,6 +136,7 @@ function commitArrangementsMaterialDrop(
 
   const { assignToBin, moveMaterialOnDesktop, removeFromBin, sendToTrash } =
     useArrangementsStore.getState()
+  const addToSet = useArrangementsStore.getState().addToSet
 
   switch (meta.type) {
     case 'desktop': {
@@ -145,6 +150,12 @@ function commitArrangementsMaterialDrop(
     case 'bin': {
       payload.materialKeys.forEach((materialKey) => {
         assignToBin(materialKey, meta.binId)
+      })
+      return true
+    }
+    case 'set': {
+      payload.materialKeys.forEach((materialKey) => {
+        addToSet(materialKey, meta.setId)
       })
       return true
     }
@@ -166,7 +177,10 @@ type PendingDragState = {
   element: HTMLElement
 }
 
-export function createArrangementsDropTargetId(kind: 'desktop' | 'bin' | 'trash', id?: string): string {
+export function createArrangementsDropTargetId(
+  kind: 'desktop' | 'set' | 'bin' | 'trash',
+  id?: string
+): string {
   return id ? `arrangements:${kind}:${id}` : `arrangements:${kind}`
 }
 

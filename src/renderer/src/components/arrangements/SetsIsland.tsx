@@ -1,8 +1,14 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Layers, Link } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenSetNode } from '../../../../shared/arrangements'
 import { PetalIsland } from '../petal'
+import {
+  ARRANGEMENTS_MICA_HOST_ID,
+  createArrangementsDropTargetId,
+  useArrangementsDragTargetActive,
+  useArrangementsDropTarget
+} from './arrangementsDrag'
 import './SetsIsland.css'
 
 // ── Smart set IDs ─────────────────────────────────────────────────────────────
@@ -15,19 +21,29 @@ type SetTreeNodeProps = {
   depth: number
   expandedIds: Set<string>
   onToggleExpand: (id: string) => void
-  onDrop: (materialKey: string, setId: string) => void
 }
 
 function SetTreeNode({
   node,
   depth,
   expandedIds,
-  onToggleExpand,
-  onDrop
+  onToggleExpand
 }: SetTreeNodeProps): React.JSX.Element {
   const isExpanded = expandedIds.has(node.id)
   const hasChildren = node.children.length > 0
-  const [isDragOver, setIsDragOver] = useState(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const targetId = createArrangementsDropTargetId('set', node.id)
+  const isDropActive = useArrangementsDragTargetActive(targetId)
+
+  useArrangementsDropTarget({
+    id: targetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: rowRef.current,
+    meta: {
+      type: 'set',
+      setId: node.id
+    }
+  })
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -38,40 +54,18 @@ function SetTreeNode({
     [hasChildren, node.id, onToggleExpand]
   )
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      setIsDragOver(false)
-      const materialKey = e.dataTransfer.getData('application/x-wb-material-key')
-      if (materialKey) onDrop(materialKey, node.id)
-    },
-    [node.id, onDrop]
-  )
-
   return (
     <li className="sets-island__tree-item">
       <div
+        ref={rowRef}
         className={[
           'sets-island__row',
-          isDragOver ? 'sets-island__row--drag-over' : ''
+          isDropActive ? 'sets-island__row--drag-over' : ''
         ]
           .filter(Boolean)
           .join(' ')}
         style={{ paddingLeft: 10 + depth * 14 }}
         onDoubleClick={handleDoubleClick}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
         role="treeitem"
         aria-expanded={hasChildren ? isExpanded : undefined}
       >
@@ -100,7 +94,6 @@ function SetTreeNode({
               depth={depth + 1}
               expandedIds={expandedIds}
               onToggleExpand={onToggleExpand}
-              onDrop={onDrop}
             />
           ))}
         </ul>
@@ -123,7 +116,6 @@ function useLinkedMaterials(): LinkedMaterials {
 
 export default function SetsIsland(): React.JSX.Element {
   const sets = useArrangementsStore((s) => s.sets)
-  const addToSet = useArrangementsStore((s) => s.addToSet)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const { count: linkedCount } = useLinkedMaterials()
@@ -140,13 +132,6 @@ export default function SetsIsland(): React.JSX.Element {
     })
   }, [])
 
-  const handleDrop = useCallback(
-    (materialKey: string, setId: string) => {
-      addToSet(materialKey, setId)
-    },
-    [addToSet]
-  )
-
   return (
     <PetalIsland title="Sets" className="sets-island" aria-label="Sets">
       <div className="sets-island__scroll">
@@ -156,13 +141,12 @@ export default function SetsIsland(): React.JSX.Element {
             {sets.map((node) => (
               <SetTreeNode
                 key={node.id}
-                node={node}
-                depth={0}
-                expandedIds={expandedIds}
-                onToggleExpand={handleToggleExpand}
-                onDrop={handleDrop}
-              />
-            ))}
+              node={node}
+              depth={0}
+              expandedIds={expandedIds}
+              onToggleExpand={handleToggleExpand}
+            />
+          ))}
           </ul>
         ) : (
           <p className="sets-island__empty">No sets yet</p>

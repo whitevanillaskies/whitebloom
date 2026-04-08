@@ -192,29 +192,6 @@ The Mica drag layer is infrastructure, but it will still be visible to the user 
 
 ## Implementation plan
 
-### Phase 1: establish Mica drag primitives
-
-- Add a new Mica drag module and store under `src/renderer/src/mica/`
-- Define drag session types, drop target registration types, and coordinate conventions
-- Add a drag overlay plane to `MicaHost` for previews and active target feedback
-- Provide hooks/utilities for:
-  - starting a drag
-  - registering a drop target
-  - reading current drag hover state
-
-Deliverable:
-- a generic host-level drag broker operating in one renderer tree
-
-### Phase 2: migrate Arrangements consumers to Mica drag
-
-- Replace `draggable` / `dataTransfer` usage in desktop items and `BinView`
-- Register Arrangements desktop as a screen-to-world drop target
-- Register bin rows, bin content, and trash as typed drop targets
-- Route all successful drops through existing Arrangements store actions
-
-Deliverable:
-- desktop-to-bin, bin-to-desktop, and bin-to-bin drag works through Mica drag rather than HTML5 drag/drop
-
 ### Phase 3: normalize domain commands and source semantics
 
 - Make sure Arrangements drag handlers express intent cleanly:
@@ -246,13 +223,35 @@ Deliverable:
 Deliverable:
 - native-window migration path without changing Arrangements domain logic
 
-## Immediate coding priorities when implementation starts
+## Completed in this pass
 
-1. Add the generic Mica drag types and store.
-2. Add drop target registration and active-target hit testing in screen space.
-3. Add a Mica-level drag overlay plane.
-4. Convert Arrangements desktop, trash, bin icons, and `BinView` into registered drop targets.
-5. Remove dependence on `dataTransfer` for Arrangements material moves.
+- Added a generic `MicaDrag` store and type layer under `src/renderer/src/mica/`
+- Added screen-space drop target registration and active-target hit testing
+- Added a Mica-level drag overlay path for Arrangements previews and active-target feedback
+- Converted Arrangements desktop, trash, desktop bins, bin rows, bin content, and bin item surfaces to registered Mica drop targets
+- Removed `dataTransfer` / HTML5 drag ownership for Arrangements material moves in the desktop and `BinView` flows
+
+## Immediate coding priorities
+
+1. Finish the HTML5 removal by migrating `SetsIsland` off `dataTransfer` and onto the same Mica drag target contract.
+2. Tighten Arrangements drag semantics so source context is explicit and future set support can plug in without revisiting Mica internals.
+3. Add shared selection primitives so desktop and bin views can support multi-select cleanly beyond the current local state.
+4. Reserve richer preview and hover timing hooks for spring-loaded bins/windows and multi-item ghost stacks.
+
+## Sanity check
+
+The core architectural shift is in place:
+
+- Mica owns the drag session, pointer tracking, target registry, hit testing, and overlay state.
+- Arrangements owns drop meaning and translates drops into existing store commands.
+- Desktop-to-bin, bin-to-desktop, bin-to-bin, and trash flows no longer rely on HTML5 drag/drop.
+
+What still needs work:
+
+- `SetsIsland` still uses HTML5 drag/drop and should be migrated before this workstream is considered fully complete.
+- Selection state is still split across individual Arrangements surfaces instead of living in a shared primitive that can support richer Finder-like interactions.
+- The current drag preview is intentionally minimal; hover timing, spring-loaded behavior, and more expressive multi-item previews are still pending.
+- Native multi-window coordination is still future work; the current implementation is renderer-local by design.
 
 ## Non-goals for this pass
 
