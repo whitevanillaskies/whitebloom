@@ -8,7 +8,6 @@ Work that's not yet needed but it's worth keeping in mind.
 When Obsidian is not installed and the user double-clicks the vault node, the handler currently returns silently. The indicator dot on the label communicates the state persistently, but a momentary feedback on the action would be better UX. Needs an in-app toast system (non-blocking, auto-dismissing) that doesn't exist yet. Alternatively, the Electron `Notification` API could fire a native OS notification from the main process with no new UI infrastructure.
 
 
-
 ## `wbhost:` inline asset URIs
 
 A URI scheme for embedding binary assets directly inside the board JSON, intended primarily
@@ -75,18 +74,6 @@ A portable, single-file format for sharing a complete workspace without requirin
 **"Use without unpacking" is a non-starter for Whitebloom.** File watchers, native app opens (`shell.openPath`), and agent filesystem access all require real files at real paths. A virtual filesystem layer would buy nothing except complexity. Always unpack on import.
 
 **Implementation notes.** Node's built-in `zlib` handles zip at the stream level; for a friendlier API, `archiver` (write) and `unzipper` or `adm-zip` (read) are the standard Electron-compatible choices. The export dialog should let the user pick destination and filename. Import should warn if the target directory is non-empty.
-
-
-## Arrangements state file
-
-Arrangements does not change CoreData. Bins, set membership, desktop placement, and other Arrangements-only metadata are app-level workspace state rather than board data. They belong in a separate workspace file, not in `.wbconfig`, `*.wb.json`, or HEP.
-
-**Settled:** the file is `.garden` at the workspace root — a dotfile parallel to `.wbconfig`. The important boundary is:
-
-- It is not part of the open CoreData spec.
-- It is not required for third-party consumers that only read boards and resources.
-- It is part of Whitebloom's Layer 3 workspace UX.
-- Smart sets are not stored there; they are derived on demand.
 
 
 ## Alert node
