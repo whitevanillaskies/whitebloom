@@ -39,8 +39,8 @@ const ARRANGEMENTS_MICA_HOST_ID = 'arrangements-desktop'
 const DEFAULT_BIN_VIEW_GEOMETRY = {
   x: 28,
   y: 48,
-  width: 460,
-  height: 380,
+  width: 552,
+  height: 456,
   minWidth: 380,
   minHeight: 300
 } as const
