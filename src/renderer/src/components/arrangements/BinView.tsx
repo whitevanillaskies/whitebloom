@@ -4,6 +4,7 @@ import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import type { ArrangementsMaterial, GardenBin } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
+import { PetalSpacer } from '../petal'
 import { PetalToolbarSearch, PetalToolbarSegmented } from '../petal/window'
 import { MicaWindow } from '../../mica'
 import './BinView.css'
@@ -482,6 +483,8 @@ export default function BinView({
           }
         ]}
       />
+
+      <PetalSpacer size={10} data-mica-no-drag="true" />
 
       <PetalToolbarSearch
         label="Search materials"

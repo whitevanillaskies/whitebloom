@@ -31,7 +31,6 @@
 }
 
 .petal-window-toolbar-segmented__item--active {
-  color: var(--color-primary-fg);
   box-shadow:
     inset -3px -3px 6px 0 rgba(255, 255, 255, 0.7),
     inset 3px 3px 8px 0 rgba(13, 39, 80, 0.12);

@@ -1,0 +1,25 @@
+.petal-spacer {
+  flex-shrink: 0;
+}
+
+.petal-spacer--horizontal {
+  width: var(--petal-spacer-size);
+  height: 1px;
+}
+
+.petal-spacer--vertical {
+  width: 1px;
+  height: var(--petal-spacer-size);
+}
+
+.petal-spacer--flexible {
+  flex: 1 1 auto;
+}
+
+.petal-spacer--horizontal.petal-spacer--flexible {
+  width: auto;
+}
+
+.petal-spacer--vertical.petal-spacer--flexible {
+  height: auto;
+}

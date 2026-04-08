@@ -1,18 +1,18 @@
 /*
- * BinView â€” a MicaWindow sitting on top of the Arrangements desktop.
+ * BinView — a MicaWindow sitting on top of the Arrangements desktop.
  * Positioned absolute within .arrangements-view__desktop (position: relative).
  * The canvas, bins, Trash, and Sets Island all remain visible around it.
  */
 
-/* â”€â”€ Window inset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Window inset ——————————————————————————————————————————— */
 
 .bin-view {
   z-index: 10;
 }
 
-/* â”€â”€ Header action cluster â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Header action cluster ———————————————————————————————— */
 
-/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Sidebar ———————————————————————————————————————————————— */
 
 .bin-view__sidebar-list {
   display: flex;
@@ -62,7 +62,7 @@
   text-overflow: ellipsis;
 }
 
-/* â”€â”€ Shared icon helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Shared icon helpers ——————————————————————————————————— */
 
 .bin-view__icon-board {
   color: var(--color-accent-blue);
@@ -80,7 +80,7 @@
   height: 16px;
 }
 
-/* â”€â”€ Icon grid view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Icon grid view ——————————————————————————————————————— */
 
 .bin-view__icon-grid {
   display: flex;
@@ -159,7 +159,7 @@
   overflow: hidden;
 }
 
-/* â”€â”€ List view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— List view ————————————————————————————————————————————— */
 
 .bin-view__list {
   display: flex;
@@ -228,7 +228,7 @@
   flex-shrink: 0;
 }
 
-/* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Empty state ——————————————————————————————————————————— */
 
 .bin-view__empty {
   display: flex;
@@ -240,10 +240,10 @@
   user-select: none;
 }
 
-/* â”€â”€ Content drop target wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* —— Content drop target wrapper ————————————————————————— */
 
 .bin-view__content-drop {
-  display: contents; /* invisible wrapper â€” layout unchanged */
+  display: contents; /* invisible wrapper — layout unchanged */
 }
 
 .bin-view__content-drop--over > * {
