@@ -1,7 +1,9 @@
 .mica-window {
-  position: absolute;
+  position: relative;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   border-radius: var(--radius-border-frame);
   border: 1px solid rgba(0, 0, 0, 0.1);
   background: rgba(248, 249, 250, 0.97);

@@ -29,6 +29,11 @@
   pointer-events: none;
 }
 
+.mica-host__window-surface {
+  position: absolute;
+  pointer-events: auto;
+}
+
 .mica-host__overlay-plane > * {
   pointer-events: auto;
 }

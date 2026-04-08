@@ -281,25 +281,44 @@ function ListRow({
 // ── BinView ────────────────────────────────────────────────────────────────────
 
 type BinViewProps = {
+  windowId: string
+  binId: string
+  uiState: {
+    kind: 'bin-view'
+    viewMode: ViewMode
+    searchQuery: string
+    selectedKeys: string[]
+  }
   onOpenBoard: (boardPath: string) => void
+  onOpenBin: (binId: string) => void
+  onClose: () => void
+  onViewModeChange: (viewMode: ViewMode) => void
+  onSearchQueryChange: (searchQuery: string) => void
+  onSelectedKeysChange: (selectedKeys: string[]) => void
 }
 
-export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Element | null {
-  const activeBinView = useArrangementsStore((s) => s.activeBinView)
+export default function BinView({
+  windowId,
+  binId,
+  uiState,
+  onOpenBoard,
+  onOpenBin,
+  onClose,
+  onViewModeChange,
+  onSearchQueryChange,
+  onSelectedKeysChange
+}: BinViewProps): React.JSX.Element | null {
   const bins = useArrangementsStore((s) => s.bins)
   const materials = useArrangementsStore((s) => s.materials)
   const binAssignments = useArrangementsStore((s) => s.binAssignments)
-  const closeBinView = useArrangementsStore((s) => s.closeBinView)
-  const openBinView = useArrangementsStore((s) => s.openBinView)
   const assignToBin = useArrangementsStore((s) => s.assignToBin)
   const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
   const emptyTrash = useArrangementsStore((s) => s.emptyTrash)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
 
-  const [viewMode, setViewMode] = useState<ViewMode>('icon')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [isContentDragOver, setIsContentDragOver] = useState(false)
+  const selectedKeys = uiState.selectedKeys
+  const selectedKeySet = new Set(selectedKeys)
 
   const handleContentDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -324,30 +343,27 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
       e.stopPropagation()
       setIsContentDragOver(false)
       const materialKey = e.dataTransfer.getData('application/x-wb-material-key')
-      if (!materialKey || !activeBinView) return
-      if (activeBinView === SYSTEM_TRASH_BIN_ID) sendToTrash(materialKey)
-      else assignToBin(materialKey, activeBinView)
+      if (!materialKey) return
+      if (binId === SYSTEM_TRASH_BIN_ID) sendToTrash(materialKey)
+      else assignToBin(materialKey, binId)
     },
-    [activeBinView, assignToBin, sendToTrash]
+    [assignToBin, binId, sendToTrash]
   )
 
-  // Clear selection and search when switching bins
-  useEffect(() => {
-    setSelectedKeys(new Set())
-    setSearchQuery('')
-  }, [activeBinView])
-
   const handleSelect = useCallback((key: string, additive: boolean) => {
-    setSelectedKeys((prev) => {
+    const nextSelectedKeys = (() => {
+      const prev = selectedKeys
       if (additive) {
         const next = new Set(prev)
         if (next.has(key)) next.delete(key)
         else next.add(key)
-        return next
+        return [...next]
       }
-      return new Set([key])
-    })
-  }, [])
+      return [key]
+    })()
+
+    onSelectedKeysChange(nextSelectedKeys)
+  }, [onSelectedKeysChange, selectedKeys])
 
   const handleDoubleClick = useCallback(
     (material: ArrangementsMaterial) => {
@@ -373,11 +389,11 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
   const handleKeyDownRef = useRef<(e: KeyboardEvent) => Promise<void>>(async () => {})
 
   // Keep ref updated
-  const isTrash = activeBinView === SYSTEM_TRASH_BIN_ID
+  const isTrash = binId === SYSTEM_TRASH_BIN_ID
   handleKeyDownRef.current = useCallback(
     async (e: KeyboardEvent) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
-      if (selectedKeys.size === 0) return
+      if (selectedKeys.length === 0) return
       // Ignore when typing in an input
       const tag = (document.activeElement?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
@@ -407,11 +423,11 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
       } else {
         // Move to trash
         for (const key of selectedKeys) sendToTrash(key)
-        setSelectedKeys(new Set())
+        onSelectedKeysChange([])
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedKeys, isTrash, workspaceRoot, emptyTrash, sendToTrash]
+    [selectedKeys, isTrash, workspaceRoot, emptyTrash, sendToTrash, onSelectedKeysChange]
   )
 
   useEffect(() => {
@@ -420,13 +436,11 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
     return () => window.removeEventListener('keydown', listener)
   }, [])
 
-  if (!activeBinView) return null
-
-  const activeBin = bins.find((b) => b.id === activeBinView)
+  const activeBin = bins.find((b) => b.id === binId)
   if (!activeBin) return null
 
-  const binMaterials = materials.filter((m) => binAssignments[m.key] === activeBinView)
-  const q = searchQuery.trim().toLowerCase()
+  const binMaterials = materials.filter((m) => binAssignments[m.key] === binId)
+  const q = uiState.searchQuery.trim().toLowerCase()
   const filteredMaterials = q
     ? binMaterials.filter((m) => m.displayName.toLowerCase().includes(q))
     : binMaterials
@@ -437,8 +451,8 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
         <SidebarRow
           key={bin.id}
           bin={bin}
-          isActive={bin.id === activeBinView}
-          onClick={() => openBinView(bin.id)}
+          isActive={bin.id === binId}
+          onClick={() => onOpenBin(bin.id)}
           onDropMaterial={handleDropMaterial}
         />
       ))}
@@ -451,11 +465,11 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
         type="button"
         className={[
           'bin-view__mode-btn',
-          viewMode === 'icon' ? 'bin-view__mode-btn--active' : ''
+          uiState.viewMode === 'icon' ? 'bin-view__mode-btn--active' : ''
         ]
           .filter(Boolean)
           .join(' ')}
-        onClick={() => setViewMode('icon')}
+        onClick={() => onViewModeChange('icon')}
         aria-label="Icon view"
         title="Icon view"
       >
@@ -465,11 +479,11 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
         type="button"
         className={[
           'bin-view__mode-btn',
-          viewMode === 'list' ? 'bin-view__mode-btn--active' : ''
+          uiState.viewMode === 'list' ? 'bin-view__mode-btn--active' : ''
         ]
           .filter(Boolean)
           .join(' ')}
-        onClick={() => setViewMode('list')}
+        onClick={() => onViewModeChange('list')}
         aria-label="List view"
         title="List view"
       >
@@ -480,18 +494,20 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
         className="bin-view__search"
         type="search"
         placeholder="Search…"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        value={uiState.searchQuery}
+        onChange={(e) => onSearchQueryChange(e.target.value)}
         aria-label="Search materials"
+        data-mica-no-drag="true"
       />
     </>
   )
 
   return (
     <MicaWindow
+      key={windowId}
       className="bin-view"
       title={activeBin.name}
-      onClose={closeBinView}
+      onClose={onClose}
       headerActions={headerActions}
       sidebar={sidebar}
       aria-label={`${activeBin.name} bin view`}
@@ -506,7 +522,7 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
         <p className="bin-view__empty">
           {q ? 'No matching items.' : 'Empty.'}
         </p>
-      ) : viewMode === 'icon' ? (
+      ) : uiState.viewMode === 'icon' ? (
         <div
           className="bin-view__icon-grid"
           role="listbox"
@@ -517,7 +533,7 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
               key={material.key}
               material={material}
               workspaceRoot={workspaceRoot ?? ''}
-              selected={selectedKeys.has(material.key)}
+              selected={selectedKeySet.has(material.key)}
               onSelect={handleSelect}
               onDoubleClick={handleDoubleClick}
             />
@@ -534,7 +550,7 @@ export default function BinView({ onOpenBoard }: BinViewProps): React.JSX.Elemen
               key={material.key}
               material={material}
               workspaceRoot={workspaceRoot ?? ''}
-              selected={selectedKeys.has(material.key)}
+              selected={selectedKeySet.has(material.key)}
               onSelect={handleSelect}
               onDoubleClick={handleDoubleClick}
             />

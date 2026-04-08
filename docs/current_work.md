@@ -286,25 +286,25 @@ Defer implementation until clusters and Arrangements are shipped and stable.
    - Exclude buttons, search fields, toggles, and any other interactive controls from drag initiation.
    - Preserve the current calm, reduced visual language: no minimize or maximize in v1.
 
-5. Implement generic draggable window geometry.
+5. (DONE) Implement generic draggable window geometry.
    - Track live drag interaction locally for responsiveness and commit final geometry into `Mica` state.
    - Use pointer capture so drag remains stable even if the pointer leaves the title bar.
    - Clamp movement so the title bar cannot disappear completely outside the current host.
    - Keep the initial implementation to movement only; defer resizing until the rest of the system is stable.
 
-6. Adopt `Mica` inside Arrangements as the first host.
+6. (DONE) Adopt `Mica` inside Arrangements as the first host.
    - Replace the special-case `activeBinView` model with host-scoped `Mica` usage.
    - Keep the existing panning desktop world for materials and bins.
    - Add a dedicated `Mica` overlay plane as a sibling layer above the desktop world.
    - Ensure the Arrangements host is screen-space relative to the desktop container, not transformed by camera pan or zoom.
 
-7. Refactor Arrangements open and close behavior around `Mica`.
+7. (DONE) Refactor Arrangements open and close behavior around `Mica`.
    - Double-clicking a bin should ask the Arrangements host to open or retarget a `bin-view` window.
    - If no Arrangements window exists, create one with default geometry and route it to the chosen bin.
    - If a compatible window already exists, preserve its identity and geometry while swapping its routed `binId`.
    - Closing the window should clear Arrangements window UI state without mutating bin/domain data.
 
-8. Rework `BinView` to consume routed window content.
+8. (DONE) Rework `BinView` to consume routed window content.
    - Make `BinView` render from a `Mica` window record and its routed payload, rather than from a global active-bin singleton.
    - Keep per-window presentation state explicit: view mode, search query, selection, and drag-over feedback.
    - Reset selection on bin switches.

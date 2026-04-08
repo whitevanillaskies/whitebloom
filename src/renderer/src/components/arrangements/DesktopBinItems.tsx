@@ -165,11 +165,14 @@ function BinItem({
 
 // ── Layer ──────────────────────────────────────────────────────────────────────
 
-export default function DesktopBinItems(): React.JSX.Element {
+type DesktopBinItemsProps = {
+  onOpenBin: (binId: string) => void
+}
+
+export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): React.JSX.Element {
   const bins = useArrangementsStore((s) => s.bins)
   const desktopPlacements = useArrangementsStore((s) => s.desktopPlacements)
   const moveBinOnDesktop = useArrangementsStore((s) => s.moveBinOnDesktop)
-  const openBinView = useArrangementsStore((s) => s.openBinView)
   const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
   const assignToBin = useArrangementsStore((s) => s.assignToBin)
 
@@ -182,9 +185,9 @@ export default function DesktopBinItems(): React.JSX.Element {
 
   const handleOpenBin = useCallback(
     (bin: GardenBin) => {
-      openBinView(bin.id)
+      onOpenBin(bin.id)
     },
-    [openBinView]
+    [onOpenBin]
   )
 
   const handleDropMaterial = useCallback(
@@ -223,9 +226,12 @@ export default function DesktopBinItems(): React.JSX.Element {
 
 // ── Trash bin — rendered in the desktop overlay, not in __world ———————-
 
-export function DesktopTrashBin(): React.JSX.Element | null {
+type DesktopTrashBinProps = {
+  onOpenBin: (binId: string) => void
+}
+
+export function DesktopTrashBin({ onOpenBin }: DesktopTrashBinProps): React.JSX.Element | null {
   const bins = useArrangementsStore((s) => s.bins)
-  const openBinView = useArrangementsStore((s) => s.openBinView)
   const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
 
   const trashBin = bins.find((b) => b.id === SYSTEM_TRASH_BIN_ID)
@@ -236,7 +242,7 @@ export function DesktopTrashBin(): React.JSX.Element | null {
       bin={trashBin}
       x={0}
       y={0}
-      onDoubleClick={(bin) => openBinView(bin.id)}
+      onDoubleClick={(bin) => onOpenBin(bin.id)}
       onMoved={() => void 0}
       onDropMaterial={(key) => sendToTrash(key)}
     />

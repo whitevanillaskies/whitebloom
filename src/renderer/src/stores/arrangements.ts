@@ -19,7 +19,6 @@ type ArrangementsState = {
   binAssignments: Record<ArrangementsMaterialKey, string>
   desktopPlacements: Record<string, GardenPoint>
   cameraState: GardenCameraState
-  activeBinView: string | null
   isHydrated: boolean
   loadArrangements: () => Promise<boolean>
   saveArrangements: () => Promise<boolean>
@@ -36,8 +35,6 @@ type ArrangementsState = {
   createSet: (name: string, parentSetId?: string | null) => string | null
   deleteSet: (setId: string) => void
   setCamera: (cameraState: GardenCameraState) => void
-  openBinView: (binId: string) => void
-  closeBinView: () => void
   clearArrangements: () => void
 }
 
@@ -57,8 +54,6 @@ function getEmptyArrangementsState(): Omit<ArrangementsState, keyof Pick<Arrange
   | 'createSet'
   | 'deleteSet'
   | 'setCamera'
-  | 'openBinView'
-  | 'closeBinView'
   | 'clearArrangements'
 >> {
   const emptyGarden = createEmptyGardenState()
@@ -70,7 +65,6 @@ function getEmptyArrangementsState(): Omit<ArrangementsState, keyof Pick<Arrange
     binAssignments: emptyGarden.binAssignments,
     desktopPlacements: emptyGarden.desktopPlacements,
     cameraState: emptyGarden.cameraState,
-    activeBinView: null,
     isHydrated: false
   }
 }
@@ -200,7 +194,6 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       },
       desktopPlacements: stateResult.state.desktopPlacements,
       cameraState: stateResult.state.cameraState,
-      activeBinView: null,
       isHydrated: true
     })
 
@@ -309,8 +302,7 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
         materials: state.materials.filter((material) => !trashed.has(material.key)),
         memberships: state.memberships.filter((membership) => !trashed.has(membership.materialKey)),
         binAssignments: nextAssignments,
-        desktopPlacements: nextPlacements,
-        activeBinView: state.activeBinView === SYSTEM_TRASH_BIN_ID ? null : state.activeBinView
+        desktopPlacements: nextPlacements
       }
     })
 
@@ -343,8 +335,7 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       return {
         bins: state.bins.filter((bin) => bin.id !== binId),
         binAssignments: nextAssignments,
-        desktopPlacements: nextPlacements,
-        activeBinView: state.activeBinView === binId ? null : state.activeBinView
+        desktopPlacements: nextPlacements
       }
     }),
 
@@ -389,9 +380,6 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
     }),
 
   setCamera: (cameraState) => set({ cameraState }),
-
-  openBinView: (binId) => set({ activeBinView: binId }),
-  closeBinView: () => set({ activeBinView: null }),
 
   clearArrangements: () => set(getEmptyArrangementsState())
 }))

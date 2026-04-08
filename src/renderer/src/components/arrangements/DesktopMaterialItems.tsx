@@ -101,6 +101,9 @@ export default function DesktopMaterialItems({
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null
+      if (target?.closest('.mica-window')) {
+        return
+      }
       if (!target?.closest('.material-item')) {
         setSelectedKeys(new Set())
       }
