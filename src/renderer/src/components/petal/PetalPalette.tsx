@@ -4,13 +4,26 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import './PetalPalette.css'
 
+export type PaletteMode = {
+  id: string
+  items: PaletteItem[]
+  placeholder?: string
+  emptyLabel?: string
+}
+
+export type PaletteActivation =
+  | { type: 'close' }
+  | { type: 'keep-open' }
+  | { type: 'set-mode'; mode: PaletteMode }
+
 export type PaletteItem = {
   id: string
   label: string
+  subtitle?: string
   icon?: ReactNode
   /** Keyboard shortcut badge shown on the right, e.g. "T" or "⌘S" */
   hint?: string
-  onActivate: () => void
+  onActivate: () => PaletteActivation | void
 }
 
 type PetalPaletteProps = {
@@ -24,22 +37,40 @@ const ITEM_HEIGHT_PX = 36
 
 export default function PetalPalette({ items, onClose, placeholder }: PetalPaletteProps) {
   const { t } = useTranslation()
+  const initialMode = useMemo<PaletteMode>(
+    () => ({
+      id: 'root',
+      items,
+      placeholder
+    }),
+    [items, placeholder]
+  )
+  const [mode, setMode] = useState<PaletteMode>(initialMode)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    setMode(initialMode)
+  }, [initialMode])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return items
-    return items.filter((item) => item.label.toLowerCase().includes(q))
-  }, [items, query])
+    if (!q) return mode.items
+    return mode.items.filter((item) => item.label.toLowerCase().includes(q))
+  }, [mode.items, query])
 
   // Reset active index when filtered list changes
   useEffect(() => {
     setActiveIndex(0)
   }, [filtered.length])
+
+  useEffect(() => {
+    setQuery('')
+    setActiveIndex(0)
+  }, [mode.id])
 
   // Scroll active item into view
   useEffect(() => {
@@ -51,8 +82,18 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
   const activate = useCallback(
     (item: PaletteItem) => {
-      item.onActivate()
-      onClose()
+      const result = item.onActivate()
+
+      if (!result || result.type === 'close') {
+        onClose()
+        return
+      }
+
+      if (result.type === 'keep-open') {
+        return
+      }
+
+      setMode(result.mode)
     },
     [onClose]
   )
@@ -133,7 +174,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={placeholder ?? t('petalPalette.searchPlaceholder')}
+            placeholder={mode.placeholder ?? t('petalPalette.searchPlaceholder')}
             autoComplete="off"
             spellCheck={false}
           />
@@ -146,7 +187,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
           role="listbox"
         >
           {filtered.length === 0 ? (
-            <div className="petal-palette__empty">{t('petalPalette.noResults')}</div>
+            <div className="petal-palette__empty">{mode.emptyLabel ?? t('petalPalette.noResults')}</div>
           ) : (
             filtered.map((item, i) => (
               <button
@@ -166,7 +207,12 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
                 {item.icon && (
                   <span className="petal-palette__item-icon">{item.icon}</span>
                 )}
-                <span className="petal-palette__item-label">{item.label}</span>
+                <span className="petal-palette__item-copy">
+                  <span className="petal-palette__item-label">{item.label}</span>
+                  {item.subtitle ? (
+                    <span className="petal-palette__item-subtitle">{item.subtitle}</span>
+                  ) : null}
+                </span>
                 {item.hint && (
                   <span className="petal-palette__item-hint">{item.hint}</span>
                 )}

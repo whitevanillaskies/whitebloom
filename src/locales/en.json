@@ -79,9 +79,12 @@
     "paletteClusterSelectionLabel": "Cluster Selected Nodes",
     "paletteFitClusterLabel": "Fit Cluster to Children",
     "palettePromoteSubboardLabel": "Promote to Subboard",
+    "paletteLinkBoardLabel": "Link Board",
     "paletteArrangementsLabel": "Open Arrangements",
     "paletteFocusWriterLabel": "Focus Writer",
-    "paletteSchemaBloomLabel": "DB Schema Drafter"
+    "paletteSchemaBloomLabel": "DB Schema Drafter",
+    "linkBoardPalettePlaceholder": "Choose a board to link",
+    "linkBoardPaletteEmpty": "No local boards available"
   },
   "boardContextBar": {
     "homeLabel": "Home",

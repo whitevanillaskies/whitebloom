@@ -64,8 +64,8 @@
   align-items: center;
   gap: 9px;
   width: 100%;
-  height: 36px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 6px 10px;
   border-radius: var(--radius-border-inner);
   border: none;
   background: transparent;
@@ -90,8 +90,24 @@
   opacity: 0.8;
 }
 
-.petal-palette__item-label {
+.petal-palette__item-copy {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.petal-palette__item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.petal-palette__item-subtitle {
+  font-size: 0.74rem;
+  line-height: 1.25;
+  color: var(--color-muted-fg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -115,6 +131,10 @@
   color: var(--color-accent-blue);
   background: rgba(var(--color-accent-blue-rgb), 0.08);
   border-color: rgba(var(--color-accent-blue-rgb), 0.2);
+}
+
+.petal-palette__item--active .petal-palette__item-subtitle {
+  color: color-mix(in srgb, var(--color-accent-blue) 74%, var(--color-muted-fg));
 }
 
 /* ── Empty state ────────────────────────────────────────────────── */

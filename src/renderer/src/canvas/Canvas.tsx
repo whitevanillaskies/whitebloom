@@ -38,7 +38,7 @@ import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
 import { Boxes, Database, FileText, FolderPlus, PanelsTopLeft, Scan, Settings2, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
-import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
+import type { PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { schemaBloomModule } from '../modules/schemabloom'
@@ -224,6 +224,18 @@ function getSuggestedBoardFileName(boardPath: string, boardName?: string): strin
   return trimmedName && trimmedName.length > 0 ? trimmedName : getBoardNameFromPath(boardPath)
 }
 
+function getWorkspaceRelativeBoardPath(boardPath: string, workspaceRoot: string): string {
+  const normalizedBoardPath = boardPath.replace(/\\/g, '/')
+  const normalizedWorkspaceRoot = workspaceRoot.replace(/\\/g, '/').replace(/\/+$/, '')
+  const prefix = `${normalizedWorkspaceRoot}/`
+
+  if (normalizedBoardPath.startsWith(prefix)) {
+    return normalizedBoardPath.slice(prefix.length)
+  }
+
+  return normalizedBoardPath
+}
+
 function normalizeBoardNodesForSave(nodes: BoardNode[]): BoardNode[] {
   return nodes.map((node) => {
     if (!isTextLeafNode(node)) return node
@@ -309,6 +321,7 @@ export function Canvas({
   const setBoardPersistence = useBoardStore((s) => s.setBoardPersistence)
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
+  const workspaceBoards = useWorkspaceStore((s) => s.boards)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
   const addWorkspaceBoard = useWorkspaceStore((s) => s.addBoard)
   const removeWorkspaceBoard = useWorkspaceStore((s) => s.removeBoard)
@@ -1449,12 +1462,53 @@ export function Canvas({
     }
 
     if (workspaceRoot !== null) {
+      const linkableBoards = workspaceBoards.filter((path) => path !== boardPath)
+      const linkBoardMode: PaletteMode = {
+        id: 'link-board',
+        items: linkableBoards.map((linkableBoardPath) => ({
+          id: `link-board:${linkableBoardPath}`,
+          label: getBoardNameFromPath(linkableBoardPath),
+          subtitle: getWorkspaceRelativeBoardPath(linkableBoardPath, workspaceRoot),
+          icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
+          onActivate: () => {
+            const resource = toWorkspaceBoardResource(linkableBoardPath, workspaceRoot)
+            if (!resource) {
+              setWorkspaceActionError(t('canvas.invalidSubboardLinkBody'))
+              return { type: 'close' as const }
+            }
+
+            const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+            addNode({
+              id: crypto.randomUUID(),
+              kind: 'bud',
+              type: boardBloomModule.id,
+              position,
+              size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
+              label: getBoardNameFromPath(linkableBoardPath),
+              resource
+            })
+            return { type: 'close' as const }
+          }
+        })),
+        placeholder: t('canvas.linkBoardPalettePlaceholder'),
+        emptyLabel: t('canvas.linkBoardPaletteEmpty')
+      }
+
       items.push({
         id: 'open-arrangements',
         label: t('canvas.paletteArrangementsLabel'),
         icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
         hint: 'Arr',
         onActivate: onOpenArrangements
+      })
+      items.push({
+        id: 'link-board',
+        label: t('canvas.paletteLinkBoardLabel'),
+        icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
+        onActivate: () => ({
+          type: 'set-mode',
+          mode: linkBoardMode
+        })
       })
       items.push({
         id: 'create-focus-writer',
@@ -1482,10 +1536,12 @@ export function Canvas({
     createSchemaBloomBud,
     openPromoteSubboardModal,
     onOpenArrangements,
+    boardPath,
     selectedCluster,
     selectedClusterableNodes.length,
+    setWorkspaceActionError,
     t
-  ])
+  , workspaceBoards])
 
   const panOnDragButtons = useMemo(() => {
     if (activeTool === 'hand') return [0, 1, 2]

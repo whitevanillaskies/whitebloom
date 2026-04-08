@@ -79,9 +79,12 @@
     "paletteClusterSelectionLabel": "Agrupar nodos seleccionados",
     "paletteFitClusterLabel": "Ajustar clúster a sus nodos",
     "palettePromoteSubboardLabel": "Promover a subtablero",
+    "paletteLinkBoardLabel": "Enlazar tablero",
     "paletteArrangementsLabel": "Abrir Arrangements",
     "paletteFocusWriterLabel": "Escritor enfocado",
-    "paletteSchemaBloomLabel": "Diseñador de esquema de BD"
+    "paletteSchemaBloomLabel": "Diseñador de esquema de BD",
+    "linkBoardPalettePlaceholder": "Elige un tablero para enlazar",
+    "linkBoardPaletteEmpty": "No hay tableros locales disponibles"
   },
   "boardContextBar": {
     "homeLabel": "Inicio",
