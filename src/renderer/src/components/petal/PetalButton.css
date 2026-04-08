@@ -6,23 +6,24 @@
   height: 26px;
   padding: 0 7px;
   border-radius: var(--radius-border-frame);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid #f7f7f7;
   background: rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: 6px 6px 12px #c5c5c5, -6px -6px 12px #ffffff;
   color: var(--color-primary-fg);
   font-family: inherit;
-  font-size: 0.88rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 400;
   white-space: nowrap;
   cursor: pointer;
   transition: background 80ms ease, border-color 80ms ease, box-shadow 80ms ease;
 }
 
+.petal-button:active {
+  box-shadow: inset 4px 4px 12px #c5c5c5, inset -4px -4px 12px #ffffff;
+}
+
 .petal-button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 1);
-  border-color: rgba(0, 0, 0, 0.16);
 }
 
 .petal-button:disabled {
