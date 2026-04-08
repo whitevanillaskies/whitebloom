@@ -11,10 +11,29 @@ export type PaletteMode = {
   emptyLabel?: string
 }
 
+export type PaletteInputMode = {
+  id: string
+  type: 'input'
+  placeholder?: string
+  submitLabel?: string
+  initialValue?: string
+  onSubmit: (value: string) => PaletteActivation | void
+}
+
+type PaletteListMode = {
+  id: string
+  type?: 'list'
+  items: PaletteItem[]
+  placeholder?: string
+  emptyLabel?: string
+}
+
+type PaletteAnyMode = PaletteListMode | PaletteInputMode
+
 export type PaletteActivation =
   | { type: 'close' }
   | { type: 'keep-open' }
-  | { type: 'set-mode'; mode: PaletteMode }
+  | { type: 'set-mode'; mode: PaletteAnyMode }
 
 export type PaletteItem = {
   id: string
@@ -37,15 +56,16 @@ const ITEM_HEIGHT_PX = 36
 
 export default function PetalPalette({ items, onClose, placeholder }: PetalPaletteProps) {
   const { t } = useTranslation()
-  const initialMode = useMemo<PaletteMode>(
+  const initialMode = useMemo<PaletteListMode>(
     () => ({
       id: 'root',
+      type: 'list',
       items,
       placeholder
     }),
     [items, placeholder]
   )
-  const [mode, setMode] = useState<PaletteMode>(initialMode)
+  const [mode, setMode] = useState<PaletteAnyMode>(initialMode)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -64,10 +84,11 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
   }, [initialMode, onClose])
 
   const filtered = useMemo(() => {
+    if (mode.type === 'input') return []
     const q = query.trim().toLowerCase()
     if (!q) return mode.items
     return mode.items.filter((item) => item.label.toLowerCase().includes(q))
-  }, [mode.items, query])
+  }, [mode, query])
 
   // Reset active index when filtered list changes
   useEffect(() => {
@@ -75,9 +96,9 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
   }, [filtered.length])
 
   useEffect(() => {
-    setQuery('')
+    setQuery(mode.type === 'input' ? (mode.initialValue ?? '') : '')
     setActiveIndex(0)
-  }, [mode.id])
+  }, [mode])
 
   // Scroll active item into view
   useEffect(() => {
@@ -105,6 +126,22 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
     [closePalette, setMode]
   )
 
+  const submitInputMode = useCallback(() => {
+    if (mode.type !== 'input') return
+
+    const result = mode.onSubmit(query)
+    if (!result || result.type === 'close') {
+      closePalette()
+      return
+    }
+
+    if (result.type === 'keep-open') {
+      return
+    }
+
+    setMode(result.mode)
+  }, [closePalette, mode, query])
+
   // Keyboard — capture phase so it fires before Canvas bubble-phase listeners
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -124,12 +161,14 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
       }
 
       if (e.key === 'ArrowDown') {
+        if (mode.type === 'input') return
         e.preventDefault()
         setActiveIndex((i) => (i + 1) % Math.max(1, filtered.length))
         return
       }
 
       if (e.key === 'ArrowUp') {
+        if (mode.type === 'input') return
         e.preventDefault()
         setActiveIndex((i) => (i - 1 + Math.max(1, filtered.length)) % Math.max(1, filtered.length))
         return
@@ -137,6 +176,10 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
       if (e.key === 'Enter') {
         e.preventDefault()
+        if (mode.type === 'input') {
+          submitInputMode()
+          return
+        }
         const item = filtered[activeIndex]
         if (item) activate(item)
       }
@@ -144,7 +187,7 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [filtered, activeIndex, activate, closePalette])
+  }, [filtered, activeIndex, activate, closePalette, mode.type, submitInputMode])
 
   // Dismiss on pointer down outside
   useEffect(() => {
@@ -187,46 +230,58 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
           />
         </div>
 
-        <div
-          ref={listRef}
-          className="petal-palette__list"
-          style={{ maxHeight: listMaxHeight }}
-          role="listbox"
-        >
-          {filtered.length === 0 ? (
-            <div className="petal-palette__empty">{mode.emptyLabel ?? t('petalPalette.noResults')}</div>
-          ) : (
-            filtered.map((item, i) => (
-              <button
-                key={item.id}
-                className={[
-                  'petal-palette__item',
-                  i === activeIndex ? 'petal-palette__item--active' : ''
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                role="option"
-                aria-selected={i === activeIndex}
-                onClick={() => activate(item)}
-                onMouseEnter={() => setActiveIndex(i)}
-                tabIndex={-1}
-              >
-                {item.icon && (
-                  <span className="petal-palette__item-icon">{item.icon}</span>
-                )}
-                <span className="petal-palette__item-copy">
-                  <span className="petal-palette__item-label">{item.label}</span>
-                  {item.subtitle ? (
-                    <span className="petal-palette__item-subtitle">{item.subtitle}</span>
-                  ) : null}
-                </span>
-                {item.hint && (
-                  <span className="petal-palette__item-hint">{item.hint}</span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
+        {mode.type === 'input' ? (
+          <div className="petal-palette__submit-wrap">
+            <button
+              type="button"
+              className="petal-palette__submit"
+              onClick={submitInputMode}
+            >
+              {mode.submitLabel ?? 'Submit'}
+            </button>
+          </div>
+        ) : (
+          <div
+            ref={listRef}
+            className="petal-palette__list"
+            style={{ maxHeight: listMaxHeight }}
+            role="listbox"
+          >
+            {filtered.length === 0 ? (
+              <div className="petal-palette__empty">{mode.emptyLabel ?? t('petalPalette.noResults')}</div>
+            ) : (
+              filtered.map((item, i) => (
+                <button
+                  key={item.id}
+                  className={[
+                    'petal-palette__item',
+                    i === activeIndex ? 'petal-palette__item--active' : ''
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  role="option"
+                  aria-selected={i === activeIndex}
+                  onClick={() => activate(item)}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  tabIndex={-1}
+                >
+                  {item.icon && (
+                    <span className="petal-palette__item-icon">{item.icon}</span>
+                  )}
+                  <span className="petal-palette__item-copy">
+                    <span className="petal-palette__item-label">{item.label}</span>
+                    {item.subtitle ? (
+                      <span className="petal-palette__item-subtitle">{item.subtitle}</span>
+                    ) : null}
+                  </span>
+                  {item.hint && (
+                    <span className="petal-palette__item-hint">{item.hint}</span>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>,
     document.body

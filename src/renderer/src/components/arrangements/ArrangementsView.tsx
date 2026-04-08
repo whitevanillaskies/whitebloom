@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Archive, ArrowLeft, Layers, Trash2 } from 'lucide-react'
 import { useMicaDragState } from '../../mica'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { MICA_PERSISTENCE_BOUNDARY, MicaHost, useMicaHost } from '../../mica'
+import { PetalPalette, type PaletteInputMode, type PaletteItem, type PaletteMode } from '../petal'
 import ArrangementsDesktop from './ArrangementsDesktop'
 import BinView from './BinView'
 import DesktopBinItems, { DesktopTrashBin } from './DesktopBinItems'
@@ -16,6 +17,7 @@ import {
 } from './arrangementsDrag'
 import SetsIsland from './SetsIsland'
 import './ArrangementsView.css'
+import type { GardenSetNode } from '../../../../shared/arrangements'
 
 type ArrangementsViewProps = {
   workspaceName?: string
@@ -50,6 +52,11 @@ const DEFAULT_BIN_VIEW_GEOMETRY = {
   minHeight: 300
 } as const
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return target.isContentEditable || target.closest('input, textarea, [contenteditable="true"]') !== null
+}
+
 function createDefaultBinViewUiState(): ArrangementsWindowUiState {
   return {
     kind: 'bin-view',
@@ -61,6 +68,13 @@ function createDefaultBinViewUiState(): ArrangementsWindowUiState {
       selectedKeys: []
     }
   }
+}
+
+function flattenSetNodes(sets: GardenSetNode[], depth = 0): Array<{ id: string; name: string; depth: number }> {
+  return sets.flatMap((setNode) => [
+    { id: setNode.id, name: setNode.name, depth },
+    ...flattenSetNodes(setNode.children, depth + 1)
+  ])
 }
 
 function ArrangementsDragOverlay(): React.JSX.Element | null {
@@ -118,7 +132,18 @@ export default function ArrangementsView({
 }: ArrangementsViewProps): React.JSX.Element {
   const isHydrated = useArrangementsStore((s) => s.isHydrated)
   const loadArrangements = useArrangementsStore((s) => s.loadArrangements)
+  const bins = useArrangementsStore((s) => s.bins)
+  const sets = useArrangementsStore((s) => s.sets)
+  const createBinAtViewportCenter = useArrangementsStore((s) => s.createBinAtViewportCenter)
+  const createRootSet = useArrangementsStore((s) => s.createRootSet)
+  const renameBin = useArrangementsStore((s) => s.renameBin)
+  const renameSet = useArrangementsStore((s) => s.renameSet)
+  const deleteBin = useArrangementsStore((s) => s.deleteBin)
+  const deleteSet = useArrangementsStore((s) => s.deleteSet)
+  const saveArrangements = useArrangementsStore((s) => s.saveArrangements)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
+  const desktopViewportRef = useRef<HTMLElement>(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const arrangementsMicaPolicy = useMemo(
     () => ({
       hostId: ARRANGEMENTS_MICA_HOST_ID,
@@ -144,6 +169,237 @@ export default function ArrangementsView({
     if (!workspaceRoot || isHydrated) return
     void loadArrangements()
   }, [workspaceRoot, isHydrated, loadArrangements])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Tab' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setPaletteOpen((open) => !open)
+        return
+      }
+
+      if (event.key === 'Escape' && paletteOpen) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setPaletteOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [paletteOpen])
+
+  const paletteItems = useMemo<PaletteItem[]>(
+    () => {
+      const userBins = bins.filter((bin) => bin.kind === 'user')
+      const flattenedSets = flattenSetNodes(sets)
+
+      const renameBinPickerMode: PaletteMode = {
+        id: 'rename-bin-target',
+        items: userBins.map((bin) => ({
+          id: `rename-bin-target:${bin.id}`,
+          label: bin.name,
+          subtitle: 'Choose a bin to rename',
+          icon: <Archive size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: {
+              id: `rename-bin-input:${bin.id}`,
+              type: 'input',
+              placeholder: 'Type the new bin name',
+              submitLabel: 'Rename Bin',
+              initialValue: bin.name,
+              onSubmit: (value) => {
+                const normalizedValue = value.trim()
+                if (!normalizedValue) return { type: 'keep-open' as const }
+                void renameBin(bin.id, normalizedValue)
+                return { type: 'close' as const }
+              }
+            } satisfies PaletteInputMode
+          })
+        })),
+        placeholder: 'Choose a bin to rename',
+        emptyLabel: 'No bins available'
+      }
+
+      const removeBinPickerMode: PaletteMode = {
+        id: 'remove-bin-target',
+        items: userBins.map((bin) => ({
+          id: `remove-bin-target:${bin.id}`,
+          label: bin.name,
+          subtitle: 'Remove this bin from Arrangements',
+          icon: <Trash2 size={14} strokeWidth={1.8} />,
+          onActivate: () => {
+            deleteBin(bin.id)
+            void saveArrangements()
+            return { type: 'close' as const }
+          }
+        })),
+        placeholder: 'Choose a bin to remove',
+        emptyLabel: 'No bins available'
+      }
+
+      const renameSetPickerMode: PaletteMode = {
+        id: 'rename-set-target',
+        items: flattenedSets.map((setNode) => ({
+          id: `rename-set-target:${setNode.id}`,
+          label: setNode.name,
+          subtitle: setNode.depth > 0 ? `Depth ${setNode.depth}` : 'Root set',
+          icon: <Layers size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: {
+              id: `rename-set-input:${setNode.id}`,
+              type: 'input',
+              placeholder: 'Type the new set name',
+              submitLabel: 'Rename Set',
+              initialValue: setNode.name,
+              onSubmit: (value) => {
+                const normalizedValue = value.trim()
+                if (!normalizedValue) return { type: 'keep-open' as const }
+                void renameSet(setNode.id, normalizedValue)
+                return { type: 'close' as const }
+              }
+            } satisfies PaletteInputMode
+          })
+        })),
+        placeholder: 'Choose a set to rename',
+        emptyLabel: 'No sets available'
+      }
+
+      const removeSetPickerMode: PaletteMode = {
+        id: 'remove-set-target',
+        items: flattenedSets.map((setNode) => ({
+          id: `remove-set-target:${setNode.id}`,
+          label: setNode.name,
+          subtitle: setNode.depth > 0 ? `Remove nested set at depth ${setNode.depth}` : 'Remove root set',
+          icon: <Trash2 size={14} strokeWidth={1.8} />,
+          onActivate: () => {
+            deleteSet(setNode.id)
+            void saveArrangements()
+            return { type: 'close' as const }
+          }
+        })),
+        placeholder: 'Choose a set to remove',
+        emptyLabel: 'No sets available'
+      }
+
+      return [
+        {
+          id: 'create-bin',
+          label: 'New Bin',
+          subtitle: 'Name a new bin, then create it at the desktop viewport center',
+          icon: <Archive size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: {
+              id: 'create-bin-input',
+              type: 'input',
+              placeholder: 'Type the new bin name',
+              submitLabel: 'Create Bin',
+              initialValue: 'New Bin',
+              onSubmit: (value) => {
+                const normalizedValue = value.trim()
+                if (!normalizedValue) return { type: 'keep-open' as const }
+
+                const rect = desktopViewportRef.current?.getBoundingClientRect()
+                if (!rect) return { type: 'keep-open' as const }
+
+                void createBinAtViewportCenter(
+                  {
+                    width: rect.width,
+                    height: rect.height
+                  },
+                  normalizedValue
+                )
+                return { type: 'close' as const }
+              }
+            } satisfies PaletteInputMode
+          })
+        },
+        {
+          id: 'rename-bin',
+          label: 'Rename Bin',
+          subtitle: 'Choose a bin, then type its new name',
+          icon: <Archive size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: renameBinPickerMode
+          })
+        },
+        {
+          id: 'remove-bin',
+          label: 'Remove Bin',
+          subtitle: 'Choose a bin to remove from Arrangements',
+          icon: <Trash2 size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: removeBinPickerMode
+          })
+        },
+        {
+          id: 'create-set',
+          label: 'New Set',
+          subtitle: 'Name a new root set in the Sets Island',
+          icon: <Layers size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: {
+              id: 'create-set-input',
+              type: 'input',
+              placeholder: 'Type the new set name',
+              submitLabel: 'Create Set',
+              initialValue: 'New Set',
+              onSubmit: (value) => {
+                const normalizedValue = value.trim()
+                if (!normalizedValue) return { type: 'keep-open' as const }
+                void createRootSet(normalizedValue)
+                return { type: 'close' as const }
+              }
+            } satisfies PaletteInputMode
+          })
+        },
+        {
+          id: 'rename-set',
+          label: 'Rename Set',
+          subtitle: 'Choose a set, then type its new name',
+          icon: <Layers size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: renameSetPickerMode
+          })
+        },
+        {
+          id: 'remove-set',
+          label: 'Remove Set',
+          subtitle: 'Choose a set to remove from Arrangements',
+          icon: <Trash2 size={14} strokeWidth={1.8} />,
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: removeSetPickerMode
+          })
+        }
+      ]
+    },
+    [
+      bins,
+      createBinAtViewportCenter,
+      createRootSet,
+      deleteBin,
+      deleteSet,
+      renameBin,
+      renameSet,
+      saveArrangements,
+      sets
+    ]
+  )
 
   const handleOpenBin = useCallback(
     (binId: string) => {
@@ -215,7 +471,7 @@ export default function ArrangementsView({
         </aside>
 
         {/* Desktop — step 3 */}
-        <main className="arrangements-view__desktop">
+        <main ref={desktopViewportRef} className="arrangements-view__desktop">
           <MicaHost
             host={arrangementsMica}
             renderOverlay={() => <ArrangementsDragOverlay />}
@@ -271,6 +527,13 @@ export default function ArrangementsView({
 
             {/* Bin View — temporary direct MicaWindow usage before full Mica host adoption */}
           </MicaHost>
+          {paletteOpen ? (
+            <PetalPalette
+              items={paletteItems}
+              onClose={() => setPaletteOpen(false)}
+              placeholder="Search Arrangements commands"
+            />
+          ) : null}
         </main>
       </div>
     </div>

@@ -19,6 +19,7 @@ type ArrangementsState = {
   binAssignments: Record<ArrangementsMaterialKey, string>
   desktopPlacements: Record<string, GardenPoint>
   cameraState: GardenCameraState
+  pendingRenameTarget: { kind: 'bin' | 'set'; id: string } | null
   isHydrated: boolean
   loadArrangements: () => Promise<boolean>
   saveArrangements: () => Promise<boolean>
@@ -31,9 +32,19 @@ type ArrangementsState = {
   sendToTrash: (materialKey: ArrangementsMaterialKey) => void
   emptyTrash: () => Promise<boolean>
   createBin: (name: string) => string | null
+  createBinAtPoint: (position: GardenPoint, name?: string) => Promise<string | null>
+  createBinAtViewportCenter: (
+    viewport: { width: number; height: number },
+    name?: string
+  ) => Promise<string | null>
+  renameBin: (binId: string, name: string) => Promise<boolean>
   deleteBin: (binId: string) => void
   createSet: (name: string, parentSetId?: string | null) => string | null
+  createRootSet: (name?: string) => Promise<string | null>
+  createChildSet: (parentSetId: string, name?: string) => Promise<string | null>
+  renameSet: (setId: string, name: string) => Promise<boolean>
   deleteSet: (setId: string) => void
+  markPendingRenameTarget: (target: { kind: 'bin' | 'set'; id: string } | null) => void
   setCamera: (cameraState: GardenCameraState) => void
   clearArrangements: () => void
 }
@@ -50,9 +61,16 @@ function getEmptyArrangementsState(): Omit<ArrangementsState, keyof Pick<Arrange
   | 'sendToTrash'
   | 'emptyTrash'
   | 'createBin'
+  | 'createBinAtPoint'
+  | 'createBinAtViewportCenter'
+  | 'renameBin'
   | 'deleteBin'
   | 'createSet'
+  | 'createRootSet'
+  | 'createChildSet'
+  | 'renameSet'
   | 'deleteSet'
+  | 'markPendingRenameTarget'
   | 'setCamera'
   | 'clearArrangements'
 >> {
@@ -65,6 +83,7 @@ function getEmptyArrangementsState(): Omit<ArrangementsState, keyof Pick<Arrange
     binAssignments: emptyGarden.binAssignments,
     desktopPlacements: emptyGarden.desktopPlacements,
     cameraState: emptyGarden.cameraState,
+    pendingRenameTarget: null,
     isHydrated: false
   }
 }
@@ -134,6 +153,35 @@ function removeSetNode(
   })
 
   return removed ? { nextSets, removed } : { nextSets: sets, removed: null }
+}
+
+function renameSetNode(
+  sets: GardenSetNode[],
+  setId: string,
+  name: string
+): GardenSetNode[] {
+  let changed = false
+
+  const nextSets = sets.map((setNode) => {
+    if (setNode.id === setId) {
+      changed = true
+      return {
+        ...setNode,
+        name
+      }
+    }
+
+    const nextChildren = renameSetNode(setNode.children, setId, name)
+    if (nextChildren === setNode.children) return setNode
+
+    changed = true
+    return {
+      ...setNode,
+      children: nextChildren
+    }
+  })
+
+  return changed ? nextSets : sets
 }
 
 function buildPersistedGardenState(state: ArrangementsState) {
@@ -316,9 +364,72 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
 
     const id = crypto.randomUUID()
     set((state) => ({
-      bins: [...state.bins, { id, name: normalizedName, kind: 'user' }]
+      bins: [...state.bins, { id, name: normalizedName, kind: 'user' }],
+      pendingRenameTarget: {
+        kind: 'bin',
+        id
+      }
     }))
     return id
+  },
+
+  createBinAtPoint: async (position, name = 'New Bin') => {
+    const binId = get().createBin(name)
+    if (!binId) return null
+
+    set((state) => ({
+      desktopPlacements: {
+        ...state.desktopPlacements,
+        [toBinPlacementKey(binId)]: position
+      }
+    }))
+
+    await get().saveArrangements()
+    return binId
+  },
+
+  createBinAtViewportCenter: async (viewport, name = 'New Bin') => {
+    const { cameraState } = get()
+    const center = {
+      x: (viewport.width * 0.5 - cameraState.x) / cameraState.zoom,
+      y: (viewport.height * 0.5 - cameraState.y) / cameraState.zoom
+    }
+
+    return get().createBinAtPoint(center, name)
+  },
+
+  renameBin: async (binId, name) => {
+    const normalizedName = name.trim()
+    if (!normalizedName) return false
+
+    let renamed = false
+    set((state) => {
+      const existingBin = state.bins.find((bin) => bin.id === binId && bin.kind === 'user')
+      if (!existingBin) return state
+
+      renamed = true
+      return {
+        bins:
+          existingBin.name === normalizedName
+            ? state.bins
+            : state.bins.map((bin) =>
+                bin.id === binId
+                  ? {
+                      ...bin,
+                      name: normalizedName
+                    }
+                  : bin
+              ),
+        pendingRenameTarget:
+          state.pendingRenameTarget?.kind === 'bin' && state.pendingRenameTarget.id === binId
+            ? null
+            : state.pendingRenameTarget
+      }
+    })
+
+    if (!renamed) return false
+    await get().saveArrangements()
+    return true
   },
 
   deleteBin: (binId) =>
@@ -335,7 +446,11 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       return {
         bins: state.bins.filter((bin) => bin.id !== binId),
         binAssignments: nextAssignments,
-        desktopPlacements: nextPlacements
+        desktopPlacements: nextPlacements,
+        pendingRenameTarget:
+          state.pendingRenameTarget?.kind === 'bin' && state.pendingRenameTarget.id === binId
+            ? null
+            : state.pendingRenameTarget
       }
     }),
 
@@ -354,17 +469,71 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
     set((state) => {
       if (!parentSetId) {
         created = true
-        return { sets: [...state.sets, nextSet] }
+        return {
+          sets: [...state.sets, nextSet],
+          pendingRenameTarget: {
+            kind: 'set',
+            id: nextSet.id
+          }
+        }
       }
 
       const nextSets = insertSetNode(state.sets, parentSetId, nextSet)
       if (nextSets !== state.sets) {
         created = true
       }
-      return nextSets === state.sets ? state : { sets: nextSets }
+      return nextSets === state.sets
+        ? state
+        : {
+            sets: nextSets,
+            pendingRenameTarget: {
+              kind: 'set',
+              id: nextSet.id
+            }
+          }
     })
 
     return created ? nextSet.id : null
+  },
+
+  createRootSet: async (name = 'New Set') => {
+    const setId = get().createSet(name)
+    if (!setId) return null
+
+    await get().saveArrangements()
+    return setId
+  },
+
+  createChildSet: async (parentSetId, name = 'New Set') => {
+    const setId = get().createSet(name, parentSetId)
+    if (!setId) return null
+
+    await get().saveArrangements()
+    return setId
+  },
+
+  renameSet: async (setId, name) => {
+    const normalizedName = name.trim()
+    if (!normalizedName) return false
+
+    let renamed = false
+    set((state) => {
+      const nextSets = renameSetNode(state.sets, setId, normalizedName)
+      if (nextSets === state.sets) return state
+
+      renamed = true
+      return {
+        sets: nextSets,
+        pendingRenameTarget:
+          state.pendingRenameTarget?.kind === 'set' && state.pendingRenameTarget.id === setId
+            ? null
+            : state.pendingRenameTarget
+      }
+    })
+
+    if (!renamed) return false
+    await get().saveArrangements()
+    return true
   },
 
   deleteSet: (setId) =>
@@ -375,9 +544,15 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       const removedSetIds = collectSetIdsFromNode(removed)
       return {
         sets: nextSets,
-        memberships: state.memberships.filter((membership) => !removedSetIds.has(membership.setId))
+        memberships: state.memberships.filter((membership) => !removedSetIds.has(membership.setId)),
+        pendingRenameTarget:
+          state.pendingRenameTarget?.kind === 'set' && removedSetIds.has(state.pendingRenameTarget.id)
+            ? null
+            : state.pendingRenameTarget
       }
     }),
+
+  markPendingRenameTarget: (target) => set({ pendingRenameTarget: target }),
 
   setCamera: (cameraState) => set({ cameraState }),
 

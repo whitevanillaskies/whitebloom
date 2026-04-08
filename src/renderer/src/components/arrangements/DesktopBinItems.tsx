@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Trash2, Archive } from 'lucide-react'
+import { Pencil, Trash2, Archive } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenBin } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
+import { PetalMenu, type PetalMenuItem } from '../petal'
 import {
   ARRANGEMENTS_MICA_HOST_ID,
   createArrangementsDropTargetId,
@@ -29,7 +30,12 @@ type BinItemProps = {
   bin: GardenBin
   x: number
   y: number
+  isPendingRename: boolean
   onDoubleClick: (bin: GardenBin) => void
+  onRenameRequest: (binId: string) => void
+  onRenameCommit: (binId: string, name: string) => void
+  onRenameCancel: () => void
+  onDelete: (binId: string) => void
   onMoved: (binId: string, x: number, y: number) => void
 }
 
@@ -37,14 +43,22 @@ function BinItem({
   bin,
   x,
   y,
+  isPendingRename,
   onDoubleClick,
+  onRenameRequest,
+  onRenameCommit,
+  onRenameCancel,
+  onDelete,
   onMoved
 }: BinItemProps): React.JSX.Element {
   const isTrash = bin.id === SYSTEM_TRASH_BIN_ID
   const rootRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const targetId = createArrangementsDropTargetId(isTrash ? 'trash' : 'bin', bin.id)
   const isDropActive = useArrangementsDragTargetActive(targetId)
   const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
+  const [contextMenuAnchor, setContextMenuAnchor] = useState<{ x: number; y: number } | null>(null)
+  const [draftName, setDraftName] = useState(bin.name)
   const dropTargetMeta = useMemo(
     () =>
       isTrash
@@ -66,15 +80,26 @@ function BinItem({
     if (!dragging) setLivePos({ x, y })
   }, [x, y, dragging])
 
+  useEffect(() => {
+    setDraftName(bin.name)
+  }, [bin.name])
+
+  useEffect(() => {
+    if (!isPendingRename) return
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [isPendingRename])
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      if (isPendingRename) return
       if (e.button !== 0 || isTrash) return
       e.stopPropagation() // don't trigger canvas pan
       dragStart.current = { mx: e.clientX, my: e.clientY, ox: livePos.x, oy: livePos.y }
       setDragging(true)
       e.currentTarget.setPointerCapture(e.pointerId)
     },
-    [isTrash, livePos.x, livePos.y]
+    [isPendingRename, isTrash, livePos.x, livePos.y]
   )
 
   const handlePointerMove = useCallback(
@@ -114,9 +139,72 @@ function BinItem({
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      if (isPendingRename) return
       onDoubleClick(bin)
     },
-    [bin, onDoubleClick]
+    [bin, isPendingRename, onDoubleClick]
+  )
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isTrash) return
+      e.preventDefault()
+      e.stopPropagation()
+      setContextMenuAnchor({ x: e.clientX, y: e.clientY })
+    },
+    [isTrash]
+  )
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuAnchor(null)
+  }, [])
+
+  const commitRename = useCallback(() => {
+    const normalizedName = draftName.trim()
+    if (!normalizedName) {
+      setDraftName(bin.name)
+      onRenameCancel()
+      return
+    }
+    onRenameCommit(bin.id, normalizedName)
+  }, [bin.id, bin.name, draftName, onRenameCancel, onRenameCommit])
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        commitRename()
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setDraftName(bin.name)
+        onRenameCancel()
+      }
+    },
+    [bin.name, commitRename, onRenameCancel]
+  )
+
+  const contextMenuItems = useMemo<PetalMenuItem[]>(
+    () => [
+      {
+        id: 'rename-bin',
+        label: 'Rename Bin',
+        icon: <Pencil size={14} strokeWidth={1.7} />,
+        onActivate: () => {
+          onRenameRequest(bin.id)
+        }
+      },
+      {
+        id: 'remove-bin',
+        label: 'Remove Bin',
+        icon: <Trash2 size={14} strokeWidth={1.7} />,
+        intent: 'destructive',
+        onActivate: () => {
+          onDelete(bin.id)
+        }
+      }
+    ],
+    [bin.id, onDelete, onRenameRequest]
   )
 
   const pos = dragging ? livePos : { x, y }
@@ -142,6 +230,7 @@ function BinItem({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
       role="button"
       aria-label={`${bin.name} bin`}
     >
@@ -160,7 +249,27 @@ function BinItem({
           />
         )}
       </div>
-      <span className="desktop-bin__label">{bin.name}</span>
+      {isPendingRename ? (
+        <input
+          ref={inputRef}
+          className="desktop-bin__label-input"
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+          onBlur={commitRename}
+          onKeyDown={handleRenameKeyDown}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label="Rename bin"
+        />
+      ) : (
+        <span className="desktop-bin__label">{bin.name}</span>
+      )}
+      {contextMenuAnchor ? (
+        <PetalMenu
+          items={contextMenuItems}
+          anchor={contextMenuAnchor}
+          onClose={handleCloseContextMenu}
+        />
+      ) : null}
     </div>
   )
 }
@@ -175,6 +284,11 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
   const bins = useArrangementsStore((s) => s.bins)
   const desktopPlacements = useArrangementsStore((s) => s.desktopPlacements)
   const moveBinOnDesktop = useArrangementsStore((s) => s.moveBinOnDesktop)
+  const pendingRenameTarget = useArrangementsStore((s) => s.pendingRenameTarget)
+  const markPendingRenameTarget = useArrangementsStore((s) => s.markPendingRenameTarget)
+  const renameBin = useArrangementsStore((s) => s.renameBin)
+  const deleteBin = useArrangementsStore((s) => s.deleteBin)
+  const saveArrangements = useArrangementsStore((s) => s.saveArrangements)
 
   const handleMoved = useCallback(
     (binId: string, x: number, y: number) => {
@@ -190,6 +304,32 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
     [onOpenBin]
   )
 
+  const handleRenameRequest = useCallback(
+    (binId: string) => {
+      markPendingRenameTarget({ kind: 'bin', id: binId })
+    },
+    [markPendingRenameTarget]
+  )
+
+  const handleRenameCommit = useCallback(
+    (binId: string, name: string) => {
+      void renameBin(binId, name)
+    },
+    [renameBin]
+  )
+
+  const handleRenameCancel = useCallback(() => {
+    markPendingRenameTarget(null)
+  }, [markPendingRenameTarget])
+
+  const handleDeleteBin = useCallback(
+    (binId: string) => {
+      deleteBin(binId)
+      void saveArrangements()
+    },
+    [deleteBin, saveArrangements]
+  )
+
   const userBins = bins.filter((b) => b.kind === 'user')
 
   return (
@@ -203,7 +343,12 @@ export default function DesktopBinItems({ onOpenBin }: DesktopBinItemsProps): Re
             bin={bin}
             x={pos.x}
             y={pos.y}
+            isPendingRename={pendingRenameTarget?.kind === 'bin' && pendingRenameTarget.id === bin.id}
             onDoubleClick={handleOpenBin}
+            onRenameRequest={handleRenameRequest}
+            onRenameCommit={handleRenameCommit}
+            onRenameCancel={handleRenameCancel}
+            onDelete={handleDeleteBin}
             onMoved={handleMoved}
           />
         )
@@ -229,7 +374,12 @@ export function DesktopTrashBin({ onOpenBin }: DesktopTrashBinProps): React.JSX.
       bin={trashBin}
       x={0}
       y={0}
+      isPendingRename={false}
       onDoubleClick={(bin) => onOpenBin(bin.id)}
+      onRenameRequest={() => void 0}
+      onRenameCommit={() => void 0}
+      onRenameCancel={() => void 0}
+      onDelete={() => void 0}
       onMoved={() => void 0}
     />
   )

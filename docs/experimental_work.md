@@ -3,6 +3,22 @@
 Highly speculative ideas that may or may not be good. Worth writing down before they're forgotten. Nothing here should be treated as planned — these are open questions, not deferred tasks.
 
 
+## Commands and scripting in Arrangements
+
+If Arrangements grows beyond direct manipulation and palette actions, the next sensible step is not "add a console" but "define a command system." Bins and sets are a good example: if `New Bin`, `New Set`, `Rename Set`, `Include in Set`, and `Remove Bin` become first-class commands with stable inputs and results, then context menus, palette items, buttons, automations, and future scripts can all call the same machinery.
+
+That suggests a healthy order of operations:
+
+- define internal commands first
+- expose them in the palette second
+- consider non-programmer automation hooks third
+- only then evaluate a real scripting API
+
+A scripting API could become valuable later, especially for bulk organization, generated set structures, migration helpers, or workspace-specific tools. But it should arrive only after the command layer is stable and intentionally scoped. Otherwise the app would freeze accidental implementation details into public API, and every refactor of Arrangements data would become a compatibility problem.
+
+If this ever moves forward, the safest shape is probably command-oriented rather than raw process scripting. In other words: scripts should ask the app to run approved commands, not reach directly into stores, files, or renderer internals. That keeps the API smaller, makes undo/audit possible, and avoids turning Whitebloom into a general-purpose scripting host before it needs to be one.
+
+
 ## Agent-authored modules
 
 The embedded LLM writes a new module from inside the app. No restart. You describe what you want ("a Gantt chart node"), the agent produces the module, and it loads immediately.

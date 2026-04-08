@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenCameraState } from '../../../../shared/arrangements'
+import { Archive } from 'lucide-react'
+import { PetalMenu, type PetalMenuItem } from '../petal'
 import {
   ARRANGEMENTS_MICA_HOST_ID,
   createArrangementsDropTargetId,
@@ -24,6 +26,7 @@ export default function ArrangementsDesktop({
 }: ArrangementsDesktopProps): React.JSX.Element {
   const storedCamera = useArrangementsStore((s) => s.cameraState)
   const setCamera = useArrangementsStore((s) => s.setCamera)
+  const createBinAtPoint = useArrangementsStore((s) => s.createBinAtPoint)
 
   // Local camera state for low-latency pan/zoom, synced to store on pointer up.
   const [camera, setLocalCamera] = useState<GardenCameraState>(storedCamera)
@@ -116,6 +119,7 @@ export default function ArrangementsDesktop({
   }, [handleWheel])
 
   const [spaceHeld, setSpaceHeld] = useState(false)
+  const [contextMenuAnchor, setContextMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const desktopTargetId = createArrangementsDropTargetId('desktop')
   const isDropActive = useArrangementsDragTargetActive(desktopTargetId)
   const dropTargetMeta = useMemo(
@@ -152,6 +156,47 @@ export default function ArrangementsDesktop({
     }
   }, [])
 
+  const handleWorldContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      if (target.closest('.material-item, .desktop-bin, .mica-window')) return
+
+      e.preventDefault()
+      setContextMenuAnchor({
+        x: e.clientX,
+        y: e.clientY
+      })
+    },
+    []
+  )
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuAnchor(null)
+  }, [])
+
+  const desktopMenuItems = useMemo<PetalMenuItem[]>(
+    () => [
+      {
+        id: 'new-bin',
+        label: 'New Bin',
+        icon: <Archive size={14} strokeWidth={1.7} />,
+        onActivate: () => {
+          const rect = containerRef.current?.getBoundingClientRect()
+          if (!rect || !contextMenuAnchor) return
+
+          const point = {
+            x: (contextMenuAnchor.x - rect.left - cameraRef.current.x) / cameraRef.current.zoom,
+            y: (contextMenuAnchor.y - rect.top - cameraRef.current.y) / cameraRef.current.zoom
+          }
+
+          void createBinAtPoint(point)
+        }
+      }
+    ],
+    [contextMenuAnchor, createBinAtPoint]
+  )
+
   const transform = `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`
 
   return (
@@ -168,6 +213,7 @@ export default function ArrangementsDesktop({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onContextMenu={handleWorldContextMenu}
     >
       <div
         className="arrangements-desktop__world"
@@ -177,6 +223,13 @@ export default function ArrangementsDesktop({
       </div>
 
       {overlay}
+      {contextMenuAnchor ? (
+        <PetalMenu
+          items={desktopMenuItems}
+          anchor={contextMenuAnchor}
+          onClose={handleCloseContextMenu}
+        />
+      ) : null}
     </div>
   )
 }

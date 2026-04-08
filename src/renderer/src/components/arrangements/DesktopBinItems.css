@@ -96,3 +96,25 @@
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
+
+.desktop-bin__label-input {
+  width: 64px;
+  padding: 2px 4px;
+  border: 1px solid rgba(var(--color-accent-blue-rgb), 0.26);
+  border-radius: var(--radius-border-inner);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary-fg);
+  font-family: "DM Sans";
+  font-size: 11px;
+  font-weight: 440;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.desktop-bin__label-input:focus {
+  outline: none;
+  border-color: rgba(var(--color-accent-blue-rgb), 0.5);
+}

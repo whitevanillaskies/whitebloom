@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "bins": [
+    {
+      "id": "trash",
+      "name": "Trash",
+      "kind": "system"
+    },
+    {
+      "id": "3fcb06d8-aef8-41b1-8916-9cfb5eb71517",
+      "name": "holy crackers!!!",
+      "kind": "user"
+    },
+    {
+      "id": "f959cbff-1724-4213-a331-57973ad6d81d",
+      "name": "cool",
+      "kind": "user"
+    },
+    {
+      "id": "23025bee-f225-41de-9fbe-e136f484c176",
+      "name": "New Bin",
+      "kind": "user"
+    }
+  ],
+  "sets": [
+    {
+      "id": "2559f0a2-f119-416b-98fa-27dc0b402264",
+      "name": "New Set",
+      "children": []
+    },
+    {
+      "id": "141b8d5b-2d7d-4b9b-8ce2-329ba4038a2d",
+      "name": "i can't believe this",
+      "children": [
+        {
+          "id": "e5ae9728-c51b-4100-b87a-9dee2bb86649",
+          "name": "child set",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "memberships": [],
+  "binAssignments": {
+    "wloc:test 2.wb.json": "3fcb06d8-aef8-41b1-8916-9cfb5eb71517",
+    "wloc:blossoms/note-1775434691676.blt": "f959cbff-1724-4213-a331-57973ad6d81d",
+    "wloc:blossoms/schema-1775518780349.bdb": "f959cbff-1724-4213-a331-57973ad6d81d",
+    "wloc:new board.wb.json": "23025bee-f225-41de-9fbe-e136f484c176",
+    "wloc:Cluster.wb.json": "f959cbff-1724-4213-a331-57973ad6d81d",
+    "wloc:res/types of work 2.xlsx": "23025bee-f225-41de-9fbe-e136f484c176"
+  },
+  "desktopPlacements": {
+    "bin:3fcb06d8-aef8-41b1-8916-9cfb5eb71517": {
+      "x": 566.1111111111111,
+      "y": 511.55555555555554
+    },
+    "wloc:test 2.wb.json": {
+      "x": 419,
+      "y": 532
+    },
+    "wloc:res/sample_schema_jk 2.bdb": {
+      "x": 184.00000000000003,
+      "y": 443
+    },
+    "bin:f959cbff-1724-4213-a331-57973ad6d81d": {
+      "x": 763.6666666666666,
+      "y": 498
+    },
+    "bin:23025bee-f225-41de-9fbe-e136f484c176": {
+      "x": 936.6666666666666,
+      "y": 489
+    },
+    "wloc:res/1d0ff473584c87908b1bf02aded2a8dd.jpg": {
+      "x": 1040.6666666666667,
+      "y": 150.77777777777777
+    },
+    "wloc:blossoms/note-1775439811494.blt": {
+      "x": 1025.111111111111,
+      "y": -58.11111111111112
+    },
+    "wloc:blossoms/note-1775439687040.blt": {
+      "x": 806.2222222222222,
+      "y": -45.8888888888889
+    },
+    "wloc:new board.wb.json": {
+      "x": 909.5555555555555,
+      "y": 185.2222222222222
+    },
+    "wloc:Cluster.wb.json": {
+      "x": 657.3333333333334,
+      "y": 545.2222222222222
+    },
+    "wloc:blossoms/note-1775439166310.blt": {
+      "x": 695.1111111111111,
+      "y": -48.11111111111112
+    },
+    "wloc:some cluster.wb.json": {
+      "x": 657.3333333333334,
+      "y": 278.55555555555554
+    },
+    "wloc:blossoms/note-1775434843412.blt": {
+      "x": 516.2222222222223,
+      "y": 1.8888888888888762
+    }
+  },
+  "cameraState": {
+    "x": 178.39999999999998,
+    "y": 219.3,
+    "zoom": 0.9
+  },
+  "trashContents": [
+    "wloc:res/sample_schema_jk 4.bdb",
+    "wloc:res/sample_schema_jk 5.bdb"
+  ]
+}

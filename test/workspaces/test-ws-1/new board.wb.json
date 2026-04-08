@@ -514,6 +514,27 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-08T18:55:28.926Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "895e9b32-cb41-40a7-a4c4-f7efb61a3802",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 630.1751679621225,
+        "y": 914.2872832696668
+      },
+      "size": {
+        "w": 240,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Right click to import and link files\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-08T21:08:33.069Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T21:08:39.121Z",
+      "updatedBy": "anon",
+      "plain": "Right click to import and link files"
     }
   ],
   "edges": [
@@ -554,8 +575,8 @@
     }
   ],
   "viewport": {
-    "x": 17.624792258643538,
-    "y": 53.910079753416426,
-    "zoom": 0.7578582832551992
+    "x": 233.41652905816898,
+    "y": -92.90019090080978,
+    "zoom": 0.7578582832551993
   }
 }
