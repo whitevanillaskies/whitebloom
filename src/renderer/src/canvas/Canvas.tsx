@@ -35,19 +35,33 @@ import { dispatchDirectory, dispatchModule } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
+import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
 import { Boxes, Database, FileText, FolderPlus, PanelsTopLeft, Scan, Settings2, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteItem, PetalMenuItem } from '@renderer/components/petal'
+import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { schemaBloomModule } from '../modules/schemabloom'
 import { absolutePathToFileUri } from '@renderer/shared/resource-url'
-import type { Board, ClusterNode as BoardClusterNode } from '@renderer/shared/types'
+import {
+  isBoardResource,
+  resolveWorkspaceBoardPath,
+  toWorkspaceBoardResource
+} from '@renderer/shared/board-resource'
+import type {
+  Board,
+  BoardEdge,
+  BoardNode,
+  BoardViewport,
+  ClusterNode as BoardClusterNode
+} from '@renderer/shared/types'
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
 import { isClusterNode } from '@renderer/shared/types'
 import { isTextLeafNode } from '@renderer/shared/types'
 import type { Tool } from './tools'
 import { captureBoardThumbnail } from './captureBoardThumbnail'
+import { planClusterPromotion } from '@renderer/stores/board'
 import './Canvas.css'
 
 async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
@@ -67,6 +81,7 @@ const nodeTypes = { text: TextNode, bud: BudNode, cluster: ClusterNode }
 const edgeTypes = { wb: WbEdge }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 const LARGE_IMPORT_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
+const MATERIAL_MIME = 'application/x-wb-material-key'
 const DEFAULT_CLUSTER_SIZE = { w: 320, h: 220 }
 const CLUSTER_SELECTION_PADDING = 48
 const CLUSTER_EDGE_Z_INDEX = -1
@@ -209,6 +224,39 @@ function getSuggestedBoardFileName(boardPath: string, boardName?: string): strin
   return trimmedName && trimmedName.length > 0 ? trimmedName : getBoardNameFromPath(boardPath)
 }
 
+function normalizeBoardNodesForSave(nodes: BoardNode[]): BoardNode[] {
+  return nodes.map((node) => {
+    if (!isTextLeafNode(node)) return node
+
+    const content = node.content ?? makeLexicalContent(node.label ?? '')
+    return {
+      ...node,
+      content,
+      plain: lexicalContentToPlainText(content)
+    }
+  })
+}
+
+function buildBoardSnapshotFromGraph(input: {
+  version: number
+  name?: string
+  brief?: string
+  nodes: BoardNode[]
+  edges: BoardEdge[]
+  viewport?: BoardViewport
+  transient?: boolean
+}): Board {
+  return {
+    version: input.version,
+    ...(input.transient ? { transient: true as const } : {}),
+    ...(input.name?.trim() ? { name: input.name.trim() } : {}),
+    ...(input.brief?.trim() ? { brief: input.brief.trim() } : {}),
+    nodes: normalizeBoardNodesForSave(input.nodes),
+    edges: input.edges,
+    ...(input.viewport ? { viewport: input.viewport } : {})
+  }
+}
+
 function blurToolbarButtonIfFocused(): void {
   const active = document.activeElement
   if (!(active instanceof HTMLElement)) return
@@ -221,13 +269,15 @@ type CanvasProps = {
   onGoToWorkspaceHome: () => void
   onOpenArrangements: () => void
   onNewBoard: () => void
+  onOpenBoard: (boardPath: string) => void
 }
 
 export function Canvas({
   onGoHome,
   onGoToWorkspaceHome,
   onOpenArrangements,
-  onNewBoard
+  onNewBoard,
+  onOpenBoard
 }: CanvasProps) {
   const { t } = useTranslation()
 
@@ -260,6 +310,7 @@ export function Canvas({
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
+  const addWorkspaceBoard = useWorkspaceStore((s) => s.addBoard)
   const removeWorkspaceBoard = useWorkspaceStore((s) => s.removeBoard)
   const unhandledDropSetting = useAppSettingsStore((s) => s.files.unhandledDrop)
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
@@ -277,6 +328,9 @@ export function Canvas({
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
   const [pendingNodeSelectionId, setPendingNodeSelectionId] = useState<string | null>(null)
   const [promoteInFlight, setPromoteInFlight] = useState(false)
+  const [promoteSubboardModalOpen, setPromoteSubboardModalOpen] = useState(false)
+  const [promoteSubboardName, setPromoteSubboardName] = useState('Subboard')
+  const [promoteSubboardInFlight, setPromoteSubboardInFlight] = useState(false)
   const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
   const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
   const [overflowAnchor, setOverflowAnchor] = useState<{ x: number; y: number } | null>(null)
@@ -285,12 +339,22 @@ export function Canvas({
   const transientAutosaveRef = useRef<string | null>(null)
 
   const handleBloom = useCallback((bloom: ActiveBloom) => {
+    if (bloom.module.id === 'com.whitebloom.boardbloom') {
+      const nestedBoardPath = resolveWorkspaceBoardPath(bloom.resource, workspaceRoot)
+      if (!nestedBoardPath) {
+        setWorkspaceActionError(t('canvas.workspaceActionFailedBody'))
+        return
+      }
+      onOpenBoard(nestedBoardPath)
+      return
+    }
+
     if (bloom.module.defaultRenderer === 'external') {
       void window.api.openFile(bloom.resource)
       return
     }
     setActiveBloom(bloom)
-  }, [setActiveBloom])
+  }, [onOpenBoard, setActiveBloom, t, workspaceRoot])
 
   const createFocusWriterBud = useCallback(async () => {
     if (!workspaceRoot) return
@@ -912,26 +976,15 @@ export function Canvas({
   )
 
   const buildBoardSnapshot = useCallback((options?: { transient?: boolean }): Board => {
-    const nodes = boardNodes.map((node) => {
-      if (!isTextLeafNode(node)) return node
-
-      const content = node.content ?? makeLexicalContent(node.label ?? '')
-      return {
-        ...node,
-        content,
-        plain: lexicalContentToPlainText(content)
-      }
-    })
-
-    return {
+    return buildBoardSnapshotFromGraph({
       version,
-      ...(options?.transient ? { transient: true as const } : {}),
-      ...(boardName?.trim() ? { name: boardName.trim() } : {}),
-      ...(boardBrief?.trim() ? { brief: boardBrief.trim() } : {}),
-      nodes,
+      transient: options?.transient,
+      name: boardName,
+      brief: boardBrief,
+      nodes: boardNodes,
       edges: boardEdges,
-      ...(boardViewport ? { viewport: boardViewport } : {})
-    }
+      viewport: boardViewport
+    })
   }, [version, boardName, boardBrief, boardNodes, boardEdges, boardViewport])
 
   useEffect(() => {
@@ -1036,6 +1089,117 @@ export function Canvas({
       setPromoteInFlight(false)
     }
   }, [boardPath, boardTransient, buildBoardSnapshot, loadBoard, loadWorkspace, workspaceRoot])
+
+  const openPromoteSubboardModal = useCallback(() => {
+    if (!selectedCluster || workspaceRoot === null) return
+    setWorkspaceActionError(null)
+    setPromoteSubboardName(selectedCluster.label?.trim() || 'Subboard')
+    setPromoteSubboardModalOpen(true)
+  }, [selectedCluster, workspaceRoot])
+
+  const closePromoteSubboardModal = useCallback(() => {
+    if (promoteSubboardInFlight) return
+    setPromoteSubboardModalOpen(false)
+  }, [promoteSubboardInFlight])
+
+  const handlePromoteClusterToSubboard = useCallback(async () => {
+    if (!selectedCluster || !workspaceRoot || !boardPath) return
+
+    const trimmedName = promoteSubboardName.trim() || selectedCluster.label?.trim() || 'Subboard'
+    const budSize = boardBloomModule.defaultSize ?? { w: 196, h: 128 }
+
+    const plan = planClusterPromotion({
+      clusterId: selectedCluster.id,
+      boardName: trimmedName,
+      boardResource: '',
+      budType: boardBloomModule.id,
+      budSize,
+      nodes: boardNodes,
+      edges: boardEdges,
+      username: useBoardStore.getState().activeUsername
+    })
+
+    if (!plan) return
+
+    setPromoteSubboardInFlight(true)
+    setWorkspaceActionError(null)
+
+    try {
+      const createBoardResult = await window.api.createBoard(workspaceRoot, trimmedName)
+      if (!createBoardResult.ok || !createBoardResult.boardPath) {
+        throw new Error(t('canvas.promoteSubboardError'))
+      }
+
+      const boardResource = toWorkspaceBoardResource(createBoardResult.boardPath, workspaceRoot)
+      if (!boardResource) {
+        throw new Error(t('canvas.promoteSubboardError'))
+      }
+
+      const finalizedPlan = planClusterPromotion({
+        clusterId: selectedCluster.id,
+        boardName: trimmedName,
+        boardResource,
+        budType: boardBloomModule.id,
+        budSize,
+        nodes: boardNodes,
+        edges: boardEdges,
+        username: useBoardStore.getState().activeUsername
+      })
+
+      if (!finalizedPlan) {
+        throw new Error(t('canvas.promoteSubboardError'))
+      }
+
+      const childSaveResult = await window.api.saveBoard(
+        createBoardResult.boardPath,
+        JSON.stringify(finalizedPlan.childBoard, null, 2)
+      )
+      if (!childSaveResult.ok) {
+        throw new Error(t('canvas.promoteSubboardError'))
+      }
+
+      useBoardStore.getState().commitClusterPromotion(finalizedPlan)
+      const parentState = useBoardStore.getState()
+      const parentSnapshot = buildBoardSnapshotFromGraph({
+        version: parentState.version,
+        name: parentState.name,
+        brief: parentState.brief,
+        nodes: parentState.nodes,
+        edges: parentState.edges,
+        viewport: parentState.viewport
+      })
+
+      const parentSaveResult = await window.api.saveBoard(
+        boardPath,
+        JSON.stringify(parentSnapshot, null, 2)
+      )
+      if (!parentSaveResult.ok) {
+        throw new Error(t('canvas.promoteSubboardError'))
+      }
+
+      addWorkspaceBoard(createBoardResult.boardPath)
+      markSaved()
+      setPendingNodeSelectionId(selectedCluster.id)
+      setPromoteSubboardModalOpen(false)
+      void captureAndSaveThumbnail(boardPath, workspaceRoot)
+    } catch (error) {
+      setWorkspaceActionError(
+        error instanceof Error ? error.message : t('canvas.promoteSubboardError')
+      )
+    } finally {
+      setPromoteSubboardInFlight(false)
+    }
+  }, [
+    addWorkspaceBoard,
+    boardEdges,
+    boardNodes,
+    boardPath,
+    markSaved,
+    promoteSubboardName,
+    selectedCluster,
+    t,
+    workspaceRoot
+  ])
 
   const handleTrashBoard = useCallback(async () => {
     if (!boardPath) return
@@ -1262,6 +1426,17 @@ export function Canvas({
       })
     }
 
+    if (workspaceRoot !== null && selectedCluster && selectedCluster.children.length > 0) {
+      items.unshift({
+        id: 'promote-cluster-to-subboard',
+        label: t('canvas.palettePromoteSubboardLabel'),
+        icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
+        onActivate: () => {
+          openPromoteSubboardModal()
+        }
+      })
+    }
+
     if (selectedClusterableNodes.length > 0) {
       items.unshift({
         id: 'create-cluster-from-selection',
@@ -1305,6 +1480,7 @@ export function Canvas({
     createEmptyCluster,
     createFocusWriterBud,
     createSchemaBloomBud,
+    openPromoteSubboardModal,
     onOpenArrangements,
     selectedCluster,
     selectedClusterableNodes.length,
@@ -1377,6 +1553,9 @@ export function Canvas({
   const onDragOver = useCallback(
     (event: React.DragEvent) => {
       if (activeTool !== 'pointer' && activeTool !== 'hand') return
+      const materialKey = event.dataTransfer.getData(MATERIAL_MIME).trim()
+      const hasBoardMaterial = materialKey.length > 0 && isBoardResource(materialKey)
+      if (!hasBoardMaterial && event.dataTransfer.files.length === 0) return
       event.preventDefault()
       event.dataTransfer.dropEffect = 'copy'
     },
@@ -1389,8 +1568,27 @@ export function Canvas({
 
       event.preventDefault()
 
+      const materialKey = event.dataTransfer.getData(MATERIAL_MIME).trim()
       const browserDraggedUri = event.dataTransfer.getData('text/uri-list').trim()
       const droppedFiles = Array.from(event.dataTransfer.files)
+
+      if (materialKey) {
+        if (!isBoardResource(materialKey)) return
+        if (!workspaceRoot) {
+          setWorkspaceActionError(t('canvas.invalidSubboardLinkBody'))
+          return
+        }
+
+        addNode({
+          id: crypto.randomUUID(),
+          kind: 'bud',
+          type: boardBloomModule.id,
+          position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+          size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
+          resource: materialKey
+        })
+        return
+      }
 
       if (droppedFiles.length === 0) {
         if (browserDraggedUri) {
@@ -1440,6 +1638,19 @@ export function Canvas({
           const module = dispatchModule(filePath)
           moduleType = module?.id ?? null
 
+          if (moduleType === boardBloomModule.id) {
+            const localBoardResource = toWorkspaceBoardResource(filePath, workspaceRoot)
+            if (!localBoardResource) {
+              throw new Error(t('canvas.invalidSubboardLinkBody'))
+            }
+
+            return {
+              resource: localBoardResource,
+              moduleType,
+              size: boardBloomModule.defaultSize ?? { w: 196, h: 128 }
+            }
+          }
+
           if (workspaceRoot === null) {
             // Quickboard — always link, no workspace to copy into
             resource = absolutePathToFileUri(filePath)
@@ -1483,7 +1694,12 @@ export function Canvas({
 
       settled.forEach((result) => {
         if (result.status === 'rejected') {
-          firstFailure ??= result.reason instanceof Error ? result.reason.message : t('canvas.dropError')
+          const message = result.reason instanceof Error ? result.reason.message : t('canvas.dropError')
+          if (message === t('canvas.invalidSubboardLinkBody')) {
+            setWorkspaceActionError(message)
+            return
+          }
+          firstFailure ??= message
           return
         }
 
@@ -1597,6 +1813,16 @@ export function Canvas({
           onClose={() => setSettingsOpen(false)}
         />
       )}
+
+      {promoteSubboardModalOpen ? (
+        <PromoteSubboardModal
+          boardName={promoteSubboardName}
+          busy={promoteSubboardInFlight}
+          onBoardNameChange={setPromoteSubboardName}
+          onClose={closePromoteSubboardModal}
+          onSubmit={() => void handlePromoteClusterToSubboard()}
+        />
+      ) : null}
 
       {imageDropError ? (
         <PetalPanel title={t('canvas.dropFailedTitle')} body={imageDropError} onClose={() => setImageDropError(null)}>

@@ -1,0 +1,27 @@
+{
+  "version": 3,
+  "name": "Cluster",
+  "nodes": [
+    {
+      "id": "4fb47485-47be-473c-9871-acb906d3f993",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 96,
+        "y": 96
+      },
+      "size": {
+        "w": 299,
+        "h": 39
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Testing subboards promotion from cluters\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "auto",
+      "wrapWidth": null,
+      "created": "2026-04-08T16:07:43.842Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T16:07:49.838Z",
+      "updatedBy": "anon"
+    }
+  ],
+  "edges": []
+}

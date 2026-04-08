@@ -33,6 +33,15 @@
     "submitButton": "Crear tablero",
     "creatingButton": "Creando…"
   },
+  "promoteSubboardModal": {
+    "title": "Promover a subtablero",
+    "description": "Crea un tablero anidado a partir del clúster seleccionado. Esto mueve los hijos del clúster al nuevo tablero y reemplaza el clúster por un bud de subtablero.",
+    "boardNameLabel": "Nombre del subtablero",
+    "boardNamePlaceholder": "Subtablero",
+    "cancelButton": "Cancelar",
+    "submitButton": "Promover",
+    "promotingButton": "Promoviendo…"
+  },
   "confirmTrashModal": {
     "title": "¿Mover tablero a la papelera?",
     "description": "El archivo del tablero se moverá a wbapp:trash. Puedes restaurarlo manualmente desde el sistema de archivos durante el desarrollo.",
@@ -43,6 +52,7 @@
   "canvas": {
     "dropFailedTitle": "Error al soltar",
     "workspaceActionFailedTitle": "Error en acción del espacio de trabajo",
+    "workspaceActionFailedBody": "No se pudo abrir este subtablero.",
     "discardChangesTitle": "¿Descartar cambios sin guardar?",
     "discardChangesBody": "Tienes cambios sin guardar. ¿Deseas descartarlos y abrir un nuevo tablero?",
     "exitWithoutSavingTitle": "¿Salir sin guardar?",
@@ -56,6 +66,8 @@
     "moveToTrashButton": "Mover a la papelera",
     "webResourceDropError": "No se pueden incrustar recursos web — guarda la imagen en tu disco local primero y luego suéltala.",
     "dropError": "No se puede soltar el archivo.",
+    "invalidSubboardLinkBody": "Solo se pueden enlazar como subtableros los tableros del espacio de trabajo actual.",
+    "promoteSubboardError": "No se pudo promover este clúster a un subtablero.",
     "promoteError": "No se puede promover este tablero rápido a un espacio de trabajo.",
     "trashError": "No se puede mover este tablero a wbapp:trash.",
     "boardSettingsMenuItem": "Configuración",
@@ -66,6 +78,7 @@
     "paletteClusterLabel": "Crear clúster",
     "paletteClusterSelectionLabel": "Agrupar nodos seleccionados",
     "paletteFitClusterLabel": "Ajustar clúster a sus nodos",
+    "palettePromoteSubboardLabel": "Promover a subtablero",
     "paletteArrangementsLabel": "Abrir Arrangements",
     "paletteFocusWriterLabel": "Escritor enfocado",
     "paletteSchemaBloomLabel": "Diseñador de esquema de BD"

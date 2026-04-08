@@ -585,6 +585,25 @@
       "updatedAt": "2026-04-08T15:44:37.957Z",
       "updatedBy": "anon",
       "plain": "I don't think it makes any sense to show the filepath on the boards, after all one of the core points of WHITEBLOOM is abstracting away filesystem stuff."
+    },
+    {
+      "id": "8ebc3252-abc1-426f-8e74-e8c1cb1ce924",
+      "kind": "bud",
+      "type": "com.whitebloom.boardbloom",
+      "label": "Cluster",
+      "resource": "wloc:Cluster.wb.json",
+      "position": {
+        "x": 2245.867942520466,
+        "y": 693.3406363257816
+      },
+      "size": {
+        "w": 196,
+        "h": 128
+      },
+      "created": "2026-04-08T16:07:55.171Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-08T16:11:08.279Z",
+      "updatedBy": "anon"
     }
   ],
   "edges": [
@@ -625,8 +644,8 @@
     }
   ],
   "viewport": {
-    "x": -327.978042604351,
-    "y": -297.1713067620765,
-    "zoom": 0.8705505632961245
+    "x": -78.41984802629327,
+    "y": 66.11150471702837,
+    "zoom": 0.6597539553864479
   }
 }

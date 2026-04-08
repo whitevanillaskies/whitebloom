@@ -49,6 +49,12 @@ type PendingViewTransition = {
   returnView?: ReturnView
 }
 
+type PendingBoardOpen = {
+  boardPath: string
+}
+
+type PendingNavigation = PendingViewTransition | PendingBoardOpen
+
 async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
   try {
@@ -95,7 +101,7 @@ function App(): React.JSX.Element {
   const [newBoardName, setNewBoardName] = useState('Board')
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
   const [arrangementsReturnView, setArrangementsReturnView] = useState<ReturnView>('workspace-home')
-  const [pendingViewTransition, setPendingViewTransition] = useState<PendingViewTransition | null>(null)
+  const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null)
 
   const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
 
@@ -185,14 +191,14 @@ function App(): React.JSX.Element {
 
   const requestViewTransition = useCallback(
     (transition: PendingViewTransition) => {
-      if (view === 'board' && boardPath !== null && isDirty) {
-        setPendingViewTransition(transition)
+      if (boardPath !== null && isDirty) {
+        setPendingNavigation(transition)
         return
       }
 
       applyViewTransition(transition)
     },
-    [applyViewTransition, boardPath, isDirty, view]
+    [applyViewTransition, boardPath, isDirty]
   )
 
   useEffect(() => {
@@ -295,6 +301,34 @@ function App(): React.JSX.Element {
       setView('board')
     },
     [loadBoard]
+  )
+
+  const performBoardOpen = useCallback(
+    async (nextBoardPath: string) => {
+      setBusyAction('open-board')
+      setShellError(null)
+
+      try {
+        await openBoardByPath(nextBoardPath)
+      } catch (error) {
+        setShellError(error instanceof Error ? error.message : 'Unable to open that board.')
+      } finally {
+        setBusyAction(null)
+      }
+    },
+    [openBoardByPath]
+  )
+
+  const requestBoardOpen = useCallback(
+    (nextBoardPath: string) => {
+      if (boardPath !== null && isDirty) {
+        setPendingNavigation({ boardPath: nextBoardPath })
+        return
+      }
+
+      void performBoardOpen(nextBoardPath)
+    },
+    [boardPath, isDirty, performBoardOpen]
   )
 
   const handleOpenWorkspace = useCallback(async () => {
@@ -463,19 +497,10 @@ function App(): React.JSX.Element {
   }, [boardPath, clearBoard, clearWorkspace, pendingTrashBoard, removeBoard])
 
   const handleOpenWorkspaceBoard = useCallback(
-    async (nextBoardPath: string) => {
-      setBusyAction('open-board')
-      setShellError(null)
-
-      try {
-        await openBoardByPath(nextBoardPath)
-      } catch (error) {
-        setShellError(error instanceof Error ? error.message : 'Unable to open that board.')
-      } finally {
-        setBusyAction(null)
-      }
+    (nextBoardPath: string) => {
+      requestBoardOpen(nextBoardPath)
     },
-    [openBoardByPath]
+    [requestBoardOpen]
   )
 
   const handleOpenCreateBoardModal = useCallback(() => {
@@ -548,26 +573,36 @@ function App(): React.JSX.Element {
     [arrangementsReturnView]
   )
   const handleConfirmViewTransition = useCallback(async () => {
-    if (!pendingViewTransition) return
+    if (!pendingNavigation) return
 
     const saved = await saveCurrentBoard()
     if (!saved) return
 
-    applyViewTransition(pendingViewTransition)
-    setPendingViewTransition(null)
-  }, [applyViewTransition, pendingViewTransition, saveCurrentBoard])
-  const handleDiscardViewTransition = useCallback(() => {
-    if (!pendingViewTransition) return
+    if ('target' in pendingNavigation) {
+      applyViewTransition(pendingNavigation)
+    } else {
+      await performBoardOpen(pendingNavigation.boardPath)
+    }
 
-    applyViewTransition(pendingViewTransition)
-    setPendingViewTransition(null)
-  }, [applyViewTransition, pendingViewTransition])
+    setPendingNavigation(null)
+  }, [applyViewTransition, pendingNavigation, performBoardOpen, saveCurrentBoard])
+  const handleDiscardViewTransition = useCallback(() => {
+    if (!pendingNavigation) return
+
+    if ('target' in pendingNavigation) {
+      applyViewTransition(pendingNavigation)
+    } else {
+      void performBoardOpen(pendingNavigation.boardPath)
+    }
+
+    setPendingNavigation(null)
+  }, [applyViewTransition, pendingNavigation, performBoardOpen])
   const handleCancelViewTransition = useCallback(() => {
-    setPendingViewTransition(null)
+    setPendingNavigation(null)
   }, [])
 
   const canReturnToBoard = boardPath !== null && view !== 'board'
-  const pendingNavigationDialog = pendingViewTransition ? (
+  const pendingNavigationDialog = pendingNavigation ? (
     <PetalPanel
       title={t('navigation.saveBeforeLeavingTitle')}
       body={t('navigation.saveBeforeLeavingBody')}
@@ -597,6 +632,7 @@ function App(): React.JSX.Element {
               onGoToWorkspaceHome={handleGoToWorkspaceHome}
               onOpenArrangements={handleOpenArrangementsFromBoard}
               onNewBoard={handleNewBoardFromCanvas}
+              onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
             />
           </div>
         </ReactFlowProvider>
@@ -620,7 +656,7 @@ function App(): React.JSX.Element {
         <ArrangementsView
           workspaceName={workspaceConfig?.name}
           onBack={handleReturnFromArrangements}
-          onOpenBoard={(boardPath) => void openBoardByPath(boardPath)}
+          onOpenBoard={handleOpenWorkspaceBoard}
         />
         {pendingNavigationDialog}
       </>

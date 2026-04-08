@@ -21,12 +21,19 @@ type TextLayoutPatch = {
 type NodeMetadataFields = 'created' | 'createdBy' | 'updatedAt' | 'updatedBy'
 type NodeMetadataCarrier = Partial<Record<NodeMetadataFields, string>>
 type NonClusterBoardNode = Exclude<BoardNode, ClusterNode>
+const SUBBOARD_REBASE_PADDING = 96
 
 export type BoardNodeDraft = Omit<NonClusterBoardNode, NodeMetadataFields> &
   Partial<Pick<NonClusterBoardNode, NodeMetadataFields>>
 
 export type ClusterNodeDraft = Omit<ClusterNode, NodeMetadataFields> &
   Partial<Pick<ClusterNode, NodeMetadataFields>>
+
+export type ClusterPromotionPlan = {
+  childBoard: Board
+  nextNodes: BoardNode[]
+  nextEdges: BoardEdge[]
+}
 
 type BoardState = Board & {
   path: string | null
@@ -61,6 +68,7 @@ type BoardState = Board & {
   reconcileNodeClusterMembership: (nodeId: string) => void
   reconcileClusterMembershipsForCluster: (clusterId: string) => void
   fitClusterToChildren: (clusterId: string, padding?: number) => void
+  commitClusterPromotion: (plan: ClusterPromotionPlan) => void
   updateBoardMeta: (patch: { name?: string; brief?: string }) => void
   updateViewport: (viewport: BoardViewport) => void
   setActiveUsername: (username: string) => void
@@ -286,6 +294,81 @@ function reconcileNodeClusterMemberships(
   }
 
   return nextNodes
+}
+
+export function planClusterPromotion(input: {
+  clusterId: string
+  boardName: string
+  boardResource: string
+  budType: string
+  budSize: { w: number; h: number }
+  nodes: BoardNode[]
+  edges: BoardEdge[]
+  username: string
+}): ClusterPromotionPlan | null {
+  const cluster = input.nodes.find(
+    (node): node is ClusterNode => isClusterNode(node) && node.id === input.clusterId
+  )
+  if (!cluster || cluster.children.length === 0) return null
+
+  const childIds = new Set(cluster.children)
+  const childNodes = input.nodes.filter(
+    (node): node is NonClusterBoardNode => childIds.has(node.id) && !isClusterNode(node)
+  )
+  if (childNodes.length === 0) return null
+
+  const timestamp = new Date().toISOString()
+  const normalizedUsername = normalizeUsername(input.username)
+  const trimmedBoardName = input.boardName.trim()
+  const minX = Math.min(...childNodes.map((node) => node.position.x))
+  const minY = Math.min(...childNodes.map((node) => node.position.y))
+
+  const rebasedChildNodes = childNodes.map((node) => ({
+    ...node,
+    position: {
+      x: Math.round(node.position.x - minX + SUBBOARD_REBASE_PADDING),
+      y: Math.round(node.position.y - minY + SUBBOARD_REBASE_PADDING)
+    }
+  }))
+
+  const childEdges = input.edges.filter(
+    (edge) => childIds.has(edge.from) && childIds.has(edge.to)
+  )
+
+  const promotedBud = {
+    id: cluster.id,
+    kind: 'bud',
+    type: input.budType,
+    label: trimmedBoardName || cluster.label,
+    resource: input.boardResource,
+    position: cluster.position,
+    size: input.budSize,
+    created: cluster.created,
+    createdBy: cluster.createdBy,
+    updatedAt: timestamp,
+    updatedBy: normalizedUsername
+  } satisfies NonClusterBoardNode
+
+  const nextNodes = [
+    ...input.nodes.filter((node) => node.id !== cluster.id && !childIds.has(node.id)),
+    promotedBud
+  ]
+
+  const nextEdges = input.edges.filter(
+    (edge) => !childIds.has(edge.from) && !childIds.has(edge.to)
+  )
+
+  return {
+    childBoard: {
+      version: CURRENT_BOARD_VERSION,
+      ...(trimmedBoardName ? { name: trimmedBoardName } : {}),
+      ...(cluster.brief?.trim() ? { brief: cluster.brief.trim() } : {}),
+      nodes: rebasedChildNodes,
+      edges: childEdges
+    },
+    nextNodes,
+    nextEdges
+  }
 }
 
 export const useBoardStore = create<BoardState>((set) => ({
@@ -631,6 +714,13 @@ export const useBoardStore = create<BoardState>((set) => ({
 
       return { nodes, isDirty: shouldMarkBoardDirty(state) }
     }),
+
+  commitClusterPromotion: (plan) =>
+    set((state) => ({
+      nodes: plan.nextNodes,
+      edges: plan.nextEdges,
+      isDirty: shouldMarkBoardDirty(state)
+    })),
 
   updateBoardMeta: (patch) =>
     set((state) => {

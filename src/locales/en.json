@@ -33,6 +33,15 @@
     "submitButton": "Create board",
     "creatingButton": "Creating…"
   },
+  "promoteSubboardModal": {
+    "title": "Promote to subboard",
+    "description": "Create a nested board from the selected cluster. This moves the cluster's children into the new board and replaces the cluster with a subboard bud.",
+    "boardNameLabel": "Subboard name",
+    "boardNamePlaceholder": "Subboard",
+    "cancelButton": "Cancel",
+    "submitButton": "Promote",
+    "promotingButton": "Promoting…"
+  },
   "confirmTrashModal": {
     "title": "Move board to trash?",
     "description": "The board file will be moved into wbapp:trash. You can still restore it manually from the filesystem during development.",
@@ -43,6 +52,7 @@
   "canvas": {
     "dropFailedTitle": "Drop failed",
     "workspaceActionFailedTitle": "Workspace action failed",
+    "workspaceActionFailedBody": "Unable to open this nested board.",
     "discardChangesTitle": "Discard unsaved changes?",
     "discardChangesBody": "You have unsaved changes. Do you want to discard them and open a new board?",
     "exitWithoutSavingTitle": "Exit without saving?",
@@ -56,6 +66,8 @@
     "moveToTrashButton": "Move to trash",
     "webResourceDropError": "Can't embed web resources — save the image to your local drive first, then drop it.",
     "dropError": "Unable to drop file.",
+    "invalidSubboardLinkBody": "Only boards from the current workspace can be linked as subboards.",
+    "promoteSubboardError": "Unable to promote this cluster into a subboard.",
     "promoteError": "Unable to promote this quickboard into a workspace.",
     "trashError": "Unable to move this board into wbapp:trash.",
     "boardSettingsMenuItem": "Settings",
@@ -66,6 +78,7 @@
     "paletteClusterLabel": "Create Cluster",
     "paletteClusterSelectionLabel": "Cluster Selected Nodes",
     "paletteFitClusterLabel": "Fit Cluster to Children",
+    "palettePromoteSubboardLabel": "Promote to Subboard",
     "paletteArrangementsLabel": "Open Arrangements",
     "paletteFocusWriterLabel": "Focus Writer",
     "paletteSchemaBloomLabel": "DB Schema Drafter"
