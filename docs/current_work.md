@@ -198,3 +198,50 @@ Key properties:
 Defer implementation until clusters and Arrangements are shipped and stable.
 
 ---
+
+## Window Chrome and Toolbar Refactor
+
+The current `MicaWindow` API is carrying too much responsibility. It is acting as window shell, titlebar, toolbar surface, and toolbar control styling host at the same time. This makes simple usage easy but makes Finder-like layout composition awkward: grouped controls, intentional gaps, and toolbar-specific affordances such as search do not have a clear architectural home. The goal of this refactor is to separate window chrome from toolbar composition so Bin View and future windows can express toolbar layout deliberately.
+
+### Track 1: Refactor What We Already Have
+
+This track is about cleaning up the existing structure without changing the conceptual model yet.
+
+- Audit `MicaWindow.tsx`, `MicaWindow.css`, and current toolbar consumers to identify what is true window chrome versus what is actually toolbar UI.
+- Remove toolbar control styling rules from `MicaWindow.css`, especially generic descendant rules that style arbitrary `button` elements inside the window header.
+- Move current button and search field presentation into dedicated reusable components or control-specific styles so the shell no longer owns their appearance.
+- Introduce a small window-chrome vocabulary for the pieces `MicaWindow` should continue to own: frame, titlebar drag region, close control, title, sidebar split, and main content region.
+- Rename `headerActions` to a more accurate intermediate slot such as `toolbar` if needed, while still allowing the current window implementations to keep working during the transition.
+- Update Bin View to consume the extracted control primitives instead of depending on `MicaWindow`-owned button/search styling.
+- Do a visual pass against `design_language.md` so the remaining titlebar chrome reads as premium macOS-inspired shell rather than boxed toolbar controls.
+
+### Track 2: Refactor the Window Toolbar Into Its Own Thing
+
+This track establishes `WindowToolbar` as a dedicated layout and composition surface inspired by Finder/AppKit toolbar behavior.
+
+- Introduce a `WindowToolbar` component family separate from `MicaWindow`, with `MicaWindow` responsible only for shell and window structure.
+- Define explicit toolbar layout primitives so composition is semantic instead of incidental:
+- `WindowToolbar`
+- `WindowToolbarGroup`
+- `WindowToolbarSpacer` with fixed and flexible spacing behavior
+- `WindowToolbarButton`
+- `WindowToolbarSegmented` or an equivalent grouped toggle control for view mode switches
+- `WindowToolbarSearch`
+- Decide whether the toolbar lives inside a `toolbar` prop on `MicaWindow` or as an explicit child slot, favoring an API that makes the toolbar feel like a first-class surface instead of a miscellaneous action area.
+- Ensure grouping and spacing are caller-controlled so layouts like “view toggles together, then gap, then search” are intentional and stable.
+- Make the toolbar surface itself visually distinct from the titlebar when appropriate, while still feeling like one coherent Finder-like window header.
+- Migrate `BinView` to the new `WindowToolbar` API and use it as the reference implementation for future windowed views.
+- After migration, remove obsolete `headerActions` assumptions and any remaining toolbar-specific selectors from `MicaWindow`.
+
+### Sequencing
+
+- Start with Track 1 so we stop teaching the codebase that toolbar controls belong to the window shell.
+- Move to Track 2 once the current controls are extracted and the shell surface is narrow and stable.
+- Treat Bin View as the proving ground before expanding the toolbar model to other window types.
+
+### Desired End State
+
+- `MicaWindow` is a shell, not a toolbar framework.
+- Toolbar controls own their own styling and behavior.
+- Grouping, spacing, and alignment are explicit composition decisions.
+- Finder-like window headers become straightforward to build instead of awkward to fake.
