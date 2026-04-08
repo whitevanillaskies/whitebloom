@@ -109,9 +109,16 @@ Drop targets should expose:
 - target identity
 - target-local hit testing or bounds
 - optional hover callbacks
-- drop handler
+- drop dispatch hooks that notify the consumer, not domain mutations inside Mica
 
 The active drag session should remain serializable enough that later we can mirror it across processes if we promote Mica windows into separate native windows.
+
+Important boundary:
+
+- Mica may determine which target is active and when a drop occurs
+- Mica should **not** directly mutate Arrangements state
+- Arrangements should translate drop outcomes into explicit domain commands such as `assignToBin`, `moveMaterialOnDesktop`, `removeFromBin`, and `sendToTrash`
+- Those commands should continue to flow through the normal store command path rather than bypassing it through drag callbacks
 
 ## Coordinate model
 
@@ -147,9 +154,11 @@ This is the implementation path now.
 
 Keep the same conceptual model, but move drag-session authority upward as needed:
 
-- main process or a dedicated windowing coordinator owns active drag session state
+- a dedicated windowing coordinator owns active drag session state
 - each window reports bounds and registered targets
 - pointer updates and drag events are relayed between windows
+
+Do **not** assume by default that this authority belongs in the Electron main process. Whitebloom's architectural baseline is still that the main process remains filesystem-oriented and thin. If native multi-window drag later requires coordination above individual renderers, that coordination layer should be introduced deliberately without casually moving Arrangements domain logic or rich UI state into main.
 
 If Stage A is built around screen-space sessions and target registration, Stage B becomes an adaptation rather than a rewrite.
 
@@ -168,6 +177,18 @@ These are not the immediate implementation target, but the architecture should n
 - keyboard-driven open, rename, trash, and navigation
 
 The important rule is that selection state and drag state should remain separate concerns. Rubber-band selection will likely belong to Arrangements desktop and specific views, while drag session ownership should remain in Mica.
+
+## UX and design-language constraints
+
+The Mica drag layer is infrastructure, but it will still be visible to the user through hover states, previews, and overlays. Keep `design_language.md` in mind:
+
+- prioritize high-precision pointer feedback over decorative motion
+- avoid theatrical drag effects, elastic flourish, or heavy animated transitions
+- use restrained, premium macOS-like feedback similar to Finder or pro desktop tools
+- keep overlays visually light and intentional rather than turning drag into a large glassy spectacle
+- use accent color only to communicate acceptance, focus, insertion, or danger states
+- never require the user to wait for an animation to regain control
+- any dismissal or drag-cancel visual state should clear immediately, never with a fade-out
 
 ## Implementation plan
 
