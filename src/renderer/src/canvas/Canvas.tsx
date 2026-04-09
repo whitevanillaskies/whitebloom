@@ -846,30 +846,6 @@ export function Canvas({
     })
   }, [schemaEdges])
 
-  const handleSelectionChange = useCallback(
-    ({ nodes: selectedNodes, edges: selectedEdges }: { nodes: RFNode[]; edges: RFEdge[] }) => {
-      const selectedNodeIds = new Set(selectedNodes.map((node) => node.id))
-      const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id))
-
-      setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.selected === selectedNodeIds.has(node.id)
-            ? node
-            : { ...node, selected: selectedNodeIds.has(node.id) }
-        )
-      )
-
-      setEdges((currentEdges) =>
-        currentEdges.map((edge) =>
-          edge.selected === selectedEdgeIds.has(edge.id)
-            ? edge
-            : { ...edge, selected: selectedEdgeIds.has(edge.id) }
-        )
-      )
-    },
-    []
-  )
-
   const singleSelectedNodeId = useMemo(() => {
     const selected = nodes.filter((n) => n.selected)
     return selected.length === 1 ? selected[0].id : null
@@ -2422,7 +2398,6 @@ export function Canvas({
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onSelectionChange={handleSelectionChange}
           onConnect={onConnect}
           onPaneClick={onPaneClick}
           onDragOver={onDragOver}

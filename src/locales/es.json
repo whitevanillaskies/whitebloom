@@ -192,6 +192,7 @@
     "styleLabel": "Estilo de conexión",
     "strokeLabel": "Estilo del trazo",
     "colorLabel": "Color del trazo",
+    "labelColorLabel": "Color de etiqueta",
     "startMarkerLabel": "Alternar flecha inicial",
     "endMarkerLabel": "Alternar flecha final"
   },

@@ -104,6 +104,12 @@ export function EdgeToolbar() {
         aria-label={t('edgeToolbar.colorLabel')}
       />
 
+      <ColorControl
+        color={activeEdgeStyle.labelColor}
+        onChange={(labelColor) => patchEdgeStyle({ labelColor })}
+        aria-label={t('edgeToolbar.labelColorLabel')}
+      />
+
       <CanvasToolbarSep />
 
       <CanvasToolbarBtn

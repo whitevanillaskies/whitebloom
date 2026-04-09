@@ -192,6 +192,7 @@
     "styleLabel": "Edge style",
     "strokeLabel": "Stroke style",
     "colorLabel": "Stroke color",
+    "labelColorLabel": "Label color",
     "startMarkerLabel": "Toggle start arrow",
     "endMarkerLabel": "Toggle end arrow"
   },
