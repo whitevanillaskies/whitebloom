@@ -7,7 +7,6 @@ import {
   HardDrive,
   LayoutDashboard,
   LoaderCircle,
-  Plus,
   Sparkles,
   X,
   Zap

@@ -387,8 +387,9 @@ export const useBoardStore = create<BoardState>((set) => ({
     set((state) => {
       const timestamp = new Date().toISOString()
       const username = normalizeUsername(state.activeUsername)
+      const normalizedNode = normalizeNodeMetadata(node, timestamp, username) as NonClusterBoardNode
       return {
-        nodes: [...state.nodes, normalizeNodeMetadata(node, timestamp, username)],
+        nodes: [...state.nodes, normalizedNode],
         isDirty: shouldMarkBoardDirty(state)
       }
     }),

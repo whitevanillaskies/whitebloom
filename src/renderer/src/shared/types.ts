@@ -2,6 +2,94 @@ export type Position = { x: number; y: number }
 export type Size = { w: number; h: number }
 export type WidthMode = 'auto' | 'fixed'
 export type ClusterColor = 'blue' | 'pink' | 'red' | 'purple' | 'green'
+export type ShapePreset =
+  | 'rectangle'
+  | 'slanted-rectangle'
+  | 'diamond'
+  | 'ellipse'
+  | 'terminator'
+  | 'document'
+
+/**
+ * Shared named color tokens for vector-rendered board elements.
+ * Shapes use both stroke and fill; edges will later reuse the stroke side.
+ */
+export type VectorColorToken =
+  | 'blue'
+  | 'pink'
+  | 'red'
+  | 'purple'
+  | 'green'
+  | 'neutral'
+  | 'foreground'
+
+export type TokenColorValue = { kind: 'token'; value: VectorColorToken }
+export type CustomColorValue = { kind: 'custom'; value: string }
+
+/**
+ * Supports both theme-bound colors and hardcoded custom values.
+ * This is intentionally reusable across node fills, node strokes, and edge strokes.
+ */
+export type ColorValue =
+  | TokenColorValue
+  | CustomColorValue
+
+export type StrokeStyle = {
+  width: number
+  color: ColorValue
+}
+
+export type FillStyle = {
+  color: ColorValue
+}
+
+export type StrokedElementStyle = {
+  stroke: StrokeStyle
+}
+
+export type FilledElementStyle = {
+  fill: FillStyle
+}
+
+export type FilledStrokedElementStyle = StrokedElementStyle & FilledElementStyle
+
+/**
+ * Shared edge-facing stroke contract. Edges do not use fill, but they should
+ * eventually follow the same stroke-width and color representation as shapes.
+ */
+export type EdgeStrokeStyle = StrokeStyle & {
+  dash?: 'solid' | 'dashed' | 'dotted'
+}
+
+export type ShapeStyle = FilledStrokedElementStyle
+
+export const DEFAULT_SHAPE_STROKE_WIDTH = 2
+export const DEFAULT_SHAPE_STROKE: StrokeStyle = {
+  width: DEFAULT_SHAPE_STROKE_WIDTH,
+  color: { kind: 'token', value: 'foreground' }
+}
+
+export const DEFAULT_SHAPE_FILL: FillStyle = {
+  color: { kind: 'token', value: 'neutral' }
+}
+
+export const DEFAULT_SHAPE_STYLE: FilledStrokedElementStyle = {
+  stroke: DEFAULT_SHAPE_STROKE,
+  fill: DEFAULT_SHAPE_FILL
+}
+
+export function tokenColor(value: VectorColorToken): TokenColorValue {
+  return { kind: 'token', value }
+}
+
+export function customColor(value: string): CustomColorValue {
+  return { kind: 'custom', value }
+}
+
+export type ShapeNodeData = {
+  preset: ShapePreset
+  style: ShapeStyle
+}
 
 export const CURRENT_WORKSPACE_CONFIG_VERSION = 1
 export const CURRENT_BOARD_VERSION = 3
@@ -46,10 +134,18 @@ export type BudNode = BaseBoardNode & {
   type: string | null
 }
 
-export type LeafNode = BaseBoardNode & {
+export type TextLeafNode = BaseBoardNode & {
   kind: 'leaf'
-  type: string | null
+  type: 'text'
 }
+
+export type ShapeLeafNode = BaseBoardNode & {
+  kind: 'leaf'
+  type: 'shape'
+  shape: ShapeNodeData
+}
+
+export type LeafNode = TextLeafNode | ShapeLeafNode
 
 export type ClusterNode = BaseBoardNode & {
   kind: 'cluster'
@@ -92,6 +188,10 @@ export function isClusterNode(node: BoardNode): node is ClusterNode {
 
 export function isTextLeafNode(node: BoardNode): node is LeafNode & { kind: 'leaf'; type: 'text' } {
   return node.kind === 'leaf' && node.type === 'text'
+}
+
+export function isShapeLeafNode(node: BoardNode): node is ShapeLeafNode {
+  return node.kind === 'leaf' && node.type === 'shape'
 }
 
 /** Create a minimal Lexical EditorState JSON for a plain-text string. */

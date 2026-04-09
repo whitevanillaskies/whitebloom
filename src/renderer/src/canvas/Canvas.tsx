@@ -22,6 +22,7 @@ import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
 import { BudNode } from './BudNode'
+import { ShapeNode } from './ShapeNode'
 import { ClusterNode } from './ClusterNode'
 import type { ClusterData } from './ClusterNode'
 import { ProximityTracker } from './ProximityTracker'
@@ -61,6 +62,7 @@ import type {
 import { makeLexicalContent } from '@renderer/shared/types'
 import { lexicalContentToPlainText } from '@renderer/shared/types'
 import { isClusterNode } from '@renderer/shared/types'
+import { isShapeLeafNode } from '@renderer/shared/types'
 import { isTextLeafNode } from '@renderer/shared/types'
 import type { Tool } from './tools'
 import { captureBoardThumbnail } from './captureBoardThumbnail'
@@ -80,7 +82,7 @@ async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string)
   }
 }
 
-const nodeTypes = { text: TextNode, bud: BudNode, cluster: ClusterNode }
+const nodeTypes = { text: TextNode, bud: BudNode, shape: ShapeNode, cluster: ClusterNode }
 const edgeTypes = { wb: WbEdge }
 const IMAGE_DROP_MAX_VIEWPORT_FRACTION = 0.4
 const LARGE_IMPORT_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
@@ -658,6 +660,21 @@ export function Canvas({
           zIndex: isClustered ? 10 : 1
         }
       }
+
+      if (isShapeLeafNode(n)) {
+        return {
+          id: n.id,
+          type: 'shape',
+          position: { x: n.position.x, y: n.position.y },
+          data: {
+            shape: n.shape,
+            size: n.size,
+            label: n.label
+          },
+          zIndex: isClustered ? 10 : 1
+        }
+      }
+
       // Bud node — moduleType carries the module id; unknown types show UnknownBudNode
       return {
         id: n.id,

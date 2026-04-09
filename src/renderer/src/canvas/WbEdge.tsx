@@ -1,24 +1,11 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
 import type { BoardEdge } from '@renderer/shared/types'
+import { resolveVectorColor } from './vectorStyles'
 import './WbEdge.css'
 
 export type WbEdgeData = {
   style?: BoardEdge['style']
   color?: BoardEdge['color']
-}
-
-const COLOR_TOKENS: Record<string, string> = {
-  blue:   'var(--color-accent-blue)',
-  pink:   'var(--color-accent-pink)',
-  red:    'var(--color-accent-red)',
-  purple: 'var(--color-accent-purple)',
-  green:  'var(--color-accent-green)',
-}
-
-function resolveColor(color: string | undefined): string {
-  if (!color) return 'var(--color-secondary-fg)'
-  if (color.startsWith('#') || color.startsWith('rgb')) return color
-  return COLOR_TOKENS[color] ?? 'var(--color-secondary-fg)'
 }
 
 function resolveDashArray(style: BoardEdge['style']): string | undefined {
@@ -50,7 +37,7 @@ export function WbEdge({
     targetPosition,
   })
 
-  const stroke = resolveColor(edgeData.color)
+  const stroke = resolveVectorColor(edgeData.color, 'var(--color-secondary-fg)')
   const strokeDasharray = resolveDashArray(edgeData.style)
 
   return (
@@ -63,6 +50,7 @@ export function WbEdge({
           strokeWidth: selected ? 2 : 1.5,
           strokeDasharray,
           strokeLinecap: 'round',
+          strokeLinejoin: 'round',
         }}
       />
       {label && (

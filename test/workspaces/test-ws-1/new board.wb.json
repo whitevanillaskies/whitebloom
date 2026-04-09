@@ -484,8 +484,8 @@
       "label": "Cluster",
       "resource": "wloc:Cluster.wb.json",
       "position": {
-        "x": 1431.7132832709972,
-        "y": 569.9705129960305
+        "x": 1479.7132832709972,
+        "y": 575.9705129960305
       },
       "size": {
         "w": 196,
@@ -493,7 +493,7 @@
       },
       "created": "2026-04-08T16:07:55.171Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:35:03.094Z",
+      "updatedAt": "2026-04-09T12:22:52.426Z",
       "updatedBy": "anon"
     },
     {
@@ -589,6 +589,48 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-09T02:47:45.698Z",
       "updatedBy": "anon"
+    },
+    {
+      "id": "bbc5708e-b54b-4c99-a4ce-92216acb4c05",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1764.4959165521611,
+        "y": 925.972053776435
+      },
+      "size": {
+        "w": 457,
+        "h": 57
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Probably, we don't want to play multiple videos at the same time. We should most likely limit videos to only one playing at most.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 457,
+      "created": "2026-04-09T12:46:54.963Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T12:47:26.555Z",
+      "updatedBy": "anon",
+      "plain": "Probably, we don't want to play multiple videos at the same time. We should most likely limit videos to only one playing at most."
+    },
+    {
+      "id": "bb9bd8c8-0965-400e-8d71-2233321bce01",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 1620.109024353855,
+        "y": 1087.8496046965247
+      },
+      "size": {
+        "w": 266,
+        "h": 204
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"PATHs for more robust external resources and pipelines, for example for a video game pipeline, etc.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Maybe what we can have is like a URI that's an extension of file:/// or something else? then wloc may be deprecated, since wloc would be a URI like that with $WORKSPACE/... stamped at the front\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 266,
+      "created": "2026-04-09T13:00:10.798Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T13:01:46.506Z",
+      "updatedBy": "anon",
+      "plain": "PATHs for more robust external resources and pipelines, for example for a video game pipeline, etc.\nMaybe what we can have is like a URI that's an extension of file:/// or something else? then wloc may be deprecated, since wloc would be a URI like that with $WORKSPACE/... stamped at the front"
     }
   ],
   "edges": [
@@ -629,8 +671,8 @@
     }
   ],
   "viewport": {
-    "x": -517.3803145601698,
-    "y": -211.36941704814365,
-    "zoom": 0.659753955386447
+    "x": -472.5869528338633,
+    "y": -412.4197360500416,
+    "zoom": 0.7578582832551997
   }
 }

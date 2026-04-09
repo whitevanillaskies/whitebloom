@@ -91,3 +91,35 @@
   opacity: 1;
   pointer-events: all;
 }
+
+/* Shape nodes */
+.shape-node {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.shape-node__svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.shape-node__label {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  text-align: center;
+  color: var(--color-primary-fg);
+  font-size: 13px;
+  line-height: 1.2;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.shape-node--selected .shape-node__label {
+  font-weight: 600;
+}

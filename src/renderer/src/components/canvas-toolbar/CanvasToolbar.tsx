@@ -1,4 +1,4 @@
-import { CalendarClock, Hand, Hexagon, MessageCircleMore, MousePointer2, Type } from 'lucide-react'
+import { CalendarClock, Hand, MousePointer2, Shapes, Type } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import './CanvasToolbar.css'
 import type { Tool } from '@renderer/canvas/tools'
@@ -53,14 +53,8 @@ export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolba
             <button
                 type="button"
                  className={'canvas-toolbar__button'}
-                aria-label={t('canvasToolbar.commentsLabel')}>
-                    <MessageCircleMore size={16} strokeWidth={2} />
-            </button>
-            <button
-                type="button"
-                 className={'canvas-toolbar__button'}
                 aria-label={t('canvasToolbar.shapesLabel')}>
-                    <Hexagon size={16} strokeWidth={2} />
+                    <Shapes size={16} strokeWidth={2} />
             </button>
         </div>
     )
