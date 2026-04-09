@@ -631,6 +631,132 @@
       "updatedAt": "2026-04-09T13:01:46.506Z",
       "updatedBy": "anon",
       "plain": "PATHs for more robust external resources and pipelines, for example for a video game pipeline, etc.\nMaybe what we can have is like a URI that's an extension of file:/// or something else? then wloc may be deprecated, since wloc would be a URI like that with $WORKSPACE/... stamped at the front"
+    },
+    {
+      "id": "549e5598-5ed8-45d1-9871-4657e2e0f8ed",
+      "kind": "leaf",
+      "type": "shape",
+      "position": {
+        "x": 1527.4451416717704,
+        "y": 1405.829770011598
+      },
+      "size": {
+        "w": 180,
+        "h": 100
+      },
+      "shape": {
+        "preset": "rectangle",
+        "style": {
+          "stroke": {
+            "width": 1.5,
+            "color": {
+              "kind": "token",
+              "value": "foreground"
+            }
+          },
+          "fill": {
+            "color": {
+              "kind": "custom",
+              "value": "transparent"
+            }
+          }
+        }
+      },
+      "created": "2026-04-09T13:32:44.821Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T13:32:51.421Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "a680fbd5-23c5-4bcd-b73a-ecaed6e1af94",
+      "kind": "leaf",
+      "type": "shape",
+      "position": {
+        "x": 1788.7077080048036,
+        "y": 1386.0371513500043
+      },
+      "size": {
+        "w": 160,
+        "h": 120
+      },
+      "shape": {
+        "preset": "diamond",
+        "style": {
+          "stroke": {
+            "width": 1.5,
+            "color": {
+              "kind": "token",
+              "value": "foreground"
+            }
+          },
+          "fill": {
+            "color": {
+              "kind": "custom",
+              "value": "transparent"
+            }
+          }
+        }
+      },
+      "created": "2026-04-09T13:32:47.620Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T13:33:50.438Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "7af262d2-8a9d-43f3-98ca-25ca80993b34",
+      "kind": "leaf",
+      "type": "shape",
+      "position": {
+        "x": 1662.0349485706054,
+        "y": 1557.5731797504804
+      },
+      "size": {
+        "w": 237,
+        "h": 152
+      },
+      "shape": {
+        "preset": "ellipse",
+        "style": {
+          "stroke": {
+            "width": 1.5,
+            "color": {
+              "kind": "token",
+              "value": "foreground"
+            }
+          },
+          "fill": {
+            "color": {
+              "kind": "custom",
+              "value": "transparent"
+            }
+          }
+        }
+      },
+      "created": "2026-04-09T13:32:54.773Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T13:33:41.016Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "b57cf658-8d6e-43e1-85e2-747698cacc1a",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": 2071.0824009102025,
+        "y": 1449.3735310671032
+      },
+      "size": {
+        "w": 281,
+        "h": 57
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Drag semantics - shift to uniformly scale, and alt to scale from center\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 281,
+      "created": "2026-04-09T13:33:52.404Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T13:34:10.677Z",
+      "updatedBy": "anon",
+      "plain": "Drag semantics - shift to uniformly scale, and alt to scale from center"
     }
   ],
   "edges": [
@@ -671,8 +797,8 @@
     }
   ],
   "viewport": {
-    "x": -472.5869528338633,
-    "y": -412.4197360500416,
+    "x": -482.5869528338633,
+    "y": -573.4197360500416,
     "zoom": 0.7578582832551997
   }
 }
