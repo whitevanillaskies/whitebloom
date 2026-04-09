@@ -36,13 +36,15 @@ import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
-import { Boxes, Database, FileText, FolderPlus, PanelsTopLeft, Scan, Settings2, Trash2, Type } from 'lucide-react'
+import { ArrowDownToLine, Boxes, Database, FileText, FolderPlus, Link2, PanelsTopLeft, Scan, Settings2, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
+import { imageModule } from '../modules/image'
 import { schemaBloomModule } from '../modules/schemabloom'
-import { absolutePathToFileUri } from '@renderer/shared/resource-url'
+import type { WhitebloomModule } from '../modules/types'
+import { absolutePathToFileUri, resourceToImageSrc } from '@renderer/shared/resource-url'
 import {
   isBoardResource,
   resolveWorkspaceBoardPath,
@@ -97,6 +99,22 @@ type NodeBounds = {
 }
 
 type ClusterMembershipCue = 'accept' | 'release'
+type FlowPosition = { x: number; y: number }
+type CanvasContextMenuState = {
+  anchor: { x: number; y: number }
+  flowPosition: FlowPosition
+}
+type BudPlacement = {
+  resource: string
+  moduleType: string | null
+  size: { w: number; h: number }
+}
+type ExternalResourceInput = {
+  filePath: string
+  fileName: string
+  file?: File
+  preferredBehavior?: 'link' | 'import'
+}
 
 function getRenderedNodeBounds(
   nodeId: string,
@@ -128,6 +146,11 @@ function getDroppedFilePath(file: File & { path?: string }): string {
   }
 
   return typeof file.path === 'string' ? file.path : ''
+}
+
+function hasNativeFileDragPayload(dataTransfer: DataTransfer): boolean {
+  if (dataTransfer.files.length > 0) return true
+  return Array.from(dataTransfer.types).includes('Files')
 }
 
 function getNodeBounds(node: Pick<RFNode, 'position' | 'width' | 'height'>, fallbackSize?: { w: number; h: number }): NodeBounds | null {
@@ -204,6 +227,41 @@ function measureDroppedImage(file: File): Promise<{ size: { w: number; h: number
   })
 }
 
+function measureImageFromSrc(src: string, fallbackLabel: string): Promise<{ size: { w: number; h: number } }> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+
+    image.onload = () => {
+      const naturalWidth = image.naturalWidth
+      const naturalHeight = image.naturalHeight
+
+      if (naturalWidth <= 0 || naturalHeight <= 0) {
+        reject(new Error(`Unable to read image dimensions for ${fallbackLabel}.`))
+        return
+      }
+
+      const viewportLongestSide = Math.max(window.innerWidth, window.innerHeight)
+      const maxLongestSide = Math.max(80, viewportLongestSide * IMAGE_DROP_MAX_VIEWPORT_FRACTION)
+      const imageLongestSide = Math.max(naturalWidth, naturalHeight)
+      const scale = imageLongestSide > maxLongestSide ? maxLongestSide / imageLongestSide : 1
+
+      resolve({
+        size: {
+          w: Math.max(1, Math.round(naturalWidth * scale)),
+          h: Math.max(1, Math.round(naturalHeight * scale))
+        }
+      })
+    }
+
+    image.onerror = () => {
+      reject(new Error(`Unable to load image ${fallbackLabel}.`))
+    }
+
+    image.decoding = 'async'
+    image.src = src
+  })
+}
+
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   return target.isContentEditable || target.closest('input, textarea, [contenteditable="true"]') !== null
@@ -234,6 +292,11 @@ function getWorkspaceRelativeBoardPath(boardPath: string, workspaceRoot: string)
   }
 
   return normalizedBoardPath
+}
+
+function getFileNameFromPath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/')
+  return normalized.slice(normalized.lastIndexOf('/') + 1) || filePath
 }
 
 function normalizeBoardNodesForSave(nodes: BoardNode[]): BoardNode[] {
@@ -346,10 +409,40 @@ export function Canvas({
   const [promoteSubboardInFlight, setPromoteSubboardInFlight] = useState(false)
   const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
   const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
+  const [canvasContextMenu, setCanvasContextMenu] = useState<CanvasContextMenuState | null>(null)
   const [overflowAnchor, setOverflowAnchor] = useState<{ x: number; y: number } | null>(null)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
   const transientAutosaveRef = useRef<string | null>(null)
+
+  const closeCanvasContextMenu = useCallback(() => {
+    setCanvasContextMenu(null)
+  }, [])
+
+  const getDefaultCanvasInsertionPoint = useCallback((): FlowPosition => {
+    if (canvasContextMenu) return canvasContextMenu.flowPosition
+    return screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+  }, [canvasContextMenu, screenToFlowPosition])
+
+  const createBudAtPoint = useCallback((input: {
+    position: FlowPosition
+    resource: string
+    moduleType: string | null
+    size: { w: number; h: number }
+    label?: string
+  }) => {
+    const id = crypto.randomUUID()
+    addNode({
+      id,
+      kind: 'bud',
+      type: input.moduleType,
+      position: input.position,
+      size: input.size,
+      resource: input.resource,
+      ...(input.label ? { label: input.label } : {})
+    })
+    return id
+  }, [addNode])
 
   const handleBloom = useCallback((bloom: ActiveBloom) => {
     if (bloom.module.id === 'com.whitebloom.boardbloom') {
@@ -372,25 +465,33 @@ export function Canvas({
   const createFocusWriterBud = useCallback(async () => {
     if (!workspaceRoot) return
     const resource = `wloc:blossoms/note-${Date.now()}.blt`
-    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    const position = getDefaultCanvasInsertionPoint()
     await window.api.writeBlossom(workspaceRoot, resource, '')
-    const id = crypto.randomUUID()
-    addNode({ id, kind: 'bud', type: focusWriterModule.id, position, size: { w: 220, h: 160 }, resource })
+    const id = createBudAtPoint({
+      position,
+      resource,
+      moduleType: focusWriterModule.id,
+      size: { w: 220, h: 160 }
+    })
     setActiveBloom({ nodeId: id, module: focusWriterModule, resource })
-  }, [workspaceRoot, screenToFlowPosition, addNode])
+  }, [workspaceRoot, getDefaultCanvasInsertionPoint, createBudAtPoint])
 
   const createSchemaBloomBud = useCallback(async () => {
     if (!workspaceRoot) return
     const resource = `wloc:blossoms/schema-${Date.now()}.bdb`
-    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    const position = getDefaultCanvasInsertionPoint()
     await window.api.writeBlossom(workspaceRoot, resource, schemaBloomModule.createDefault!())
-    const id = crypto.randomUUID()
-    addNode({ id, kind: 'bud', type: schemaBloomModule.id, position, size: { w: 88, h: 88 }, resource })
+    const id = createBudAtPoint({
+      position,
+      resource,
+      moduleType: schemaBloomModule.id,
+      size: { w: 88, h: 88 }
+    })
     setActiveBloom({ nodeId: id, module: schemaBloomModule, resource })
-  }, [workspaceRoot, screenToFlowPosition, addNode])
+  }, [workspaceRoot, getDefaultCanvasInsertionPoint, createBudAtPoint])
 
   const createEmptyCluster = useCallback(() => {
-    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    const position = getDefaultCanvasInsertionPoint()
     const id = crypto.randomUUID()
     addCluster({
       id,
@@ -406,7 +507,7 @@ export function Canvas({
       size: DEFAULT_CLUSTER_SIZE
     })
     setPendingNodeSelectionId(id)
-  }, [addCluster, screenToFlowPosition])
+  }, [addCluster, getDefaultCanvasInsertionPoint])
 
   const activeToolRef = useRef(activeTool)
   useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
@@ -1402,6 +1503,214 @@ export function Canvas({
     : t('canvas.exitWithoutSavingBody')
   const confirmDialogConfirmLabel = pendingDocumentAction === 'newBoard' ? t('canvas.discardButton') : t('canvas.exitButton')
 
+  const panOnDragButtons = useMemo(() => {
+    if (activeTool === 'hand') return [0, 1, 2]
+    if (activeTool === 'pointer') return [1, 2]
+    return false
+  }, [activeTool])
+
+  useEffect(() => {
+    if (activeTool !== 'pointer' && canvasContextMenu !== null) {
+      setCanvasContextMenu(null)
+    }
+  }, [activeTool, canvasContextMenu])
+
+  const importWorkspaceResource = useCallback(async (input: {
+    filePath: string
+    fileName: string
+    fileSize: number
+  }): Promise<string | null> => {
+    if (!workspaceRoot) {
+      throw new Error('Workspace root is required to import resources.')
+    }
+
+    if (warnLargeImport && input.fileSize > LARGE_IMPORT_THRESHOLD_BYTES) {
+      const sizeMb = Math.round(input.fileSize / (1024 * 1024))
+      const proceed = await window.api.confirmLargeImport(input.fileName, sizeMb)
+      if (!proceed) return null
+    }
+
+    const copyResult = await window.api.copyWorkspaceResource(workspaceRoot, input.filePath)
+    if (!copyResult.ok || !copyResult.resource) {
+      throw new Error(`Unable to copy ${input.fileName} into workspace resources.`)
+    }
+
+    return copyResult.resource
+  }, [warnLargeImport, workspaceRoot])
+
+  const resolveDroppedModule = useCallback(async (filePath: string, isDirectory: boolean): Promise<WhitebloomModule | undefined> => {
+    if (isDirectory) return dispatchDirectory(filePath)
+    return dispatchModule(filePath)
+  }, [])
+
+  const decideExternalResourceBehavior = useCallback(async (input: {
+    filePath: string
+    fileName: string
+    module: WhitebloomModule | undefined
+    preferredBehavior?: 'link' | 'import'
+  }): Promise<'link' | 'import'> => {
+    if (workspaceRoot === null) return 'link'
+    if (input.preferredBehavior === 'link') return 'link'
+    if (input.module?.id === boardBloomModule.id) return 'link'
+    if (input.preferredBehavior === 'import') {
+      return input.module?.importable === false ? 'link' : 'import'
+    }
+    if (input.module) return input.module.importable === false ? 'link' : 'import'
+
+    return unhandledDropSetting === 'ask'
+      ? await window.api.askImportOrLink(input.fileName)
+      : unhandledDropSetting
+  }, [unhandledDropSetting, workspaceRoot])
+
+  const computeDroppedBudSize = useCallback(async (input: {
+    file?: File
+    filePath: string
+    module: WhitebloomModule | undefined
+  }): Promise<{ w: number; h: number }> => {
+    const isImageModule = input.module?.id === imageModule.id
+    const isImageFile = input.file?.type.toLowerCase().startsWith('image/') ?? false
+
+    if (input.file && isImageFile) {
+      return (await measureDroppedImage(input.file)).size
+    }
+
+    if (isImageModule) {
+      const fileUri = absolutePathToFileUri(input.filePath)
+      return (await measureImageFromSrc(
+        resourceToImageSrc(fileUri),
+        input.file?.name || getFileNameFromPath(input.filePath)
+      )).size
+    }
+
+    if (input.module) return input.module.defaultSize ?? { w: 220, h: 160 }
+    return { w: 88, h: 88 }
+  }, [])
+
+  const resolveExternalResourcePlacement = useCallback(async (input: ExternalResourceInput): Promise<BudPlacement | null> => {
+    const isDirectory = await window.api.isDirectory(input.filePath)
+    const module = await resolveDroppedModule(input.filePath, isDirectory)
+    const moduleType = module?.id ?? null
+
+    if (isDirectory) {
+      return {
+        resource: absolutePathToFileUri(input.filePath),
+        moduleType,
+        size: module?.defaultSize ?? { w: 88, h: 88 }
+      }
+    }
+
+    if (moduleType === boardBloomModule.id) {
+      const localBoardResource = toWorkspaceBoardResource(input.filePath, workspaceRoot)
+      if (!localBoardResource) {
+        throw new Error(t('canvas.invalidSubboardLinkBody'))
+      }
+
+      return {
+        resource: localBoardResource,
+        moduleType,
+        size: boardBloomModule.defaultSize ?? { w: 196, h: 128 }
+      }
+    }
+
+    const behavior = input.preferredBehavior ?? await decideExternalResourceBehavior({
+      filePath: input.filePath,
+      fileName: input.fileName,
+      module,
+      preferredBehavior: input.preferredBehavior
+    })
+
+    const resource = behavior === 'import'
+      ? await importWorkspaceResource({
+          filePath: input.filePath,
+          fileName: input.fileName,
+          fileSize: input.file?.size ?? 0
+        })
+      : absolutePathToFileUri(input.filePath)
+
+    if (resource === null) return null
+
+    return {
+      resource,
+      moduleType,
+      size: await computeDroppedBudSize({
+        file: input.file,
+        filePath: input.filePath,
+        module
+      })
+    }
+  }, [
+    computeDroppedBudSize,
+    decideExternalResourceBehavior,
+    importWorkspaceResource,
+    resolveDroppedModule,
+    t,
+    workspaceRoot
+  ])
+
+  const placePickedResources = useCallback(async (
+    filePaths: string[],
+    preferredBehavior: 'link' | 'import'
+  ): Promise<void> => {
+    const basePosition = getDefaultCanvasInsertionPoint()
+    const settled = await Promise.allSettled(
+      filePaths.map((filePath) =>
+        resolveExternalResourcePlacement({
+          filePath,
+          fileName: getFileNameFromPath(filePath),
+          preferredBehavior
+        })
+      )
+    )
+
+    let createdCount = 0
+    let firstFailure: string | null = null
+
+    settled.forEach((placement) => {
+      if (placement.status === 'rejected') {
+        const message = placement.reason instanceof Error ? placement.reason.message : t('canvas.dropError')
+        if (message === t('canvas.invalidSubboardLinkBody')) {
+          setWorkspaceActionError(message)
+          return
+        }
+        firstFailure ??= message
+        return
+      }
+
+      if (!placement.value) return
+
+      createBudAtPoint({
+        position: {
+          x: basePosition.x + createdCount * 24,
+          y: basePosition.y + createdCount * 24
+        },
+        moduleType: placement.value.moduleType,
+        size: placement.value.size,
+        resource: placement.value.resource
+      })
+      createdCount += 1
+    })
+
+    if (firstFailure) {
+      setImageDropError(firstFailure)
+    }
+  }, [createBudAtPoint, getDefaultCanvasInsertionPoint, resolveExternalResourcePlacement, t])
+
+  const handleLinkResources = useCallback(async () => {
+    const result = await window.api.showLinkFileDialog()
+    if (!result.ok || result.filePaths.length === 0) return
+
+    await placePickedResources(result.filePaths, 'link')
+  }, [placePickedResources])
+
+  const handleImportResources = useCallback(async () => {
+    if (!workspaceRoot) return
+
+    const result = await window.api.showImportFileDialog()
+    if (!result.ok || result.filePaths.length === 0) return
+
+    await placePickedResources(result.filePaths, 'import')
+  }, [placePickedResources, workspaceRoot])
+
   const paletteItems = useMemo((): PaletteItem[] => {
     const items: PaletteItem[] = [
       {
@@ -1477,12 +1786,9 @@ export function Canvas({
               return { type: 'close' as const }
             }
 
-            const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
-            addNode({
-              id: crypto.randomUUID(),
-              kind: 'bud',
-              type: boardBloomModule.id,
-              position,
+            createBudAtPoint({
+              position: getDefaultCanvasInsertionPoint(),
+              moduleType: boardBloomModule.id,
               size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
               label: getBoardNameFromPath(linkableBoardPath),
               resource
@@ -1500,6 +1806,18 @@ export function Canvas({
         icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
         hint: 'Arr',
         onActivate: onOpenArrangements
+      })
+      items.push({
+        id: 'link-file',
+        label: t('canvas.paletteLinkFileLabel'),
+        icon: <Link2 size={14} strokeWidth={1.8} />,
+        onActivate: () => { void handleLinkResources() }
+      })
+      items.push({
+        id: 'import-file',
+        label: t('canvas.paletteImportFileLabel'),
+        icon: <ArrowDownToLine size={14} strokeWidth={1.8} />,
+        onActivate: () => { void handleImportResources() }
       })
       items.push({
         id: 'link-board',
@@ -1522,17 +1840,26 @@ export function Canvas({
         icon: <Database size={14} strokeWidth={1.8} />,
         onActivate: () => { void createSchemaBloomBud() }
       })
+    } else {
+      items.push({
+        id: 'link-file',
+        label: t('canvas.paletteLinkFileLabel'),
+        icon: <Link2 size={14} strokeWidth={1.8} />,
+        onActivate: () => { void handleLinkResources() }
+      })
     }
 
     return items
   }, [
     fitSelectedClusterToChildren,
     workspaceRoot,
-    screenToFlowPosition,
-    addNode,
+    getDefaultCanvasInsertionPoint,
+    createBudAtPoint,
     createClusterFromSelection,
     createEmptyCluster,
     createFocusWriterBud,
+    handleImportResources,
+    handleLinkResources,
     createSchemaBloomBud,
     openPromoteSubboardModal,
     onOpenArrangements,
@@ -1540,14 +1867,31 @@ export function Canvas({
     selectedCluster,
     selectedClusterableNodes.length,
     setWorkspaceActionError,
-    t
-  , workspaceBoards])
+    t,
+    workspaceBoards,
+    screenToFlowPosition,
+    addNode
+  ])
 
-  const panOnDragButtons = useMemo(() => {
-    if (activeTool === 'hand') return [0, 1, 2]
-    if (activeTool === 'pointer') return [1, 2]
-    return false
-  }, [activeTool])
+  const canvasContextMenuItems = useMemo<PetalMenuItem[]>(
+    () => [
+      {
+        id: 'link',
+        label: 'Link',
+        icon: <Link2 size={14} strokeWidth={1.8} />,
+        onActivate: () => { void handleLinkResources() }
+      },
+      {
+        id: 'import',
+        label: 'Import',
+        icon: <ArrowDownToLine size={14} strokeWidth={1.8} />,
+        subtitle: workspaceRoot === null ? t('canvas.importRequiresWorkspace') : undefined,
+        onActivate: () => { void handleImportResources() },
+        disabled: workspaceRoot === null
+      }
+    ],
+    [handleImportResources, handleLinkResources, t, workspaceRoot]
+  )
 
   const onMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -1600,10 +1944,23 @@ export function Canvas({
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
-      if (activeTool !== 'pointer') return
       event.preventDefault()
+
+      if (activeTool !== 'pointer') return
+      if (!isPaneTarget(event.target)) return
+
+      const state = rightPointerStateRef.current
+      if (state?.dragged) return
+
+      setCanvasContextMenu({
+        anchor: {
+          x: event.clientX,
+          y: event.clientY
+        },
+        flowPosition: screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      })
     },
-    [activeTool]
+    [activeTool, screenToFlowPosition]
   )
 
   const onDragOver = useCallback(
@@ -1611,7 +1968,7 @@ export function Canvas({
       if (activeTool !== 'pointer' && activeTool !== 'hand') return
       const materialKey = event.dataTransfer.getData(MATERIAL_MIME).trim()
       const hasBoardMaterial = materialKey.length > 0 && isBoardResource(materialKey)
-      if (!hasBoardMaterial && event.dataTransfer.files.length === 0) return
+      if (!hasBoardMaterial && !hasNativeFileDragPayload(event.dataTransfer)) return
       event.preventDefault()
       event.dataTransfer.dropEffect = 'copy'
     },
@@ -1635,11 +1992,9 @@ export function Canvas({
           return
         }
 
-        addNode({
-          id: crypto.randomUUID(),
-          kind: 'bud',
-          type: boardBloomModule.id,
+        createBudAtPoint({
           position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+          moduleType: boardBloomModule.id,
           size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
           resource: materialKey
         })
@@ -1662,6 +2017,12 @@ export function Canvas({
             throw new Error(WEB_RESOURCE_DROP_ERROR)
           }
 
+          return resolveExternalResourcePlacement({
+            filePath,
+            fileName: file.name || filePath,
+            file
+          })
+          /*
           const fileName = file.name || filePath
           const isDir = await window.api.isDirectory(filePath)
 
@@ -1742,6 +2103,7 @@ export function Canvas({
               : { w: 88, h: 88 }
 
           return { resource, moduleType, size }
+          */
         })
       )
 
@@ -1762,14 +2124,12 @@ export function Canvas({
         if (!result.value) return
 
         const { resource, moduleType, size } = result.value
-        addNode({
-          id: crypto.randomUUID(),
-          kind: 'bud',
-          type: moduleType,
+        createBudAtPoint({
           position: {
             x: basePosition.x + createdCount * 24,
             y: basePosition.y + createdCount * 24
           },
+          moduleType,
           size,
           resource
         })
@@ -1976,6 +2336,14 @@ export function Canvas({
           />
         )
       })() : null}
+
+      {canvasContextMenu ? (
+        <PetalMenu
+          items={canvasContextMenuItems}
+          anchor={canvasContextMenu.anchor}
+          onClose={closeCanvasContextMenu}
+        />
+      ) : null}
     </BloomContext.Provider>
   )
 }

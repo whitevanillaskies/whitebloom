@@ -62,6 +62,16 @@ type BoardPromoteResult = {
   boardPath?: string
 }
 
+type FileLinkDialogResult = {
+  ok: boolean
+  filePaths: string[]
+}
+
+type FileImportDialogResult = {
+  ok: boolean
+  filePaths: string[]
+}
+
 type BoardTrashResult = {
   ok: boolean
   trashPath?: string
@@ -154,6 +164,26 @@ export function registerBoardIpc(context: MainProcessContext): void {
     const workspace = await readWorkspace(workspaceRoot)
     context.setActiveWorkspaceRoot(workspace.rootPath)
     return workspace
+  })
+
+  ipcMain.handle('file:link-dialog', async (): Promise<FileLinkDialogResult> => {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: t('dialogs.linkFilesTitle'),
+      properties: ['openFile', 'multiSelections']
+    })
+
+    if (canceled || filePaths.length === 0) return { ok: false, filePaths: [] }
+    return { ok: true, filePaths }
+  })
+
+  ipcMain.handle('file:import-dialog', async (): Promise<FileImportDialogResult> => {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: t('dialogs.importFilesTitle'),
+      properties: ['openFile', 'multiSelections']
+    })
+
+    if (canceled || filePaths.length === 0) return { ok: false, filePaths: [] }
+    return { ok: true, filePaths }
   })
 
   ipcMain.handle('board:open', async (_event, boardPath: string) => {

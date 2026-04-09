@@ -112,8 +112,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1606.72342535892,
-        "y": 93.51776385729588
+        "x": 1574.7234253589202,
+        "y": 83.51776385729588
       },
       "size": {
         "w": 165,
@@ -124,7 +124,7 @@
       "wrapWidth": 283,
       "created": "2026-04-05T22:31:49.473Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T17:36:14.600Z",
+      "updatedAt": "2026-04-09T01:54:08.879Z",
       "updatedBy": "anon",
       "plain": "ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ..."
     },
@@ -133,8 +133,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1119.403569564581,
-        "y": -79.8501957210286
+        "x": 1087.4035695645812,
+        "y": -89.8501957210286
       },
       "size": {
         "w": 264,
@@ -145,7 +145,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:32:13.442Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:47:52.017Z",
+      "updatedAt": "2026-04-09T01:54:08.879Z",
       "updatedBy": "anon",
       "plain": "text error highlighting settings in app"
     },
@@ -154,8 +154,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1438.1446169736137,
-        "y": -115.99396898828991
+        "x": 1406.144616973614,
+        "y": -125.99396898828991
       },
       "size": {
         "w": 397,
@@ -166,7 +166,7 @@
       "wrapWidth": 397,
       "created": "2026-04-05T22:33:08.012Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:43:53.924Z",
+      "updatedAt": "2026-04-09T01:54:08.879Z",
       "updatedBy": "anon",
       "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
     },
@@ -268,8 +268,8 @@
       "kind": "bud",
       "type": null,
       "position": {
-        "x": 897.3389287019459,
-        "y": 68.2148493355979
+        "x": 903.3389287019459,
+        "y": 62.214849335597904
       },
       "size": {
         "w": 88,
@@ -278,7 +278,7 @@
       "resource": "file:///D:/third_party/assets/chara/SilentHill/HeatherMason/CrystalFalcon/Heather-2022-V3-Progressor/Heather/HeatherV3.blend",
       "created": "2026-04-06T15:48:47.057Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T17:35:07.201Z",
+      "updatedAt": "2026-04-09T01:54:05.990Z",
       "updatedBy": "anon"
     },
     {
@@ -286,8 +286,8 @@
       "kind": "bud",
       "type": "io.obsidianbloom.vault",
       "position": {
-        "x": 1319.988080975343,
-        "y": 47.16928574727976
+        "x": 1287.9880809753433,
+        "y": 37.16928574727976
       },
       "size": {
         "w": 88,
@@ -296,7 +296,7 @@
       "resource": "file:///D:/persona/personal_notes/Mindstorm",
       "created": "2026-04-06T16:59:09.183Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:43:53.924Z",
+      "updatedAt": "2026-04-09T01:54:08.879Z",
       "updatedBy": "anon"
     },
     {
@@ -304,8 +304,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1694.8853788205806,
-        "y": -20.606245851752504
+        "x": 1662.8853788205809,
+        "y": -30.606245851752504
       },
       "size": {
         "w": 26,
@@ -316,7 +316,7 @@
       "wrapWidth": 244,
       "created": "2026-04-07T12:00:37.225Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:43:53.924Z",
+      "updatedAt": "2026-04-09T01:54:08.879Z",
       "updatedBy": "anon",
       "plain": "automatically arranging elements in a grid, etc. maybe packing pictures like pureref"
     },
@@ -334,8 +334,8 @@
       ],
       "color": "blue",
       "position": {
-        "x": 1074.6277986907037,
-        "y": -163.64014350221368
+        "x": 1042.627798690704,
+        "y": -173.64014350221368
       },
       "size": {
         "w": 912,
@@ -343,7 +343,7 @@
       },
       "created": "2026-04-07T12:50:43.105Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:53:47.047Z",
+      "updatedAt": "2026-04-09T01:54:08.879Z",
       "updatedBy": "anon"
     },
     {
@@ -377,8 +377,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1607.8431938700767,
-        "y": 433.44289814337856
+        "x": 1853.8431938700764,
+        "y": 381.4428981433786
       },
       "size": {
         "w": 673,
@@ -389,7 +389,7 @@
       "wrapWidth": null,
       "created": "2026-04-07T14:55:38.641Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T16:26:02.754Z",
+      "updatedAt": "2026-04-09T01:49:16.618Z",
       "updatedBy": "anon",
       "plain": "Canvas Features\nDon't cut words on icon labels, probably. Extend up to a certain character limit and add ... if needed?"
     },
@@ -399,7 +399,7 @@
       "type": "text",
       "position": {
         "x": 1059.3858056013473,
-        "y": 972.6785221541463
+        "y": 1050.6785221541463
       },
       "size": {
         "w": 306,
@@ -410,7 +410,7 @@
       "wrapWidth": 306,
       "created": "2026-04-08T15:18:48.050Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-08T15:21:51.065Z",
+      "updatedAt": "2026-04-09T01:49:18.669Z",
       "updatedBy": "anon",
       "plain": "There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that"
     },
@@ -420,7 +420,7 @@
       "type": "text",
       "position": {
         "x": 1055.2248509320034,
-        "y": 892.596054870422
+        "y": 970.596054870422
       },
       "size": {
         "w": 363,
@@ -431,7 +431,7 @@
       "wrapWidth": 363,
       "created": "2026-04-08T15:21:12.695Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-08T15:21:35.307Z",
+      "updatedAt": "2026-04-09T01:49:18.669Z",
       "updatedBy": "anon",
       "plain": "Board previews are sharing styling across start screen and workspace home which is ridiculous. Extract somewhere."
     },
@@ -441,7 +441,7 @@
       "type": "text",
       "position": {
         "x": 1449.0276809062473,
-        "y": 921.4165878021117
+        "y": 999.4165878021117
       },
       "size": {
         "w": 451,
@@ -452,7 +452,7 @@
       "wrapWidth": 451,
       "created": "2026-04-08T15:21:59.131Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-08T15:22:21.599Z",
+      "updatedAt": "2026-04-09T01:49:18.669Z",
       "updatedBy": "anon",
       "plain": "Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think"
     },
@@ -462,7 +462,7 @@
       "type": "text",
       "position": {
         "x": 1448.4834032269985,
-        "y": 1024.835712453152
+        "y": 1102.835712453152
       },
       "size": {
         "w": 390,
@@ -473,7 +473,7 @@
       "wrapWidth": 390,
       "created": "2026-04-08T15:44:01.344Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-08T15:44:37.957Z",
+      "updatedAt": "2026-04-09T01:49:18.669Z",
       "updatedBy": "anon",
       "plain": "I don't think it makes any sense to show the filepath on the boards, after all one of the core points of WHITEBLOOM is abstracting away filesystem stuff."
     },
@@ -484,8 +484,8 @@
       "label": "Cluster",
       "resource": "wloc:Cluster.wb.json",
       "position": {
-        "x": 1528.0556390600116,
-        "y": 573.2654164454482
+        "x": 1908.0556390600113,
+        "y": 637.2654164454481
       },
       "size": {
         "w": 196,
@@ -493,7 +493,7 @@
       },
       "created": "2026-04-08T16:07:55.171Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-08T18:55:33.075Z",
+      "updatedAt": "2026-04-09T01:49:15.853Z",
       "updatedBy": "anon"
     },
     {
@@ -520,8 +520,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 630.1751679621225,
-        "y": 914.2872832696668
+        "x": 724.1751679621225,
+        "y": 1046.2872832696667
       },
       "size": {
         "w": 240,
@@ -532,9 +532,63 @@
       "wrapWidth": null,
       "created": "2026-04-08T21:08:33.069Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-08T21:08:39.121Z",
+      "updatedAt": "2026-04-09T01:49:19.896Z",
       "updatedBy": "anon",
       "plain": "Right click to import and link files"
+    },
+    {
+      "id": "5379dc0a-2a58-4c56-ba71-5d08964a5e16",
+      "kind": "bud",
+      "type": "com.whitebloom.image",
+      "position": {
+        "x": 2239.850937232249,
+        "y": 549.3652195904272
+      },
+      "size": {
+        "w": 768,
+        "h": 432
+      },
+      "resource": "wloc:res/960692ed.jpg",
+      "created": "2026-04-09T01:54:54.436Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T01:55:00.110Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "28b6fd8f-25b1-46d4-9916-940e9126d2aa",
+      "kind": "bud",
+      "type": null,
+      "position": {
+        "x": 2225.5678634522396,
+        "y": 1028.5405134988791
+      },
+      "size": {
+        "w": 88,
+        "h": 88
+      },
+      "resource": "file:///D:/sky/doc/kyo/ref/abandoned%20shrine%20assets.pur",
+      "created": "2026-04-09T01:55:03.004Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T01:55:30.725Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "2d227c24-1951-415a-a670-73aa5409b60e",
+      "kind": "bud",
+      "type": "com.whitebloom.image",
+      "position": {
+        "x": 3030.9628888504117,
+        "y": 543.167237967871
+      },
+      "size": {
+        "w": 576,
+        "h": 768
+      },
+      "resource": "wloc:res/1720986208621501.jpg",
+      "created": "2026-04-09T02:15:11.238Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T02:15:25.883Z",
+      "updatedBy": "anon"
     }
   ],
   "edges": [
@@ -575,8 +629,8 @@
     }
   ],
   "viewport": {
-    "x": -122.82105202112757,
-    "y": 11.646549046573682,
-    "zoom": 0.8705505632961246
+    "x": -1043.1082509026458,
+    "y": -350.73563606515177,
+    "zoom": 0.7578582832551997
   }
 }

@@ -15,6 +15,11 @@
       "id": "f959cbff-1724-4213-a331-57973ad6d81d",
       "name": "cool",
       "kind": "user"
+    },
+    {
+      "id": "0f58c3b5-06d4-4b35-883a-58abe44e35b1",
+      "name": "images",
+      "kind": "user"
     }
   ],
   "sets": [
@@ -40,7 +45,8 @@
     "wloc:test 2.wb.json": "3fcb06d8-aef8-41b1-8916-9cfb5eb71517",
     "wloc:blossoms/note-1775434691676.blt": "f959cbff-1724-4213-a331-57973ad6d81d",
     "wloc:blossoms/schema-1775518780349.bdb": "f959cbff-1724-4213-a331-57973ad6d81d",
-    "wloc:Cluster.wb.json": "f959cbff-1724-4213-a331-57973ad6d81d"
+    "wloc:Cluster.wb.json": "f959cbff-1724-4213-a331-57973ad6d81d",
+    "file:///D:/white-vanilla-skies/doc/manage/6%20Governance/6.0%20Doctrines/types%20of%20work.xlsx": "f959cbff-1724-4213-a331-57973ad6d81d"
   },
   "desktopPlacements": {
     "bin:3fcb06d8-aef8-41b1-8916-9cfb5eb71517": {
@@ -98,6 +104,10 @@
     "wloc:res/types of work 2.xlsx": {
       "x": 1370.6666666666665,
       "y": 177.44444444444443
+    },
+    "bin:0f58c3b5-06d4-4b35-883a-58abe44e35b1": {
+      "x": 971.7777777777778,
+      "y": 307.4444444444444
     }
   },
   "cameraState": {

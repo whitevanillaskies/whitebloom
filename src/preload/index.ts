@@ -56,6 +56,16 @@ type BoardPromoteResult = {
   boardPath?: string
 }
 
+type FileLinkDialogResult = {
+  ok: boolean
+  filePaths: string[]
+}
+
+type FileImportDialogResult = {
+  ok: boolean
+  filePaths: string[]
+}
+
 type BoardTrashResult = {
   ok: boolean
   trashPath?: string
@@ -152,6 +162,10 @@ const api = {
     ipcRenderer.invoke('board:trash', boardPath),
   createBoard: (workspaceRoot: string, name: string): Promise<BoardCreateResult> =>
     ipcRenderer.invoke('board:create', workspaceRoot, name),
+  showLinkFileDialog: (): Promise<FileLinkDialogResult> =>
+    ipcRenderer.invoke('file:link-dialog'),
+  showImportFileDialog: (): Promise<FileImportDialogResult> =>
+    ipcRenderer.invoke('file:import-dialog'),
   copyWorkspaceResource: (
     workspaceRoot: string,
     srcPath: string

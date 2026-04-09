@@ -55,6 +55,16 @@ type BoardPromoteResult = {
   boardPath?: string
 }
 
+type FileLinkDialogResult = {
+  ok: boolean
+  filePaths: string[]
+}
+
+type FileImportDialogResult = {
+  ok: boolean
+  filePaths: string[]
+}
+
 type BoardTrashResult = {
   ok: boolean
   trashPath?: string
@@ -146,6 +156,8 @@ declare global {
       ) => Promise<BoardPromoteResult>
       trashBoard: (boardPath: string) => Promise<BoardTrashResult>
       createBoard: (workspaceRoot: string, name: string) => Promise<BoardCreateResult>
+      showLinkFileDialog: () => Promise<FileLinkDialogResult>
+      showImportFileDialog: () => Promise<FileImportDialogResult>
       copyWorkspaceResource: (
         workspaceRoot: string,
         srcPath: string
