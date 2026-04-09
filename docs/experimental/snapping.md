@@ -26,9 +26,44 @@ This means snapping can be built as a thin, local feature rather than a platform
 - Align a dragged node's top, center, and bottom edges to nearby node top, center, and bottom edges.
 - Show clear transient guide lines for active candidates.
 - Support gap snapping later, so a dragged node can infer equal spacing between neighbors.
+- Support explicit alignment commands for selected nodes, not only drag-time snapping.
 - Keep the feel soft and magnetic, not rigid and sticky.
 - Make snapping consistent across zoom levels.
 - Avoid jitter and rapid target flipping.
+
+
+## Alignment hotkeys
+
+The snapping engine should probably also own direct alignment commands for selections.
+
+Suggested first-pass hotkeys:
+
+- `H`
+  Align the current selection horizontally across centerpoints. In practice this means all selected nodes receive the same `centerY`.
+- `V`
+  Align the current selection vertically across centerpoints. In practice this means all selected nodes receive the same `centerX`.
+
+These commands are conceptually adjacent to snapping:
+
+- both operate on node geometry
+- both are about alignment semantics
+- both should share the same notion of bounds and centerpoints
+
+The difference is only interaction style:
+
+- snapping is continuous and pointer-driven
+- hotkey alignment is discrete and command-driven
+
+That makes it reasonable for both to live in the same geometry/alignment subsystem, even if the command bindings themselves are owned elsewhere.
+
+One open product choice is which reference center to use:
+
+- first selected node
+- last selected node
+- selection bounds center
+- average of selected centers
+
+The cleanest default is probably the selection bounds center for predictability, unless Whitebloom already has a stronger selection-anchor concept elsewhere.
 
 
 ## Whitebloom-specific fit
@@ -155,6 +190,48 @@ Guide rendering can be very simple:
 There is no need for a heavyweight rendering system here. A lightweight HTML overlay is enough unless performance proves otherwise.
 
 
+## Should scaling live here too?
+
+Probably yes, or at least nearby.
+
+Snapping, alignment, and scaling are not identical concerns, but they all belong to the same family of direct-manipulation geometry:
+
+- bounds
+- anchors
+- centers
+- transforms
+- modifier-key semantics
+
+If Whitebloom introduces richer resize behavior, it would be healthy to treat it as part of the same interaction engine rather than as unrelated one-off logic in separate components.
+
+That does not mean one giant file or one giant hook. It means one shared model for:
+
+- transform handles
+- anchor math
+- modifier semantics
+- optional snapping during resize
+
+In other words: snapping and scaling should likely share infrastructure even if they remain separate modules.
+
+
+## Scale semantics
+
+If resize behavior is folded into this engine, the expected modifier semantics are straightforward:
+
+- default drag
+  Scale from the opposite edge or corner
+- `Shift`
+  Uniform scale
+- `Alt`
+  Scale from center
+- `Alt` + `Shift`
+  Uniform scale from center
+
+These semantics are common enough to feel natural, but still worth stating explicitly so Whitebloom stays internally consistent.
+
+For shape-preserving nodes, uniform scaling may be mandatory or preferred. For text and content-heavy nodes, resize may need to remain layout-aware rather than purely geometric. That distinction is fine. The engine can expose the transform semantics while individual node types decide how those semantics map to their own data model.
+
+
 ## Performance strategy
 
 Start simple.
@@ -219,11 +296,13 @@ Most of these are solved by:
 
 1. Add a transient snapping model and overlay.
 2. Add edge and center alignment for single-node drags.
-3. Add hysteresis and cushioned magnetic behavior.
-4. Extend snapping to multi-selection bounds.
-5. Extend snapping to cluster drags.
-6. Add equal-gap snapping and spacing indicators.
-7. Tune thresholds and feel by hand with real board usage.
+3. Add selection alignment commands such as `H` and `V`.
+4. Add hysteresis and cushioned magnetic behavior.
+5. Extend snapping to multi-selection bounds.
+6. Extend snapping to cluster drags.
+7. Decide whether resize/scale semantics should move into the same transform subsystem.
+8. Add equal-gap snapping and spacing indicators.
+9. Tune thresholds and feel by hand with real board usage.
 
 
 ## Non-goals for v1

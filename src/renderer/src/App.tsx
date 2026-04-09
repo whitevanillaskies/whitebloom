@@ -156,9 +156,6 @@ function App(): React.JSX.Element {
 
       setBoardPersistence(promotionResult.boardPath, false)
       markSaved()
-      if (workspaceRoot !== null) {
-        void captureAndSaveThumbnail(promotionResult.boardPath, workspaceRoot)
-      }
       return true
     }
 
@@ -169,9 +166,6 @@ function App(): React.JSX.Element {
     if (!result.ok) return false
 
     markSaved()
-    if (workspaceRoot !== null) {
-      void captureAndSaveThumbnail(boardPath, workspaceRoot)
-    }
     return true
   }, [
     boardName,
@@ -182,6 +176,11 @@ function App(): React.JSX.Element {
     setBoardPersistence,
     workspaceRoot
   ])
+
+  const captureCurrentBoardThumbnailOnClose = useCallback(async (): Promise<void> => {
+    if (boardPath === null || workspaceRoot === null || boardTransient || isDirty) return
+    await captureAndSaveThumbnail(boardPath, workspaceRoot)
+  }, [boardPath, boardTransient, isDirty, workspaceRoot])
 
   const applyViewTransition = useCallback((transition: PendingViewTransition) => {
     if (transition.target === 'arrangements') {
@@ -271,9 +270,13 @@ function App(): React.JSX.Element {
   useEffect(() => {
     return window.api.onCloseRequested(() => {
       if (boardPath !== null && isDirty) return
-      window.api.confirmClose()
+
+      void (async () => {
+        await captureCurrentBoardThumbnailOnClose()
+        window.api.confirmClose()
+      })()
     })
-  }, [boardPath, isDirty])
+  }, [boardPath, captureCurrentBoardThumbnailOnClose, isDirty])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -313,6 +316,9 @@ function App(): React.JSX.Element {
       setShellError(null)
 
       try {
+        if (boardPath !== null && boardPath !== nextBoardPath) {
+          await captureCurrentBoardThumbnailOnClose()
+        }
         await openBoardByPath(nextBoardPath)
       } catch (error) {
         setShellError(error instanceof Error ? error.message : 'Unable to open that board.')
@@ -320,7 +326,7 @@ function App(): React.JSX.Element {
         setBusyAction(null)
       }
     },
-    [openBoardByPath]
+    [boardPath, captureCurrentBoardThumbnailOnClose, openBoardByPath]
   )
 
   const requestBoardOpen = useCallback(
@@ -355,6 +361,7 @@ function App(): React.JSX.Element {
       setShellError(null)
 
       try {
+        await captureCurrentBoardThumbnailOnClose()
         const workspace = await window.api.readWorkspace(nextWorkspaceRoot)
         loadWorkspace(workspace)
         clearBoard()
@@ -366,7 +373,7 @@ function App(): React.JSX.Element {
         setBusyAction(null)
       }
     },
-    [clearBoard, loadWorkspace]
+    [captureCurrentBoardThumbnailOnClose, clearBoard, loadWorkspace]
   )
 
   const handleOpenBoardFromFinder = useCallback(
@@ -375,6 +382,9 @@ function App(): React.JSX.Element {
       setShellError(null)
 
       try {
+        if (boardPath !== null && boardPath !== nextBoardPath) {
+          await captureCurrentBoardThumbnailOnClose()
+        }
         if (nextWorkspaceRoot) {
           const workspace = await window.api.readWorkspace(nextWorkspaceRoot)
           loadWorkspace(workspace)
@@ -390,7 +400,7 @@ function App(): React.JSX.Element {
         setBusyAction(null)
       }
     },
-    [clearBoard, clearWorkspace, loadWorkspace, openBoardByPath]
+    [boardPath, captureCurrentBoardThumbnailOnClose, clearBoard, clearWorkspace, loadWorkspace, openBoardByPath]
   )
 
   const handleCreateWorkspaceAtPath = useCallback(
@@ -399,6 +409,7 @@ function App(): React.JSX.Element {
       setShellError(null)
 
       try {
+        await captureCurrentBoardThumbnailOnClose()
         const result = await window.api.createWorkspaceAtPath(nextWorkspaceRoot)
         if (!result.ok || !result.workspaceRoot) {
           throw new Error('Unable to create a workspace in that folder.')
@@ -415,7 +426,7 @@ function App(): React.JSX.Element {
         setBusyAction(null)
       }
     },
-    [clearBoard, loadWorkspace]
+    [captureCurrentBoardThumbnailOnClose, clearBoard, loadWorkspace]
   )
 
   const handleCreateQuickboard = useCallback(async () => {
@@ -423,6 +434,7 @@ function App(): React.JSX.Element {
     setShellError(null)
 
     try {
+      await captureCurrentBoardThumbnailOnClose()
       const result = await window.api.createQuickboard()
       if (!result.ok || !result.boardPath) return
 
@@ -433,7 +445,7 @@ function App(): React.JSX.Element {
     } finally {
       setBusyAction(null)
     }
-  }, [clearWorkspace, openBoardByPath])
+  }, [captureCurrentBoardThumbnailOnClose, clearWorkspace, openBoardByPath])
 
   const handleOpenTransientBoard = useCallback(
     async (nextBoardPath: string) => {
@@ -441,6 +453,9 @@ function App(): React.JSX.Element {
       setShellError(null)
 
       try {
+        if (boardPath !== null && boardPath !== nextBoardPath) {
+          await captureCurrentBoardThumbnailOnClose()
+        }
         clearWorkspace()
         await openBoardByPath(nextBoardPath)
       } catch (error) {
@@ -449,7 +464,7 @@ function App(): React.JSX.Element {
         setBusyAction(null)
       }
     },
-    [clearWorkspace, openBoardByPath]
+    [boardPath, captureCurrentBoardThumbnailOnClose, clearWorkspace, openBoardByPath]
   )
 
   const handleOpenRecentBoard = useCallback(
@@ -458,6 +473,9 @@ function App(): React.JSX.Element {
       setShellError(null)
 
       try {
+        if (boardPath !== null && boardPath !== item.path) {
+          await captureCurrentBoardThumbnailOnClose()
+        }
         if (item.workspaceRoot) {
           const workspace = await window.api.readWorkspace(item.workspaceRoot)
           loadWorkspace(workspace)
@@ -472,7 +490,7 @@ function App(): React.JSX.Element {
         setBusyAction(null)
       }
     },
-    [clearBoard, clearWorkspace, loadWorkspace, openBoardByPath]
+    [boardPath, captureCurrentBoardThumbnailOnClose, clearBoard, clearWorkspace, loadWorkspace, openBoardByPath]
   )
 
   const handleRequestTrashBoard = useCallback(
@@ -575,11 +593,14 @@ function App(): React.JSX.Element {
   }, [addBoard, newBoardName, openBoardByPath, workspaceRoot])
 
   const handleCloseWorkspace = useCallback(() => {
-    clearBoard()
-    clearWorkspace()
-    setShellError(null)
-    setView('start')
-  }, [clearBoard, clearWorkspace])
+    void (async () => {
+      await captureCurrentBoardThumbnailOnClose()
+      clearBoard()
+      clearWorkspace()
+      setShellError(null)
+      setView('start')
+    })()
+  }, [captureCurrentBoardThumbnailOnClose, clearBoard, clearWorkspace])
 
   const handleNewBoardFromCanvas = useCallback(() => {
     if (workspaceRoot !== null) {

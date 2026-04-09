@@ -108,27 +108,6 @@
       "plain": "how does knowledge management in scrivener work?\nfirst, you have ........ what?"
     },
     {
-      "id": "a4387e14-9e82-4693-9ddb-4da5f718365d",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 1574.7234253589202,
-        "y": 83.51776385729588
-      },
-      "size": {
-        "w": 165,
-        "h": 39
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ...\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 283,
-      "created": "2026-04-05T22:31:49.473Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:54:08.879Z",
-      "updatedBy": "anon",
-      "plain": "ctrl - E to edit a node -- the problem is.. which one? any node? does it bloom? native nodes? text nodes? ..."
-    },
-    {
       "id": "790779ff-3779-40ea-bb9a-bff03a86c83e",
       "kind": "leaf",
       "type": "text",
@@ -329,7 +308,6 @@
         "790779ff-3779-40ea-bb9a-bff03a86c83e",
         "f4e188da-b01c-49c9-adb8-d4a0f644d9cd",
         "29a50916-8658-48fd-b506-988623fffdaa",
-        "a4387e14-9e82-4693-9ddb-4da5f718365d",
         "f3737f50-a197-4481-afe1-3d94dcbe0af1"
       ],
       "color": "blue",
@@ -399,7 +377,7 @@
       "type": "text",
       "position": {
         "x": 3034.689148028367,
-        "y": 846.1547959843477
+        "y": 752.1803688607032
       },
       "size": {
         "w": 306,
@@ -410,7 +388,7 @@
       "wrapWidth": 306,
       "created": "2026-04-08T15:18:48.050Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:37:58.522Z",
+      "updatedAt": "2026-04-09T19:08:11.448Z",
       "updatedBy": "anon",
       "plain": "There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that"
     },
@@ -420,7 +398,7 @@
       "type": "text",
       "position": {
         "x": 3035.806225002115,
-        "y": 752.8772495928944
+        "y": 677.0914212673746
       },
       "size": {
         "w": 363,
@@ -431,30 +409,9 @@
       "wrapWidth": 363,
       "created": "2026-04-08T15:21:12.695Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:35:18.249Z",
+      "updatedAt": "2026-04-09T19:08:10.250Z",
       "updatedBy": "anon",
       "plain": "Board previews are sharing styling across start screen and workspace home which is ridiculous. Extract somewhere."
-    },
-    {
-      "id": "50a87a96-9c17-4c37-b619-67cbf4a422ff",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 3033.7566817444913,
-        "y": 542.8668506746908
-      },
-      "size": {
-        "w": 451,
-        "h": 75
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 451,
-      "created": "2026-04-08T15:21:59.131Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:35:18.249Z",
-      "updatedBy": "anon",
-      "plain": "Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think"
     },
     {
       "id": "3a47a02b-1ea2-407f-95a1-6acb747b67cd",
@@ -462,7 +419,7 @@
       "type": "text",
       "position": {
         "x": 3033.2124040652425,
-        "y": 646.285975325731
+        "y": 582.6258795322943
       },
       "size": {
         "w": 390,
@@ -473,7 +430,7 @@
       "wrapWidth": 390,
       "created": "2026-04-08T15:44:01.344Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:35:18.249Z",
+      "updatedAt": "2026-04-09T19:08:08.964Z",
       "updatedBy": "anon",
       "plain": "I don't think it makes any sense to show the filepath on the boards, after all one of the core points of WHITEBLOOM is abstracting away filesystem stuff."
     },
@@ -514,27 +471,6 @@
       "createdBy": "anon",
       "updatedAt": "2026-04-08T18:55:28.926Z",
       "updatedBy": "anon"
-    },
-    {
-      "id": "895e9b32-cb41-40a7-a4c4-f7efb61a3802",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 3039.9115513685483,
-        "y": 956.5308413876361
-      },
-      "size": {
-        "w": 240,
-        "h": 39
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Right click to import and link files\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "auto",
-      "wrapWidth": null,
-      "created": "2026-04-08T21:08:33.069Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:37:59.517Z",
-      "updatedBy": "anon",
-      "plain": "Right click to import and link files"
     },
     {
       "id": "5379dc0a-2a58-4c56-ba71-5d08964a5e16",
@@ -596,7 +532,7 @@
       "type": "text",
       "position": {
         "x": 1764.4959165521611,
-        "y": 925.972053776435
+        "y": 945.1241661689497
       },
       "size": {
         "w": 457,
@@ -607,30 +543,9 @@
       "wrapWidth": 457,
       "created": "2026-04-09T12:46:54.963Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T12:47:26.555Z",
+      "updatedAt": "2026-04-09T19:12:36.163Z",
       "updatedBy": "anon",
       "plain": "Probably, we don't want to play multiple videos at the same time. We should most likely limit videos to only one playing at most."
-    },
-    {
-      "id": "bb9bd8c8-0965-400e-8d71-2233321bce01",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 1665.4530139285666,
-        "y": 1087.4863632893941
-      },
-      "size": {
-        "w": 266,
-        "h": 204
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"color: #ec164c;\",\"text\":\"PATHs \",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"for more robust external resources and \",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"color: #1e87ff;\",\"text\":\"pipelines, for example\",\"type\":\"text\",\"version\":1},{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\" for a video game pipeline, etc.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"color: #ec164c;\"},{\"children\":[],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Maybe what we can have is like a URI that's an extension of file:/// or something else? then wloc may be deprecated, since wloc would be a URI like that with $WORKSPACE/... stamped at the front\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 266,
-      "created": "2026-04-09T13:00:10.798Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T17:48:48.297Z",
-      "updatedBy": "anon",
-      "plain": "PATHs for more robust external resources and pipelines, for example for a video game pipeline, etc.\nMaybe what we can have is like a URI that's an extension of file:/// or something else? then wloc may be deprecated, since wloc would be a URI like that with $WORKSPACE/... stamped at the front"
     },
     {
       "id": "549e5598-5ed8-45d1-9871-4657e2e0f8ed",
@@ -739,48 +654,6 @@
       "updatedAt": "2026-04-09T17:51:50.499Z",
       "updatedBy": "anon",
       "label": "this is a whatever"
-    },
-    {
-      "id": "b57cf658-8d6e-43e1-85e2-747698cacc1a",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 2001.3594388507254,
-        "y": 1444.826381367572
-      },
-      "size": {
-        "w": 281,
-        "h": 57
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Drag semantics - shift to uniformly scale, and alt to scale from center\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 281,
-      "created": "2026-04-09T13:33:52.404Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T18:52:48.399Z",
-      "updatedBy": "anon",
-      "plain": "Drag semantics - shift to uniformly scale, and alt to scale from center"
-    },
-    {
-      "id": "94944653-9d4a-4fbb-aee9-8e1e1e088b95",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 2071.1327423867583,
-        "y": 1258.7670077353323
-      },
-      "size": {
-        "w": 282,
-        "h": 79
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"H for horizontal align (like BPs in UE5)\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":1},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"V for vertical align\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"listitem\",\"version\":1,\"value\":2}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"list\",\"version\":1,\"listType\":\"bullet\",\"start\":1,\"tag\":\"ul\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 282,
-      "created": "2026-04-09T18:52:59.370Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T18:53:13.882Z",
-      "updatedBy": "anon",
-      "plain": "H for horizontal align (like BPs in UE5)\nV for vertical align"
     }
   ],
   "edges": [
@@ -829,60 +702,11 @@
       "labelLayout": {
         "pathPosition": 0.58
       }
-    },
-    {
-      "id": "dab0ab91-9418-42a4-b5bf-005d2c8343c2",
-      "from": "549e5598-5ed8-45d1-9871-4657e2e0f8ed",
-      "to": "bb9bd8c8-0965-400e-8d71-2233321bce01",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "edgeStyle": {
-        "stroke": {
-          "width": 1,
-          "color": {
-            "kind": "swatch",
-            "paletteId": "whitebloom-default",
-            "swatchId": "pink"
-          },
-          "dash": "dashed"
-        },
-        "startMarker": "none",
-        "endMarker": "arrow",
-        "labelColor": {
-          "kind": "token",
-          "value": "foreground"
-        }
-      }
-    },
-    {
-      "id": "c36da7c1-7420-4698-b8d8-02e983f7df72",
-      "from": "a680fbd5-23c5-4bcd-b73a-ecaed6e1af94",
-      "to": "b57cf658-8d6e-43e1-85e2-747698cacc1a",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "edgeStyle": {
-        "stroke": {
-          "width": 1.5,
-          "color": {
-            "kind": "swatch",
-            "paletteId": "whitebloom-default",
-            "swatchId": "blue"
-          },
-          "dash": "solid"
-        },
-        "startMarker": "none",
-        "endMarker": "arrow",
-        "labelColor": {
-          "kind": "token",
-          "value": "foreground"
-        }
-      },
-      "label": "no"
     }
   ],
   "viewport": {
-    "x": -783.4380189200442,
-    "y": -593.4765122633485,
-    "zoom": 0.6597539553864475
+    "x": -1066.12722282938,
+    "y": -243.82336152393782,
+    "zoom": 0.574349177498518
   }
 }

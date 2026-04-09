@@ -75,23 +75,9 @@ import type { ShapePreset } from '@renderer/shared/types'
 import { getShapePresetDefinition } from './shapePresets'
 import { resolveCanvasMarkerColor } from './vectorStyles'
 import type { Tool } from './tools'
-import { captureBoardThumbnail } from './captureBoardThumbnail'
 import { planClusterPromotion } from '@renderer/stores/board'
 import type { BoardNodeDraft } from '@renderer/stores/board'
 import './Canvas.css'
-
-async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
-  // Defer capture by one animation frame so it doesn't block the post-save UI
-  // update. toJpeg does heavy synchronous DOM work on the render thread.
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-  try {
-    const dataUrl = await captureBoardThumbnail()
-    if (!dataUrl) return
-    await window.api.saveThumbnail(boardPath, workspaceRoot, dataUrl)
-  } catch (error) {
-    console.error('[thumbnail] capture or save failed:', error)
-  }
-}
 
 const nodeTypes = { text: TextNode, bud: BudNode, shape: ShapeNode, cluster: ClusterNode }
 const edgeTypes = { wb: WbEdge }
@@ -645,8 +631,6 @@ export function Canvas({
     return window.api.onCloseRequested(() => {
       if (isDirty) {
         setPendingDocumentAction('exit')
-      } else {
-        window.api.confirmClose()
       }
     })
   }, [isDirty])
@@ -1279,9 +1263,6 @@ export function Canvas({
       if (promotionResult.ok && promotionResult.boardPath) {
         setBoardPersistence(promotionResult.boardPath, false)
         markSaved()
-        if (workspaceRoot !== null) {
-          void captureAndSaveThumbnail(promotionResult.boardPath, workspaceRoot)
-        }
       }
       return
     }
@@ -1293,9 +1274,6 @@ export function Canvas({
 
     if (result.ok) {
       markSaved()
-      if (workspaceRoot !== null) {
-        void captureAndSaveThumbnail(boardPath, workspaceRoot)
-      }
     }
   }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence, workspaceRoot])
 
@@ -1332,8 +1310,6 @@ export function Canvas({
       if (!saveResult.ok) {
         throw new Error('Unable to write the promoted board into the new workspace.')
       }
-
-      void captureAndSaveThumbnail(createBoardResult.boardPath, createWorkspaceResult.workspaceRoot)
 
       const workspace = await window.api.readWorkspace(createWorkspaceResult.workspaceRoot)
       loadWorkspace(workspace)
@@ -1438,7 +1414,6 @@ export function Canvas({
       markSaved()
       setPendingNodeSelectionId(selectedCluster.id)
       setPromoteSubboardModalOpen(false)
-      void captureAndSaveThumbnail(boardPath, workspaceRoot)
     } catch (error) {
       setWorkspaceActionError(
         error instanceof Error ? error.message : t('canvas.promoteSubboardError')
