@@ -32,6 +32,18 @@ Clusters. The Command Fit Clusters to Children works on every edge except the ri
 
 Arrangements view, desktop island. Open right click context menu on a bin, then drag desktop. The context menu doesn't disappear. However, if we open the menu on empty space (such as to create a new bin) then panning the desktop properly removes the context menu.
 
+### Bug UI-8
+
+Mouse changes cursor when over an edge. Should be default system cursor.
+
+### Bug UI-9
+
+For anythin with resize handles (pictures, video, shapes) the handles are visible when draggin the node around, which is visually noisy. Handles should disappear (just like reactflow edge handles) on node movement.
+
+### Bug UI-10
+
+Shape toolbar shows when we move the node, which looks visually noisy. The toolbar should be invisible when we're dragging the node around.
+
 ### Bug UX-1 (FIXED)
 
 Resizing a cluster isn't smooth at all, it's laggy and choppy to the point it's unacceptable.
