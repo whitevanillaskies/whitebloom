@@ -186,7 +186,9 @@
   },
   "formatToolbar": {
     "boldLabel": "Negrita",
-    "italicLabel": "Cursiva"
+    "italicLabel": "Cursiva",
+    "textColorLabel": "Color de texto",
+    "textColorDefault": "Por defecto"
   },
   "edgeToolbar": {
     "styleLabel": "Estilo de conexión",

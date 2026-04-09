@@ -11,7 +11,15 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_EDITOR, type LexicalEditor } from 'lexical'
+import {
+  $getSelection,
+  $isRangeSelection,
+  KEY_DOWN_COMMAND,
+  COMMAND_PRIORITY_EDITOR,
+  type LexicalEditor,
+} from 'lexical'
+import { $patchStyleText } from '@lexical/selection'
+import { TEXT_COLOR_COMMAND } from './textEditorCommands'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListNode, ListItemNode } from '@lexical/list'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
@@ -20,6 +28,8 @@ import { MoveHorizontal } from 'lucide-react'
 import { FormatToolbar } from './FormatToolbar'
 import { SlashCommandPlugin } from './SlashCommandPlugin'
 import './TextNode.css'
+
+export { TEXT_COLOR_COMMAND } from './textEditorCommands'
 
 const RICH_TEXT_NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode]
 
@@ -87,6 +97,22 @@ function TextEditorPlugins({
   useEffect(() => {
     onEditorReady(editor)
   }, [editor, onEditorReady])
+
+  // Handle TEXT_COLOR_COMMAND: apply or clear an inline color on the selection.
+  // Registered unconditionally so the command is available as soon as the editor mounts.
+  useEffect(() => {
+    return editor.registerCommand(
+      TEXT_COLOR_COMMAND,
+      (color) => {
+        const selection = $getSelection()
+        if ($isRangeSelection(selection)) {
+          $patchStyleText(selection, { color: color.length > 0 ? color : null })
+        }
+        return true
+      },
+      COMMAND_PRIORITY_EDITOR
+    )
+  }, [editor])
 
   useEffect(() => {
     if (!editing) return

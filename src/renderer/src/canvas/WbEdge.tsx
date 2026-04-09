@@ -218,7 +218,6 @@ export function WbEdge({
         stroke="transparent"
         strokeWidth={hitWidth}
         onDoubleClick={startEditing}
-        style={{ cursor: 'text' }}
       />
       <EdgeLabelRenderer>
         {isEditing ? (
@@ -268,7 +267,6 @@ export function WbEdge({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelDisplayX}px,${labelDisplayY}px)`,
               color: labelColor,
-              cursor: 'grab',
             }}
             onDoubleClick={startEditing}
             onMouseDown={handleLabelMouseDown}

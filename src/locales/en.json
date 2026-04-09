@@ -186,7 +186,9 @@
   },
   "formatToolbar": {
     "boldLabel": "Bold",
-    "italicLabel": "Italic"
+    "italicLabel": "Italic",
+    "textColorLabel": "Text color",
+    "textColorDefault": "Default"
   },
   "edgeToolbar": {
     "styleLabel": "Edge style",

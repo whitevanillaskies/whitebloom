@@ -76,11 +76,11 @@ export function CanvasPopover({
       ref={popoverRef}
       className={`canvas-popover${className ? ` ${className}` : ''}`}
       style={{ left: position.left, top: position.top }}
-      onPointerDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => { event.stopPropagation(); event.preventDefault() }}
       onPointerUp={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.stopPropagation()}
-      onMouseDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) => { event.stopPropagation(); event.preventDefault() }}
     >
       {children}
     </div>,
