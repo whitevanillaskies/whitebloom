@@ -7,8 +7,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 126,
-        "y": 96
+        "x": 123.33333333333334,
+        "y": 29.333333333333336
       },
       "size": {
         "w": 411,
@@ -19,7 +19,7 @@
       "wrapWidth": null,
       "created": "2026-04-07T14:05:28.869Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T17:21:28.841Z",
+      "updatedAt": "2026-04-09T19:28:57.529Z",
       "updatedBy": "anon",
       "plain": "Cluster Features\nDouble click to edit cluster name.\nCluster toolbar for locking maybe, and absolutely for colors."
     },
@@ -87,5 +87,10 @@
       "plain": "not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them."
     }
   ],
-  "edges": []
+  "edges": [],
+  "viewport": {
+    "x": 124.375,
+    "y": 99.125,
+    "zoom": 0.75
+  }
 }

@@ -619,6 +619,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
                 contentEditable={
                   <ContentEditable
                     className="text-node__input"
+                    spellCheck={false}
                     onBlur={handleEditorBlur}
                     onPointerDown={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}

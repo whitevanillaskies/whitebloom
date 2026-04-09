@@ -108,48 +108,6 @@
       "plain": "how does knowledge management in scrivener work?\nfirst, you have ........ what?"
     },
     {
-      "id": "790779ff-3779-40ea-bb9a-bff03a86c83e",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 1087.4035695645812,
-        "y": -89.8501957210286
-      },
-      "size": {
-        "w": 264,
-        "h": 39
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"text error highlighting settings in app\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "auto",
-      "wrapWidth": null,
-      "created": "2026-04-05T22:32:13.442Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:54:08.879Z",
-      "updatedBy": "anon",
-      "plain": "text error highlighting settings in app"
-    },
-    {
-      "id": "f4e188da-b01c-49c9-adb8-d4a0f644d9cd",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 1406.144616973614,
-        "y": -125.99396898828991
-      },
-      "size": {
-        "w": 397,
-        "h": 57
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"boards screen isn't showing board name, but filename apparently. now, should we keep them in check?\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 397,
-      "created": "2026-04-05T22:33:08.012Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:54:08.879Z",
-      "updatedBy": "anon",
-      "plain": "boards screen isn't showing board name, but filename apparently. now, should we keep them in check?"
-    },
-    {
       "id": "b89f2d7a-17c4-440b-aad6-da8a39bf20fc",
       "kind": "bud",
       "type": "com.whitebloom.image",
@@ -287,15 +245,15 @@
         "y": -30.606245851752504
       },
       "size": {
-        "w": 26,
-        "h": 19
+        "w": 244,
+        "h": 75
       },
       "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"automatically arranging elements in a grid, etc. maybe packing pictures like pureref\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "fixed",
       "wrapWidth": 244,
       "created": "2026-04-07T12:00:37.225Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:54:08.879Z",
+      "updatedAt": "2026-04-09T19:26:18.717Z",
       "updatedBy": "anon",
       "plain": "automatically arranging elements in a grid, etc. maybe packing pictures like pureref"
     },
@@ -305,8 +263,6 @@
       "type": null,
       "label": "Cluster",
       "children": [
-        "790779ff-3779-40ea-bb9a-bff03a86c83e",
-        "f4e188da-b01c-49c9-adb8-d4a0f644d9cd",
         "29a50916-8658-48fd-b506-988623fffdaa",
         "f3737f50-a197-4481-afe1-3d94dcbe0af1"
       ],
@@ -506,27 +462,6 @@
       "updatedBy": "anon"
     },
     {
-      "id": "bbc5708e-b54b-4c99-a4ce-92216acb4c05",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 1764.4959165521611,
-        "y": 945.1241661689497
-      },
-      "size": {
-        "w": 457,
-        "h": 57
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Probably, we don't want to play multiple videos at the same time. We should most likely limit videos to only one playing at most.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 457,
-      "created": "2026-04-09T12:46:54.963Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:12:36.163Z",
-      "updatedBy": "anon",
-      "plain": "Probably, we don't want to play multiple videos at the same time. We should most likely limit videos to only one playing at most."
-    },
-    {
       "id": "549e5598-5ed8-45d1-9871-4657e2e0f8ed",
       "kind": "leaf",
       "type": "shape",
@@ -651,13 +586,6 @@
       "targetHandle": "left"
     },
     {
-      "id": "dab02db8-9510-4ced-a370-30693027c95f",
-      "from": "790779ff-3779-40ea-bb9a-bff03a86c83e",
-      "to": "f4e188da-b01c-49c9-adb8-d4a0f644d9cd",
-      "sourceHandle": "right",
-      "targetHandle": "left"
-    },
-    {
       "id": "c38acade-b691-4000-9d22-4fee4846cf78",
       "from": "153ea151-bff7-4b3f-bf86-223b531d5cec",
       "to": "bd858ab0-058c-42da-9b19-acf166917508",
@@ -684,8 +612,8 @@
     }
   ],
   "viewport": {
-    "x": -1169.5214556708925,
-    "y": -406.03571499399504,
-    "zoom": 0.7578582832552002
+    "x": -783.0935520083463,
+    "y": -332.300531512219,
+    "zoom": 0.5000000000000008
   }
 }
