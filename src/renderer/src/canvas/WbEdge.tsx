@@ -1,6 +1,10 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
 import type { BoardEdge } from '@renderer/shared/types'
-import { resolveVectorColor } from './vectorStyles'
+import {
+  getSvgStrokeProps,
+  resolveCanvasStrokeColor,
+  resolveCanvasTextColor
+} from './vectorStyles'
 import './WbEdge.css'
 
 export type WbEdgeData = {
@@ -37,7 +41,9 @@ export function WbEdge({
     targetPosition,
   })
 
-  const stroke = resolveVectorColor(edgeData.color, 'var(--color-secondary-fg)')
+  const strokeWidth = selected ? 2 : 1.5
+  const stroke = resolveCanvasStrokeColor(edgeData.color, 'var(--color-secondary-fg)')
+  const labelColor = resolveCanvasTextColor(edgeData.color, 'var(--color-primary-fg)')
   const strokeDasharray = resolveDashArray(edgeData.style)
 
   return (
@@ -47,10 +53,8 @@ export function WbEdge({
         path={edgePath}
         style={{
           stroke,
-          strokeWidth: selected ? 2 : 1.5,
+          ...getSvgStrokeProps(strokeWidth),
           strokeDasharray,
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round',
         }}
       />
       {label && (
@@ -60,7 +64,7 @@ export function WbEdge({
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              color: stroke,
+              color: labelColor,
             }}
           >
             {label}

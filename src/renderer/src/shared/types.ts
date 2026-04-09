@@ -43,6 +43,10 @@ export type FillStyle = {
   color: ColorValue
 }
 
+export type TextStyle = {
+  color: ColorValue
+}
+
 export type StrokedElementStyle = {
   stroke: StrokeStyle
 }
@@ -71,6 +75,10 @@ export const DEFAULT_SHAPE_STROKE: StrokeStyle = {
 
 export const DEFAULT_SHAPE_FILL: FillStyle = {
   color: { kind: 'custom', value: 'transparent' }
+}
+
+export const DEFAULT_CANVAS_TEXT: TextStyle = {
+  color: { kind: 'token', value: 'foreground' }
 }
 
 export const DEFAULT_SHAPE_STYLE: FilledStrokedElementStyle = {

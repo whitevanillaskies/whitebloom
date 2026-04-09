@@ -1,3 +1,4 @@
+import { DEFAULT_CANVAS_TEXT } from '@renderer/shared/types'
 import type { ColorValue, VectorColorToken } from '@renderer/shared/types'
 
 const VECTOR_COLOR_TOKENS: Record<VectorColorToken, string> = {
@@ -38,6 +39,34 @@ export function resolveVectorColor(
 
   if (color.kind === 'custom') return color.value
   return VECTOR_COLOR_TOKENS[color.value] ?? fallback
+}
+
+export function resolveCanvasStrokeColor(
+  color: ColorValue | string | null | undefined,
+  fallback = 'var(--color-primary-fg)'
+): string {
+  return resolveVectorColor(color, fallback)
+}
+
+export function resolveCanvasFillColor(
+  color: ColorValue | string | null | undefined,
+  fallback = 'transparent'
+): string {
+  return resolveVectorColor(color, fallback)
+}
+
+export function resolveCanvasTextColor(
+  color?: ColorValue | string | null,
+  fallback = 'var(--color-primary-fg)'
+): string {
+  return resolveVectorColor(color ?? DEFAULT_CANVAS_TEXT.color, fallback)
+}
+
+export function resolveCanvasMarkerColor(
+  color: ColorValue | string | null | undefined,
+  fallback = 'var(--color-primary-fg)'
+): string {
+  return resolveVectorColor(color, fallback)
 }
 
 /**

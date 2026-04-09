@@ -6,7 +6,12 @@ import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants
 import { getShapePresetDefinition, supportsNonUniformScale, type ShapePrimitive } from './shapePresets'
 import { NodeResizeHandles } from './NodeResizeHandles'
 import { useFixedCornerResize } from './useFixedCornerResize'
-import { getSvgStrokeProps, resolveVectorColor } from './vectorStyles'
+import {
+  getSvgStrokeProps,
+  resolveCanvasFillColor,
+  resolveCanvasStrokeColor,
+  resolveCanvasTextColor
+} from './vectorStyles'
 
 export type ShapeNodeData = {
   shape: PersistedShapeNodeData
@@ -79,8 +84,9 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
   const updateNodeInternals = useUpdateNodeInternals()
   const [localSize, setLocalSize] = useState({ w: shapeData.size.w, h: shapeData.size.h })
-  const stroke = resolveVectorColor(shapeData.shape.style.stroke.color, 'var(--color-primary-fg)')
-  const fill = resolveVectorColor(shapeData.shape.style.fill.color, 'transparent')
+  const stroke = resolveCanvasStrokeColor(shapeData.shape.style.stroke.color, 'var(--color-primary-fg)')
+  const fill = resolveCanvasFillColor(shapeData.shape.style.fill.color, 'transparent')
+  const labelColor = resolveCanvasTextColor()
   const strokeWidth = shapeData.shape.style.stroke.width
   const keepAspectRatio = !supportsNonUniformScale(shapeData.shape.preset)
 
@@ -165,7 +171,8 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
             left: labelBox.x,
             top: labelBox.y,
             width: labelBox.width,
-            height: labelBox.height
+            height: labelBox.height,
+            color: labelColor
           }}
         >
           {shapeData.label?.trim() || preset.displayName}
