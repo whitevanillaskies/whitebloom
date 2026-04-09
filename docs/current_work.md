@@ -36,7 +36,7 @@ Work unit 1.3: Consolidate canvas style helpers.
 ### Phase 2: Shared Toolbar Primitives
 
 Work unit 2.1: Create a shared floating toolbar shell.
-- Extract the common floating glass toolbar chrome now duplicated between edge and text formatting toolbars.
+- Extract the common floating glass toolbar chrome now duplicated between edge and text formatting toolbars (and remember we need another one for shapes).
 - The shell should own:
   - background
   - border

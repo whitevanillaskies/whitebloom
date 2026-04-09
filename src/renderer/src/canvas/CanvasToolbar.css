@@ -1,0 +1,90 @@
+/* Shared floating glass toolbar shell for all canvas-context toolbars
+   (edge toolbar, format toolbar, shape toolbar, etc.)
+   Positioning, z-index, and pointer-events are intentionally omitted —
+   each consumer adds these as needed. */
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.66));
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  user-select: none;
+}
+
+/* ── Button ──────────────────────────────────────────────────────────── */
+
+.canvas-toolbar__btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-border-inner);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-primary-fg);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.canvas-toolbar__btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.canvas-toolbar__btn:active {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.canvas-toolbar__btn--active {
+  background: rgba(var(--color-accent-blue-rgb), 0.12);
+  border-color: rgba(var(--color-accent-blue-rgb), 0.28);
+  color: var(--color-accent-blue);
+}
+
+.canvas-toolbar__btn--active:hover {
+  background: rgba(var(--color-accent-blue-rgb), 0.18);
+  border-color: rgba(var(--color-accent-blue-rgb), 0.38);
+}
+
+.canvas-toolbar__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Color swatch ────────────────────────────────────────────────────── */
+/* Intended as the sole child of a __btn when the button's purpose is
+   to show/change a color value (stroke color, fill color, etc.).
+   Consumer sets backgroundColor via inline style. */
+
+.canvas-toolbar__swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+/* ── Separator ───────────────────────────────────────────────────────── */
+/* Thin vertical divider between button groups within a toolbar. */
+
+.canvas-toolbar__sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  margin: 0 2px;
+}

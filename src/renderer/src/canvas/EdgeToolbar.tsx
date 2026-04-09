@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useReactFlow, useNodes, useStore } from '@xyflow/react'
 import type { Edge as RFEdge } from '@xyflow/react'
 import { Spline } from 'lucide-react'
-import './EdgeToolbar.css'
+import { CanvasToolbar, CanvasToolbarBtn } from './CanvasToolbar'
 
 type EdgeToolbarProps = {
   edges: RFEdge[]
@@ -66,15 +66,20 @@ export function EdgeToolbar({ edges }: EdgeToolbarProps) {
   const screen = flowToScreenPosition({ x: midX, y: anchorY })
 
   return (
-    <div
-      className="edge-toolbar"
-      data-board-capture="exclude"
-      style={{ left: screen.x, top: screen.y - 12 }}
+    <CanvasToolbar
+      style={{
+        position: 'fixed',
+        left: screen.x,
+        top: screen.y - 12,
+        transform: 'translate(-50%, -100%)',
+        pointerEvents: 'all',
+        zIndex: 1000,
+      }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <button className="edge-toolbar__btn" aria-label={t('edgeToolbar.styleLabel')} tabIndex={-1}>
+      <CanvasToolbarBtn aria-label={t('edgeToolbar.styleLabel')}>
         <Spline size={13} strokeWidth={2} />
-      </button>
-    </div>
+      </CanvasToolbarBtn>
+    </CanvasToolbar>
   )
 }
