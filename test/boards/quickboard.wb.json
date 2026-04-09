@@ -21,25 +21,12 @@
       "updatedAt": "2026-04-05T16:34:56.823Z",
       "updatedBy": "anon",
       "plain": "A problem with quickboards, forcing the user to save to file somewhat defeats the purpose of making them really \"quick\"\nI think what we need is this: an app level store. It creates quickboard-timestamp.wb.json and sets a flag 'transient' - the boards are autosaved on changes. Clicking the save tool will see there's the transient flag on and will prompt for an actual path. The transient board is then deleted."
-    },
-    {
-      "id": "8e4233f1-410e-4fbe-ac3a-4a9adab54950",
-      "kind": "leaf",
-      "type": "image",
-      "position": {
-        "x": -282.97087735416625,
-        "y": 49.317866565923055
-      },
-      "size": {
-        "w": 354,
-        "h": 188
-      },
-      "resource": "file:///E:/Pictures/cute/1690551519254637.gif",
-      "created": "2026-04-05T16:36:43.212Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-05T16:36:44.130Z",
-      "updatedBy": "anon"
     }
   ],
-  "edges": []
+  "edges": [],
+  "viewport": {
+    "x": 718.5,
+    "y": 369,
+    "zoom": 0.75
+  }
 }

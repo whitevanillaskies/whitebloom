@@ -25,6 +25,11 @@ type WorkspaceCreateDialogResult = {
   workspaceRoot?: string
 }
 
+type WorkspaceCreateAtPathResult = {
+  ok: boolean
+  workspaceRoot?: string
+}
+
 type BoardSaveResult = {
   ok: boolean
   boardPath?: string
@@ -97,12 +102,38 @@ type ArrangementsReferencesResult = {
   boardPaths: string[]
 }
 
+type ProjectFinderSidebarLocation = {
+  label: string
+  path: string
+  kind: 'drive' | 'location'
+}
+
+type ProjectFinderDirectoryEntry = {
+  name: string
+  path: string
+  kind: 'directory' | 'workspace' | 'board' | 'quickboard'
+  workspaceRoot?: string
+}
+
+type ProjectFinderShell = {
+  defaultPath: string
+  locations: ProjectFinderSidebarLocation[]
+}
+
+type ProjectFinderDirectoryListing = {
+  path: string
+  parentPath: string | null
+  isWorkspaceRoot: boolean
+  entries: ProjectFinderDirectoryEntry[]
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: {
       openWorkspaceDialog: () => Promise<WorkspaceOpenDialogResult>
       createWorkspaceDialog: () => Promise<WorkspaceCreateDialogResult>
+      createWorkspaceAtPath: (workspaceRoot: string) => Promise<WorkspaceCreateAtPathResult>
       readWorkspace: (workspaceRoot: string) => Promise<Workspace>
       openBoard: (boardPath: string) => Promise<string>
       saveBoard: (boardPath: string, json: string) => Promise<BoardSaveResult>
@@ -121,6 +152,12 @@ declare global {
       createQuickboard: () => Promise<QuickboardCreateResult>
       listTransientBoards: () => Promise<ListTransientBoardsResult>
       listRecentBoards: () => Promise<ListRecentBoardsResult>
+      getProjectFinderShell: (
+        preferredPath?: string | null
+      ) => Promise<{ ok: boolean; shell: ProjectFinderShell | null }>
+      listProjectFinderDirectory: (
+        directoryPath: string
+      ) => Promise<{ ok: boolean; listing: ProjectFinderDirectoryListing | null }>
       readArrangements: (workspaceRoot: string) => Promise<ArrangementsReadResult>
       saveArrangements: (
         workspaceRoot: string,

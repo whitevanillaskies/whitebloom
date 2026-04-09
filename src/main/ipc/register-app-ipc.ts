@@ -7,6 +7,10 @@ import { readGardenState, writeGardenState } from '../services/garden-store'
 import { listTransientBoards } from '../services/app-storage'
 import { listRecentBoards, type RecentBoardItem } from '../services/recent-boards-store'
 import { openResource } from '../services/file-resource'
+import {
+  getProjectFinderShell,
+  listProjectFinderDirectory
+} from '../services/project-finder'
 import { resolveResource } from '../resource-uri'
 import {
   emptyArrangementsTrash,
@@ -201,6 +205,31 @@ export function registerAppIpc(context: MainProcessContext): void {
       return { ok: true, boards: await listRecentBoards() }
     } catch {
       return { ok: false, boards: [] }
+    }
+  })
+
+  ipcMain.handle('project-finder:get-shell', async (_event, preferredPath?: string | null) => {
+    try {
+      return {
+        ok: true,
+        shell: await getProjectFinderShell(preferredPath ?? context.getActiveWorkspaceRoot())
+      }
+    } catch {
+      return { ok: false, shell: null }
+    }
+  })
+
+  ipcMain.handle('project-finder:list-directory', async (_event, directoryPath: string) => {
+    try {
+      return {
+        ok: true,
+        listing: await listProjectFinderDirectory(directoryPath)
+      }
+    } catch {
+      return {
+        ok: false,
+        listing: null
+      }
     }
   })
 

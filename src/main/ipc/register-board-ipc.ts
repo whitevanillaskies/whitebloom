@@ -32,6 +32,11 @@ type WorkspaceCreateDialogResult = {
   workspaceRoot?: string
 }
 
+type WorkspaceCreateAtPathResult = {
+  ok: boolean
+  workspaceRoot?: string
+}
+
 type BoardSaveResult = {
   ok: boolean
   boardPath?: string
@@ -129,6 +134,21 @@ export function registerBoardIpc(context: MainProcessContext): void {
       return { ok: false }
     }
   })
+
+  ipcMain.handle(
+    'workspace:create-at-path',
+    async (_event, workspaceRoot: string): Promise<WorkspaceCreateAtPathResult> => {
+      if (!workspaceRoot) return { ok: false }
+
+      try {
+        await createWorkspace(workspaceRoot)
+        context.setActiveWorkspaceRoot(workspaceRoot)
+        return { ok: true, workspaceRoot }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
 
   ipcMain.handle('workspace:read', async (_event, workspaceRoot: string) => {
     const workspace = await readWorkspace(workspaceRoot)

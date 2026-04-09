@@ -3,6 +3,9 @@ import { ReactFlowProvider } from '@xyflow/react'
 import { useTranslation } from 'react-i18next'
 import { Canvas } from './canvas/Canvas'
 import ArrangementsView from './components/arrangements/ArrangementsView'
+import ProjectFinderWindow, {
+  type ProjectFinderMode
+} from './components/project-finder/ProjectFinderWindow'
 import StartScreen from './components/start-screen/StartScreen'
 import CreateBoardModal from './components/workspace-home/CreateBoardModal'
 import ConfirmTrashModal from './components/workspace-home/ConfirmTrashModal'
@@ -102,6 +105,7 @@ function App(): React.JSX.Element {
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
   const [arrangementsReturnView, setArrangementsReturnView] = useState<ReturnView>('workspace-home')
   const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null)
+  const [projectFinderMode, setProjectFinderMode] = useState<ProjectFinderMode | null>(null)
 
   const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
 
@@ -331,54 +335,88 @@ function App(): React.JSX.Element {
     [boardPath, isDirty, performBoardOpen]
   )
 
-  const handleOpenWorkspace = useCallback(async () => {
-    setBusyAction('open')
+  const handleOpenWorkspace = useCallback(() => {
     setShellError(null)
+    setProjectFinderMode('open')
+  }, [])
 
-    try {
-      const result = await window.api.openWorkspaceDialog()
-      if (!result.ok) return
+  const handleCreateWorkspace = useCallback(() => {
+    setShellError(null)
+    setProjectFinderMode('new-workspace')
+  }, [])
 
-      if (result.workspaceRoot) {
+  const handleCloseProjectFinder = useCallback(() => {
+    setProjectFinderMode(null)
+  }, [])
+
+  const handleOpenWorkspaceFromFinder = useCallback(
+    async (nextWorkspaceRoot: string) => {
+      setBusyAction('open')
+      setShellError(null)
+
+      try {
+        const workspace = await window.api.readWorkspace(nextWorkspaceRoot)
+        loadWorkspace(workspace)
+        clearBoard()
+        setProjectFinderMode(null)
+        setView('workspace-home')
+      } catch (error) {
+        setShellError(error instanceof Error ? error.message : 'Unable to open that workspace.')
+      } finally {
+        setBusyAction(null)
+      }
+    },
+    [clearBoard, loadWorkspace]
+  )
+
+  const handleOpenBoardFromFinder = useCallback(
+    async (nextBoardPath: string, nextWorkspaceRoot?: string) => {
+      setBusyAction('open-board')
+      setShellError(null)
+
+      try {
+        if (nextWorkspaceRoot) {
+          const workspace = await window.api.readWorkspace(nextWorkspaceRoot)
+          loadWorkspace(workspace)
+        } else {
+          clearWorkspace()
+        }
+        await openBoardByPath(nextBoardPath)
+        setProjectFinderMode(null)
+      } catch (error) {
+        clearBoard()
+        setShellError(error instanceof Error ? error.message : 'Unable to open that board.')
+      } finally {
+        setBusyAction(null)
+      }
+    },
+    [clearBoard, clearWorkspace, loadWorkspace, openBoardByPath]
+  )
+
+  const handleCreateWorkspaceAtPath = useCallback(
+    async (nextWorkspaceRoot: string) => {
+      setBusyAction('create-workspace')
+      setShellError(null)
+
+      try {
+        const result = await window.api.createWorkspaceAtPath(nextWorkspaceRoot)
+        if (!result.ok || !result.workspaceRoot) {
+          throw new Error('Unable to create a workspace in that folder.')
+        }
+
         const workspace = await window.api.readWorkspace(result.workspaceRoot)
         loadWorkspace(workspace)
-      } else {
-        clearWorkspace()
-      }
-
-      if (!result.openBoardPath) {
         clearBoard()
-        setView(result.workspaceRoot ? 'workspace-home' : 'start')
-        return
+        setProjectFinderMode(null)
+        setView('workspace-home')
+      } catch (error) {
+        setShellError(error instanceof Error ? error.message : 'Unable to create a workspace.')
+      } finally {
+        setBusyAction(null)
       }
-
-      await openBoardByPath(result.openBoardPath)
-    } catch (error) {
-      clearBoard()
-      setShellError(error instanceof Error ? error.message : 'Unable to open the selected workspace or board.')
-    } finally {
-      setBusyAction(null)
-    }
-  }, [clearBoard, clearWorkspace, loadWorkspace, openBoardByPath])
-
-  const handleCreateWorkspace = useCallback(async () => {
-    setBusyAction('create-workspace')
-    setShellError(null)
-
-    try {
-      const result = await window.api.createWorkspaceDialog()
-      if (!result.ok || !result.workspaceRoot) return
-
-      const workspace = await window.api.readWorkspace(result.workspaceRoot)
-      loadWorkspace(workspace)
-      clearBoard()
-      setView('workspace-home')
-    } catch (error) {
-      setShellError(error instanceof Error ? error.message : 'Unable to create a workspace.')
-    } finally {
-      setBusyAction(null)
-    }
-  }, [clearBoard, loadWorkspace])
+    },
+    [clearBoard, loadWorkspace]
+  )
 
   const handleCreateQuickboard = useCallback(async () => {
     setBusyAction('create-quickboard')
@@ -722,6 +760,21 @@ function App(): React.JSX.Element {
         onOpenRecentBoard={(item) => void handleOpenRecentBoard(item)}
         onTrashBoard={(nextBoardPath) => void handleRequestTrashBoard(nextBoardPath)}
       />
+      {projectFinderMode ? (
+        <ProjectFinderWindow
+          mode={projectFinderMode}
+          busy={busyAction !== null}
+          preferredPath={workspaceRoot}
+          onOpenWorkspace={(nextWorkspaceRoot) => void handleOpenWorkspaceFromFinder(nextWorkspaceRoot)}
+          onOpenBoard={(nextBoardPath, nextWorkspaceRoot) =>
+            void handleOpenBoardFromFinder(nextBoardPath, nextWorkspaceRoot)
+          }
+          onCreateWorkspaceAtPath={(nextWorkspaceRoot) =>
+            void handleCreateWorkspaceAtPath(nextWorkspaceRoot)
+          }
+          onClose={handleCloseProjectFinder}
+        />
+      ) : null}
       {pendingTrashBoard ? (
         <ConfirmTrashModal
           busy={busyAction === 'trash-board'}

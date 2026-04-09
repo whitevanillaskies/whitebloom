@@ -26,6 +26,11 @@ type WorkspaceCreateDialogResult = {
   workspaceRoot?: string
 }
 
+type WorkspaceCreateAtPathResult = {
+  ok: boolean
+  workspaceRoot?: string
+}
+
 type BoardSaveResult = {
   ok: boolean
   boardPath?: string
@@ -98,11 +103,38 @@ type ArrangementsReferencesResult = {
   boardPaths: string[]
 }
 
+type ProjectFinderSidebarLocation = {
+  label: string
+  path: string
+  kind: 'drive' | 'location'
+}
+
+type ProjectFinderDirectoryEntry = {
+  name: string
+  path: string
+  kind: 'directory' | 'workspace' | 'board' | 'quickboard'
+  workspaceRoot?: string
+}
+
+type ProjectFinderShell = {
+  defaultPath: string
+  locations: ProjectFinderSidebarLocation[]
+}
+
+type ProjectFinderDirectoryListing = {
+  path: string
+  parentPath: string | null
+  isWorkspaceRoot: boolean
+  entries: ProjectFinderDirectoryEntry[]
+}
+
 const api = {
   openWorkspaceDialog: (): Promise<WorkspaceOpenDialogResult> =>
     ipcRenderer.invoke('workspace:open-dialog'),
   createWorkspaceDialog: (): Promise<WorkspaceCreateDialogResult> =>
     ipcRenderer.invoke('workspace:create-dialog'),
+  createWorkspaceAtPath: (workspaceRoot: string): Promise<WorkspaceCreateAtPathResult> =>
+    ipcRenderer.invoke('workspace:create-at-path', workspaceRoot),
   readWorkspace: (workspaceRoot: string): Promise<Workspace> =>
     ipcRenderer.invoke('workspace:read', workspaceRoot),
   openBoard: (boardPath: string): Promise<string> => ipcRenderer.invoke('board:open', boardPath),
@@ -130,6 +162,14 @@ const api = {
     ipcRenderer.invoke('app:list-transient-boards'),
   listRecentBoards: (): Promise<ListRecentBoardsResult> =>
     ipcRenderer.invoke('app:list-recent-boards'),
+  getProjectFinderShell: (
+    preferredPath?: string | null
+  ): Promise<{ ok: boolean; shell: ProjectFinderShell | null }> =>
+    ipcRenderer.invoke('project-finder:get-shell', preferredPath),
+  listProjectFinderDirectory: (
+    directoryPath: string
+  ): Promise<{ ok: boolean; listing: ProjectFinderDirectoryListing | null }> =>
+    ipcRenderer.invoke('project-finder:list-directory', directoryPath),
   readArrangements: (workspaceRoot: string): Promise<ArrangementsReadResult> =>
     ipcRenderer.invoke('arrangements:read', workspaceRoot),
   saveArrangements: (
