@@ -1865,7 +1865,7 @@ export function Canvas({
         label: t('canvas.paletteClusterLabel'),
         icon: <Boxes size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          createEmptyCluster()
+          createClusterFromSelection()
         }
       }
     ]
@@ -1888,17 +1888,6 @@ export function Canvas({
         icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
         onActivate: () => {
           openPromoteSubboardModal()
-        }
-      })
-    }
-
-    if (selectedClusterableNodes.length > 0) {
-      items.unshift({
-        id: 'create-cluster-from-selection',
-        label: t('canvas.paletteClusterSelectionLabel'),
-        icon: <Boxes size={14} strokeWidth={1.8} />,
-        onActivate: () => {
-          createClusterFromSelection()
         }
       })
     }
@@ -1989,7 +1978,6 @@ export function Canvas({
     getDefaultCanvasInsertionPoint,
     createBudAtPoint,
     createClusterFromSelection,
-    createEmptyCluster,
     createFocusWriterBud,
     handleImportResources,
     handleLinkResources,
@@ -1998,7 +1986,6 @@ export function Canvas({
     onOpenArrangements,
     boardPath,
     selectedCluster,
-    selectedClusterableNodes.length,
     setWorkspaceActionError,
     t,
     workspaceBoards,

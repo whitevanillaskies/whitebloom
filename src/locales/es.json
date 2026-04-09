@@ -77,7 +77,6 @@
     "searchPalettePlaceholder": "Buscar en la paleta",
     "paletteTextLabel": "Texto",
     "paletteClusterLabel": "Crear clúster",
-    "paletteClusterSelectionLabel": "Agrupar nodos seleccionados",
     "paletteFitClusterLabel": "Ajustar clúster a sus nodos",
     "palettePromoteSubboardLabel": "Promover a subtablero",
     "paletteLinkFileLabel": "Enlazar archivo",
