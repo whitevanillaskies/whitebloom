@@ -25,6 +25,7 @@ export type ProjectFinderDirectoryListing = {
   path: string
   parentPath: string | null
   isWorkspaceRoot: boolean
+  isInsideWorkspace: boolean
   entries: ProjectFinderDirectoryEntry[]
 }
 
@@ -56,9 +57,7 @@ function isNonNull<T>(value: T): value is NonNullable<T> {
   return value !== null
 }
 
-function dedupeLocations(
-  items: ProjectFinderSidebarLocation[]
-): ProjectFinderSidebarLocation[] {
+function dedupeLocations(items: ProjectFinderSidebarLocation[]): ProjectFinderSidebarLocation[] {
   const seen = new Set<string>()
   return items.filter((item) => {
     const key = normalizePathForKey(item.path)
@@ -68,7 +67,9 @@ function dedupeLocations(
   })
 }
 
-async function resolveSpecialPath(name: 'home' | 'desktop' | 'documents' | 'downloads'): Promise<string | null> {
+async function resolveSpecialPath(
+  name: 'home' | 'desktop' | 'documents' | 'downloads'
+): Promise<string | null> {
   try {
     const filePath = app.getPath(name)
     return (await isDirectoryPath(filePath)) ? filePath : null
@@ -83,11 +84,11 @@ async function listWindowsDrives(): Promise<ProjectFinderSidebarLocation[]> {
     letters.map(async (letter) => {
       const drivePath = `${letter}:\\`
       return (await isDirectoryPath(drivePath))
-        ? ({
+        ? {
             label: drivePath.replace(/\\$/, ''),
             path: drivePath,
             kind: 'drive' as const
-          })
+          }
         : null
     })
   )
@@ -175,12 +176,25 @@ function getParentPath(directoryPath: string): string | null {
   return parentPath === resolvedPath ? null : parentPath
 }
 
+async function checkInsideWorkspace(directoryPath: string): Promise<boolean> {
+  let current = dirname(resolve(directoryPath))
+  while (true) {
+    const parent = dirname(current)
+    if (await pathExists(join(current, WORKSPACE_CONFIG_FILENAME))) return true
+    if (parent === current) return false
+    current = parent
+  }
+}
+
 export async function listProjectFinderDirectory(
   directoryPath: string
 ): Promise<ProjectFinderDirectoryListing> {
   const resolvedPath = resolve(directoryPath)
   const entries = await readdir(resolvedPath, { withFileTypes: true })
-  const isWorkspaceRoot = await pathExists(join(resolvedPath, WORKSPACE_CONFIG_FILENAME))
+  const [isWorkspaceRoot, isInsideWorkspace] = await Promise.all([
+    pathExists(join(resolvedPath, WORKSPACE_CONFIG_FILENAME)),
+    checkInsideWorkspace(resolvedPath)
+  ])
 
   const mappedEntries = await Promise.all(
     entries.map(async (entry): Promise<ProjectFinderDirectoryEntry | null> => {
@@ -214,6 +228,9 @@ export async function listProjectFinderDirectory(
     path: resolvedPath,
     parentPath: getParentPath(resolvedPath),
     isWorkspaceRoot,
-    entries: mappedEntries.filter((entry): entry is ProjectFinderDirectoryEntry => entry !== null).sort(compareEntries)
+    isInsideWorkspace,
+    entries: mappedEntries
+      .filter((entry): entry is ProjectFinderDirectoryEntry => entry !== null)
+      .sort(compareEntries)
   }
 }

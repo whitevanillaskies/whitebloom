@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { stat } from 'fs/promises'
+import { mkdir, stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
 import { changeMainLanguage, t } from '../i18n'
 import { readAppSettings, writeAppSettings } from '../services/app-settings-store'
@@ -7,10 +7,7 @@ import { readGardenState, writeGardenState } from '../services/garden-store'
 import { listTransientBoards } from '../services/app-storage'
 import { listRecentBoards, type RecentBoardItem } from '../services/recent-boards-store'
 import { openResource } from '../services/file-resource'
-import {
-  getProjectFinderShell,
-  listProjectFinderDirectory
-} from '../services/project-finder'
+import { getProjectFinderShell, listProjectFinderDirectory } from '../services/project-finder'
 import { resolveResource } from '../resource-uri'
 import {
   emptyArrangementsTrash,
@@ -106,9 +103,16 @@ export function registerAppIpc(context: MainProcessContext): void {
 
   ipcMain.handle(
     'arrangements:referenced-by',
-    async (_event, workspaceRoot: string, materialKey: string): Promise<ArrangementsReferencesResult> => {
+    async (
+      _event,
+      workspaceRoot: string,
+      materialKey: string
+    ): Promise<ArrangementsReferencesResult> => {
       try {
-        return { ok: true, boardPaths: await findBoardsReferencingMaterial(workspaceRoot, materialKey) }
+        return {
+          ok: true,
+          boardPaths: await findBoardsReferencingMaterial(workspaceRoot, materialKey)
+        }
       } catch {
         return { ok: false, boardPaths: [] }
       }
@@ -232,6 +236,25 @@ export function registerAppIpc(context: MainProcessContext): void {
       }
     }
   })
+
+  ipcMain.handle(
+    'project-finder:create-folder',
+    async (
+      _event,
+      parentPath: string,
+      folderName: string
+    ): Promise<{ ok: boolean; path: string | null }> => {
+      if (!parentPath || !folderName.trim()) return { ok: false, path: null }
+      const { join } = await import('path')
+      const newPath = join(parentPath, folderName.trim())
+      try {
+        await mkdir(newPath, { recursive: true })
+        return { ok: true, path: newPath }
+      } catch {
+        return { ok: false, path: null }
+      }
+    }
+  )
 
   ipcMain.handle('app:set-language', async (_event, lang: string) => {
     await changeMainLanguage(lang)

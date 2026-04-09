@@ -124,6 +124,7 @@ type ProjectFinderDirectoryListing = {
   path: string
   parentPath: string | null
   isWorkspaceRoot: boolean
+  isInsideWorkspace: boolean
   entries: ProjectFinderDirectoryEntry[]
 }
 
@@ -158,6 +159,10 @@ declare global {
       listProjectFinderDirectory: (
         directoryPath: string
       ) => Promise<{ ok: boolean; listing: ProjectFinderDirectoryListing | null }>
+      createProjectFinderFolder: (
+        parentPath: string,
+        folderName: string
+      ) => Promise<{ ok: boolean; path: string | null }>
       readArrangements: (workspaceRoot: string) => Promise<ArrangementsReadResult>
       saveArrangements: (
         workspaceRoot: string,

@@ -170,12 +170,14 @@ const api = {
     directoryPath: string
   ): Promise<{ ok: boolean; listing: ProjectFinderDirectoryListing | null }> =>
     ipcRenderer.invoke('project-finder:list-directory', directoryPath),
+  createProjectFinderFolder: (
+    parentPath: string,
+    folderName: string
+  ): Promise<{ ok: boolean; path: string | null }> =>
+    ipcRenderer.invoke('project-finder:create-folder', parentPath, folderName),
   readArrangements: (workspaceRoot: string): Promise<ArrangementsReadResult> =>
     ipcRenderer.invoke('arrangements:read', workspaceRoot),
-  saveArrangements: (
-    workspaceRoot: string,
-    state: GardenState
-  ): Promise<ArrangementsWriteResult> =>
+  saveArrangements: (workspaceRoot: string, state: GardenState): Promise<ArrangementsWriteResult> =>
     ipcRenderer.invoke('arrangements:write', workspaceRoot, state),
   enumerateArrangementsMaterial: (workspaceRoot: string): Promise<ArrangementsEnumerateResult> =>
     ipcRenderer.invoke('arrangements:enumerate-material', workspaceRoot),

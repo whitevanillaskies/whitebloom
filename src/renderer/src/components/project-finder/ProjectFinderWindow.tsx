@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ChevronUp,
+  CornerDownLeft,
   Folder,
+  FolderPlus,
   HardDrive,
   LayoutDashboard,
   LoaderCircle,
   Plus,
   Sparkles,
+  X,
   Zap
 } from 'lucide-react'
 import { MicaWindow } from '../../mica'
-import { PetalButton } from '../petal'
 import './ProjectFinderWindow.css'
 
 export type ProjectFinderMode = 'open' | 'new-workspace'
@@ -57,6 +59,11 @@ export default function ProjectFinderWindow({
   const [isDirectoryLoading, setIsDirectoryLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isWorkspaceRoot, setIsWorkspaceRoot] = useState(false)
+  const [isInsideWorkspace, setIsInsideWorkspace] = useState(false)
+  const [workspaceName, setWorkspaceName] = useState('')
+  const [isNewFolderActive, setIsNewFolderActive] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const newFolderInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -104,6 +111,7 @@ export default function ProjectFinderWindow({
       setEntries(result.listing.entries)
       setParentPath(result.listing.parentPath)
       setIsWorkspaceRoot(result.listing.isWorkspaceRoot)
+      setIsInsideWorkspace(result.listing.isInsideWorkspace)
       setCurrentPath(result.listing.path)
       setErrorMessage(null)
       setIsDirectoryLoading(false)
@@ -116,7 +124,31 @@ export default function ProjectFinderWindow({
 
   const handleNavigate = useCallback((nextPath: string) => {
     setCurrentPath(nextPath)
+    setIsNewFolderActive(false)
+    setNewFolderName('')
   }, [])
+
+  const handleOpenNewFolder = useCallback(() => {
+    setIsNewFolderActive(true)
+    setNewFolderName('')
+    // Focus on next tick after render
+    setTimeout(() => newFolderInputRef.current?.focus(), 0)
+  }, [])
+
+  const handleCancelNewFolder = useCallback(() => {
+    setIsNewFolderActive(false)
+    setNewFolderName('')
+  }, [])
+
+  const handleConfirmNewFolder = useCallback(async () => {
+    if (!currentPath || !newFolderName.trim()) return
+    const result = await window.api.createProjectFinderFolder(currentPath, newFolderName.trim())
+    if (result.ok && result.path) {
+      setIsNewFolderActive(false)
+      setNewFolderName('')
+      setCurrentPath(result.path)
+    }
+  }, [currentPath, newFolderName])
 
   const handleActivateEntry = useCallback(
     (entry: ProjectFinderDirectoryEntry) => {
@@ -169,19 +201,109 @@ export default function ProjectFinderWindow({
     </div>
   ) : (
     <div className="project-finder__content">
-      <div className="project-finder__toolbar">
-        <button
-          type="button"
-          className="project-finder__toolbar-button"
-          onClick={() => parentPath && handleNavigate(parentPath)}
-          disabled={!parentPath || isDirectoryLoading}
-        >
-          <ChevronUp size={14} strokeWidth={1.8} />
-          Up
-        </button>
-        <div className="project-finder__pathbar" title={currentPath ?? ''}>
-          {currentPath ?? ''}
+      <div className="project-finder__nav">
+        <div className="project-finder__toolbar">
+          <button
+            type="button"
+            className="project-finder__toolbar-button"
+            onClick={() => parentPath && handleNavigate(parentPath)}
+            disabled={!parentPath || isDirectoryLoading}
+          >
+            <ChevronUp size={14} strokeWidth={1.8} />
+            Up
+          </button>
+          <div className="project-finder__pathbar" title={currentPath ?? ''}>
+            {currentPath ?? ''}
+          </div>
+          <button
+            type="button"
+            className="project-finder__toolbar-button"
+            onClick={handleOpenNewFolder}
+            disabled={isDirectoryLoading || busy || isNewFolderActive}
+            title="New Folder"
+            aria-label="New Folder"
+          >
+            <FolderPlus size={14} strokeWidth={1.8} />
+          </button>
         </div>
+
+        {isCreateMode && (
+          <div className="project-finder__name-row">
+            <input
+              className="project-finder__name-input"
+              type="text"
+              placeholder="New workspace name…"
+              value={workspaceName}
+              onChange={(e) => setWorkspaceName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return
+                if (!currentPath || !workspaceName.trim() || isWorkspaceRoot || isInsideWorkspace || isDirectoryLoading || busy) return
+                const sep = currentPath.endsWith('/') || currentPath.endsWith('\\') ? '' : '/'
+                onCreateWorkspaceAtPath(currentPath + sep + workspaceName.trim())
+              }}
+              disabled={isWorkspaceRoot || isInsideWorkspace || busy}
+              autoFocus
+              aria-label="New workspace name"
+            />
+            <button
+              type="button"
+              className="project-finder__toolbar-button"
+              onClick={() => {
+                if (!currentPath || !workspaceName.trim()) return
+                const sep = currentPath.endsWith('/') || currentPath.endsWith('\\') ? '' : '/'
+                onCreateWorkspaceAtPath(currentPath + sep + workspaceName.trim())
+              }}
+              disabled={!currentPath || !workspaceName.trim() || isWorkspaceRoot || isInsideWorkspace || isDirectoryLoading || busy}
+              aria-label="Confirm create workspace"
+              title="Create workspace"
+            >
+              <CornerDownLeft size={14} strokeWidth={1.8} />
+            </button>
+            {(isWorkspaceRoot || isInsideWorkspace) && (
+              <span className="project-finder__nav-note">
+                {isWorkspaceRoot ? 'Already a workspace.' : 'Inside a workspace.'}
+              </span>
+            )}
+          </div>
+        )}
+
+        {isNewFolderActive && (
+          <div className="project-finder__name-row">
+            <input
+              ref={newFolderInputRef}
+              className="project-finder__name-input"
+              type="text"
+              placeholder="New folder name…"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleConfirmNewFolder()
+                if (e.key === 'Escape') handleCancelNewFolder()
+              }}
+              disabled={busy}
+              aria-label="New folder name"
+            />
+            <button
+              type="button"
+              className="project-finder__toolbar-button"
+              onClick={() => void handleConfirmNewFolder()}
+              disabled={!newFolderName.trim() || busy}
+              aria-label="Confirm new folder"
+              title="Create folder"
+            >
+              <CornerDownLeft size={14} strokeWidth={1.8} />
+            </button>
+            <button
+              type="button"
+              className="project-finder__toolbar-button"
+              onClick={handleCancelNewFolder}
+              aria-label="Cancel new folder"
+              title="Cancel"
+            >
+              <X size={14} strokeWidth={1.8} />
+            </button>
+          </div>
+        )}
       </div>
 
       {errorMessage ? (
@@ -238,28 +360,6 @@ export default function ProjectFinderWindow({
           })}
         </div>
       )}
-
-      <div className="project-finder__footer">
-        {isCreateMode ? (
-          <div className="project-finder__footer-actions">
-            <span className="project-finder__footer-note">
-              {isWorkspaceRoot
-                ? 'This folder is already a workspace.'
-                : ''}
-            </span>
-            <PetalButton
-              onClick={() => currentPath && onCreateWorkspaceAtPath(currentPath)}
-              disabled={!currentPath || isWorkspaceRoot || isDirectoryLoading || busy}
-            >
-              <Plus size={14} strokeWidth={1.9} />
-              Create Workspace Here
-            </PetalButton>
-          </div>
-        ) : (
-          <span className="project-finder__footer-note">
-          </span>
-        )}
-      </div>
     </div>
   )
 
