@@ -78,6 +78,15 @@
   flex-shrink: 0;
 }
 
+.canvas-toolbar__swatch--transparent {
+  background:
+    linear-gradient(135deg, transparent 44%, rgba(43, 43, 43, 0.55) 44%, rgba(43, 43, 43, 0.55) 56%, transparent 56%),
+    linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.04) 75%),
+    linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.04) 75%);
+  background-position: 0 0, 0 0, 4px 4px;
+  background-size: 100% 100%, 8px 8px, 8px 8px;
+}
+
 /* ── Separator ───────────────────────────────────────────────────────── */
 /* Thin vertical divider between button groups within a toolbar. */
 

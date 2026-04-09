@@ -189,7 +189,17 @@
     "italicLabel": "Cursiva"
   },
   "edgeToolbar": {
-    "styleLabel": "Estilo de conexión"
+    "styleLabel": "Estilo de conexión",
+    "strokeLabel": "Estilo del trazo",
+    "colorLabel": "Color del trazo",
+    "startMarkerLabel": "Alternar flecha inicial",
+    "endMarkerLabel": "Alternar flecha final"
+  },
+  "shapeToolbar": {
+    "strokeLabel": "Grosor del trazo",
+    "strokeColorLabel": "Color del trazo",
+    "fillColorLabel": "Color de relleno",
+    "transparentFillLabel": "Sin relleno"
   },
   "nodeResizeHandles": {
     "topLeftAria": "Redimensionar desde arriba a la izquierda",

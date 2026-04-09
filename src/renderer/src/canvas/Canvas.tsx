@@ -13,7 +13,8 @@ import {
   applyEdgeChanges,
   Panel,
   useReactFlow,
-  MiniMap
+  MiniMap,
+  MarkerType as RFMarkerType,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useTranslation } from 'react-i18next'
@@ -29,6 +30,7 @@ import { ProximityTracker } from './ProximityTracker'
 import { WbEdge } from './WbEdge'
 import type { WbEdgeData } from './WbEdge'
 import { EdgeToolbar } from './EdgeToolbar'
+import { ShapeToolbar } from './ShapeToolbar'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import '../modules/index'
@@ -59,14 +61,18 @@ import type {
   BoardViewport,
   ClusterNode as BoardClusterNode
 } from '@renderer/shared/types'
-import { makeLexicalContent } from '@renderer/shared/types'
-import { lexicalContentToPlainText } from '@renderer/shared/types'
-import { isClusterNode } from '@renderer/shared/types'
-import { isShapeLeafNode } from '@renderer/shared/types'
-import { isTextLeafNode } from '@renderer/shared/types'
+import {
+  makeLexicalContent,
+  lexicalContentToPlainText,
+  isClusterNode,
+  isShapeLeafNode,
+  isTextLeafNode,
+  DEFAULT_SHAPE_STYLE,
+  normalizeEdgeStyle,
+} from '@renderer/shared/types'
 import type { ShapePreset } from '@renderer/shared/types'
-import { DEFAULT_SHAPE_STYLE } from '@renderer/shared/types'
 import { getShapePresetDefinition } from './shapePresets'
+import { resolveCanvasMarkerColor } from './vectorStyles'
 import type { Tool } from './tools'
 import { captureBoardThumbnail } from './captureBoardThumbnail'
 import { planClusterPromotion } from '@renderer/stores/board'
@@ -121,6 +127,23 @@ type ExternalResourceInput = {
   fileName: string
   file?: File
   preferredBehavior?: 'link' | 'import'
+}
+
+function buildReactFlowMarker(
+  markerKind: 'none' | 'arrow',
+  color: string,
+  strokeWidth: number
+): RFEdge['markerEnd'] | undefined {
+  if (markerKind === 'none') return undefined
+
+  const markerSize = Math.max(12, Math.round(strokeWidth * 8))
+  return {
+    type: RFMarkerType.ArrowClosed,
+    color,
+    width: markerSize,
+    height: markerSize,
+    strokeWidth: Math.max(1, strokeWidth)
+  }
 }
 
 function getRenderedNodeBounds(
@@ -791,6 +814,9 @@ export function Canvas({
           targetClusterId !== null &&
           sourceClusterId === targetClusterId
 
+        const edgeStyle = normalizeEdgeStyle(e)
+        const markerColor = resolveCanvasMarkerColor(edgeStyle.stroke.color)
+
         return {
           id: e.id,
           source: e.from,
@@ -800,7 +826,9 @@ export function Canvas({
           type: 'wb',
           label: e.label,
           zIndex: isFullyInternal ? INTERNAL_CLUSTER_EDGE_Z_INDEX : CLUSTER_EDGE_Z_INDEX,
-          data: { style: e.style, color: e.color } satisfies WbEdgeData,
+          markerEnd: buildReactFlowMarker(edgeStyle.endMarker, markerColor, edgeStyle.stroke.width),
+          markerStart: buildReactFlowMarker(edgeStyle.startMarker, markerColor, edgeStyle.stroke.width),
+          data: { normalizedStyle: edgeStyle } satisfies WbEdgeData,
         }
       }),
     [boardEdges, owningClusterByNodeId]
@@ -813,6 +841,30 @@ export function Canvas({
       return schemaEdges.map((e) => ({ ...e, selected: selectedIds.has(e.id) }))
     })
   }, [schemaEdges])
+
+  const handleSelectionChange = useCallback(
+    ({ nodes: selectedNodes, edges: selectedEdges }: { nodes: RFNode[]; edges: RFEdge[] }) => {
+      const selectedNodeIds = new Set(selectedNodes.map((node) => node.id))
+      const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id))
+
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.selected === selectedNodeIds.has(node.id)
+            ? node
+            : { ...node, selected: selectedNodeIds.has(node.id) }
+        )
+      )
+
+      setEdges((currentEdges) =>
+        currentEdges.map((edge) =>
+          edge.selected === selectedEdgeIds.has(edge.id)
+            ? edge
+            : { ...edge, selected: selectedEdgeIds.has(edge.id) }
+        )
+      )
+    },
+    []
+  )
 
   const singleSelectedNodeId = useMemo(() => {
     const selected = nodes.filter((n) => n.selected)
@@ -2366,6 +2418,7 @@ export function Canvas({
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onSelectionChange={handleSelectionChange}
         onConnect={onConnect}
         onPaneClick={onPaneClick}
         onDragOver={onDragOver}
@@ -2424,7 +2477,11 @@ export function Canvas({
       )}
 
       {activeBloom === null && (
-        <EdgeToolbar edges={edges} />
+        <EdgeToolbar nodes={nodes} edges={edges} />
+      )}
+
+      {activeBloom === null && (
+        <ShapeToolbar nodes={nodes} edges={edges} />
       )}
 
       {settingsOpen && (

@@ -2,13 +2,15 @@
   font-family: "DM Sans", sans-serif;
   font-size: 11px;
   font-weight: 500;
-  line-height: 1;
-  padding: 3px 6px;
-  background: var(--color-primary-bg);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-border-inner);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  line-height: 1.1;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   white-space: nowrap;
   pointer-events: all;
   cursor: default;
+  user-select: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
 }

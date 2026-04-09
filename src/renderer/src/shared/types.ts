@@ -25,14 +25,19 @@ export type VectorColorToken =
 
 export type TokenColorValue = { kind: 'token'; value: VectorColorToken }
 export type CustomColorValue = { kind: 'custom'; value: string }
+/** Reference to a swatch in a named palette. Resolves to the swatch's literal color at render time. */
+export type SwatchColorValue = { kind: 'swatch'; paletteId: string; swatchId: string }
 
 /**
- * Supports both theme-bound colors and hardcoded custom values.
- * This is intentionally reusable across node fills, node strokes, and edge strokes.
+ * Three-source canvas color model:
+ * - token: semantic theme variable (always available, adapts to theme)
+ * - swatch: palette-scoped reference (resolves via palette registry)
+ * - custom: arbitrary literal color chosen by the user
  */
 export type ColorValue =
   | TokenColorValue
   | CustomColorValue
+  | SwatchColorValue
 
 export type StrokeStyle = {
   width: number
@@ -58,11 +63,21 @@ export type FilledElementStyle = {
 export type FilledStrokedElementStyle = StrokedElementStyle & FilledElementStyle
 
 /**
- * Shared edge-facing stroke contract. Edges do not use fill, but they should
- * eventually follow the same stroke-width and color representation as shapes.
+ * Stroke contract for edges. Dash is required (not optional) when used inside EdgeStyle.
  */
 export type EdgeStrokeStyle = StrokeStyle & {
-  dash?: 'solid' | 'dashed' | 'dotted'
+  dash: 'solid' | 'dashed' | 'dotted'
+}
+
+/** End-point marker kind for directed edges. */
+export type EdgeMarkerKind = 'none' | 'arrow'
+
+/** Fully structured edge appearance model — replaces the legacy flat style/color fields. */
+export type EdgeStyle = {
+  stroke: EdgeStrokeStyle
+  startMarker: EdgeMarkerKind
+  endMarker: EdgeMarkerKind
+  labelColor: ColorValue
 }
 
 export type ShapeStyle = FilledStrokedElementStyle
@@ -84,6 +99,72 @@ export const DEFAULT_CANVAS_TEXT: TextStyle = {
 export const DEFAULT_SHAPE_STYLE: FilledStrokedElementStyle = {
   stroke: DEFAULT_SHAPE_STROKE,
   fill: DEFAULT_SHAPE_FILL
+}
+
+export const DEFAULT_EDGE_STROKE_WIDTH = 1.5
+export const DEFAULT_EDGE_STROKE: EdgeStrokeStyle = {
+  width: DEFAULT_EDGE_STROKE_WIDTH,
+  color: { kind: 'token', value: 'foreground' },
+  dash: 'solid',
+}
+
+export const DEFAULT_EDGE_STYLE: EdgeStyle = {
+  stroke: DEFAULT_EDGE_STROKE,
+  startMarker: 'none',
+  endMarker: 'arrow',
+  labelColor: { kind: 'token', value: 'foreground' },
+}
+
+/**
+ * Normalize a BoardEdge into a complete EdgeStyle.
+ * Handles both new boards (edgeStyle present) and legacy boards (flat style/color fields).
+ */
+export function normalizeEdgeStyle(
+  edge: Pick<BoardEdge, 'style' | 'color' | 'edgeStyle'>
+): EdgeStyle {
+  if (edge.edgeStyle) {
+    return mergeEdgeStyle(DEFAULT_EDGE_STYLE, edge.edgeStyle)
+  }
+  const stroke: EdgeStrokeStyle = { ...DEFAULT_EDGE_STROKE }
+  if (edge.color) stroke.color = { kind: 'custom', value: edge.color }
+  if (edge.style === 'dashed') stroke.dash = 'dashed'
+  else if (edge.style === 'dotted') stroke.dash = 'dotted'
+  return { ...DEFAULT_EDGE_STYLE, stroke }
+}
+
+/**
+ * Merge a partial ShapeStyle patch onto a complete base style.
+ * Nested stroke/fill fields are merged structurally so callers can patch
+ * width or color independently without rebuilding the full style object.
+ */
+export function mergeShapeStyle(base: ShapeStyle, patch: Partial<ShapeStyle>): ShapeStyle {
+  return {
+    stroke: {
+      ...base.stroke,
+      ...(patch.stroke ?? {})
+    },
+    fill: {
+      ...base.fill,
+      ...(patch.fill ?? {})
+    }
+  }
+}
+
+/**
+ * Merge a partial EdgeStyle patch onto a complete base style.
+ * Nested stroke fields are merged structurally so callers can patch dash,
+ * width, or color independently without rebuilding the whole object.
+ */
+export function mergeEdgeStyle(base: EdgeStyle, patch: Partial<EdgeStyle>): EdgeStyle {
+  return {
+    stroke: {
+      ...base.stroke,
+      ...(patch.stroke ?? {})
+    },
+    startMarker: patch.startMarker ?? base.startMarker,
+    endMarker: patch.endMarker ?? base.endMarker,
+    labelColor: patch.labelColor ?? base.labelColor
+  }
 }
 
 export function tokenColor(value: VectorColorToken): TokenColorValue {
@@ -172,8 +253,12 @@ export type BoardEdge = {
   sourceHandle?: string | null
   targetHandle?: string | null
   label?: string
+  /** @deprecated Use edgeStyle.stroke.dash instead. Kept for backward compat with legacy boards. */
   style?: 'solid' | 'dashed' | 'dotted'
+  /** @deprecated Use edgeStyle.stroke.color instead. Kept for backward compat with legacy boards. */
   color?: string
+  /** Structured edge appearance. Takes precedence over legacy style/color when present. */
+  edgeStyle?: EdgeStyle
 }
 
 export type BoardViewport = { x: number; y: number; zoom: number }

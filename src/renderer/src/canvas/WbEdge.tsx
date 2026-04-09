@@ -1,20 +1,19 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
-import type { BoardEdge } from '@renderer/shared/types'
+import type { EdgeStyle } from '@renderer/shared/types'
 import {
   getSvgStrokeProps,
   resolveCanvasStrokeColor,
-  resolveCanvasTextColor
+  resolveCanvasTextColor,
 } from './vectorStyles'
 import './WbEdge.css'
 
 export type WbEdgeData = {
-  style?: BoardEdge['style']
-  color?: BoardEdge['color']
+  normalizedStyle: EdgeStyle
 }
 
-function resolveDashArray(style: BoardEdge['style']): string | undefined {
-  if (style === 'dashed') return '8 4'
-  if (style === 'dotted') return '2 4'
+function resolveDashArray(dash: EdgeStyle['stroke']['dash']): string | undefined {
+  if (dash === 'dashed') return '8 4'
+  if (dash === 'dotted') return '2 4'
   return undefined
 }
 
@@ -31,6 +30,7 @@ export function WbEdge({
   selected,
 }: EdgeProps) {
   const edgeData = (data ?? {}) as WbEdgeData
+  const edgeStyle = edgeData.normalizedStyle
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -41,10 +41,14 @@ export function WbEdge({
     targetPosition,
   })
 
-  const strokeWidth = selected ? 2 : 1.5
-  const stroke = resolveCanvasStrokeColor(edgeData.color, 'var(--color-secondary-fg)')
-  const labelColor = resolveCanvasTextColor(edgeData.color, 'var(--color-primary-fg)')
-  const strokeDasharray = resolveDashArray(edgeData.style)
+  // Widen slightly when selected so selection state is visually clear
+  const strokeWidth = selected
+    ? Math.max(edgeStyle.stroke.width + 0.5, 2)
+    : edgeStyle.stroke.width
+
+  const stroke = resolveCanvasStrokeColor(edgeStyle.stroke.color, 'var(--color-secondary-fg)')
+  const labelColor = resolveCanvasTextColor(edgeStyle.labelColor)
+  const strokeDasharray = resolveDashArray(edgeStyle.stroke.dash)
 
   return (
     <>

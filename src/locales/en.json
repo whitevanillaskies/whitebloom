@@ -189,7 +189,17 @@
     "italicLabel": "Italic"
   },
   "edgeToolbar": {
-    "styleLabel": "Edge style"
+    "styleLabel": "Edge style",
+    "strokeLabel": "Stroke style",
+    "colorLabel": "Stroke color",
+    "startMarkerLabel": "Toggle start arrow",
+    "endMarkerLabel": "Toggle end arrow"
+  },
+  "shapeToolbar": {
+    "strokeLabel": "Stroke width",
+    "strokeColorLabel": "Stroke color",
+    "fillColorLabel": "Fill color",
+    "transparentFillLabel": "No fill"
   },
   "nodeResizeHandles": {
     "topLeftAria": "Resize from top left",

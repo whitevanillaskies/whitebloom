@@ -1,5 +1,6 @@
 import { DEFAULT_CANVAS_TEXT } from '@renderer/shared/types'
 import type { ColorValue, VectorColorToken } from '@renderer/shared/types'
+import { resolveSwatchColor } from './palette'
 
 const VECTOR_COLOR_TOKENS: Record<VectorColorToken, string> = {
   blue: 'var(--color-accent-blue)',
@@ -38,6 +39,7 @@ export function resolveVectorColor(
   }
 
   if (color.kind === 'custom') return color.value
+  if (color.kind === 'swatch') return resolveSwatchColor(color.paletteId, color.swatchId) ?? fallback
   return VECTOR_COLOR_TOKENS[color.value] ?? fallback
 }
 

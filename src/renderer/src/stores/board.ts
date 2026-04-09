@@ -8,7 +8,13 @@ import {
   type ClusterNode,
   type BoardViewport,
   type WidthMode,
-  isClusterNode
+  type EdgeStyle,
+  type ShapeStyle,
+  mergeEdgeStyle,
+  mergeShapeStyle,
+  normalizeEdgeStyle,
+  isClusterNode,
+  isShapeLeafNode
 } from '@renderer/shared/types'
 import { DEFAULT_USERNAME, normalizeUsername } from '../../../shared/app-settings'
 
@@ -45,7 +51,10 @@ type BoardState = Board & {
   deleteNodes: (ids: string[]) => void
   addEdge: (edge: BoardEdge) => void
   deleteEdge: (id: string) => void
-  updateEdge: (id: string, patch: Partial<Pick<BoardEdge, 'style' | 'color' | 'from' | 'to' | 'label'>>) => void
+  updateEdge: (id: string, patch: Partial<Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'label'>>) => void
+  updateEdgeStyle: (id: string, edgeStyle: EdgeStyle) => void
+  patchEdgeStyles: (ids: string[], patch: Partial<EdgeStyle>) => void
+  patchShapeStyles: (ids: string[], patch: Partial<ShapeStyle>) => void
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
@@ -447,6 +456,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         if (
           next.style === e.style &&
           next.color === e.color &&
+          next.edgeStyle === e.edgeStyle &&
           next.from === e.from &&
           next.to === e.to &&
           next.label === e.label
@@ -455,6 +465,65 @@ export const useBoardStore = create<BoardState>((set) => ({
         return next
       })
       return changed ? { edges, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  updateEdgeStyle: (id, edgeStyle) =>
+    set((state) => {
+      let changed = false
+      const edges = state.edges.map((e) => {
+        if (e.id !== id || e.edgeStyle === edgeStyle) return e
+        changed = true
+        return { ...e, edgeStyle }
+      })
+      return changed ? { edges, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  patchEdgeStyles: (ids, patch) =>
+    set((state) => {
+      if (ids.length === 0) return state
+
+      const idSet = new Set(ids)
+      let changed = false
+      const edges = state.edges.map((edge) => {
+        if (!idSet.has(edge.id)) return edge
+
+        const baseStyle = normalizeEdgeStyle(edge)
+        const nextStyle = mergeEdgeStyle(baseStyle, patch)
+        if (JSON.stringify(nextStyle) === JSON.stringify(edge.edgeStyle ?? baseStyle)) return edge
+
+        changed = true
+        return { ...edge, edgeStyle: nextStyle }
+      })
+
+      return changed ? { edges, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  patchShapeStyles: (ids, patch) =>
+    set((state) => {
+      if (ids.length === 0) return state
+
+      const idSet = new Set(ids)
+      let changed = false
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+
+      const nodes = state.nodes.map((node) => {
+        if (!idSet.has(node.id) || !isShapeLeafNode(node)) return node
+
+        const nextStyle = mergeShapeStyle(node.shape.style, patch)
+        if (JSON.stringify(nextStyle) === JSON.stringify(node.shape.style)) return node
+
+        changed = true
+        return {
+          ...touchNode(node, timestamp, username),
+          shape: {
+            ...node.shape,
+            style: nextStyle
+          }
+        }
+      })
+
+      return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
   updateNodePosition: (id, x, y) =>

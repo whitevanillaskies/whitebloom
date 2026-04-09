@@ -20,8 +20,8 @@ export type ShapeNodeData = {
 }
 
 function renderShapePrimitive(primitive: ShapePrimitive, index: number) {
+  const key = `${primitive.kind}-${index}`
   const commonProps = {
-    key: `${primitive.kind}-${index}`,
     fill: primitive.fill,
     stroke: primitive.stroke,
     ...getSvgStrokeProps(primitive.strokeWidth)
@@ -30,6 +30,7 @@ function renderShapePrimitive(primitive: ShapePrimitive, index: number) {
   if (primitive.kind === 'rect') {
     return (
       <rect
+        key={key}
         {...commonProps}
         x={primitive.x}
         y={primitive.y}
@@ -44,6 +45,7 @@ function renderShapePrimitive(primitive: ShapePrimitive, index: number) {
   if (primitive.kind === 'ellipse') {
     return (
       <ellipse
+        key={key}
         {...commonProps}
         cx={primitive.cx}
         cy={primitive.cy}
@@ -56,6 +58,7 @@ function renderShapePrimitive(primitive: ShapePrimitive, index: number) {
   if (primitive.kind === 'polygon') {
     return (
       <polygon
+        key={key}
         {...commonProps}
         points={primitive.points}
       />
@@ -64,6 +67,7 @@ function renderShapePrimitive(primitive: ShapePrimitive, index: number) {
 
   return (
     <path
+      key={key}
       {...commonProps}
       d={primitive.d}
     />

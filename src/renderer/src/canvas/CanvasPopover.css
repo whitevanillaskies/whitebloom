@@ -1,0 +1,144 @@
+/* ── Control wrapper ─────────────────────────────────────────────────────────
+   Wraps a toolbar button + its optional popover.
+   position:relative establishes the containing block for the popover. */
+
+.canvas-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Popover shell ───────────────────────────────────────────────────────────
+   Same glass surface language as the toolbar itself, sized for panel content.
+   Positioned above the control by default. */
+
+.canvas-popover {
+  position: fixed;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.66));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(3px) saturate(140%);
+  /* -webkit-backdrop-filter: blur(16px) saturate(140%); */
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 1001;
+  user-select: none;
+  white-space: nowrap;
+  isolation: isolate;
+}
+
+/* ── Shared popover internals ────────────────────────────────────────────────*/
+
+.canvas-popover__sep {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 6px 0;
+}
+
+.canvas-popover__label {
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-fg);
+  margin-bottom: 4px;
+}
+
+/* ── Color picker ────────────────────────────────────────────────────────────*/
+
+.canvas-color-picker {
+  width: 140px;
+}
+
+.canvas-color-picker__palette-name {
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted-fg);
+  margin-bottom: 6px;
+}
+
+.canvas-color-picker__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.canvas-color-picker__swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-border-inner);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 80ms ease;
+}
+
+.canvas-color-picker__swatch:hover {
+  transform: scale(1.1);
+}
+
+.canvas-color-picker__swatch--selected {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 1), 0 0 0 3.5px rgba(0, 0, 0, 0.45);
+}
+
+.canvas-color-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 2px;
+  border-radius: var(--radius-border-inner);
+  cursor: pointer;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.canvas-color-picker__option:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.canvas-color-picker__custom-label {
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  color: var(--color-secondary-fg);
+  flex: 1;
+}
+
+.canvas-color-picker__custom-input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+}
+
+.canvas-color-picker__custom-input::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.canvas-color-picker__custom-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+/* ── Stroke picker ───────────────────────────────────────────────────────────*/
+
+.canvas-stroke-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.canvas-stroke-picker__row {
+  display: flex;
+  gap: 2px;
+}
