@@ -372,27 +372,6 @@
       "plain": "Canvas Features\nDon't cut words on icon labels, probably. Extend up to a certain character limit and add ... if needed?"
     },
     {
-      "id": "3c23b58c-b477-4ff7-a1a2-9fe888d16d5d",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 3034.689148028367,
-        "y": 752.1803688607032
-      },
-      "size": {
-        "w": 306,
-        "h": 93
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 306,
-      "created": "2026-04-08T15:18:48.050Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:08:11.448Z",
-      "updatedBy": "anon",
-      "plain": "There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that"
-    },
-    {
       "id": "18ac0d38-e041-4442-9d0a-d84d5ddd8c98",
       "kind": "leaf",
       "type": "text",
@@ -705,8 +684,8 @@
     }
   ],
   "viewport": {
-    "x": -1066.12722282938,
-    "y": -243.82336152393782,
-    "zoom": 0.574349177498518
+    "x": -1169.5214556708925,
+    "y": -406.03571499399504,
+    "zoom": 0.7578582832552002
   }
 }

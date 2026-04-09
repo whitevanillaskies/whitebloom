@@ -173,8 +173,7 @@ function App(): React.JSX.Element {
     boardTransient,
     buildBoardSnapshot,
     markSaved,
-    setBoardPersistence,
-    workspaceRoot
+    setBoardPersistence
   ])
 
   const captureCurrentBoardThumbnailOnClose = useCallback(async (): Promise<void> => {

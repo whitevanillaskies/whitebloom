@@ -489,6 +489,7 @@ export function Canvas({
   const setBoardPersistence = useBoardStore((s) => s.setBoardPersistence)
   const updateBoardMeta = useBoardStore((s) => s.updateBoardMeta)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
+  const workspaceConfig = useWorkspaceStore((s) => s.config)
   const workspaceBoards = useWorkspaceStore((s) => s.boards)
   const loadWorkspace = useWorkspaceStore((s) => s.loadWorkspace)
   const addWorkspaceBoard = useWorkspaceStore((s) => s.addBoard)
@@ -1275,7 +1276,7 @@ export function Canvas({
     if (result.ok) {
       markSaved()
     }
-  }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence, workspaceRoot])
+  }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence])
 
 
   const handlePromoteToWorkspace = useCallback(async () => {
@@ -2408,6 +2409,7 @@ export function Canvas({
               <BoardContextBar
                 name={boardName}
                 workspaceRoot={workspaceRoot}
+                workspaceName={workspaceConfig?.name}
                 isDirty={isDirty}
                 onNameChange={(name) => updateBoardMeta({ name })}
                 onSave={() => void handleSave()}

@@ -7,6 +7,7 @@ import './BoardContextBar.css'
 type BoardContextBarProps = {
   name: string | undefined
   workspaceRoot: string | null
+  workspaceName?: string
   isDirty: boolean
   onNameChange: (name: string) => void
   onSave: () => void
@@ -25,6 +26,7 @@ function getWorkspaceName(root: string): string {
 export default function BoardContextBar({
   name,
   workspaceRoot,
+  workspaceName,
   isDirty,
   onNameChange,
   onSave,
@@ -42,6 +44,8 @@ export default function BoardContextBar({
   const displayName = name?.trim() || t('boardContextBar.untitledPlaceholder')
   const isUntitled = !name?.trim()
   const isWorkspace = workspaceRoot !== null
+  const displayWorkspaceName =
+    workspaceName?.trim() || (workspaceRoot ? getWorkspaceName(workspaceRoot) : 'Workspace')
 
   const startEditing = () => {
     setDraft(name ?? '')
@@ -82,7 +86,7 @@ export default function BoardContextBar({
           className="board-context-bar__identity--workspace"
           onClick={onGoToWorkspaceHome}
         >
-          {getWorkspaceName(workspaceRoot)}
+          {displayWorkspaceName}
         </button>
       ) : (
         <span className="board-context-bar__identity--quickboard">

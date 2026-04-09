@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInternalNode, useStore, useUpdateNodeInternals, useViewport } from '@xyflow/react'
 import { createPlayer } from '@videojs/react'
 import { Video, VideoSkin, videoFeatures } from '@videojs/react/video'
@@ -16,6 +16,15 @@ const videoPlayer = createPlayer({
   displayName: 'WhitebloomVideoPlayer'
 })
 
+let activeVideoElement: HTMLVideoElement | null = null
+
+function setActiveVideoElement(nextVideo: HTMLVideoElement | null): void {
+  if (activeVideoElement && activeVideoElement !== nextVideo) {
+    activeVideoElement.pause()
+  }
+  activeVideoElement = nextVideo
+}
+
 export function VideoNodeComponent({ id, resource, size, selected, dragging, onBloom }: BudNodeProps) {
   const internalNode = useInternalNode(id)
   const positionAbsoluteX = internalNode?.internals.positionAbsolute.x ?? 0
@@ -31,6 +40,7 @@ export function VideoNodeComponent({ id, resource, size, selected, dragging, onB
   const [isVisible, setIsVisible] = useState(true)
   const [localSize, setLocalSize] = useState({ w: size.w, h: size.h })
   const [videoSrc, setVideoSrc] = useState('')
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     try {
@@ -73,6 +83,26 @@ export function VideoNodeComponent({ id, resource, size, selected, dragging, onB
   }, [isResizing, size.w, size.h])
 
   useEffect(() => {
+    if (isVisible) return
+
+    const video = videoRef.current
+    if (!video) return
+    video.pause()
+
+    if (activeVideoElement === video) {
+      activeVideoElement = null
+    }
+  }, [isVisible])
+
+  useEffect(() => {
+    return () => {
+      if (activeVideoElement === videoRef.current) {
+        activeVideoElement = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     updateNodeInternals(id)
   }, [id, localSize.h, localSize.w, updateNodeInternals])
 
@@ -110,9 +140,16 @@ export function VideoNodeComponent({ id, resource, size, selected, dragging, onB
               <VideoSkin className="video-node__player nodrag nopan">
                 <Video
                   key={videoSrc}
+                  ref={videoRef}
                   src={videoSrc}
                   preload="metadata"
                   playsInline
+                  onPlay={(event) => setActiveVideoElement(event.currentTarget)}
+                  onPause={(event) => {
+                    if (activeVideoElement === event.currentTarget) {
+                      activeVideoElement = null
+                    }
+                  }}
                   onDoubleClick={(e) => { e.stopPropagation(); onBloom() }}
                 />
               </VideoSkin>
