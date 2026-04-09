@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Handle, Position, type NodeProps, useInternalNode, useUpdateNodeInternals } from '@xyflow/react'
 import type { ShapeNodeData as PersistedShapeNodeData, Size } from '@renderer/shared/types'
 import { useBoardStore } from '@renderer/stores/board'
@@ -86,13 +86,19 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   const preset = getShapePresetDefinition(shapeData.shape.preset)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
+  const updateNodeLabel = useBoardStore((s) => s.updateNodeLabel)
   const updateNodeInternals = useUpdateNodeInternals()
   const [localSize, setLocalSize] = useState({ w: shapeData.size.w, h: shapeData.size.h })
+  const [editing, setEditing] = useState(false)
+  const [draftLabel, setDraftLabel] = useState(shapeData.label ?? '')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const finishModeRef = useRef<'commit' | 'cancel'>('commit')
   const stroke = resolveCanvasStrokeColor(shapeData.shape.style.stroke.color, 'var(--color-primary-fg)')
   const fill = resolveCanvasFillColor(shapeData.shape.style.fill.color, 'transparent')
   const labelColor = resolveCanvasTextColor()
   const strokeWidth = shapeData.shape.style.stroke.width
   const keepAspectRatio = !supportsNonUniformScale(shapeData.shape.preset)
+  const label = shapeData.label?.trim()
 
   const handleResizePreview = useCallback(
     ({ position, size: nextSize }: { position: { x: number; y: number }; size: { w: number; h: number } }) => {
@@ -127,8 +133,51 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   }, [isResizing, shapeData.size.h, shapeData.size.w])
 
   useEffect(() => {
+    if (editing) return
+    setDraftLabel(shapeData.label ?? '')
+  }, [editing, shapeData.label])
+
+  useEffect(() => {
+    if (!editing) return
+    const frame = window.requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [editing])
+
+  useEffect(() => {
     updateNodeInternals(id)
   }, [id, localSize.h, localSize.w, updateNodeInternals])
+
+  const startEditing = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (isResizing) return
+    event.stopPropagation()
+    finishModeRef.current = 'commit'
+    setDraftLabel(shapeData.label ?? '')
+    setEditing(true)
+  }, [isResizing, shapeData.label])
+
+  const commitEditing = useCallback(() => {
+    setEditing(false)
+    updateNodeLabel(id, draftLabel)
+  }, [draftLabel, id, updateNodeLabel])
+
+  const cancelEditing = useCallback(() => {
+    setEditing(false)
+    setDraftLabel(shapeData.label ?? '')
+  }, [shapeData.label])
+
+  const finishEditing = useCallback((mode: 'commit' | 'cancel') => {
+    finishModeRef.current = mode
+    if (mode === 'commit') {
+      commitEditing()
+      return
+    }
+
+    cancelEditing()
+  }, [cancelEditing, commitEditing])
 
   const labelBox = preset.getLabelBox({
     width: localSize.w,
@@ -153,11 +202,12 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   return (
     <>
       <div
-        className={`shape-node${selected ? ' shape-node--selected' : ''}${isResizing ? ' shape-node--resizing nodrag nopan' : ''}`}
+        className={`shape-node${selected ? ' shape-node--selected' : ''}${isResizing ? ' shape-node--resizing nodrag nopan' : ''}${editing ? ' shape-node--editing nodrag nopan' : ''}`}
         style={{
           width: localSize.w,
           height: localSize.h
         }}
+        onDoubleClick={startEditing}
       >
         <svg
           className="shape-node__svg"
@@ -169,18 +219,55 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
           {primitives.map((primitive, index) => renderShapePrimitive(primitive, index))}
         </svg>
 
-        <div
-          className="shape-node__label"
-          style={{
-            left: labelBox.x,
-            top: labelBox.y,
-            width: labelBox.width,
-            height: labelBox.height,
-            color: labelColor
-          }}
-        >
-          {shapeData.label?.trim() || preset.displayName}
-        </div>
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="shape-node__label-input nodrag nopan"
+            style={{
+              left: labelBox.x,
+              top: labelBox.y,
+              width: labelBox.width,
+              height: labelBox.height,
+              color: labelColor
+            }}
+            value={draftLabel}
+            onChange={(event) => setDraftLabel(event.target.value)}
+            onBlur={() => {
+              const nextMode = finishModeRef.current
+              finishModeRef.current = 'commit'
+              if (nextMode === 'cancel') {
+                cancelEditing()
+                return
+              }
+
+              commitEditing()
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                finishEditing('commit')
+              } else if (event.key === 'Escape') {
+                event.preventDefault()
+                finishEditing('cancel')
+              }
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          />
+        ) : label ? (
+          <div
+            className="shape-node__label"
+            style={{
+              left: labelBox.x,
+              top: labelBox.y,
+              width: labelBox.width,
+              height: labelBox.height,
+              color: labelColor
+            }}
+          >
+            {label}
+          </div>
+        ) : null}
       </div>
 
       <span style={{ visibility: dragging ? 'hidden' : undefined }}>

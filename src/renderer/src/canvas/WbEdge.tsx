@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
-import type { EdgeStyle } from '@renderer/shared/types'
+import type { EdgeLabelLayout, EdgeStyle } from '@renderer/shared/types'
 import {
   getSvgStrokeProps,
   resolveCanvasStrokeColor,
@@ -9,6 +9,7 @@ import './WbEdge.css'
 
 export type WbEdgeData = {
   normalizedStyle: EdgeStyle
+  normalizedLabelLayout: EdgeLabelLayout
 }
 
 function resolveDashArray(dash: EdgeStyle['stroke']['dash']): string | undefined {
@@ -27,6 +28,8 @@ export function WbEdge({
   targetPosition,
   data,
   label,
+  markerStart,
+  markerEnd,
   selected,
 }: EdgeProps) {
   const edgeData = (data ?? {}) as WbEdgeData
@@ -55,6 +58,8 @@ export function WbEdge({
       <BaseEdge
         id={id}
         path={edgePath}
+        markerStart={markerStart}
+        markerEnd={markerEnd}
         style={{
           stroke,
           ...getSvgStrokeProps(strokeWidth),

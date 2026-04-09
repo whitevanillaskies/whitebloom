@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useReactFlow, useStore } from '@xyflow/react'
-import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react'
+import { useEdges, useNodes, useReactFlow, useStore } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
 import { isShapeLeafNode } from '@renderer/shared/types'
 import { ColorControl } from './ColorControl'
 import { StrokeControl } from './StrokeControl'
 import { CanvasToolbar, CanvasToolbarSep } from './CanvasToolbar'
 
-type ShapeToolbarProps = {
-  nodes: RFNode[]
-  edges: RFEdge[]
-}
-
-export function ShapeToolbar({ nodes, edges }: ShapeToolbarProps) {
+export function ShapeToolbar() {
   const { t } = useTranslation()
   const { flowToScreenPosition } = useReactFlow()
+  // Subscribe directly to the React Flow store so selection-driven visibility
+  // isn't gated on an unrelated parent render.
+  const nodes = useNodes()
+  const edges = useEdges()
   const boardNodes = useBoardStore((s) => s.nodes)
   const patchShapeStyles = useBoardStore((s) => s.patchShapeStyles)
 

@@ -72,6 +72,14 @@ export type EdgeStrokeStyle = StrokeStyle & {
 /** End-point marker kind for directed edges. */
 export type EdgeMarkerKind = 'none' | 'arrow'
 
+/**
+ * Persisted edge-label placement along the rendered edge path.
+ * `pathPosition` is normalized: 0 = source end, 0.5 = midpoint, 1 = target end.
+ */
+export type EdgeLabelLayout = {
+  pathPosition: number
+}
+
 /** Fully structured edge appearance model — replaces the legacy flat style/color fields. */
 export type EdgeStyle = {
   stroke: EdgeStrokeStyle
@@ -115,6 +123,10 @@ export const DEFAULT_EDGE_STYLE: EdgeStyle = {
   labelColor: { kind: 'token', value: 'foreground' },
 }
 
+export const DEFAULT_EDGE_LABEL_LAYOUT: EdgeLabelLayout = {
+  pathPosition: 0.5
+}
+
 /**
  * Normalize a BoardEdge into a complete EdgeStyle.
  * Handles both new boards (edgeStyle present) and legacy boards (flat style/color fields).
@@ -130,6 +142,20 @@ export function normalizeEdgeStyle(
   if (edge.style === 'dashed') stroke.dash = 'dashed'
   else if (edge.style === 'dotted') stroke.dash = 'dotted'
   return { ...DEFAULT_EDGE_STYLE, stroke }
+}
+
+export function normalizeEdgeLabelLayout(
+  edge: Pick<BoardEdge, 'labelLayout'>
+): EdgeLabelLayout {
+  const pathPosition = edge.labelLayout?.pathPosition
+
+  if (typeof pathPosition !== 'number' || Number.isNaN(pathPosition)) {
+    return DEFAULT_EDGE_LABEL_LAYOUT
+  }
+
+  return {
+    pathPosition: Math.min(Math.max(pathPosition, 0), 1)
+  }
 }
 
 /**
@@ -253,6 +279,8 @@ export type BoardEdge = {
   sourceHandle?: string | null
   targetHandle?: string | null
   label?: string
+  /** Optional persisted label placement along the rendered edge path. */
+  labelLayout?: EdgeLabelLayout
   /** @deprecated Use edgeStyle.stroke.dash instead. Kept for backward compat with legacy boards. */
   style?: 'solid' | 'dashed' | 'dotted'
   /** @deprecated Use edgeStyle.stroke.color instead. Kept for backward compat with legacy boards. */

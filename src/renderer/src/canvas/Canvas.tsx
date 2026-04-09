@@ -68,6 +68,7 @@ import {
   isShapeLeafNode,
   isTextLeafNode,
   DEFAULT_SHAPE_STYLE,
+  normalizeEdgeLabelLayout,
   normalizeEdgeStyle,
 } from '@renderer/shared/types'
 import type { ShapePreset } from '@renderer/shared/types'
@@ -828,7 +829,10 @@ export function Canvas({
           zIndex: isFullyInternal ? INTERNAL_CLUSTER_EDGE_Z_INDEX : CLUSTER_EDGE_Z_INDEX,
           markerEnd: buildReactFlowMarker(edgeStyle.endMarker, markerColor, edgeStyle.stroke.width),
           markerStart: buildReactFlowMarker(edgeStyle.startMarker, markerColor, edgeStyle.stroke.width),
-          data: { normalizedStyle: edgeStyle } satisfies WbEdgeData,
+          data: {
+            normalizedStyle: edgeStyle,
+            normalizedLabelLayout: normalizeEdgeLabelLayout(e)
+          } satisfies WbEdgeData,
         }
       }),
     [boardEdges, owningClusterByNodeId]
@@ -2410,78 +2414,78 @@ export function Canvas({
   return (
     <BloomContext.Provider value={handleBloom}>
       {activeBloom === null && (
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        zIndexMode="manual"
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onSelectionChange={handleSelectionChange}
-        onConnect={onConnect}
-        onPaneClick={onPaneClick}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onPaneContextMenu={onPaneContextMenu}
-        onMoveEnd={onMoveEnd}
-        className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
-        elementsSelectable={activeTool === 'pointer'}
-        nodesDraggable={activeTool === 'pointer'}
-        nodesConnectable={activeTool === 'pointer'}
-        selectionOnDrag={activeTool === 'pointer'}
-        elevateNodesOnSelect={false}
-        panOnDrag={panOnDragButtons}
-        connectionMode={ConnectionMode.Loose}
-        connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
-        {...(boardViewport
-          ? { defaultViewport: boardViewport }
-          : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
-        proOptions={{ hideAttribution: true }}
-        data-board-capture="root"
-      >
-        <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
-        <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-        <div data-board-capture="exclude">
-          <MiniMap nodeStrokeWidth={1} zoomable pannable />
-        </div>
-        <Panel position="top-left">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          zIndexMode="manual"
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onSelectionChange={handleSelectionChange}
+          onConnect={onConnect}
+          onPaneClick={onPaneClick}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onPaneContextMenu={onPaneContextMenu}
+          onMoveEnd={onMoveEnd}
+          className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
+          elementsSelectable={activeTool === 'pointer'}
+          nodesDraggable={activeTool === 'pointer'}
+          nodesConnectable={activeTool === 'pointer'}
+          selectionOnDrag={activeTool === 'pointer'}
+          elevateNodesOnSelect={false}
+          panOnDrag={panOnDragButtons}
+          connectionMode={ConnectionMode.Loose}
+          connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
+          {...(boardViewport
+            ? { defaultViewport: boardViewport }
+            : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
+          proOptions={{ hideAttribution: true }}
+          data-board-capture="root"
+        >
+          <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
+          <Background gap={25} size={1} color="var(--color-secondary-fg)" />
           <div data-board-capture="exclude">
-            <BoardContextBar
-              name={boardName}
-              workspaceRoot={workspaceRoot}
-              isDirty={isDirty}
-              onNameChange={(name) => updateBoardMeta({ name })}
-              onSave={() => void handleSave()}
-              onGoHome={onGoHome}
-              onGoToWorkspaceHome={onGoToWorkspaceHome}
-              onNewBoard={handleNewBoard}
-              onOverflow={setOverflowAnchor}
-            />
+            <MiniMap nodeStrokeWidth={1} zoomable pannable />
           </div>
-        </Panel>
+          <Panel position="top-left">
+            <div data-board-capture="exclude">
+              <BoardContextBar
+                name={boardName}
+                workspaceRoot={workspaceRoot}
+                isDirty={isDirty}
+                onNameChange={(name) => updateBoardMeta({ name })}
+                onSave={() => void handleSave()}
+                onGoHome={onGoHome}
+                onGoToWorkspaceHome={onGoToWorkspaceHome}
+                onNewBoard={handleNewBoard}
+                onOverflow={setOverflowAnchor}
+              />
+            </div>
+          </Panel>
 
-        <Panel position="bottom-center">
-          <div data-board-capture="exclude">
-            <CanvasToolbar
-              activeTool={activeTool}
-              onToolChange={setActiveTool}
-              onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
-            />
-          </div>
-        </Panel>
-      </ReactFlow>
+          <Panel position="bottom-center">
+            <div data-board-capture="exclude">
+              <CanvasToolbar
+                activeTool={activeTool}
+                onToolChange={setActiveTool}
+                onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
+              />
+            </div>
+          </Panel>
+        </ReactFlow>
       )}
 
       {activeBloom === null && (
-        <EdgeToolbar nodes={nodes} edges={edges} />
+        <EdgeToolbar />
       )}
 
       {activeBloom === null && (
-        <ShapeToolbar nodes={nodes} edges={edges} />
+        <ShapeToolbar />
       )}
 
       {settingsOpen && (

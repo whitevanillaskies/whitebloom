@@ -123,6 +123,27 @@
   pointer-events: none;
 }
 
+.shape-node__label-input {
+  position: absolute;
+  z-index: 2;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 1px solid rgba(30, 135, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  text-align: center;
+  color: var(--color-primary-fg);
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: "DM Sans", sans-serif;
+  outline: none;
+}
+
+.shape-node__label-input:focus {
+  border-color: rgba(30, 135, 255, 0.45);
+}
+
 .shape-node--selected .shape-node__label {
   font-weight: 600;
 }

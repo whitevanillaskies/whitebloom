@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useReactFlow, useStore } from '@xyflow/react'
-import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react'
+import { useEdges, useNodes, useReactFlow, useStore } from '@xyflow/react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useBoardStore } from '@renderer/stores/board'
 import { normalizeEdgeStyle } from '@renderer/shared/types'
@@ -10,14 +9,13 @@ import { StrokeControl } from './StrokeControl'
 import { CanvasToolbar, CanvasToolbarBtn, CanvasToolbarSep } from './CanvasToolbar'
 import type { WbEdgeData } from './WbEdge'
 
-type EdgeToolbarProps = {
-  nodes: RFNode[]
-  edges: RFEdge[]
-}
-
-export function EdgeToolbar({ nodes, edges }: EdgeToolbarProps) {
+export function EdgeToolbar() {
   const { t } = useTranslation()
   const { flowToScreenPosition } = useReactFlow()
+  // Subscribe directly to the React Flow store so the toolbar tracks selection
+  // even when the parent canvas doesn't happen to re-render on the same tick.
+  const nodes = useNodes()
+  const edges = useEdges()
   const boardEdges = useBoardStore((s) => s.edges)
   const patchEdgeStyles = useBoardStore((s) => s.patchEdgeStyles)
 

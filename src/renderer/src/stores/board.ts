@@ -9,9 +9,12 @@ import {
   type BoardViewport,
   type WidthMode,
   type EdgeStyle,
+  type EdgeLabelLayout,
   type ShapeStyle,
+  DEFAULT_EDGE_LABEL_LAYOUT,
   mergeEdgeStyle,
   mergeShapeStyle,
+  normalizeEdgeLabelLayout,
   normalizeEdgeStyle,
   isClusterNode,
   isShapeLeafNode
@@ -51,13 +54,15 @@ type BoardState = Board & {
   deleteNodes: (ids: string[]) => void
   addEdge: (edge: BoardEdge) => void
   deleteEdge: (id: string) => void
-  updateEdge: (id: string, patch: Partial<Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'label'>>) => void
+  updateEdge: (id: string, patch: Partial<Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'label' | 'labelLayout'>>) => void
   updateEdgeStyle: (id: string, edgeStyle: EdgeStyle) => void
   patchEdgeStyles: (ids: string[], patch: Partial<EdgeStyle>) => void
   patchShapeStyles: (ids: string[], patch: Partial<ShapeStyle>) => void
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
+  updateNodeLabel: (id: string, label?: string) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
+  updateEdgeLabelLayout: (id: string, labelLayout?: EdgeLabelLayout) => void
   updateCluster: (
     id: string,
     patch: Partial<Pick<ClusterNode, 'label' | 'brief' | 'color' | 'children'>>
@@ -93,6 +98,19 @@ function shouldMarkBoardDirty(state: Pick<BoardState, 'transient'>): boolean {
 
 function isValidIsoTimestamp(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0
+}
+
+function normalizeOptionalLabel(label: string | undefined): string | undefined {
+  if (typeof label !== 'string') return undefined
+  const normalized = label.trim()
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function areEdgeLabelLayoutsEqual(
+  left: EdgeLabelLayout | undefined,
+  right: EdgeLabelLayout | undefined
+): boolean {
+  return left?.pathPosition === right?.pathPosition
 }
 
 function normalizeNodeMetadata<TNode extends NodeMetadataCarrier>(
@@ -459,7 +477,8 @@ export const useBoardStore = create<BoardState>((set) => ({
           next.edgeStyle === e.edgeStyle &&
           next.from === e.from &&
           next.to === e.to &&
-          next.label === e.label
+          next.label === e.label &&
+          next.labelLayout === e.labelLayout
         ) return e
         changed = true
         return next
@@ -554,6 +573,29 @@ export const useBoardStore = create<BoardState>((set) => ({
       return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
+  updateNodeLabel: (id, label) =>
+    set((state) => {
+      let changed = false
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const nextLabel = normalizeOptionalLabel(label)
+
+      const nodes = state.nodes.map((node) => {
+        if (node.id !== id) return node
+        if (node.label === nextLabel) return node
+
+        changed = true
+        if (nextLabel === undefined) {
+          const { label: _label, ...rest } = touchNode(node, timestamp, username)
+          return rest
+        }
+
+        return { ...touchNode(node, timestamp, username), label: nextLabel }
+      })
+
+      return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
   updateNodeText: (id, patch) =>
     set((state) => {
       let changed = false
@@ -579,6 +621,36 @@ export const useBoardStore = create<BoardState>((set) => ({
       })
 
       return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  updateEdgeLabelLayout: (id, labelLayout) =>
+    set((state) => {
+      let changed = false
+      const nextLabelLayout = labelLayout
+        ? normalizeEdgeLabelLayout({ labelLayout })
+        : undefined
+      const persistedLabelLayout =
+        nextLabelLayout && nextLabelLayout.pathPosition !== DEFAULT_EDGE_LABEL_LAYOUT.pathPosition
+          ? nextLabelLayout
+          : undefined
+
+      const edges = state.edges.map((edge) => {
+        if (edge.id !== id) return edge
+        if (areEdgeLabelLayoutsEqual(edge.labelLayout, persistedLabelLayout)) return edge
+
+        changed = true
+        if (persistedLabelLayout === undefined) {
+          const { labelLayout: _labelLayout, ...rest } = edge
+          return rest
+        }
+
+        return {
+          ...edge,
+          labelLayout: persistedLabelLayout
+        }
+      })
+
+      return changed ? { edges, isDirty: shouldMarkBoardDirty(state) } : state
     }),
 
   updateCluster: (id, patch) =>
