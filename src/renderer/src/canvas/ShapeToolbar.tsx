@@ -41,6 +41,8 @@ export function ShapeToolbar() {
   if (selectedNodes.length !== 1 || totalSelectedItems !== 1 || isPanning) return null
 
   const selectedNode = selectedNodes[0]
+  if (selectedNode.dragging) return null
+
   const persistedShape = boardNodes.find(
     (candidate): candidate is Extract<(typeof boardNodes)[number], { kind: 'leaf'; type: 'shape' }> =>
       candidate.id === selectedNode.id && isShapeLeafNode(candidate)

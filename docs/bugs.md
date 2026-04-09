@@ -32,17 +32,21 @@ Clusters. The Command Fit Clusters to Children works on every edge except the ri
 
 Arrangements view, desktop island. Open right click context menu on a bin, then drag desktop. The context menu doesn't disappear. However, if we open the menu on empty space (such as to create a new bin) then panning the desktop properly removes the context menu.
 
-### Bug UI-8
+### Bug UI-8 (FIXED)
 
 Mouse changes cursor when over an edge. Should be default system cursor.
 
-### Bug UI-9
+### Bug UI-9 (FIXED)
 
 For anythin with resize handles (pictures, video, shapes) the handles are visible when draggin the node around, which is visually noisy. Handles should disappear (just like reactflow edge handles) on node movement.
 
-### Bug UI-10
+### Bug UI-10 (FIXED)
 
 Shape toolbar shows when we move the node, which looks visually noisy. The toolbar should be invisible when we're dragging the node around.
+
+### Bug UI-11
+
+(Continued from UI-10) Shape toolbar is now hidden during a drag, but it flickers on for a frame. However this may be related to UX-4, and it may get fixed by itself.
 
 ### Bug UX-1 (FIXED)
 
@@ -55,3 +59,7 @@ Arrangements View. The drag and drop behavior of desktop items is broken. The ta
 ### Bug UX-3 (FIXED)
 
 Arrangements View. Right click context menu, clicking on items does nothing. On the sets island they work. However, for example, when we bring up the context menu from empty space (such as to create a new bin) it works. But when right clicking on a bin then it doesn't work. May be related to UI-7.
+
+## Bug UX-4
+
+When we don't have anything selected and we drag a node on canvas, on drop the node will be selected. This is poor UX because the user may simply want to move nodes around, not select them, thus he will need an extra action (click on canvas/esc key) to deselect the node. We should detect somehow if we're dragging before selecting, and if we are, then don't select anything.

@@ -53,6 +53,12 @@
   cursor: default !important;
 }
 
+/* Pointer tool: edges should keep the standard system cursor too. */
+.canvas--tool-pointer .react-flow__edge,
+.canvas--tool-pointer .react-flow__edge * {
+  cursor: default !important;
+}
+
 /* Pointer tool should show a standard arrow over the pane. */
 .canvas--tool-pointer .react-flow__pane {
   cursor: default !important;

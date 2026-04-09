@@ -170,11 +170,13 @@ function BudNodeInner({
   id,
   data,
   selected,
+  dragging,
   module
 }: {
   id: string
   data: BudData
   selected: boolean
+  dragging: boolean
   module: WhitebloomModule
 }) {
   const bloomSetter = useContext(BloomContext)
@@ -200,6 +202,7 @@ function BudNodeInner({
         resource={data.resource}
         size={data.size}
         selected={selected}
+        dragging={dragging}
         onBloom={onBloom}
       />
     </BudErrorBoundary>
@@ -286,6 +289,7 @@ export function BudNode({ id, data, selected, dragging }: NodeProps) {
         id={id}
         data={budData}
         selected={selected ?? false}
+        dragging={dragging ?? false}
         module={module}
       />
       {handles}

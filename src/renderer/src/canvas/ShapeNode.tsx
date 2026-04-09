@@ -297,7 +297,7 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
         />
       </span>
       <NodeResizeHandles
-        visible={(selected ?? false) || isResizing}
+        visible={((selected ?? false) || isResizing) && !dragging}
         activeCorner={activeCorner}
         onPointerDown={(corner, event) => beginResize(corner, event)}
       />

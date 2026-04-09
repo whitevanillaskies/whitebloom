@@ -9,7 +9,7 @@ import '../../canvas/ImageNode.css'
 
 const MIN_SIZE = 80
 
-export function ImageNodeComponent({ id, resource, size, selected, onBloom }: BudNodeProps) {
+export function ImageNodeComponent({ id, resource, size, selected, dragging, onBloom }: BudNodeProps) {
   const internalNode = useInternalNode(id)
   const positionAbsoluteX = internalNode?.internals.positionAbsolute.x ?? 0
   const positionAbsoluteY = internalNode?.internals.positionAbsolute.y ?? 0
@@ -109,7 +109,7 @@ export function ImageNodeComponent({ id, resource, size, selected, onBloom }: Bu
         </div>
       </div>
       <NodeResizeHandles
-        visible={selected || isResizing}
+        visible={(selected || isResizing) && !dragging}
         activeCorner={activeCorner}
         onPointerDown={(corner, event) => beginResize(corner, event)}
       />

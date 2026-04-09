@@ -16,7 +16,7 @@ const videoPlayer = createPlayer({
   displayName: 'WhitebloomVideoPlayer'
 })
 
-export function VideoNodeComponent({ id, resource, size, selected, onBloom }: BudNodeProps) {
+export function VideoNodeComponent({ id, resource, size, selected, dragging, onBloom }: BudNodeProps) {
   const internalNode = useInternalNode(id)
   const positionAbsoluteX = internalNode?.internals.positionAbsolute.x ?? 0
   const positionAbsoluteY = internalNode?.internals.positionAbsolute.y ?? 0
@@ -126,7 +126,7 @@ export function VideoNodeComponent({ id, resource, size, selected, onBloom }: Bu
         </div>
       </div>
       <NodeResizeHandles
-        visible={selected || isResizing}
+        visible={(selected || isResizing) && !dragging}
         activeCorner={activeCorner}
         onPointerDown={(corner, event) => beginResize(corner, event)}
       />

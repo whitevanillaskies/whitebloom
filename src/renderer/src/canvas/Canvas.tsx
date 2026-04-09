@@ -2411,6 +2411,7 @@ export function Canvas({
           elementsSelectable={activeTool === 'pointer'}
           nodesDraggable={activeTool === 'pointer'}
           nodesConnectable={activeTool === 'pointer'}
+          selectNodesOnDrag={false}
           selectionOnDrag={activeTool === 'pointer'}
           elevateNodesOnSelect={false}
           panOnDrag={panOnDragButtons}

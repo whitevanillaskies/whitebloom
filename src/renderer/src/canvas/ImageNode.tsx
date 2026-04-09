@@ -13,7 +13,7 @@ type ImageNodeData = {
   size: { w: number; h: number }
 }
 
-export function ImageNode({ id, data, selected, positionAbsoluteX, positionAbsoluteY }: NodeProps) {
+export function ImageNode({ id, data, selected, dragging, positionAbsoluteX, positionAbsoluteY }: NodeProps) {
   const { resource, size } = data as ImageNodeData
   const { x, y, zoom } = useViewport()
   const canvasWidth = useStore((s) => s.width)
@@ -115,7 +115,7 @@ export function ImageNode({ id, data, selected, positionAbsoluteX, positionAbsol
         </div>
       </div>
       <NodeResizeHandles
-        visible={selected || isResizing}
+        visible={(selected || isResizing) && !dragging}
         activeCorner={activeCorner}
         onPointerDown={(corner, event) => beginResize(corner, event)}
       />

@@ -8,6 +8,7 @@ export interface BudNodeProps {
   resource: string
   size: Size
   selected: boolean
+  dragging: boolean
   /** Called by double-click; dispatched by BudNode wrapper */
   onBloom: () => void
 }
