@@ -466,8 +466,8 @@
       "kind": "leaf",
       "type": "shape",
       "position": {
-        "x": 1224.8314601139134,
-        "y": 1372.2338442132423
+        "x": 1058.787071612472,
+        "y": 1185.4019905663858
       },
       "size": {
         "w": 180,
@@ -493,7 +493,7 @@
       },
       "created": "2026-04-09T13:32:44.821Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T17:51:52.479Z",
+      "updatedAt": "2026-04-09T20:10:30.017Z",
       "updatedBy": "anon",
       "label": "grewat"
     },
@@ -502,8 +502,8 @@
       "kind": "leaf",
       "type": "shape",
       "position": {
-        "x": 1704.7515164000529,
-        "y": 1363.6931449788
+        "x": 1547.896714738588,
+        "y": 1102.195898257137
       },
       "size": {
         "w": 160,
@@ -529,7 +529,7 @@
       },
       "created": "2026-04-09T13:32:47.620Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T18:52:44.772Z",
+      "updatedAt": "2026-04-09T20:10:07.961Z",
       "updatedBy": "anon",
       "label": "asdasd"
     },
@@ -538,21 +538,22 @@
       "kind": "leaf",
       "type": "shape",
       "position": {
-        "x": 1659.0035154375848,
-        "y": 1560.6046128835014
+        "x": 1441.4473367013836,
+        "y": 1354.9995056419548
       },
       "size": {
-        "w": 237,
-        "h": 152
+        "w": 199,
+        "h": 183
       },
       "shape": {
         "preset": "ellipse",
         "style": {
           "stroke": {
-            "width": 1.5,
+            "width": 3,
             "color": {
-              "kind": "token",
-              "value": "foreground"
+              "kind": "swatch",
+              "paletteId": "whitebloom-default",
+              "swatchId": "red"
             }
           },
           "fill": {
@@ -565,7 +566,7 @@
       },
       "created": "2026-04-09T13:32:54.773Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T17:51:50.499Z",
+      "updatedAt": "2026-04-09T20:07:58.010Z",
       "updatedBy": "anon",
       "label": "this is a whatever"
     }
@@ -605,15 +606,15 @@
       "to": "7af262d2-8a9d-43f3-98ca-25ca80993b34",
       "sourceHandle": "right",
       "targetHandle": "left",
-      "label": "labrl",
+      "label": "label",
       "labelLayout": {
-        "pathPosition": 0.58
+        "pathPosition": 0.55
       }
     }
   ],
   "viewport": {
-    "x": -10.781050539833245,
-    "y": -157.29022923420598,
-    "zoom": 0.5000000000000008
+    "x": -253.26349000390633,
+    "y": -0.0950695401475059,
+    "zoom": 1.0000000000000007
   }
 }

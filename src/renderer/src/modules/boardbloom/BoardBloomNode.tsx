@@ -62,7 +62,7 @@ export function BoardBloomNode({ resource, label, size, selected, onBloom }: Bud
       size={{ w: size.w }}
       label={label ?? deriveLabel(resource)}
       selected={selected}
-      accentColor="--color-accent-pink"
+      accentColor="--color-accent-blue"
       onDoubleClick={onBloom}
     >
       <div className="board-bloom-node__preview">

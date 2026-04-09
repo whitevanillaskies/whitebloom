@@ -4,12 +4,10 @@
   aspect-ratio: 16 / 9;
   border-radius: 4px;
   overflow: hidden;
-  background:
-    linear-gradient(155deg, color-mix(in srgb, var(--color-accent-pink) 16%, var(--color-primary-bg)) 0%, var(--color-primary-bg) 56%),
-    var(--color-primary-bg);
+  background: var(--color-primary-bg);
   border: 3px solid white;
   box-shadow:
-    0 14px 28px color-mix(in srgb, var(--color-accent-pink) 10%, transparent),
+    0 14px 28px color-mix(in srgb, var(--color-primary-fg) 10%, transparent),
     inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
 }
 
@@ -33,5 +31,5 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, var(--color-accent-pink) 72%, var(--color-primary-fg));
+  color: var(--color-accent-blue);
 }
