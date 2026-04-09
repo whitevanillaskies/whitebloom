@@ -377,8 +377,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1853.8431938700764,
-        "y": 381.4428981433786
+        "x": 2224.624916797259,
+        "y": 456.16003359089365
       },
       "size": {
         "w": 673,
@@ -389,7 +389,7 @@
       "wrapWidth": null,
       "created": "2026-04-07T14:55:38.641Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:16.618Z",
+      "updatedAt": "2026-04-09T02:35:10.510Z",
       "updatedBy": "anon",
       "plain": "Canvas Features\nDon't cut words on icon labels, probably. Extend up to a certain character limit and add ... if needed?"
     },
@@ -398,8 +398,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1059.3858056013473,
-        "y": 1050.6785221541463
+        "x": 3034.689148028367,
+        "y": 846.1547959843477
       },
       "size": {
         "w": 306,
@@ -410,7 +410,7 @@
       "wrapWidth": 306,
       "created": "2026-04-08T15:18:48.050Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:18.669Z",
+      "updatedAt": "2026-04-09T02:37:58.522Z",
       "updatedBy": "anon",
       "plain": "There's a bug where the identity toolbar won't show the proper workspace name, instead showing apparntly the folder name or somethign like that"
     },
@@ -419,8 +419,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1055.2248509320034,
-        "y": 970.596054870422
+        "x": 3035.806225002115,
+        "y": 752.8772495928944
       },
       "size": {
         "w": 363,
@@ -431,7 +431,7 @@
       "wrapWidth": 363,
       "created": "2026-04-08T15:21:12.695Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:18.669Z",
+      "updatedAt": "2026-04-09T02:35:18.249Z",
       "updatedBy": "anon",
       "plain": "Board previews are sharing styling across start screen and workspace home which is ridiculous. Extract somewhere."
     },
@@ -440,8 +440,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1449.0276809062473,
-        "y": 999.4165878021117
+        "x": 3033.7566817444913,
+        "y": 542.8668506746908
       },
       "size": {
         "w": 451,
@@ -452,7 +452,7 @@
       "wrapWidth": 451,
       "created": "2026-04-08T15:21:59.131Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:18.669Z",
+      "updatedAt": "2026-04-09T02:35:18.249Z",
       "updatedBy": "anon",
       "plain": "Don't take a picture of the canvas on save, it lags the viewport. Instead only on close window or opening another board, or going back to workspace home I think"
     },
@@ -461,8 +461,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1448.4834032269985,
-        "y": 1102.835712453152
+        "x": 3033.2124040652425,
+        "y": 646.285975325731
       },
       "size": {
         "w": 390,
@@ -473,7 +473,7 @@
       "wrapWidth": 390,
       "created": "2026-04-08T15:44:01.344Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:18.669Z",
+      "updatedAt": "2026-04-09T02:35:18.249Z",
       "updatedBy": "anon",
       "plain": "I don't think it makes any sense to show the filepath on the boards, after all one of the core points of WHITEBLOOM is abstracting away filesystem stuff."
     },
@@ -484,8 +484,8 @@
       "label": "Cluster",
       "resource": "wloc:Cluster.wb.json",
       "position": {
-        "x": 1908.0556390600113,
-        "y": 637.2654164454481
+        "x": 1431.7132832709972,
+        "y": 569.9705129960305
       },
       "size": {
         "w": 196,
@@ -493,7 +493,7 @@
       },
       "created": "2026-04-08T16:07:55.171Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:15.853Z",
+      "updatedAt": "2026-04-09T02:35:03.094Z",
       "updatedBy": "anon"
     },
     {
@@ -520,8 +520,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 724.1751679621225,
-        "y": 1046.2872832696667
+        "x": 3039.9115513685483,
+        "y": 956.5308413876361
       },
       "size": {
         "w": 240,
@@ -532,7 +532,7 @@
       "wrapWidth": null,
       "created": "2026-04-08T21:08:33.069Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:49:19.896Z",
+      "updatedAt": "2026-04-09T02:37:59.517Z",
       "updatedBy": "anon",
       "plain": "Right click to import and link files"
     },
@@ -573,21 +573,21 @@
       "updatedBy": "anon"
     },
     {
-      "id": "2d227c24-1951-415a-a670-73aa5409b60e",
+      "id": "d1be5bab-df49-4398-9e57-dc882ccaba5e",
       "kind": "bud",
-      "type": "com.whitebloom.image",
+      "type": "com.whitebloom.video",
       "position": {
-        "x": 3030.9628888504117,
-        "y": 543.167237967871
+        "x": 2436.332971461545,
+        "y": 1030.4893384836384
       },
       "size": {
-        "w": 576,
-        "h": 768
+        "w": 598,
+        "h": 576
       },
-      "resource": "wloc:res/1720986208621501.jpg",
-      "created": "2026-04-09T02:15:11.238Z",
+      "resource": "file:///E:/Pictures/videogames/1687545978712.webm",
+      "created": "2026-04-09T02:47:44.280Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T02:15:25.883Z",
+      "updatedAt": "2026-04-09T02:47:45.698Z",
       "updatedBy": "anon"
     }
   ],
@@ -629,8 +629,8 @@
     }
   ],
   "viewport": {
-    "x": -1043.1082509026458,
-    "y": -350.73563606515177,
-    "zoom": 0.7578582832551997
+    "x": -517.3803145601698,
+    "y": -211.36941704814365,
+    "zoom": 0.659753955386447
   }
 }

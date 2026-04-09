@@ -42,9 +42,10 @@ import type { PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/componen
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
+import { videoModule } from '../modules/video'
 import { schemaBloomModule } from '../modules/schemabloom'
 import type { WhitebloomModule } from '../modules/types'
-import { absolutePathToFileUri, resourceToImageSrc } from '@renderer/shared/resource-url'
+import { absolutePathToFileUri, resourceToImageSrc, resourceToMediaSrc } from '@renderer/shared/resource-url'
 import {
   isBoardResource,
   resolveWorkspaceBoardPath,
@@ -259,6 +260,94 @@ function measureImageFromSrc(src: string, fallbackLabel: string): Promise<{ size
 
     image.decoding = 'async'
     image.src = src
+  })
+}
+
+function scaleNaturalMediaSize(naturalWidth: number, naturalHeight: number): { w: number; h: number } {
+  const viewportLongestSide = Math.max(window.innerWidth, window.innerHeight)
+  const maxLongestSide = Math.max(80, viewportLongestSide * IMAGE_DROP_MAX_VIEWPORT_FRACTION)
+  const mediaLongestSide = Math.max(naturalWidth, naturalHeight)
+  const scale = mediaLongestSide > maxLongestSide ? maxLongestSide / mediaLongestSide : 1
+
+  return {
+    w: Math.max(1, Math.round(naturalWidth * scale)),
+    h: Math.max(1, Math.round(naturalHeight * scale))
+  }
+}
+
+function measureDroppedVideo(file: File): Promise<{ size: { w: number; h: number } }> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    const objectUrl = URL.createObjectURL(file)
+
+    const cleanup = () => {
+      video.removeAttribute('src')
+      video.load()
+      URL.revokeObjectURL(objectUrl)
+    }
+
+    video.preload = 'metadata'
+    video.playsInline = true
+    video.muted = true
+
+    video.onloadedmetadata = () => {
+      const naturalWidth = video.videoWidth
+      const naturalHeight = video.videoHeight
+
+      if (naturalWidth <= 0 || naturalHeight <= 0) {
+        cleanup()
+        reject(new Error(`Unable to read video dimensions for ${file.name || 'dropped video'}.`))
+        return
+      }
+
+      const size = scaleNaturalMediaSize(naturalWidth, naturalHeight)
+      cleanup()
+      resolve({ size })
+    }
+
+    video.onerror = () => {
+      cleanup()
+      reject(new Error(`Unable to load video ${file.name || 'dropped video'}.`))
+    }
+
+    video.src = objectUrl
+  })
+}
+
+function measureVideoFromSrc(src: string, fallbackLabel: string): Promise<{ size: { w: number; h: number } }> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+
+    const cleanup = () => {
+      video.removeAttribute('src')
+      video.load()
+    }
+
+    video.preload = 'metadata'
+    video.playsInline = true
+    video.muted = true
+
+    video.onloadedmetadata = () => {
+      const naturalWidth = video.videoWidth
+      const naturalHeight = video.videoHeight
+
+      if (naturalWidth <= 0 || naturalHeight <= 0) {
+        cleanup()
+        reject(new Error(`Unable to read video dimensions for ${fallbackLabel}.`))
+        return
+      }
+
+      const size = scaleNaturalMediaSize(naturalWidth, naturalHeight)
+      cleanup()
+      resolve({ size })
+    }
+
+    video.onerror = () => {
+      cleanup()
+      reject(new Error(`Unable to load video ${fallbackLabel}.`))
+    }
+
+    video.src = src
   })
 }
 
@@ -1568,16 +1657,30 @@ export function Canvas({
     module: WhitebloomModule | undefined
   }): Promise<{ w: number; h: number }> => {
     const isImageModule = input.module?.id === imageModule.id
+    const isVideoModule = input.module?.id === videoModule.id
     const isImageFile = input.file?.type.toLowerCase().startsWith('image/') ?? false
+    const isVideoFile = input.file?.type.toLowerCase().startsWith('video/') ?? false
 
     if (input.file && isImageFile) {
       return (await measureDroppedImage(input.file)).size
+    }
+
+    if (input.file && isVideoFile) {
+      return (await measureDroppedVideo(input.file)).size
     }
 
     if (isImageModule) {
       const fileUri = absolutePathToFileUri(input.filePath)
       return (await measureImageFromSrc(
         resourceToImageSrc(fileUri),
+        input.file?.name || getFileNameFromPath(input.filePath)
+      )).size
+    }
+
+    if (isVideoModule) {
+      const fileUri = absolutePathToFileUri(input.filePath)
+      return (await measureVideoFromSrc(
+        resourceToMediaSrc(fileUri),
         input.file?.name || getFileNameFromPath(input.filePath)
       )).size
     }

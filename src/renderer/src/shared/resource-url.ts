@@ -12,7 +12,7 @@ export function absolutePathToFileUri(filePath: string): string {
   throw new Error(`Expected an absolute filesystem path, received: ${filePath}`)
 }
 
-export function resourceToImageSrc(resource: string, workspaceRoot?: string): string {
+export function resourceToMediaSrc(resource: string, workspaceRoot?: string): string {
   const trimmed = resource.trim()
 
   if (trimmed.startsWith('wloc://') || trimmed.startsWith('wbapp://')) {
@@ -37,5 +37,9 @@ export function resourceToImageSrc(resource: string, workspaceRoot?: string): st
     return trimmed
   }
 
-  throw new Error(`Unsupported image resource URI: ${resource}`)
+  throw new Error(`Unsupported media resource URI: ${resource}`)
+}
+
+export function resourceToImageSrc(resource: string, workspaceRoot?: string): string {
+  return resourceToMediaSrc(resource, workspaceRoot)
 }
