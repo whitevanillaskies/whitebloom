@@ -1,43 +1,41 @@
 .cluster-node {
   position: relative;
   border-radius: var(--radius-border-frame);
-  border: 1px solid var(--color-accent-blue);
-  /* background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.3)),
-    var(--cluster-fill); */
-  background: rgba(250, 250, 250, 0.3);
+  border: 5px solid white;
+  background:
+    radial-gradient(circle at 10% 10%,   rgba(var(--cluster-color-rgb), 0.24) 0%, transparent 20%),
+    radial-gradient(circle at 12% 20%,   rgba(var(--cluster-color-rgb), 0.12) 0%, transparent 52%),
+    radial-gradient(circle at 89% 13%,  rgba(var(--cluster-color-rgb), 0.09) 0%, transparent 45%),
+    rgba(250, 250, 250, 0.18);
+  backdrop-filter: blur(10px) saturate(180%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    inset 0 0 0 1px rgba(43, 43, 43, 0.03);
-  backdrop-filter: blur(3px) saturate(140%);
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 2px 12px rgba(15, 23, 42, 0.05);
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease,
-    background-color 120ms ease,
     opacity 120ms ease,
     filter 120ms ease;
 }
 
-
 .cluster-node__label {
   position: absolute;
-  top: 14px;
-  left: 14px;
+  top: 12px;
+  left: 12px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: calc(100% - 28px);
-  min-height: 30px;
-  padding: 0 12px 0 10px;
+  max-width: calc(100% - 24px);
+  min-height: 24px;
+  padding: 2px 10px 2px 8px;
   font-family: "DM Sans";
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.015em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--cluster-color-solid);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
   transition:
     color 120ms ease,
     opacity 120ms ease,
@@ -46,93 +44,67 @@
 
 .cluster-node--blue {
   --cluster-color-solid: var(--color-accent-blue);
-  --cluster-fill: rgba(var(--color-accent-blue-rgb), 0.08);
   --cluster-color-rgb: var(--color-accent-blue-rgb);
-  --cluster-color-soft: rgba(var(--color-accent-blue-rgb), 0.14);
-  --cluster-border: rgba(var(--color-accent-blue-rgb), 0.32);
-  --cluster-label-border: rgba(var(--color-accent-blue-rgb), 0.18);
-  --cluster-dot-ring: rgba(var(--color-accent-blue-rgb), 0.16);
 }
 
 .cluster-node--pink {
   --cluster-color-solid: var(--color-accent-pink);
-  --cluster-fill: rgba(255, 40, 90, 0.08);
   --cluster-color-rgb: 255, 40, 90;
-  --cluster-color-soft: rgba(255, 40, 90, 0.14);
-  --cluster-border: rgba(255, 40, 90, 0.29);
-  --cluster-label-border: rgba(255, 40, 90, 0.18);
-  --cluster-dot-ring: rgba(255, 40, 90, 0.16);
 }
 
 .cluster-node--red {
   --cluster-color-solid: var(--color-accent-red);
-  --cluster-fill: rgba(var(--color-accent-red-rgb), 0.08);
   --cluster-color-rgb: var(--color-accent-red-rgb);
-  --cluster-color-soft: rgba(var(--color-accent-red-rgb), 0.12);
-  --cluster-border: rgba(var(--color-accent-red-rgb), 0.28);
-  --cluster-label-border: rgba(var(--color-accent-red-rgb), 0.16);
-  --cluster-dot-ring: rgba(var(--color-accent-red-rgb), 0.14);
 }
 
 .cluster-node--purple {
   --cluster-color-solid: var(--color-accent-purple);
-  --cluster-fill: rgba(124, 53, 255, 0.08);
   --cluster-color-rgb: 124, 53, 255;
-  --cluster-color-soft: rgba(124, 53, 255, 0.13);
-  --cluster-border: rgba(124, 53, 255, 0.29);
-  --cluster-label-border: rgba(124, 53, 255, 0.17);
-  --cluster-dot-ring: rgba(124, 53, 255, 0.15);
 }
 
 .cluster-node--green {
   --cluster-color-solid: #198c2a;
-  --cluster-fill: rgba(48, 250, 65, 0.08);
   --cluster-color-rgb: 25, 140, 42;
-  --cluster-color-soft: rgba(48, 250, 65, 0.12);
-  --cluster-border: rgba(25, 140, 42, 0.28);
-  --cluster-label-border: rgba(25, 140, 42, 0.16);
-  --cluster-dot-ring: rgba(25, 140, 42, 0.15);
 }
 
 .cluster-node--selected {
+  border-color: rgba(var(--cluster-color-rgb), 0.40);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    inset 0 0 0 1px rgba(43, 43, 43, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 2px 12px rgba(15, 23, 42, 0.05),
     0 0 0 2px rgba(var(--cluster-color-rgb), 0.16);
 }
 
 .cluster-node--cue-release {
-  border-color: rgba(var(--cluster-color-rgb), 0.18);
-  background: rgba(250, 250, 250, 0.18);
-  opacity: 0.62;
-  filter: saturate(0.72);
-}
-
-.cluster-node--cue-release::after {
-  border-color: rgba(var(--cluster-color-rgb), 0.08);
+  border-color: rgba(var(--cluster-color-rgb), 0.10);
+  opacity: 0.52;
+  filter: saturate(0);
 }
 
 .cluster-node--cue-release .cluster-node__label {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .cluster-node--cue-accept {
-  animation: cluster-accept-pulse 1500ms ease-in-out infinite;
+  border-color: rgba(var(--cluster-color-rgb), 0.36);
+  animation: cluster-accept-pulse 1800ms ease-in-out infinite;
 }
 
 @keyframes cluster-accept-pulse {
   0%,
   100% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.58),
-      inset 0 0 0 1px rgba(43, 43, 43, 0.03),
-      0 0 18px 4px rgba(var(--cluster-color-rgb), 0.07);
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 2px 12px rgba(15, 23, 42, 0.05),
+      0 0 0 1px rgba(var(--cluster-color-rgb), 0.10),
+      0 0 22px 4px rgba(var(--cluster-color-rgb), 0.06);
   }
 
   50% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.58),
-      inset 0 0 0 1px rgba(43, 43, 43, 0.03),
-      0 0 28px 10px rgba(var(--cluster-color-rgb), 0.16);
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 2px 12px rgba(15, 23, 42, 0.05),
+      0 0 0 2px rgba(var(--cluster-color-rgb), 0.22),
+      0 0 36px 12px rgba(var(--cluster-color-rgb), 0.13);
   }
 }
