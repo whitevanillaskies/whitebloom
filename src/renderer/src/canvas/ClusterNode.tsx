@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { type NodeProps, useUpdateNodeInternals } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
 import type { ClusterColor, Size } from '@renderer/shared/types'
@@ -21,9 +21,14 @@ export function ClusterNode({ id, data, selected, positionAbsoluteX, positionAbs
   const label = clusterData.label?.trim() || 'Cluster'
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
+  const updateNodeLabel = useBoardStore((s) => s.updateNodeLabel)
   const reconcileClusterMembershipsForCluster = useBoardStore((s) => s.reconcileClusterMembershipsForCluster)
   const updateNodeInternals = useUpdateNodeInternals()
   const [localSize, setLocalSize] = useState(clusterData.size)
+  const [editing, setEditing] = useState(false)
+  const [draftLabel, setDraftLabel] = useState(clusterData.label ?? '')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const finishModeRef = useRef<'commit' | 'cancel'>('commit')
 
   const handleResizePreview = useCallback(
     ({ position, size }: { position: { x: number; y: number }; size: Size }) => {
@@ -58,17 +63,91 @@ export function ClusterNode({ id, data, selected, positionAbsoluteX, positionAbs
   }, [clusterData.size, isResizing])
 
   useEffect(() => {
+    if (editing) return
+    setDraftLabel(clusterData.label ?? '')
+  }, [clusterData.label, editing])
+
+  useEffect(() => {
+    if (!editing) return
+    const frame = window.requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [editing])
+
+  useEffect(() => {
     updateNodeInternals(id)
   }, [id, localSize.h, localSize.w, updateNodeInternals])
+
+  const startEditing = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (isResizing) return
+    event.stopPropagation()
+    finishModeRef.current = 'commit'
+    setDraftLabel(clusterData.label ?? '')
+    setEditing(true)
+  }, [clusterData.label, isResizing])
+
+  const commitEditing = useCallback(() => {
+    setEditing(false)
+    updateNodeLabel(id, draftLabel)
+  }, [draftLabel, id, updateNodeLabel])
+
+  const cancelEditing = useCallback(() => {
+    setEditing(false)
+    setDraftLabel(clusterData.label ?? '')
+  }, [clusterData.label])
+
+  const finishEditing = useCallback((mode: 'commit' | 'cancel') => {
+    finishModeRef.current = mode
+    if (mode === 'commit') {
+      commitEditing()
+      return
+    }
+
+    cancelEditing()
+  }, [cancelEditing, commitEditing])
 
   return (
     <>
       <div
-        className={`cluster-node cluster-node--${clusterData.color}${selected ? ' cluster-node--selected' : ''}${clusterData.membershipCue ? ` cluster-node--cue-${clusterData.membershipCue}` : ''}${isResizing ? ' nodrag nopan' : ''}`}
+        className={`cluster-node cluster-node--${clusterData.color}${selected ? ' cluster-node--selected' : ''}${clusterData.membershipCue ? ` cluster-node--cue-${clusterData.membershipCue}` : ''}${isResizing || editing ? ' nodrag nopan' : ''}`}
         style={{ width: localSize.w, height: localSize.h }}
         title={label}
+        onDoubleClick={startEditing}
       >
-        <div className="cluster-node__label">{label}</div>
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="cluster-node__label-input nodrag nopan"
+            value={draftLabel}
+            onChange={(event) => setDraftLabel(event.target.value)}
+            onBlur={() => {
+              const nextMode = finishModeRef.current
+              finishModeRef.current = 'commit'
+              if (nextMode === 'cancel') {
+                cancelEditing()
+                return
+              }
+
+              commitEditing()
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                finishEditing('commit')
+              } else if (event.key === 'Escape') {
+                event.preventDefault()
+                finishEditing('cancel')
+              }
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          />
+        ) : (
+          <div className="cluster-node__label">{label}</div>
+        )}
       </div>
       <NodeResizeHandles
         visible={selected || isResizing}

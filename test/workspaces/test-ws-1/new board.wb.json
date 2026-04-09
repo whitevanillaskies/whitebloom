@@ -223,8 +223,8 @@
       "kind": "bud",
       "type": "io.obsidianbloom.vault",
       "position": {
-        "x": 1287.9880809753433,
-        "y": 37.16928574727976
+        "x": 1405.424285034131,
+        "y": 26.613222461096626
       },
       "size": {
         "w": 88,
@@ -233,7 +233,7 @@
       "resource": "file:///D:/persona/personal_notes/Mindstorm",
       "created": "2026-04-06T16:59:09.183Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:54:08.879Z",
+      "updatedAt": "2026-04-09T19:46:17.133Z",
       "updatedBy": "anon"
     },
     {
@@ -241,8 +241,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1662.8853788205809,
-        "y": -30.606245851752504
+        "x": 1780.3215828793684,
+        "y": -41.16230913793564
       },
       "size": {
         "w": 244,
@@ -253,7 +253,7 @@
       "wrapWidth": 244,
       "created": "2026-04-07T12:00:37.225Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:26:18.717Z",
+      "updatedAt": "2026-04-09T19:46:17.133Z",
       "updatedBy": "anon",
       "plain": "automatically arranging elements in a grid, etc. maybe packing pictures like pureref"
     },
@@ -261,15 +261,15 @@
       "id": "56f5adbf-f1dd-4976-bf8f-1ddbc2eb419e",
       "kind": "cluster",
       "type": null,
-      "label": "Cluster",
+      "label": "notes",
       "children": [
         "29a50916-8658-48fd-b506-988623fffdaa",
         "f3737f50-a197-4481-afe1-3d94dcbe0af1"
       ],
       "color": "blue",
       "position": {
-        "x": 1042.627798690704,
-        "y": -173.64014350221368
+        "x": 1160.0640027494915,
+        "y": -184.1962067883968
       },
       "size": {
         "w": 912,
@@ -277,7 +277,7 @@
       },
       "created": "2026-04-07T12:50:43.105Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T01:54:08.879Z",
+      "updatedAt": "2026-04-09T19:48:30.275Z",
       "updatedBy": "anon"
     },
     {
@@ -612,8 +612,8 @@
     }
   ],
   "viewport": {
-    "x": -783.0935520083463,
-    "y": -332.300531512219,
+    "x": -10.781050539833245,
+    "y": -157.29022923420598,
     "zoom": 0.5000000000000008
   }
 }
