@@ -1,7 +1,11 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { useCallback, useEffect, useState } from 'react'
+import { Handle, Position, type NodeProps, useInternalNode, useUpdateNodeInternals } from '@xyflow/react'
 import type { ShapeNodeData as PersistedShapeNodeData, Size } from '@renderer/shared/types'
+import { useBoardStore } from '@renderer/stores/board'
 import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants'
-import { getShapePresetDefinition, type ShapePrimitive } from './shapePresets'
+import { getShapePresetDefinition, supportsNonUniformScale, type ShapePrimitive } from './shapePresets'
+import { NodeResizeHandles } from './NodeResizeHandles'
+import { useFixedCornerResize } from './useFixedCornerResize'
 import { getSvgStrokeProps, resolveVectorColor } from './vectorStyles'
 
 export type ShapeNodeData = {
@@ -61,26 +65,75 @@ function renderShapePrimitive(primitive: ShapePrimitive, index: number) {
   )
 }
 
-export function ShapeNode({ data, selected, dragging }: NodeProps) {
+export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   const shapeData = data as ShapeNodeData
+  const internalNode = useInternalNode(id)
+  const fallbackPositionAbsoluteX = typeof internalNode?.internals.positionAbsolute.x === 'number'
+    ? internalNode.internals.positionAbsolute.x
+    : 0
+  const fallbackPositionAbsoluteY = typeof internalNode?.internals.positionAbsolute.y === 'number'
+    ? internalNode.internals.positionAbsolute.y
+    : 0
   const preset = getShapePresetDefinition(shapeData.shape.preset)
+  const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
+  const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
+  const updateNodeInternals = useUpdateNodeInternals()
+  const [localSize, setLocalSize] = useState({ w: shapeData.size.w, h: shapeData.size.h })
   const stroke = resolveVectorColor(shapeData.shape.style.stroke.color, 'var(--color-primary-fg)')
-  const fill = resolveVectorColor(shapeData.shape.style.fill.color, 'var(--color-panel)')
+  const fill = resolveVectorColor(shapeData.shape.style.fill.color, 'transparent')
   const strokeWidth = shapeData.shape.style.stroke.width
+  const keepAspectRatio = !supportsNonUniformScale(shapeData.shape.preset)
+
+  const handleResizePreview = useCallback(
+    ({ position, size: nextSize }: { position: { x: number; y: number }; size: { w: number; h: number } }) => {
+      setLocalSize(nextSize)
+      updateNodePosition(id, position.x, position.y)
+    },
+    [id, updateNodePosition]
+  )
+
+  const handleResizeCommit = useCallback(
+    ({ position, size: nextSize }: { position: { x: number; y: number }; size: { w: number; h: number } }) => {
+      setLocalSize(nextSize)
+      updateNodePosition(id, position.x, position.y)
+      updateNodeSize(id, nextSize.w, nextSize.h)
+    },
+    [id, updateNodePosition, updateNodeSize]
+  )
+
+  const { activeCorner, beginResize, isResizing } = useFixedCornerResize({
+    position: { x: fallbackPositionAbsoluteX, y: fallbackPositionAbsoluteY },
+    size: localSize,
+    minWidth: preset.minSize.w,
+    minHeight: preset.minSize.h,
+    keepAspectRatio,
+    onPreviewChange: handleResizePreview,
+    onCommitChange: handleResizeCommit
+  })
+
+  useEffect(() => {
+    if (isResizing) return
+    setLocalSize({ w: shapeData.size.w, h: shapeData.size.h })
+  }, [isResizing, shapeData.size.h, shapeData.size.w])
+
+  useEffect(() => {
+    updateNodeInternals(id)
+  }, [id, localSize.h, localSize.w, updateNodeInternals])
+
   const labelBox = preset.getLabelBox({
-    width: shapeData.size.w,
-    height: shapeData.size.h,
+    width: localSize.w,
+    height: localSize.h,
     strokeWidth
   })
   const anchors = preset.getConnectionAnchors({
-    width: shapeData.size.w,
-    height: shapeData.size.h,
+    width: localSize.w,
+    height: localSize.h,
     strokeWidth
   })
   const handleMap = new Map(anchors.map((anchor) => [anchor.id, anchor]))
   const primitives = preset.renderShape({
-    width: shapeData.size.w,
-    height: shapeData.size.h,
+    width: localSize.w,
+    height: localSize.h,
     stroke,
     fill,
     strokeWidth,
@@ -90,17 +143,17 @@ export function ShapeNode({ data, selected, dragging }: NodeProps) {
   return (
     <>
       <div
-        className={`shape-node${selected ? ' shape-node--selected' : ''}`}
+        className={`shape-node${selected ? ' shape-node--selected' : ''}${isResizing ? ' shape-node--resizing nodrag nopan' : ''}`}
         style={{
-          width: shapeData.size.w,
-          height: shapeData.size.h
+          width: localSize.w,
+          height: localSize.h
         }}
       >
         <svg
           className="shape-node__svg"
-          width={shapeData.size.w}
-          height={shapeData.size.h}
-          viewBox={`0 0 ${shapeData.size.w} ${shapeData.size.h}`}
+          width={localSize.w}
+          height={localSize.h}
+          viewBox={`0 0 ${localSize.w} ${localSize.h}`}
           aria-hidden="true"
         >
           {primitives.map((primitive, index) => renderShapePrimitive(primitive, index))}
@@ -145,6 +198,11 @@ export function ShapeNode({ data, selected, dragging }: NodeProps) {
           style={{ right: -CONNECTION_HANDLE_OUTSET_PX, top: handleMap.get('right')?.y }}
         />
       </span>
+      <NodeResizeHandles
+        visible={(selected ?? false) || isResizing}
+        activeCorner={activeCorner}
+        onPointerDown={(corner, event) => beginResize(corner, event)}
+      />
     </>
   )
 }

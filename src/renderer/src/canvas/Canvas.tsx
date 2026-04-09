@@ -37,7 +37,7 @@ import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
-import { ArrowDownToLine, Boxes, Database, FileText, FolderPlus, Link2, PanelsTopLeft, Scan, Settings2, Trash2, Type } from 'lucide-react'
+import { ArrowDownToLine, Boxes, Circle, Database, Diamond, FileText, FolderPlus, Link2, PanelsTopLeft, Scan, Settings2, Square, Trash2, Type } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
@@ -64,9 +64,13 @@ import { lexicalContentToPlainText } from '@renderer/shared/types'
 import { isClusterNode } from '@renderer/shared/types'
 import { isShapeLeafNode } from '@renderer/shared/types'
 import { isTextLeafNode } from '@renderer/shared/types'
+import type { ShapePreset } from '@renderer/shared/types'
+import { DEFAULT_SHAPE_STYLE } from '@renderer/shared/types'
+import { getShapePresetDefinition } from './shapePresets'
 import type { Tool } from './tools'
 import { captureBoardThumbnail } from './captureBoardThumbnail'
 import { planClusterPromotion } from '@renderer/stores/board'
+import type { BoardNodeDraft } from '@renderer/stores/board'
 import './Canvas.css'
 
 async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
@@ -501,6 +505,7 @@ export function Canvas({
   const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
   const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
   const [canvasContextMenu, setCanvasContextMenu] = useState<CanvasContextMenuState | null>(null)
+  const [shapeMenuAnchor, setShapeMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [overflowAnchor, setOverflowAnchor] = useState<{ x: number; y: number } | null>(null)
   const autoEditSequenceRef = useRef(0)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(null)
@@ -1993,8 +1998,88 @@ export function Canvas({
     addNode
   ])
 
+  const createShapeAtPoint = useCallback((preset: ShapePreset, position: FlowPosition) => {
+    const definition = getShapePresetDefinition(preset)
+    const id = crypto.randomUUID()
+    addNode({
+      id,
+      kind: 'leaf',
+      type: 'shape',
+      position,
+      size: definition.defaultSize,
+      shape: { preset, style: DEFAULT_SHAPE_STYLE }
+    } as BoardNodeDraft)
+  }, [addNode])
+
+  const shapeMenuItems = useMemo<PetalMenuItem[]>(
+    () => [
+      {
+        id: 'shape-rectangle',
+        label: 'Rectangle',
+        icon: <Square size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('rectangle', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-slanted-rectangle',
+        label: 'Slanted Rectangle',
+        icon: <Square size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('slanted-rectangle', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-diamond',
+        label: 'Diamond',
+        icon: <Diamond size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('diamond', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-ellipse',
+        label: 'Ellipse',
+        icon: <Circle size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('ellipse', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-terminator',
+        label: 'Terminator',
+        icon: <Circle size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('terminator', getDefaultCanvasInsertionPoint())
+      }
+    ],
+    [createShapeAtPoint, getDefaultCanvasInsertionPoint]
+  )
+
   const canvasContextMenuItems = useMemo<PetalMenuItem[]>(
     () => [
+      {
+        id: 'shape-rectangle',
+        label: 'Rectangle',
+        icon: <Square size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('rectangle', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-slanted-rectangle',
+        label: 'Slanted Rectangle',
+        icon: <Square size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('slanted-rectangle', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-diamond',
+        label: 'Diamond',
+        icon: <Diamond size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('diamond', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-ellipse',
+        label: 'Ellipse',
+        icon: <Circle size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('ellipse', getDefaultCanvasInsertionPoint())
+      },
+      {
+        id: 'shape-terminator',
+        label: 'Terminator',
+        icon: <Circle size={14} strokeWidth={1.8} />,
+        onActivate: () => createShapeAtPoint('terminator', getDefaultCanvasInsertionPoint())
+      },
+      { id: 'shapes-sep', type: 'separator' as const },
       {
         id: 'link',
         label: 'Link',
@@ -2010,7 +2095,7 @@ export function Canvas({
         disabled: workspaceRoot === null
       }
     ],
-    [handleImportResources, handleLinkResources, t, workspaceRoot]
+    [createShapeAtPoint, getDefaultCanvasInsertionPoint, handleImportResources, handleLinkResources, t, workspaceRoot]
   )
 
   const onMouseDown = useCallback(
@@ -2331,6 +2416,7 @@ export function Canvas({
             <CanvasToolbar
               activeTool={activeTool}
               onToolChange={setActiveTool}
+              onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
             />
           </div>
         </Panel>
@@ -2462,6 +2548,14 @@ export function Canvas({
           items={canvasContextMenuItems}
           anchor={canvasContextMenu.anchor}
           onClose={closeCanvasContextMenu}
+        />
+      ) : null}
+
+      {shapeMenuAnchor ? (
+        <PetalMenu
+          items={shapeMenuItems}
+          anchor={shapeMenuAnchor}
+          onClose={() => setShapeMenuAnchor(null)}
         />
       ) : null}
     </BloomContext.Provider>

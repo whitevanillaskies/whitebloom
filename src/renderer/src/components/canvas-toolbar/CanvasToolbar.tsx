@@ -6,9 +6,10 @@ import type { Tool } from '@renderer/canvas/tools'
 type CanvasToolbarProps = {
     activeTool: Tool
     onToolChange: (tool: Tool) => void
+    onShapesClick?: (anchor: { x: number; y: number }) => void
 }
 
-export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolbarProps) {
+export default function CanvasToolbar({ activeTool, onToolChange, onShapesClick }: CanvasToolbarProps) {
     const { t } = useTranslation()
 
     const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -52,7 +53,13 @@ export default function CanvasToolbar({ activeTool, onToolChange }: CanvasToolba
             </button>
             <button
                 type="button"
-                 className={'canvas-toolbar__button'}
+                onMouseDown={preventMouseFocus}
+                onClick={(e) => {
+                    if (!onShapesClick) return
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    onShapesClick({ x: rect.left, y: rect.top })
+                }}
+                className={'canvas-toolbar__button'}
                 aria-label={t('canvasToolbar.shapesLabel')}>
                     <Shapes size={16} strokeWidth={2} />
             </button>

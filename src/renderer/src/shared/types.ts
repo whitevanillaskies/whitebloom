@@ -63,14 +63,14 @@ export type EdgeStrokeStyle = StrokeStyle & {
 
 export type ShapeStyle = FilledStrokedElementStyle
 
-export const DEFAULT_SHAPE_STROKE_WIDTH = 2
+export const DEFAULT_SHAPE_STROKE_WIDTH = 1.5
 export const DEFAULT_SHAPE_STROKE: StrokeStyle = {
   width: DEFAULT_SHAPE_STROKE_WIDTH,
   color: { kind: 'token', value: 'foreground' }
 }
 
 export const DEFAULT_SHAPE_FILL: FillStyle = {
-  color: { kind: 'token', value: 'neutral' }
+  color: { kind: 'custom', value: 'transparent' }
 }
 
 export const DEFAULT_SHAPE_STYLE: FilledStrokedElementStyle = {

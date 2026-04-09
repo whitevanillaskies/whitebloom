@@ -7,8 +7,19 @@ export type ShapeLabelBox = {
   height: number
 }
 
+export type ShapeConnectionSide = 'top' | 'left' | 'bottom' | 'right'
+export type ShapeConnectionRole = 'source' | 'target' | 'both'
+export type ShapeConnectionModel = 'cardinal' | 'preset-aware'
+
 export type ShapeConnectionAnchor = {
-  id: 'top' | 'left' | 'bottom' | 'right'
+  /**
+   * Stable per-preset port id. Today we use the four cardinal ids so the
+   * current handle wiring remains simple; later this can hold richer named
+   * ports such as `approve`, `reject`, `yes`, `no`, or `input-1`.
+   */
+  id: string
+  side: ShapeConnectionSide
+  role: ShapeConnectionRole
   x: number
   y: number
 }
@@ -72,6 +83,11 @@ export type ShapePresetDefinition = {
    * Set to true only for presets that must preserve aspect ratio.
    */
   forbidsNonUniformScale?: true
+  /**
+   * Documents whether this preset is still using the basic four-cardinal handle
+   * model or has moved to a richer preset-aware port layout.
+   */
+  connectionModel: ShapeConnectionModel
   renderShape: (context: ShapeRenderContext) => ShapePrimitive[]
   getLabelBox: (context: ShapeGeometryContext) => ShapeLabelBox
   getConnectionAnchors: (context: ShapeGeometryContext) => ShapeConnectionAnchor[]
@@ -111,10 +127,10 @@ function createCardinalAnchors(context: ShapeGeometryContext, input?: {
 }): ShapeConnectionAnchor[] {
   const bounds = getStrokeBounds(context)
   return [
-    { id: 'top', x: input?.topX ?? context.width / 2, y: bounds.y0 },
-    { id: 'left', x: bounds.x0, y: input?.leftY ?? context.height / 2 },
-    { id: 'bottom', x: input?.bottomX ?? context.width / 2, y: bounds.y1 },
-    { id: 'right', x: bounds.x1, y: input?.rightY ?? context.height / 2 }
+    { id: 'top', side: 'top', role: 'target', x: input?.topX ?? context.width / 2, y: bounds.y0 },
+    { id: 'left', side: 'left', role: 'target', x: bounds.x0, y: input?.leftY ?? context.height / 2 },
+    { id: 'bottom', side: 'bottom', role: 'source', x: input?.bottomX ?? context.width / 2, y: bounds.y1 },
+    { id: 'right', side: 'right', role: 'source', x: bounds.x1, y: input?.rightY ?? context.height / 2 }
   ]
 }
 
@@ -139,6 +155,7 @@ const SHAPE_PRESET_DEFINITIONS = [
     displayName: 'Rectangle',
     defaultSize: { w: 180, h: 100 },
     minSize: { w: 80, h: 48 },
+    connectionModel: 'cardinal',
     renderShape: ({ width, height, fill, stroke, strokeWidth }) => {
       const bounds = getStrokeBounds({ width, height, strokeWidth })
       return [
@@ -162,6 +179,7 @@ const SHAPE_PRESET_DEFINITIONS = [
     displayName: 'Slanted Rectangle',
     defaultSize: { w: 200, h: 110 },
     minSize: { w: 96, h: 56 },
+    connectionModel: 'cardinal',
     renderShape: ({ width, height, fill, stroke, strokeWidth }) => {
       const bounds = getStrokeBounds({ width, height, strokeWidth })
       const offset = getParallelogramOffset({ width, height, strokeWidth })
@@ -202,6 +220,7 @@ const SHAPE_PRESET_DEFINITIONS = [
     displayName: 'Diamond',
     defaultSize: { w: 160, h: 120 },
     minSize: { w: 80, h: 80 },
+    connectionModel: 'cardinal',
     renderShape: ({ width, height, fill, stroke, strokeWidth }) => {
       const bounds = getStrokeBounds({ width, height, strokeWidth })
       return [
@@ -232,6 +251,7 @@ const SHAPE_PRESET_DEFINITIONS = [
     displayName: 'Ellipse',
     defaultSize: { w: 180, h: 110 },
     minSize: { w: 72, h: 72 },
+    connectionModel: 'cardinal',
     renderShape: ({ width, height, fill, stroke, strokeWidth }) => {
       const bounds = getStrokeBounds({ width, height, strokeWidth })
       return [
@@ -260,6 +280,7 @@ const SHAPE_PRESET_DEFINITIONS = [
     displayName: 'Terminator',
     defaultSize: { w: 200, h: 96 },
     minSize: { w: 96, h: 48 },
+    connectionModel: 'cardinal',
     renderShape: ({ width, height, fill, stroke, strokeWidth }) => {
       const bounds = getStrokeBounds({ width, height, strokeWidth })
       const radius = clamp(bounds.height / 2, 12, Math.max(12, bounds.width / 3))
@@ -294,6 +315,7 @@ const SHAPE_PRESET_DEFINITIONS = [
     displayName: 'Document',
     defaultSize: { w: 180, h: 120 },
     minSize: { w: 88, h: 64 },
+    connectionModel: 'cardinal',
     renderShape: ({ width, height, fill, stroke, strokeWidth }) => {
       const bounds = getStrokeBounds({ width, height, strokeWidth })
       const waveDepth = clamp(bounds.height * 0.12, 6, Math.min(16, bounds.height * 0.22))

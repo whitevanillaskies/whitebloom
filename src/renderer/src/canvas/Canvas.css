@@ -112,11 +112,14 @@
   place-items: center;
   padding: 8px 10px;
   box-sizing: border-box;
+  overflow: hidden;
   text-align: center;
   color: var(--color-primary-fg);
   font-size: 13px;
   line-height: 1.2;
+  white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   pointer-events: none;
 }
 
