@@ -34,10 +34,7 @@ export type SwatchColorValue = { kind: 'swatch'; paletteId: string; swatchId: st
  * - swatch: palette-scoped reference (resolves via palette registry)
  * - custom: arbitrary literal color chosen by the user
  */
-export type ColorValue =
-  | TokenColorValue
-  | CustomColorValue
-  | SwatchColorValue
+export type ColorValue = TokenColorValue | CustomColorValue | SwatchColorValue
 
 export type StrokeStyle = {
   width: number
@@ -113,14 +110,14 @@ export const DEFAULT_EDGE_STROKE_WIDTH = 1.5
 export const DEFAULT_EDGE_STROKE: EdgeStrokeStyle = {
   width: DEFAULT_EDGE_STROKE_WIDTH,
   color: { kind: 'token', value: 'foreground' },
-  dash: 'solid',
+  dash: 'solid'
 }
 
 export const DEFAULT_EDGE_STYLE: EdgeStyle = {
   stroke: DEFAULT_EDGE_STROKE,
   startMarker: 'none',
   endMarker: 'arrow',
-  labelColor: { kind: 'token', value: 'foreground' },
+  labelColor: { kind: 'token', value: 'foreground' }
 }
 
 export const DEFAULT_EDGE_LABEL_LAYOUT: EdgeLabelLayout = {
@@ -144,9 +141,7 @@ export function normalizeEdgeStyle(
   return { ...DEFAULT_EDGE_STYLE, stroke }
 }
 
-export function normalizeEdgeLabelLayout(
-  edge: Pick<BoardEdge, 'labelLayout'>
-): EdgeLabelLayout {
+export function normalizeEdgeLabelLayout(edge: Pick<BoardEdge, 'labelLayout'>): EdgeLabelLayout {
   const pathPosition = edge.labelLayout?.pathPosition
 
   if (typeof pathPosition !== 'number' || Number.isNaN(pathPosition)) {
@@ -268,6 +263,7 @@ export type ClusterNode = BaseBoardNode & {
   brief?: string
   children: string[]
   color: ClusterColor
+  autofitToContents?: boolean
 }
 
 export type BoardNode = BudNode | LeafNode | ClusterNode

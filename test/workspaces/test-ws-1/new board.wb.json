@@ -7,8 +7,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 17.013400812799773,
-        "y": 329.41689802467175
+        "x": 51.47435146271084,
+        "y": 405.23098945447606
       },
       "size": {
         "w": 312,
@@ -19,7 +19,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:29:56.060Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:54:56.196Z",
+      "updatedAt": "2026-04-09T20:58:41.220Z",
       "updatedBy": "anon",
       "plain": "organization and management of knowledge"
     },
@@ -28,8 +28,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 45.81519184447336,
-        "y": 396.69218471713407
+        "x": 80.27614249438443,
+        "y": 472.5062761469384
       },
       "size": {
         "w": 401,
@@ -40,7 +40,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:04.687Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:55:06.563Z",
+      "updatedAt": "2026-04-09T20:58:41.220Z",
       "updatedBy": "anon",
       "plain": "mind graphs, etc. are useful, but I'm thinking also of assets"
     },
@@ -49,8 +49,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 296.6632919168852,
-        "y": 488.97477288924443
+        "x": 331.1242425667963,
+        "y": 564.7888643190486
       },
       "size": {
         "w": 326,
@@ -61,7 +61,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:20.846Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T14:10:34.609Z",
+      "updatedAt": "2026-04-09T20:58:41.220Z",
       "updatedBy": "anon",
       "plain": "asset management is knowledge management"
     },
@@ -70,8 +70,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 32.32497315226226,
-        "y": 579.9196698399483
+        "x": 66.78592380217333,
+        "y": 655.7337612697524
       },
       "size": {
         "w": 246,
@@ -82,7 +82,7 @@
       "wrapWidth": 246,
       "created": "2026-04-05T22:30:32.216Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:54:56.196Z",
+      "updatedAt": "2026-04-09T20:58:41.220Z",
       "updatedBy": "anon",
       "plain": "asset organization is thus knowledge management"
     },
@@ -91,8 +91,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 302.5606568436135,
-        "y": 581.0476288291188
+        "x": 400.7160539045299,
+        "y": 711.2313079975596
       },
       "size": {
         "w": 371,
@@ -103,7 +103,7 @@
       "wrapWidth": null,
       "created": "2026-04-05T22:30:46.378Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:54:56.196Z",
+      "updatedAt": "2026-04-09T21:35:01.486Z",
       "updatedBy": "anon",
       "plain": "how does knowledge management in scrivener work?\nfirst, you have ........ what?"
     },
@@ -151,8 +151,8 @@
       "kind": "bud",
       "type": "com.whitebloom.focus-writer",
       "position": {
-        "x": -289.2119945458354,
-        "y": -213.30028468510247
+        "x": -280.5064889128742,
+        "y": -227.22909369784043
       },
       "size": {
         "w": 220,
@@ -161,7 +161,7 @@
       "resource": "wloc:blossoms/note-1775439811494.blt",
       "created": "2026-04-06T01:43:31.501Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:56:37.888Z",
+      "updatedAt": "2026-04-09T21:47:50.361Z",
       "updatedBy": "anon"
     },
     {
@@ -223,8 +223,8 @@
       "kind": "bud",
       "type": "io.obsidianbloom.vault",
       "position": {
-        "x": 1405.424285034131,
-        "y": 26.613222461096626
+        "x": 1167.4567840919988,
+        "y": -3.7011088691113088
       },
       "size": {
         "w": 88,
@@ -233,7 +233,7 @@
       "resource": "file:///D:/persona/personal_notes/Mindstorm",
       "created": "2026-04-06T16:59:09.183Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:46:17.133Z",
+      "updatedAt": "2026-04-09T21:46:08.295Z",
       "updatedBy": "anon"
     },
     {
@@ -241,8 +241,8 @@
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 1780.3215828793684,
-        "y": -41.16230913793564
+        "x": 1574.1841298339546,
+        "y": -53.28804167001883
       },
       "size": {
         "w": 244,
@@ -253,7 +253,7 @@
       "wrapWidth": 244,
       "created": "2026-04-07T12:00:37.225Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:46:17.133Z",
+      "updatedAt": "2026-04-09T21:46:04.126Z",
       "updatedBy": "anon",
       "plain": "automatically arranging elements in a grid, etc. maybe packing pictures like pureref"
     },
@@ -268,17 +268,18 @@
       ],
       "color": "blue",
       "position": {
-        "x": 1160.0640027494915,
-        "y": -184.1962067883968
+        "x": 1068.8625469545862,
+        "y": -191.1257325320832
       },
       "size": {
-        "w": 912,
-        "h": 376
+        "w": 814,
+        "h": 387
       },
       "created": "2026-04-07T12:50:43.105Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:48:30.275Z",
-      "updatedBy": "anon"
+      "updatedAt": "2026-04-09T21:46:04.126Z",
+      "updatedBy": "anon",
+      "autofitToContents": false
     },
     {
       "id": "9d4fdf96-3be0-4086-b985-df32da0ec8e9",
@@ -294,17 +295,18 @@
       ],
       "color": "blue",
       "position": {
-        "x": -31.032269315299686,
-        "y": 280.9190785947473
+        "x": 3,
+        "y": 357
       },
       "size": {
-        "w": 731,
-        "h": 414
+        "w": 801,
+        "h": 465
       },
       "created": "2026-04-07T13:17:47.429Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-07T13:54:56.196Z",
-      "updatedBy": "anon"
+      "updatedAt": "2026-04-09T21:32:59.719Z",
+      "updatedBy": "anon",
+      "autofitToContents": true
     },
     {
       "id": "5eef75d5-0e23-4a90-a9a0-1f41bb9c2099",
@@ -412,17 +414,17 @@
       "kind": "bud",
       "type": "com.whitebloom.image",
       "position": {
-        "x": 2236.819504099228,
-        "y": 553.9123692899583
+        "x": 2239.819504099228,
+        "y": 543.9123692899583
       },
       "size": {
-        "w": 768,
-        "h": 432
+        "w": 770,
+        "h": 433
       },
       "resource": "wloc:res/960692ed.jpg",
       "created": "2026-04-09T01:54:54.436Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T17:49:41.135Z",
+      "updatedAt": "2026-04-09T21:28:53.497Z",
       "updatedBy": "anon"
     },
     {
@@ -466,12 +468,12 @@
       "kind": "leaf",
       "type": "shape",
       "position": {
-        "x": 1058.787071612472,
-        "y": 1185.4019905663858
+        "x": 1156.27396250404,
+        "y": 1197.500672312044
       },
       "size": {
-        "w": 180,
-        "h": 100
+        "w": 155,
+        "h": 123
       },
       "shape": {
         "preset": "rectangle",
@@ -479,8 +481,9 @@
           "stroke": {
             "width": 1.5,
             "color": {
-              "kind": "token",
-              "value": "foreground"
+              "kind": "swatch",
+              "paletteId": "whitebloom-default",
+              "swatchId": "blue"
             }
           },
           "fill": {
@@ -493,7 +496,7 @@
       },
       "created": "2026-04-09T13:32:44.821Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T20:10:30.017Z",
+      "updatedAt": "2026-04-09T21:48:08.500Z",
       "updatedBy": "anon",
       "label": "grewat"
     },
@@ -502,12 +505,12 @@
       "kind": "leaf",
       "type": "shape",
       "position": {
-        "x": 1547.896714738588,
-        "y": 1102.195898257137
+        "x": 1426.0293734521833,
+        "y": 1062.850133793908
       },
       "size": {
-        "w": 160,
-        "h": 120
+        "w": 186,
+        "h": 173
       },
       "shape": {
         "preset": "diamond",
@@ -515,8 +518,9 @@
           "stroke": {
             "width": 1.5,
             "color": {
-              "kind": "token",
-              "value": "foreground"
+              "kind": "swatch",
+              "paletteId": "whitebloom-default",
+              "swatchId": "purple"
             }
           },
           "fill": {
@@ -529,7 +533,7 @@
       },
       "created": "2026-04-09T13:32:47.620Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T20:10:07.961Z",
+      "updatedAt": "2026-04-09T21:44:39.766Z",
       "updatedBy": "anon",
       "label": "asdasd"
     },
@@ -538,12 +542,12 @@
       "kind": "leaf",
       "type": "shape",
       "position": {
-        "x": 1441.4473367013836,
-        "y": 1354.9995056419548
+        "x": 1473.9161335802148,
+        "y": 1335.8386518185187
       },
       "size": {
-        "w": 199,
-        "h": 183
+        "w": 213,
+        "h": 185
       },
       "shape": {
         "preset": "ellipse",
@@ -553,7 +557,7 @@
             "color": {
               "kind": "swatch",
               "paletteId": "whitebloom-default",
-              "swatchId": "red"
+              "swatchId": "pink"
             }
           },
           "fill": {
@@ -566,9 +570,54 @@
       },
       "created": "2026-04-09T13:32:54.773Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T20:07:58.010Z",
+      "updatedAt": "2026-04-09T21:44:49.948Z",
       "updatedBy": "anon",
       "label": "this is a whatever"
+    },
+    {
+      "id": "097a8170-503d-4382-a51d-477052fd84d7",
+      "kind": "cluster",
+      "type": null,
+      "label": "Cluster",
+      "children": [
+        "b89f2d7a-17c4-440b-aad6-da8a39bf20fc",
+        "f909b4b0-8860-47be-b5d6-be1d8283dc50"
+      ],
+      "color": "blue",
+      "autofitToContents": false,
+      "position": {
+        "x": 239,
+        "y": -419
+      },
+      "size": {
+        "w": 587,
+        "h": 460
+      },
+      "created": "2026-04-09T21:46:25.372Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T21:46:25.372Z",
+      "updatedBy": "anon"
+    },
+    {
+      "id": "f34cb0c9-9307-481c-b82b-0f55ac0a0a4f",
+      "kind": "leaf",
+      "type": "text",
+      "position": {
+        "x": -196.34693146225038,
+        "y": 66.02636491972024
+      },
+      "size": {
+        "w": 251,
+        "h": 57
+      },
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Make the focus writer preview more like Apple Books on macOS\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "widthMode": "fixed",
+      "wrapWidth": 251,
+      "created": "2026-04-09T21:47:17.130Z",
+      "createdBy": "anon",
+      "updatedAt": "2026-04-09T21:47:43.366Z",
+      "updatedBy": "anon",
+      "plain": "Make the focus writer preview more like Apple Books on macOS"
     }
   ],
   "edges": [
@@ -609,12 +658,53 @@
       "label": "label",
       "labelLayout": {
         "pathPosition": 0.55
+      },
+      "edgeStyle": {
+        "stroke": {
+          "width": 1.5,
+          "color": {
+            "kind": "swatch",
+            "paletteId": "whitebloom-default",
+            "swatchId": "green"
+          },
+          "dash": "solid"
+        },
+        "startMarker": "none",
+        "endMarker": "arrow",
+        "labelColor": {
+          "kind": "swatch",
+          "paletteId": "whitebloom-default",
+          "swatchId": "teal"
+        }
+      }
+    },
+    {
+      "id": "7134a19f-8ef8-4cb6-b605-0b7a1e7c6132",
+      "from": "f6097a86-d4c5-485a-9075-b34b61e3815c",
+      "to": "f34cb0c9-9307-481c-b82b-0f55ac0a0a4f",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "edgeStyle": {
+        "stroke": {
+          "width": 1.5,
+          "color": {
+            "kind": "token",
+            "value": "foreground"
+          },
+          "dash": "solid"
+        },
+        "startMarker": "arrow",
+        "endMarker": "none",
+        "labelColor": {
+          "kind": "token",
+          "value": "foreground"
+        }
       }
     }
   ],
   "viewport": {
-    "x": -253.26349000390633,
-    "y": -0.0950695401475059,
-    "zoom": 1.0000000000000007
+    "x": -70.6791831617827,
+    "y": -326.5178584263449,
+    "zoom": 0.7578582832552003
   }
 }

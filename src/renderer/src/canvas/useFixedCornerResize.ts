@@ -26,6 +26,7 @@ type ResizeSession = {
 }
 
 type UseFixedCornerResizeOptions = {
+  nodeId: string
   position: Position
   size: Size
   minWidth: number
@@ -107,6 +108,7 @@ function getPositionForSize(session: ResizeSession, nextSize: Size): Position {
 }
 
 export function useFixedCornerResize({
+  nodeId,
   position,
   size,
   minWidth,
@@ -115,7 +117,7 @@ export function useFixedCornerResize({
   onPreviewChange,
   onCommitChange
 }: UseFixedCornerResizeOptions) {
-  const { getViewport } = useReactFlow()
+  const { getViewport, updateNode } = useReactFlow()
   const resizeSessionRef = useRef<ResizeSession | null>(null)
   const [isResizing, setIsResizing] = useState(false)
   const [activeCorner, setActiveCorner] = useState<ResizeCorner | null>(null)
@@ -134,9 +136,16 @@ export function useFixedCornerResize({
         return
       }
 
+      if (
+        session.currentPosition.x !== session.startPosition.x ||
+        session.currentPosition.y !== session.startPosition.y
+      ) {
+        updateNode(nodeId, { position: session.startPosition })
+      }
+
       onPreviewChange({ position: session.startPosition, size: session.startSize })
     },
-    [onCommitChange, onPreviewChange]
+    [nodeId, onCommitChange, onPreviewChange, updateNode]
   )
 
   const onPointerMove = useCallback(
@@ -155,11 +164,18 @@ export function useFixedCornerResize({
         : getFreeformSize(session, dxFlow, dyFlow, minWidth, minHeight)
       const nextPosition = getPositionForSize(session, nextSize)
 
+      if (
+        nextPosition.x !== session.currentPosition.x ||
+        nextPosition.y !== session.currentPosition.y
+      ) {
+        updateNode(nodeId, { position: nextPosition })
+      }
+
       session.currentSize = nextSize
       session.currentPosition = nextPosition
       onPreviewChange({ position: nextPosition, size: nextSize })
     },
-    [getViewport, keepAspectRatio, minHeight, minWidth, onPreviewChange]
+    [getViewport, keepAspectRatio, minHeight, minWidth, nodeId, onPreviewChange, updateNode]
   )
 
   const onPointerUp = useCallback(() => {

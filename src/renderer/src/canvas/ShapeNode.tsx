@@ -101,11 +101,10 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   const label = shapeData.label?.trim()
 
   const handleResizePreview = useCallback(
-    ({ position, size: nextSize }: { position: { x: number; y: number }; size: { w: number; h: number } }) => {
+    ({ size: nextSize }: { position: { x: number; y: number }; size: { w: number; h: number } }) => {
       setLocalSize(nextSize)
-      updateNodePosition(id, position.x, position.y)
     },
-    [id, updateNodePosition]
+    []
   )
 
   const handleResizeCommit = useCallback(
@@ -118,6 +117,7 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
   )
 
   const { activeCorner, beginResize, isResizing } = useFixedCornerResize({
+    nodeId: id,
     position: { x: fallbackPositionAbsoluteX, y: fallbackPositionAbsoluteY },
     size: localSize,
     minWidth: preset.minSize.w,

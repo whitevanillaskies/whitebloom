@@ -43,6 +43,8 @@ Suggested first-pass hotkeys:
 - `V`
   Align the current selection vertically across centerpoints. In practice this means all selected nodes receive the same `centerX`.
 
+Other commands could be aligning in a grid-like fashion (say, if you've got 16 elements, into a 4x4, mathematically trying to find some value that most evenly distributes the elements)
+
 These commands are conceptually adjacent to snapping:
 
 - both operate on node geometry

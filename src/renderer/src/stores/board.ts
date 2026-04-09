@@ -54,7 +54,12 @@ type BoardState = Board & {
   deleteNodes: (ids: string[]) => void
   addEdge: (edge: BoardEdge) => void
   deleteEdge: (id: string) => void
-  updateEdge: (id: string, patch: Partial<Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'label' | 'labelLayout'>>) => void
+  updateEdge: (
+    id: string,
+    patch: Partial<
+      Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'label' | 'labelLayout'>
+    >
+  ) => void
   updateEdgeStyle: (id: string, edgeStyle: EdgeStyle) => void
   patchEdgeStyles: (ids: string[], patch: Partial<EdgeStyle>) => void
   patchShapeStyles: (ids: string[], patch: Partial<ShapeStyle>) => void
@@ -65,7 +70,9 @@ type BoardState = Board & {
   updateEdgeLabelLayout: (id: string, labelLayout?: EdgeLabelLayout) => void
   updateCluster: (
     id: string,
-    patch: Partial<Pick<ClusterNode, 'label' | 'brief' | 'color' | 'children'>>
+    patch: Partial<
+      Pick<ClusterNode, 'label' | 'brief' | 'color' | 'children' | 'autofitToContents'>
+    >
   ) => void
   translateCluster: (id: string, dx: number, dy: number) => void
   addNodeToCluster: (clusterId: string, nodeId: string) => void
@@ -138,9 +145,14 @@ function normalizeNodeMetadata<TNode extends NodeMetadataCarrier>(
   return { ...node, created, createdBy, updatedAt, updatedBy }
 }
 
-function touchNode<TNode extends BoardNode>(node: TNode, timestamp: string, username: string): TNode {
+function touchNode<TNode extends BoardNode>(
+  node: TNode,
+  timestamp: string,
+  username: string
+): TNode {
   const normalized = normalizeNodeMetadata(node, timestamp, username)
-  if (normalized.updatedAt === timestamp && normalized.updatedBy === username) return normalized as TNode
+  if (normalized.updatedAt === timestamp && normalized.updatedBy === username)
+    return normalized as TNode
   return { ...normalized, updatedAt: timestamp, updatedBy: username } as TNode
 }
 
@@ -207,10 +219,15 @@ function assignNodeToCluster(nodes: BoardNode[], clusterId: string, nodeId: stri
   return changed ? nextNodes : nodes
 }
 
-function removeNodeFromSingleCluster(nodes: BoardNode[], clusterId: string, nodeId: string): BoardNode[] {
+function removeNodeFromSingleCluster(
+  nodes: BoardNode[],
+  clusterId: string,
+  nodeId: string
+): BoardNode[] {
   let changed = false
   const nextNodes = nodes.map((node) => {
-    if (!isClusterNode(node) || node.id !== clusterId || !node.children.includes(nodeId)) return node
+    if (!isClusterNode(node) || node.id !== clusterId || !node.children.includes(nodeId))
+      return node
     changed = true
     return { ...node, children: node.children.filter((childId) => childId !== nodeId) }
   })
@@ -358,9 +375,7 @@ export function planClusterPromotion(input: {
     }
   }))
 
-  const childEdges = input.edges.filter(
-    (edge) => childIds.has(edge.from) && childIds.has(edge.to)
-  )
+  const childEdges = input.edges.filter((edge) => childIds.has(edge.from) && childIds.has(edge.to))
 
   const promotedBud = {
     id: cluster.id,
@@ -381,9 +396,7 @@ export function planClusterPromotion(input: {
     promotedBud
   ]
 
-  const nextEdges = input.edges.filter(
-    (edge) => !childIds.has(edge.from) && !childIds.has(edge.to)
-  )
+  const nextEdges = input.edges.filter((edge) => !childIds.has(edge.from) && !childIds.has(edge.to))
 
   return {
     childBoard: {
@@ -415,8 +428,14 @@ export const useBoardStore = create<BoardState>((set) => ({
       const timestamp = new Date().toISOString()
       const username = normalizeUsername(state.activeUsername)
       const normalizedNode = normalizeNodeMetadata(node, timestamp, username) as NonClusterBoardNode
+      const nodes = reconcileNodeClusterMemberships(
+        [...state.nodes, normalizedNode],
+        [normalizedNode.id],
+        timestamp,
+        username
+      )
       return {
-        nodes: [...state.nodes, normalizedNode],
+        nodes,
         isDirty: shouldMarkBoardDirty(state)
       }
     }),
@@ -479,7 +498,8 @@ export const useBoardStore = create<BoardState>((set) => ({
           next.to === e.to &&
           next.label === e.label &&
           next.labelLayout === e.labelLayout
-        ) return e
+        )
+          return e
         changed = true
         return next
       })
@@ -626,9 +646,7 @@ export const useBoardStore = create<BoardState>((set) => ({
   updateEdgeLabelLayout: (id, labelLayout) =>
     set((state) => {
       let changed = false
-      const nextLabelLayout = labelLayout
-        ? normalizeEdgeLabelLayout({ labelLayout })
-        : undefined
+      const nextLabelLayout = labelLayout ? normalizeEdgeLabelLayout({ labelLayout }) : undefined
       const persistedLabelLayout =
         nextLabelLayout && nextLabelLayout.pathPosition !== DEFAULT_EDGE_LABEL_LAYOUT.pathPosition
           ? nextLabelLayout
@@ -671,6 +689,7 @@ export const useBoardStore = create<BoardState>((set) => ({
             next.label === node.label &&
             next.brief === node.brief &&
             next.color === node.color &&
+            (next.autofitToContents ?? false) === (node.autofitToContents ?? false) &&
             next.children.length === node.children.length &&
             next.children.every((childId, index) => childId === node.children[index])
           ) {
@@ -766,6 +785,7 @@ export const useBoardStore = create<BoardState>((set) => ({
         brief: input.brief,
         children: input.childIds,
         color: input.color ?? 'blue',
+        autofitToContents: false,
         position: input.position,
         size: input.size
       }
@@ -799,7 +819,12 @@ export const useBoardStore = create<BoardState>((set) => ({
 
       const timestamp = new Date().toISOString()
       const username = normalizeUsername(state.activeUsername)
-      const nodes = reconcileNodeClusterMemberships(state.nodes, candidateNodeIds, timestamp, username)
+      const nodes = reconcileNodeClusterMemberships(
+        state.nodes,
+        candidateNodeIds,
+        timestamp,
+        username
+      )
       return nodes === state.nodes ? state : { nodes, isDirty: shouldMarkBoardDirty(state) }
     }),
 
@@ -918,9 +943,7 @@ export const useBoardStore = create<BoardState>((set) => ({
     set(() => {
       const fallbackTimestamp = new Date().toISOString()
       const nodes = sanitizeClusterChildren(
-        board.nodes.map((node) =>
-          normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME)
-        )
+        board.nodes.map((node) => normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME))
       )
       return {
         version: CURRENT_BOARD_VERSION,

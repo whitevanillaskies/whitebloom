@@ -12,66 +12,24 @@
       },
       "size": {
         "w": 411,
-        "h": 97
+        "h": 78
       },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cluster Features\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Double click to edit cluster name.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cluster toolbar for locking maybe, and absolutely for colors.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cluster Features\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"heading\",\"version\":1,\"tag\":\"h1\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"Cluster toolbar for locking maybe, and absolutely for colors.\",\"type\":\"text\",\"version\":1}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
       "widthMode": "auto",
       "wrapWidth": null,
       "created": "2026-04-07T14:05:28.869Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:40:46.701Z",
+      "updatedAt": "2026-04-09T20:14:46.795Z",
       "updatedBy": "anon",
-      "plain": "Cluster Features\nDouble click to edit cluster name.\nCluster toolbar for locking maybe, and absolutely for colors."
-    },
-    {
-      "id": "34448da9-2500-4ec4-9c70-f1a6da107563",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 96,
-        "y": 234
-      },
-      "size": {
-        "w": 271,
-        "h": 58
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"maybe extremely subtle accent glows\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"},{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"yes, I think that may work\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "auto",
-      "wrapWidth": null,
-      "created": "2026-04-07T16:24:39.711Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-07T17:21:28.841Z",
-      "updatedBy": "anon",
-      "plain": "maybe extremely subtle accent glows\nyes, I think that may work"
-    },
-    {
-      "id": "e7718394-4e1e-4e0d-9a4c-617044224b0b",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 244,
-        "y": 324
-      },
-      "size": {
-        "w": 330,
-        "h": 39
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"a button on clusters to autofit them to content\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "auto",
-      "wrapWidth": null,
-      "created": "2026-04-07T16:25:03.916Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-07T17:21:28.841Z",
-      "updatedBy": "anon",
-      "plain": "a button on clusters to autofit them to content"
+      "plain": "Cluster Features\nCluster toolbar for locking maybe, and absolutely for colors."
     },
     {
       "id": "cddee476-83c8-4bf0-86f0-58cd398eadc1",
       "kind": "leaf",
       "type": "text",
       "position": {
-        "x": 448.5954756794048,
-        "y": 226.18446441348217
+        "x": 106.28336589028879,
+        "y": 243.4149397384377
       },
       "size": {
         "w": 320,
@@ -82,7 +40,7 @@
       "wrapWidth": 320,
       "created": "2026-04-07T16:25:21.991Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:33:59.469Z",
+      "updatedAt": "2026-04-09T20:16:57.026Z",
       "updatedBy": "anon",
       "plain": "not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them."
     },
@@ -94,50 +52,26 @@
       "color": "blue",
       "children": [
         "b5e1220c-10fe-4b2e-a0cf-293d93301b75",
-        "34448da9-2500-4ec4-9c70-f1a6da107563",
-        "e7718394-4e1e-4e0d-9a4c-617044224b0b",
-        "01349ff0-6772-4deb-9c63-d1588990a621",
         "cddee476-83c8-4bf0-86f0-58cd398eadc1"
       ],
       "position": {
-        "x": 45.333333333333314,
-        "y": 4.333333333333343
+        "x": 59,
+        "y": -14
       },
       "size": {
-        "w": 780,
-        "h": 429
+        "w": 758,
+        "h": 363
       },
       "created": "2026-04-09T19:32:23.943Z",
       "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:33:59.469Z",
+      "updatedAt": "2026-04-09T20:16:53.640Z",
       "updatedBy": "anon"
-    },
-    {
-      "id": "01349ff0-6772-4deb-9c63-d1588990a621",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 383.4050786836507,
-        "y": 147.22061427016848
-      },
-      "size": {
-        "w": 449,
-        "h": 75
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"cluster command on selected nodes should simply cluster, it's poor UX to select cluster with multiple selected nodes and it creates a new default one\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 449,
-      "created": "2026-04-09T19:32:45.540Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T19:39:24.037Z",
-      "updatedBy": "anon",
-      "plain": "cluster command on selected nodes should simply cluster, it's poor UX to select cluster with multiple selected nodes and it creates a new default one"
     }
   ],
   "edges": [],
   "viewport": {
-    "x": 578.5211535106521,
-    "y": 309.2040222113148,
-    "zoom": 0.8615237662477765
+    "x": 500.48877898578587,
+    "y": 395.06277951402217,
+    "zoom": 0.8705505632961252
   }
 }

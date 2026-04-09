@@ -267,6 +267,93 @@ describe('board store', () => {
     expect(cluster2.children).toEqual(['node-a'])
   })
 
+  it('assigns newly added nodes to the smallest containing cluster', () => {
+    useBoardStore.getState().addCluster({
+      id: 'cluster-outer',
+      kind: 'cluster',
+      type: null,
+      position: { x: 0, y: 0 },
+      size: { w: 400, h: 300 },
+      label: 'Outer',
+      color: 'blue',
+      children: []
+    })
+    useBoardStore.getState().addCluster({
+      id: 'cluster-inner',
+      kind: 'cluster',
+      type: null,
+      position: { x: 100, y: 80 },
+      size: { w: 180, h: 160 },
+      label: 'Inner',
+      color: 'pink',
+      children: []
+    })
+
+    useBoardStore.getState().addNode({
+      id: 'node-a',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 120, y: 100 },
+      size: { w: 80, h: 30 },
+      content: makeLexicalContent('inside')
+    })
+
+    const outerCluster = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-outer')
+    const innerCluster = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-inner')
+    expect(outerCluster?.kind).toBe('cluster')
+    expect(innerCluster?.kind).toBe('cluster')
+    if (outerCluster?.kind !== 'cluster' || innerCluster?.kind !== 'cluster') {
+      throw new Error('Expected both clusters to remain after adding a nested child')
+    }
+
+    expect(outerCluster.children).toEqual([])
+    expect(innerCluster.children).toEqual(['node-a'])
+  })
+
+  it('lets explicit cluster assignment override inferred nested membership', () => {
+    useBoardStore.getState().addCluster({
+      id: 'cluster-outer',
+      kind: 'cluster',
+      type: null,
+      position: { x: 0, y: 0 },
+      size: { w: 400, h: 300 },
+      label: 'Outer',
+      color: 'blue',
+      children: []
+    })
+    useBoardStore.getState().addCluster({
+      id: 'cluster-inner',
+      kind: 'cluster',
+      type: null,
+      position: { x: 100, y: 80 },
+      size: { w: 180, h: 160 },
+      label: 'Inner',
+      color: 'pink',
+      children: []
+    })
+    useBoardStore.getState().addNode({
+      id: 'node-a',
+      kind: 'leaf',
+      type: 'text',
+      position: { x: 120, y: 100 },
+      size: { w: 80, h: 30 },
+      content: makeLexicalContent('inside')
+    })
+
+    useBoardStore.getState().addNodeToCluster('cluster-outer', 'node-a')
+
+    const outerCluster = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-outer')
+    const innerCluster = useBoardStore.getState().nodes.find((node) => node.id === 'cluster-inner')
+    expect(outerCluster?.kind).toBe('cluster')
+    expect(innerCluster?.kind).toBe('cluster')
+    if (outerCluster?.kind !== 'cluster' || innerCluster?.kind !== 'cluster') {
+      throw new Error('Expected both clusters to remain after explicit reassignment')
+    }
+
+    expect(outerCluster.children).toEqual(['node-a'])
+    expect(innerCluster.children).toEqual([])
+  })
+
   it('translates a cluster and all of its children by the same delta', () => {
     useBoardStore.getState().addNode({
       id: 'node-a',
