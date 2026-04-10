@@ -228,6 +228,7 @@ declare global {
       discardThumbnail: (boardPath: string, workspaceRoot: string) => Promise<{ ok: boolean }>
       setLanguage: (lang: string) => Promise<void>
       probeNetwork: () => Promise<{ reachable: boolean }>
+      fetchPageTitle: (url: string) => Promise<{ ok: boolean; title: string | null }>
     }
   }
 }

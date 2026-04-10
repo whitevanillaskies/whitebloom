@@ -126,3 +126,30 @@
   margin: 0 4px;
   flex-shrink: 0;
 }
+
+/* Connectivity microsignal dot */
+
+.board-context-bar__connectivity-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 600ms ease, opacity 600ms ease;
+  margin: 0 2px;
+}
+
+.board-context-bar__connectivity-dot--online {
+  background: #4ade80;
+  opacity: 0.4;
+}
+
+.board-context-bar__connectivity-dot--offline {
+  background: #fb923c;
+  opacity: 0.9;
+}
+
+.board-context-bar__connectivity-dot--checking,
+.board-context-bar__connectivity-dot--unknown {
+  background: #94a3b8;
+  opacity: 0.25;
+}

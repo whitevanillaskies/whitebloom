@@ -2,6 +2,7 @@ import { File, FilePlus, Home, MoreHorizontal, Save, Zap } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PetalToolbarButton } from '../petal'
+import { useConnectivityStore } from '../../stores/connectivity'
 import './BoardContextBar.css'
 
 type BoardContextBarProps = {
@@ -36,6 +37,7 @@ export default function BoardContextBar({
   onOverflow
 }: BoardContextBarProps) {
   const { t } = useTranslation()
+  const connectivityStatus = useConnectivityStore((s) => s.status)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -143,6 +145,14 @@ export default function BoardContextBar({
         icon={<MoreHorizontal size={15} strokeWidth={2} />}
         label={t('boardContextBar.moreActionsLabel')}
         onClick={handleOverflowClick}
+      />
+
+      <div className="board-context-bar__divider" />
+
+      {/* Connectivity microsignal */}
+      <span
+        className={`board-context-bar__connectivity-dot board-context-bar__connectivity-dot--${connectivityStatus}`}
+        aria-hidden="true"
       />
     </div>
   )

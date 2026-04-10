@@ -251,7 +251,9 @@ const api = {
   discardThumbnail: (boardPath: string, workspaceRoot: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('thumbnail:discard', boardPath, workspaceRoot),
   setLanguage: (lang: string): Promise<void> => ipcRenderer.invoke('app:set-language', lang),
-  probeNetwork: (): Promise<{ reachable: boolean }> => ipcRenderer.invoke('network:probe')
+  probeNetwork: (): Promise<{ reachable: boolean }> => ipcRenderer.invoke('network:probe'),
+  fetchPageTitle: (url: string): Promise<{ ok: boolean; title: string | null }> =>
+    ipcRenderer.invoke('page:fetch-title', url)
 }
 
 if (process.contextIsolated) {

@@ -16,6 +16,7 @@ import {
 } from '../services/workspace-material'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import { probeNetwork } from '../services/network-probe'
+import { fetchPageTitle } from '../services/page-title-fetcher'
 import type { MainProcessContext } from '../state/main-process-context'
 import type { GardenState } from '../../shared/arrangements'
 import type { ArrangementsMaterial } from '../../shared/arrangements'
@@ -259,6 +260,10 @@ export function registerAppIpc(context: MainProcessContext): void {
 
   ipcMain.handle('network:probe', async () => {
     return await probeNetwork()
+  })
+
+  ipcMain.handle('page:fetch-title', async (_event, url: string) => {
+    return await fetchPageTitle(url)
   })
 
   ipcMain.handle('app:set-language', async (_event, lang: string) => {

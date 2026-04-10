@@ -2,10 +2,11 @@ import {
   createBuiltinCommandProvider,
   registerCommandProvider
 } from './registry'
-import { Archive, Globe, Layers, PanelsTopLeft, Trash2 } from 'lucide-react'
+import { Archive, Download, Globe, Layers, PanelsTopLeft, Tag, Trash2 } from 'lucide-react'
 import { boardBloomModule } from '../modules/boardbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
 import { normalizeWebPageUrl } from '../shared/web-page-url'
+import { fetchPageTitle } from '../shared/page-title'
 import type {
   ArrangementsAssignMaterialsToBinCommandArgs,
   ArrangementsCommandBin,
@@ -14,6 +15,7 @@ import type {
   ArrangementsIncludeMaterialsInSetCommandArgs,
   ArrangementsMoveMaterialsToDesktopCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
+  CanvasCommandContext,
   CanvasCreateBudCommandArgs,
   CanvasCreateShapeCommandArgs,
   CanvasLinkableBoard,
@@ -308,11 +310,11 @@ function createCanvasUrlPageInputStep(initialValue = '') {
     title: 'Add URL Page',
     subtitle: 'Paste a URL to create a web page bud on the board.',
     placeholder: 'Paste a URL',
-    submitLabel: 'Add URL Page',
+    submitLabel: 'Continue',
     initialValue,
-    onSubmit: (value: string, context: { insertionPoint?: { x: number; y: number } }) => {
+    onSubmit: (value: string) => {
       const resource = normalizeWebPageUrl(value)
-      if (!resource || !context.insertionPoint) {
+      if (!resource) {
         return {
           type: 'step' as const,
           step: createCanvasUrlPageInputStep(value)
@@ -320,12 +322,101 @@ function createCanvasUrlPageInputStep(initialValue = '') {
       }
 
       return {
+        type: 'step' as const,
+        step: createUrlPageLabelStrategyStep(resource)
+      }
+    }
+  }
+}
+
+function createUrlPageLabelStrategyStep(resource: string) {
+  return {
+    kind: 'list' as const,
+    id: 'board.add-url-page.label-strategy',
+    title: 'Label This Page',
+    subtitle: resource,
+    placeholder: 'Choose a label strategy',
+    items: [
+      {
+        id: 'use-url-name',
+        title: 'Use URL Name',
+        subtitle: 'Create the bud using the URL as its label',
+        icon: Globe,
+        onSelect: (context: CanvasCommandContext) => {
+          if (!context.insertionPoint) return { type: 'cancel' as const }
+          return {
+            type: 'submit' as const,
+            args: {
+              position: context.insertionPoint,
+              moduleType: webPageBloomModule.id,
+              size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+              resource
+            } satisfies CanvasAddUrlPageCommandArgs
+          }
+        }
+      },
+      {
+        id: 'try-page-title',
+        title: 'Try Request Page Title',
+        subtitle: 'Fetch the page title from the URL and use it as the label',
+        icon: Download,
+        onSelect: async (context: CanvasCommandContext, interaction) => {
+          if (!context.insertionPoint) return { type: 'cancel' as const }
+          interaction.setBusyState({ title: 'Fetching page title', label: resource })
+          const title = await fetchPageTitle(resource, interaction.signal)
+          if (interaction.signal.aborted) return { type: 'cancel' as const }
+          return {
+            type: 'submit' as const,
+            args: {
+              position: context.insertionPoint,
+              moduleType: webPageBloomModule.id,
+              size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+              resource,
+              ...(title ? { label: title } : {})
+            } satisfies CanvasAddUrlPageCommandArgs
+          }
+        }
+      },
+      {
+        id: 'set-label',
+        title: 'Set Label',
+        subtitle: 'Type a custom label for this page bud',
+        icon: Tag,
+        onSelect: () => ({
+          type: 'step' as const,
+          step: createUrlPageSetLabelInputStep(resource)
+        })
+      }
+    ]
+  }
+}
+
+function createUrlPageSetLabelInputStep(resource: string) {
+  return {
+    kind: 'input' as const,
+    id: 'board.add-url-page.set-label',
+    title: 'Set Page Label',
+    subtitle: resource,
+    placeholder: 'Type a label for this page',
+    submitLabel: 'Add Page',
+    initialValue: '',
+    onSubmit: (value: string, context: CanvasCommandContext) => {
+      const label = value.trim()
+      if (!label) {
+        return {
+          type: 'step' as const,
+          step: createUrlPageSetLabelInputStep(resource)
+        }
+      }
+      if (!context.insertionPoint) return { type: 'cancel' as const }
+      return {
         type: 'submit' as const,
         args: {
           position: context.insertionPoint,
           moduleType: webPageBloomModule.id,
           size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
-          resource
+          resource,
+          label
         } satisfies CanvasAddUrlPageCommandArgs
       }
     }
