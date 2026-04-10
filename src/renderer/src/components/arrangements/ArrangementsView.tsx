@@ -4,7 +4,17 @@ import { useMicaDragState } from '../../mica'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { MICA_PERSISTENCE_BOUNDARY, MicaHost, useMicaHost } from '../../mica'
-import { PetalPalette, type PaletteInputMode, type PaletteItem, type PaletteMode } from '../petal'
+import {
+  createArrangementsCommandContext,
+  type ArrangementsCommandContext
+} from '../../commands'
+import {
+  PetalPalette,
+  type PaletteCommandSession,
+  type PaletteInputMode,
+  type PaletteItem,
+  type PaletteMode
+} from '../petal'
 import ArrangementsDesktop from './ArrangementsDesktop'
 import BinView from './BinView'
 import DesktopBinItems, { DesktopTrashBin } from './DesktopBinItems'
@@ -134,6 +144,7 @@ export default function ArrangementsView({
   const loadArrangements = useArrangementsStore((s) => s.loadArrangements)
   const bins = useArrangementsStore((s) => s.bins)
   const sets = useArrangementsStore((s) => s.sets)
+  const createBinAtPoint = useArrangementsStore((s) => s.createBinAtPoint)
   const createBinAtViewportCenter = useArrangementsStore((s) => s.createBinAtViewportCenter)
   const createRootSet = useArrangementsStore((s) => s.createRootSet)
   const renameBin = useArrangementsStore((s) => s.renameBin)
@@ -143,7 +154,33 @@ export default function ArrangementsView({
   const saveArrangements = useArrangementsStore((s) => s.saveArrangements)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const desktopViewportRef = useRef<HTMLElement>(null)
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
+  const flattenedSetNodes = useMemo(() => flattenSetNodes(sets), [sets])
+  const arrangementsCommandContext = useMemo<ArrangementsCommandContext>(
+    () =>
+      createArrangementsCommandContext({
+        selection: { materialKeys: [] },
+        availableBinIds: bins.map((bin) => bin.id),
+        availableSetIds: flattenedSetNodes.map((setNode) => setNode.id),
+        actions: {
+          createBin: ({ position, name }) => createBinAtPoint(position, name)
+        }
+      }),
+    [bins, createBinAtPoint, flattenedSetNodes]
+  )
+  const openPalette = useCallback(
+    (initialMode: PaletteCommandSession['initialMode'] = 'visual') => {
+      setPaletteSession({
+        context: arrangementsCommandContext,
+        initialMode,
+        source: 'palette'
+      })
+    },
+    [arrangementsCommandContext]
+  )
+  const closePalette = useCallback(() => {
+    setPaletteSession(null)
+  }, [])
   const arrangementsMicaPolicy = useMemo(
     () => ({
       hostId: ARRANGEMENTS_MICA_HOST_ID,
@@ -173,6 +210,19 @@ export default function ArrangementsView({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (
+        event.key.toLowerCase() === 'x' &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        openPalette('meta')
+        return
+      }
+
+      if (
         event.key === 'Tab' &&
         !event.ctrlKey &&
         !event.metaKey &&
@@ -181,20 +231,20 @@ export default function ArrangementsView({
       ) {
         if (isEditableTarget(event.target)) return
         event.preventDefault()
-        setPaletteOpen((open) => !open)
+        openPalette('visual')
         return
       }
 
-      if (event.key === 'Escape' && paletteOpen) {
+      if (event.key === 'Escape' && paletteSession) {
         if (isEditableTarget(event.target)) return
         event.preventDefault()
-        setPaletteOpen(false)
+        closePalette()
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [paletteOpen])
+  }, [closePalette, openPalette, paletteSession])
 
   const handleDeleteBin = useCallback(
     (binId: string) => {
@@ -212,7 +262,6 @@ export default function ArrangementsView({
   const paletteItems = useMemo<PaletteItem[]>(
     () => {
       const userBins = bins.filter((bin) => bin.kind === 'user')
-      const flattenedSets = flattenSetNodes(sets)
 
       const renameBinPickerMode: PaletteMode = {
         id: 'rename-bin-target',
@@ -260,7 +309,7 @@ export default function ArrangementsView({
 
       const renameSetPickerMode: PaletteMode = {
         id: 'rename-set-target',
-        items: flattenedSets.map((setNode) => ({
+        items: flattenedSetNodes.map((setNode) => ({
           id: `rename-set-target:${setNode.id}`,
           label: setNode.name,
           subtitle: setNode.depth > 0 ? `Depth ${setNode.depth}` : 'Root set',
@@ -288,7 +337,7 @@ export default function ArrangementsView({
 
       const removeSetPickerMode: PaletteMode = {
         id: 'remove-set-target',
-        items: flattenedSets.map((setNode) => ({
+        items: flattenedSetNodes.map((setNode) => ({
           id: `remove-set-target:${setNode.id}`,
           label: setNode.name,
           subtitle: setNode.depth > 0 ? `Remove nested set at depth ${setNode.depth}` : 'Remove root set',
@@ -405,11 +454,11 @@ export default function ArrangementsView({
       createBinAtViewportCenter,
       createRootSet,
       deleteSet,
+      flattenedSetNodes,
       handleDeleteBin,
       renameBin,
       renameSet,
-      saveArrangements,
-      sets
+      saveArrangements
     ]
   )
 
@@ -539,11 +588,12 @@ export default function ArrangementsView({
 
             {/* Bin View — temporary direct MicaWindow usage before full Mica host adoption */}
           </MicaHost>
-          {paletteOpen ? (
+          {paletteSession ? (
             <PetalPalette
               items={paletteItems}
-              onClose={() => setPaletteOpen(false)}
+              onClose={closePalette}
               placeholder="Search Arrangements commands"
+              commandSession={paletteSession}
             />
           ) : null}
         </main>

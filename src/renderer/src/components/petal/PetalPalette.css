@@ -51,6 +51,57 @@
   color: var(--color-muted-fg);
 }
 
+.petal-palette__command-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.petal-palette__command-mode,
+.petal-palette__command-namespace {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 0 9px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.petal-palette__command-mode {
+  background: rgba(var(--color-accent-blue-rgb), 0.09);
+  color: var(--color-accent-blue);
+}
+
+.petal-palette__command-namespace {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--color-secondary-fg);
+}
+
+.petal-palette__mode-copy {
+  padding: 10px 12px 4px;
+}
+
+.petal-palette__mode-title {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.83rem;
+  font-weight: 620;
+  color: var(--color-primary-fg);
+}
+
+.petal-palette__mode-subtitle {
+  margin-top: 3px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--color-muted-fg);
+}
+
 /* ── Item list ──────────────────────────────────────────────────── */
 
 .petal-palette__list {

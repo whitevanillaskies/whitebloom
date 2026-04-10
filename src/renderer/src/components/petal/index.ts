@@ -6,7 +6,14 @@ export { default as PetalIsland } from './PetalIsland'
 export { default as PetalMenu } from './PetalMenu'
 export type { PetalMenuItem } from './PetalMenu'
 export { default as PetalPalette } from './PetalPalette'
-export type { PaletteActivation, PaletteInputMode, PaletteItem, PaletteMode } from './PetalPalette'
+export type {
+  PaletteActivation,
+  PaletteCommandBrowseMode,
+  PaletteCommandSession,
+  PaletteInputMode,
+  PaletteItem,
+  PaletteMode
+} from './PetalPalette'
 export { default as PetalPanel } from './PetalPanel'
 export { default as PetalSpacer } from './PetalSpacer'
 export { default as PetalToolbarButton } from './PetalToolbarButton'

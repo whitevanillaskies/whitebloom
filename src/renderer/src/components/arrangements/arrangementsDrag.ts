@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { GardenCameraState } from '../../../../shared/arrangements'
+import type { GardenCameraState, GardenSetNode } from '../../../../shared/arrangements'
 import {
   MICA_DRAG_COORDINATE_SPACE,
   getMicaDragCoordinator,
@@ -13,6 +13,13 @@ import {
   type MicaScreenPoint,
   type MicaScreenRect
 } from '../../mica'
+import {
+  WHITEBLOOM_COMMAND_IDS,
+  createCommandExecutionGroupId,
+  createArrangementsCommandContext,
+  executeCommandById,
+  type WhitebloomCommandExecutionOptions
+} from '../../commands'
 import { useArrangementsStore } from '../../stores/arrangements'
 
 export const ARRANGEMENTS_MICA_HOST_ID = 'arrangements-desktop'
@@ -182,6 +189,73 @@ function resolveArrangementsDropTarget(): ArrangementsDropResolution | null {
   }
 }
 
+function collectSetIds(sets: GardenSetNode[], output: string[] = []): string[] {
+  for (const set of sets) {
+    output.push(set.id)
+    collectSetIds(set.children, output)
+  }
+
+  return output
+}
+
+function createArrangementsMutationCommandContext(materialKeys: string[]) {
+  const {
+    bins,
+    sets,
+    addToSet,
+    assignToBin,
+    moveMaterialOnDesktop,
+    removeFromBin,
+    sendToTrash
+  } = useArrangementsStore.getState()
+
+  return createArrangementsCommandContext({
+    selection: {
+      materialKeys
+    },
+    availableBinIds: bins.filter((bin) => bin.kind === 'user').map((bin) => bin.id),
+    availableSetIds: collectSetIds(sets),
+    actions: {
+      assignMaterialsToBin: (keys, binId) => {
+        for (const materialKey of keys) {
+          assignToBin(materialKey, binId)
+        }
+      },
+      includeMaterialsInSet: (keys, setId) => {
+        for (const materialKey of keys) {
+          addToSet(materialKey, setId)
+        }
+      },
+      sendMaterialsToTrash: (keys) => {
+        for (const materialKey of keys) {
+          sendToTrash(materialKey)
+        }
+      },
+      moveMaterialsToDesktop: (items) => {
+        for (const item of items) {
+          removeFromBin(item.materialKey)
+          moveMaterialOnDesktop(item.materialKey, item.position)
+        }
+      }
+    }
+  })
+}
+
+function dispatchArrangementsMutationCommand(
+  id: string,
+  args: unknown,
+  materialKeys: string[],
+  options?: WhitebloomCommandExecutionOptions
+): void {
+  const context = createArrangementsMutationCommandContext(materialKeys)
+
+  void executeCommandById(id, args, context, options).then((result) => {
+    if (!result.ok) {
+      console.warn(`[commands] ${result.commandId} failed`, result)
+    }
+  })
+}
+
 export function createArrangementsMaterialDropCommands(
   resolution: ArrangementsDropResolution,
   payload: ArrangementsMaterialDragPayload
@@ -234,24 +308,66 @@ export function createArrangementsMaterialDropCommands(
 
 function applyArrangementsMaterialDropCommands(commands: ArrangementsMaterialDropCommand[]): boolean {
   if (commands.length === 0) return false
-
-  const { addToSet, assignToBin, moveMaterialOnDesktop, removeFromBin, sendToTrash } =
-    useArrangementsStore.getState()
+  const materialKeys = Array.from(
+    new Set(commands.map((command) => command.materialKey))
+  )
+  const groupId = createCommandExecutionGroupId()
+  const executionOptions: WhitebloomCommandExecutionOptions = {
+    source: 'drag-drop',
+    groupId,
+    metadata: {
+      targetKinds: Array.from(new Set(commands.map((command) => command.kind)))
+    }
+  }
 
   for (const command of commands) {
     switch (command.kind) {
       case 'move-to-desktop':
-        removeFromBin(command.materialKey)
-        moveMaterialOnDesktop(command.materialKey, command.position)
+        dispatchArrangementsMutationCommand(
+          WHITEBLOOM_COMMAND_IDS.arrangements.moveMaterialsToDesktop,
+          {
+            items: [
+              {
+                materialKey: command.materialKey,
+                position: command.position
+              }
+            ]
+          },
+          materialKeys,
+          executionOptions
+        )
         break
       case 'assign-to-bin':
-        assignToBin(command.materialKey, command.binId)
+        dispatchArrangementsMutationCommand(
+          WHITEBLOOM_COMMAND_IDS.arrangements.assignMaterialsToBin,
+          {
+            materialKeys: [command.materialKey],
+            binId: command.binId
+          },
+          materialKeys,
+          executionOptions
+        )
         break
       case 'send-to-trash':
-        sendToTrash(command.materialKey)
+        dispatchArrangementsMutationCommand(
+          WHITEBLOOM_COMMAND_IDS.arrangements.sendMaterialsToTrash,
+          {
+            materialKeys: [command.materialKey]
+          },
+          materialKeys,
+          executionOptions
+        )
         break
       case 'add-to-set':
-        addToSet(command.materialKey, command.setId)
+        dispatchArrangementsMutationCommand(
+          WHITEBLOOM_COMMAND_IDS.arrangements.includeMaterialsInSet,
+          {
+            materialKeys: [command.materialKey],
+            setId: command.setId
+          },
+          materialKeys,
+          executionOptions
+        )
         break
       default:
         break

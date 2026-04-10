@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import type { GardenCameraState } from '../../../../shared/arrangements'
 import { Archive } from 'lucide-react'
+import {
+  WHITEBLOOM_COMMAND_IDS,
+  createArrangementsCommandContext,
+  executeCommandById
+} from '../../commands'
 import { PetalMenu, type PetalMenuItem } from '../petal'
 import {
   ARRANGEMENTS_MICA_HOST_ID,
@@ -190,7 +195,25 @@ export default function ArrangementsDesktop({
             y: (contextMenuAnchor.y - rect.top - cameraRef.current.y) / cameraRef.current.zoom
           }
 
-          void createBinAtPoint(point)
+          void executeCommandById(
+            WHITEBLOOM_COMMAND_IDS.arrangements.createBin,
+            { position: point },
+            createArrangementsCommandContext({
+              selection: { materialKeys: [] },
+              availableBinIds: [],
+              availableSetIds: [],
+              actions: {
+                createBin: ({ position, name }) => createBinAtPoint(position, name)
+              }
+            }),
+            {
+              source: 'context-menu'
+            }
+          ).then((result) => {
+            if (!result.ok) {
+              console.warn(`[commands] ${result.commandId} failed`, result)
+            }
+          })
         }
       }
     ],

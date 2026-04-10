@@ -158,6 +158,10 @@
   "petalPalette": {
     "ariaLabel": "Paleta de comandos",
     "searchPlaceholder": "Buscar…",
+    "metaSearchPlaceholder": "Escribe un comando o espacio de nombres",
+    "visualModeLabel": "Visual",
+    "metaModeLabel": "Meta",
+    "namespaceRootLabel": "Raíz",
     "noResults": "Sin resultados"
   },
   "petalMenu": {

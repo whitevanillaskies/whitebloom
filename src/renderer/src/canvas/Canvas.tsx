@@ -34,7 +34,7 @@ import { ShapeToolbar } from './ShapeToolbar'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import '../modules/index'
-import { dispatchDirectory, dispatchModule } from '../modules/registry'
+import { dispatchDirectory, dispatchModule, resolveModuleById } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
@@ -57,7 +57,13 @@ import {
   Type
 } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
-import type { PaletteInputMode, PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/components/petal'
+import type {
+  PaletteCommandSession,
+  PaletteInputMode,
+  PaletteItem,
+  PaletteMode,
+  PetalMenuItem
+} from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
@@ -98,6 +104,13 @@ import { resolveCanvasMarkerColor } from './vectorStyles'
 import type { Tool } from './tools'
 import { planClusterPromotion } from '@renderer/stores/board'
 import type { BoardNodeDraft } from '@renderer/stores/board'
+import {
+  WHITEBLOOM_COMMAND_IDS,
+  createCommandExecutionGroupId,
+  createCanvasCommandContext,
+  executeCommandById,
+  type WhitebloomCommandExecutionOptions
+} from '@renderer/commands'
 import './Canvas.css'
 
 const nodeTypes = { text: TextNode, bud: BudNode, shape: ShapeNode, cluster: ClusterNode }
@@ -636,7 +649,7 @@ export function Canvas({
 
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | 'newBoard' | null>(
     null
@@ -1171,11 +1184,123 @@ export function Canvas({
     return selected.length === 1 ? selected[0].id : null
   }, [nodes])
 
+  const selectedNodeIds = useMemo(
+    () => nodes.filter((node) => node.selected).map((node) => node.id),
+    [nodes]
+  )
+
+  const selectedEdgeIds = useMemo(
+    () => edges.filter((edge) => edge.selected).map((edge) => edge.id),
+    [edges]
+  )
+
   const selectedCluster = useMemo(() => {
     if (!singleSelectedNodeId) return null
     const node = boardNodes.find((candidate) => candidate.id === singleSelectedNodeId)
     return node && isClusterNode(node) ? node : null
   }, [boardNodes, singleSelectedNodeId])
+
+  const selectedBudNode = useMemo(() => {
+    if (!singleSelectedNodeId) return null
+    const node = boardNodes.find((candidate) => candidate.id === singleSelectedNodeId)
+    return node?.kind === 'bud' ? node : null
+  }, [boardNodes, singleSelectedNodeId])
+
+  const selectedBudModule = useMemo(
+    () => resolveModuleById(selectedBudNode?.type ?? null),
+    [selectedBudNode]
+  )
+
+  const deleteSelection = useCallback(() => {
+    if (selectedNodeIds.length > 0) {
+      deleteNodes(selectedNodeIds)
+    }
+
+    for (const edgeId of selectedEdgeIds) {
+      storeDeleteEdge(edgeId)
+    }
+  }, [deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge])
+
+  const bloomSelection = useCallback(async () => {
+    if (!selectedBudNode || !selectedBudModule) return
+    if (typeof selectedBudNode.resource !== 'string') return
+
+    if (selectedBudModule.id === webPageBloomModule.id) {
+      await window.api.openUrl(selectedBudNode.resource)
+      return
+    }
+
+    handleBloom({
+      nodeId: selectedBudNode.id,
+      module: selectedBudModule,
+      resource: selectedBudNode.resource
+    })
+  }, [handleBloom, selectedBudModule, selectedBudNode])
+
+  const openSelectionInNativeEditor = useCallback(async () => {
+    if (!selectedBudNode || selectedBudNode.type === webPageBloomModule.id) return
+    if (typeof selectedBudNode.resource !== 'string') return
+    await window.api.openFile(selectedBudNode.resource)
+  }, [selectedBudNode])
+
+  const canvasCommandContext = useMemo(
+    () =>
+      createCanvasCommandContext({
+        selection: {
+          nodeIds: selectedNodeIds,
+          edgeIds: selectedEdgeIds
+        },
+        capabilities: {
+          canBloomSelection: selectedBudNode !== null && selectedBudModule !== undefined,
+          canOpenSelectionInNativeEditor:
+            selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id
+        },
+        actions: {
+          createBud: createBudAtPoint,
+          deleteSelection,
+          bloomSelection,
+          openSelectionInNativeEditor
+        }
+      }),
+    [
+      bloomSelection,
+      createBudAtPoint,
+      deleteSelection,
+      openSelectionInNativeEditor,
+      selectedBudModule,
+      selectedBudNode,
+      selectedEdgeIds,
+      selectedNodeIds
+    ]
+  )
+
+  const openPalette = useCallback(
+    (initialMode: PaletteCommandSession['initialMode'] = 'visual') => {
+      setPaletteSession({
+        context: canvasCommandContext,
+        initialMode,
+        source: 'palette'
+      })
+    },
+    [canvasCommandContext]
+  )
+
+  const closePalette = useCallback(() => {
+    setPaletteSession(null)
+  }, [])
+
+  const runCanvasCommand = useCallback(
+    async (id: string, args: unknown, options?: WhitebloomCommandExecutionOptions) => {
+      const result = await executeCommandById(id, args, canvasCommandContext, options)
+      if (!result.ok) {
+        console.warn(`[commands] ${result.commandId} failed`, result)
+        return null
+      }
+
+      return result.result
+    },
+    [canvasCommandContext]
+  )
 
   const fitSelectedClusterToChildren = useCallback(() => {
     if (!selectedCluster || selectedCluster.children.length === 0) return
@@ -1864,6 +1989,20 @@ export function Canvas({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (
+        event.key.toLowerCase() === 'x' &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        if (activeBloom !== null) return
+        event.preventDefault()
+        openPalette('meta')
+        return
+      }
+
+      if (
         event.key === 'Tab' &&
         !event.ctrlKey &&
         !event.metaKey &&
@@ -1873,7 +2012,7 @@ export function Canvas({
         if (isEditableTarget(event.target)) return
         if (activeBloom !== null) return
         event.preventDefault()
-        setPaletteOpen((open) => !open)
+        openPalette('visual')
         return
       }
 
@@ -1884,9 +2023,9 @@ export function Canvas({
           setActiveBloom(null)
           return
         }
-        if (paletteOpen) {
+        if (paletteSession) {
           event.preventDefault()
-          setPaletteOpen(false)
+          closePalette()
           return
         }
         if (settingsOpen) {
@@ -1954,11 +2093,17 @@ export function Canvas({
       if (!isDeleteKey) return
       if (isEditableTarget(event.target)) return
 
-      const selectedIds = nodes.filter((node) => node.selected).map((node) => node.id)
-      if (selectedIds.length === 0) return
+      const hasSelection =
+        nodes.some((node) => node.selected) || edges.some((edge) => edge.selected)
+      if (!hasSelection) return
 
       event.preventDefault()
-      deleteNodes(selectedIds)
+      void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection, undefined, {
+        source: 'shortcut',
+        metadata: {
+          key: event.key
+        }
+      })
     }
 
     window.addEventListener('keydown', onKeyDown)
@@ -1968,14 +2113,21 @@ export function Canvas({
   }, [
     activeBloom,
     boardNodes,
-    deleteNodes,
+    closePalette,
+    edges,
     handleSave,
+    imageDropError,
     nodes,
-    paletteOpen,
+    openPalette,
+    paletteSession,
+    pendingDocumentAction,
+    runCanvasCommand,
     settingsOpen,
     setActiveTool,
     setNodes,
-    updateNodeText
+    trashBoardConfirmOpen,
+    updateNodeText,
+    workspaceActionError
   ])
 
   useEffect(() => {
@@ -2235,6 +2387,7 @@ export function Canvas({
   const placePickedResources = useCallback(
     async (filePaths: string[], preferredBehavior: 'link' | 'import'): Promise<void> => {
       const basePosition = getDefaultCanvasInsertionPoint()
+      const groupId = createCommandExecutionGroupId()
       const settled = await Promise.allSettled(
         filePaths.map((filePath) =>
           resolveExternalResourcePlacement({
@@ -2248,21 +2401,21 @@ export function Canvas({
       let createdCount = 0
       let firstFailure: string | null = null
 
-      settled.forEach((placement) => {
+      for (const placement of settled) {
         if (placement.status === 'rejected') {
           const message =
             placement.reason instanceof Error ? placement.reason.message : t('canvas.dropError')
           if (message === t('canvas.invalidSubboardLinkBody')) {
             setWorkspaceActionError(message)
-            return
+            continue
           }
           firstFailure ??= message
-          return
+          continue
         }
 
-        if (!placement.value) return
+        if (!placement.value) continue
 
-        createBudAtPoint({
+        const createdBudId = await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
           position: {
             x: basePosition.x + createdCount * 24,
             y: basePosition.y + createdCount * 24
@@ -2270,15 +2423,22 @@ export function Canvas({
           moduleType: placement.value.moduleType,
           size: placement.value.size,
           resource: placement.value.resource
+        }, {
+          source: 'file-picker',
+          groupId,
+          metadata: {
+            preferredBehavior
+          }
         })
+        if (createdBudId === null) continue
         createdCount += 1
-      })
+      }
 
       if (firstFailure) {
         setImageDropError(firstFailure)
       }
     },
-    [createBudAtPoint, getDefaultCanvasInsertionPoint, resolveExternalResourcePlacement, t]
+    [getDefaultCanvasInsertionPoint, resolveExternalResourcePlacement, runCanvasCommand, t]
   )
 
   const handleLinkResources = useCallback(async () => {
@@ -2723,11 +2883,16 @@ export function Canvas({
           return
         }
 
-        createBudAtPoint({
+        await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
           position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
           moduleType: boardBloomModule.id,
           size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
           resource: materialKey
+        }, {
+          source: 'drag-drop',
+          metadata: {
+            payloadKind: 'board-resource'
+          }
         })
         return
       }
@@ -2740,6 +2905,7 @@ export function Canvas({
       }
 
       const basePosition = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const groupId = createCommandExecutionGroupId()
 
       const settled = await Promise.allSettled(
         droppedFiles.map(async (file) => {
@@ -2841,22 +3007,22 @@ export function Canvas({
       let createdCount = 0
       let firstFailure: string | null = null
 
-      settled.forEach((result) => {
+      for (const result of settled) {
         if (result.status === 'rejected') {
           const message =
             result.reason instanceof Error ? result.reason.message : t('canvas.dropError')
           if (message === t('canvas.invalidSubboardLinkBody')) {
             setWorkspaceActionError(message)
-            return
+            continue
           }
           firstFailure ??= message
-          return
+          continue
         }
 
-        if (!result.value) return
+        if (!result.value) continue
 
         const { resource, moduleType, size } = result.value
-        createBudAtPoint({
+        const createdBudId = await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
           position: {
             x: basePosition.x + createdCount * 24,
             y: basePosition.y + createdCount * 24
@@ -2864,9 +3030,16 @@ export function Canvas({
           moduleType,
           size,
           resource
+        }, {
+          source: 'drag-drop',
+          groupId,
+          metadata: {
+            payloadKind: 'native-files'
+          }
         })
+        if (createdBudId === null) continue
         createdCount += 1
-      })
+      }
 
       if (firstFailure) {
         setImageDropError(firstFailure)
@@ -2874,11 +3047,10 @@ export function Canvas({
     },
     [
       activeTool,
-      addNode,
+      runCanvasCommand,
       screenToFlowPosition,
       workspaceRoot,
-      unhandledDropSetting,
-      warnLargeImport
+      t
     ]
   )
 
@@ -3055,11 +3227,12 @@ export function Canvas({
         />
       )}
 
-      {paletteOpen && (
+      {paletteSession && (
         <PetalPalette
           items={paletteItems}
-          onClose={() => setPaletteOpen(false)}
+          onClose={closePalette}
           placeholder={t('canvas.searchPalettePlaceholder')}
+          commandSession={paletteSession}
         />
       )}
 

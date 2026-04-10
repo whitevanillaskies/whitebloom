@@ -2,10 +2,22 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import {
+  executeCommandById,
+  listVirtualCommandNamespaces,
+  searchCoreCommands,
+  searchPresentedCommands,
+  type AnyWhitebloomCommandContext,
+  type WhitebloomCommandFlowStep,
+  type WhitebloomCommandFlowTransition,
+  type WhitebloomRegisteredCommandForContext
+} from '@renderer/commands'
 import './PetalPalette.css'
 
 export type PaletteMode = {
   id: string
+  title?: string
+  subtitle?: string
   items: PaletteItem[]
   placeholder?: string
   emptyLabel?: string
@@ -14,15 +26,19 @@ export type PaletteMode = {
 export type PaletteInputMode = {
   id: string
   type: 'input'
+  title?: string
+  subtitle?: string
   placeholder?: string
   submitLabel?: string
   initialValue?: string
-  onSubmit: (value: string) => PaletteActivation | void
+  onSubmit: (value: string) => PaletteActivation | void | Promise<PaletteActivation | void>
 }
 
 type PaletteListMode = {
   id: string
   type?: 'list'
+  title?: string
+  subtitle?: string
   items: PaletteItem[]
   placeholder?: string
   emptyLabel?: string
@@ -42,19 +58,84 @@ export type PaletteItem = {
   icon?: ReactNode
   /** Keyboard shortcut badge shown on the right, e.g. "T" or "⌘S" */
   hint?: string
-  onActivate: () => PaletteActivation | void
+  onActivate: () => PaletteActivation | void | Promise<PaletteActivation | void>
+}
+
+export type PaletteCommandBrowseMode = 'visual' | 'meta'
+
+export type PaletteCommandSession = {
+  context: AnyWhitebloomCommandContext
+  initialMode?: PaletteCommandBrowseMode
+  source?: string
+}
+
+type PaletteRenderedEntry = {
+  id: string
+  label: string
+  subtitle?: string
+  icon?: ReactNode
+  hint?: string
+  onActivate: () => PaletteActivation | void | Promise<PaletteActivation | void>
 }
 
 type PetalPaletteProps = {
   items: PaletteItem[]
   onClose: () => void
   placeholder?: string
+  commandSession?: PaletteCommandSession
 }
 
 const MAX_VISIBLE_ITEMS = 8
 const ITEM_HEIGHT_PX = 36
 
-export default function PetalPalette({ items, onClose, placeholder }: PetalPaletteProps) {
+function normalizeSearchValue(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function splitCommandId(id: string): string[] {
+  return id.split('.').map((segment) => segment.trim()).filter(Boolean)
+}
+
+function getParentNamespace(namespace: string | null): string | null {
+  if (!namespace) return null
+  const segments = splitCommandId(namespace)
+  if (segments.length <= 1) return null
+  return segments.slice(0, -1).join('.')
+}
+
+function canPaletteLaunchCommand(entry: WhitebloomRegisteredCommandForContext<any>): boolean {
+  return entry.command.flow !== undefined || entry.command.core.argsSchema === undefined
+}
+
+function isDirectCommandInNamespace(commandId: string, namespace: string | null): boolean {
+  const commandSegments = splitCommandId(commandId)
+  const namespaceSegments = splitCommandId(namespace ?? '')
+  if (namespaceSegments.length > commandSegments.length) return false
+
+  const isWithinNamespace = namespaceSegments.every(
+    (segment, index) => commandSegments[index] === segment
+  )
+  if (!isWithinNamespace) return false
+
+  return commandSegments.length === namespaceSegments.length + 1
+}
+
+function isAltXShortcut(event: KeyboardEvent): boolean {
+  return (
+    event.key.toLowerCase() === 'x' &&
+    event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey
+  )
+}
+
+export default function PetalPalette({
+  items,
+  onClose,
+  placeholder,
+  commandSession
+}: PetalPaletteProps) {
   const { t } = useTranslation()
   const initialMode = useMemo<PaletteListMode>(
     () => ({
@@ -68,6 +149,10 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
   const [mode, setMode] = useState<PaletteAnyMode>(initialMode)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const [commandBrowseMode, setCommandBrowseMode] = useState<PaletteCommandBrowseMode>(
+    commandSession?.initialMode ?? 'visual'
+  )
+  const [commandNamespace, setCommandNamespace] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -76,19 +161,235 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
     setMode(initialMode)
   }, [initialMode])
 
+  useEffect(() => {
+    setCommandBrowseMode(commandSession?.initialMode ?? 'visual')
+    setCommandNamespace(null)
+  }, [commandSession])
+
   const closePalette = useCallback(() => {
     setMode(initialMode)
     setQuery('')
     setActiveIndex(0)
+    setCommandBrowseMode(commandSession?.initialMode ?? 'visual')
+    setCommandNamespace(null)
     onClose()
-  }, [initialMode, onClose])
+  }, [commandSession, initialMode, onClose])
 
-  const filtered = useMemo(() => {
+  const executePaletteCommand = useCallback(
+    async (commandId: string, args?: unknown) => {
+      if (!commandSession) return { type: 'keep-open' as const }
+
+      const result = await executeCommandById(commandId, args, commandSession.context, {
+        source: commandSession.source ?? 'palette',
+        metadata: {
+          browseMode: commandBrowseMode,
+          ...(commandNamespace ? { namespace: commandNamespace } : {})
+        }
+      })
+
+      if (!result.ok) {
+        console.warn(`[commands] ${result.commandId} failed`, result)
+        return { type: 'keep-open' as const }
+      }
+
+      return { type: 'close' as const }
+    },
+    [commandBrowseMode, commandNamespace, commandSession]
+  )
+
+  function createCommandFlowMode(
+    entry: WhitebloomRegisteredCommandForContext<any>,
+    step: WhitebloomCommandFlowStep<any, any>
+  ): PaletteAnyMode {
+    if (step.kind === 'input') {
+      return {
+        id: `command-flow:${entry.command.core.id}:${step.id}`,
+        type: 'input',
+        title: step.title,
+        subtitle: step.subtitle,
+        placeholder: step.placeholder,
+        submitLabel: step.submitLabel,
+        initialValue: step.initialValue,
+        onSubmit: async (value) => {
+          if (!commandSession) return { type: 'keep-open' as const }
+          const transition = await step.onSubmit(value, commandSession.context)
+          return handleCommandFlowTransition(entry, transition)
+        }
+      }
+    }
+
+    return {
+      id: `command-flow:${entry.command.core.id}:${step.id}`,
+      type: 'list',
+      title: step.title,
+      subtitle: step.subtitle,
+      placeholder: step.placeholder,
+      emptyLabel: step.emptyLabel,
+      items: step.items.map((choice) => {
+        const Icon = choice.icon
+        return {
+          id: `command-flow:${entry.command.core.id}:${step.id}:${choice.id}`,
+          label: choice.title,
+          subtitle: choice.subtitle,
+          icon: Icon ? <Icon size={14} /> : undefined,
+          hint: choice.hotkey,
+          onActivate: async () => {
+            if (!commandSession) return { type: 'keep-open' as const }
+            const transition = await choice.onSelect(commandSession.context)
+            return handleCommandFlowTransition(entry, transition)
+          }
+        }
+      })
+    }
+  }
+
+  async function handleCommandFlowTransition(
+    entry: WhitebloomRegisteredCommandForContext<any>,
+    transition: WhitebloomCommandFlowTransition<any, any>
+  ): Promise<PaletteActivation | void> {
+    switch (transition.type) {
+      case 'cancel':
+        return { type: 'set-mode', mode: initialMode }
+      case 'submit':
+        return executePaletteCommand(entry.command.core.id, transition.args)
+      case 'step':
+        return {
+          type: 'set-mode',
+          mode: createCommandFlowMode(entry, transition.step)
+        }
+    }
+  }
+
+  const activateRegisteredCommand = useCallback(
+    async (entry: WhitebloomRegisteredCommandForContext<any>) => {
+      if (entry.command.flow) {
+        if (!commandSession) return { type: 'keep-open' as const }
+        const transition = await entry.command.flow.start(commandSession.context)
+        return handleCommandFlowTransition(entry, transition)
+      }
+
+      return executePaletteCommand(entry.command.core.id)
+    },
+    [commandSession, executePaletteCommand]
+  )
+
+  const filtered = useMemo<PaletteRenderedEntry[]>(() => {
     if (mode.type === 'input') return []
-    const q = query.trim().toLowerCase()
-    if (!q) return mode.items
-    return mode.items.filter((item) => item.label.toLowerCase().includes(q))
-  }, [mode, query])
+
+    const normalizedQuery = normalizeSearchValue(query)
+    const shouldRenderModeItems =
+      mode.id !== 'root' || commandSession === undefined || commandBrowseMode === 'visual'
+    const legacyEntries = shouldRenderModeItems
+      ? mode.items
+          .filter((item) => !normalizedQuery || item.label.toLowerCase().includes(normalizedQuery))
+          .map<PaletteRenderedEntry>((item) => ({
+            id: item.id,
+            label: item.label,
+            subtitle: item.subtitle,
+            icon: item.icon,
+            hint: item.hint,
+            onActivate: item.onActivate
+          }))
+      : []
+
+    if (mode.id !== 'root' || !commandSession) {
+      return legacyEntries
+    }
+
+    if (commandBrowseMode === 'visual') {
+      const legacyLabels = new Set(legacyEntries.map((entry) => entry.label.trim().toLowerCase()))
+      const commandEntries = searchPresentedCommands(query, commandSession.context)
+        .filter((result) => canPaletteLaunchCommand(result.entry))
+        .filter((result) => {
+          const title = result.presentation?.title.trim().toLowerCase()
+          return !title || !legacyLabels.has(title)
+        })
+        .map<PaletteRenderedEntry>((result) => {
+          const Icon = result.presentation?.icon
+          return {
+            id: `command:${result.entry.command.core.id}`,
+            label: result.presentation?.title ?? result.entry.command.core.id,
+            subtitle: result.presentation?.subtitle,
+            icon: Icon ? <Icon size={14} /> : undefined,
+            hint: result.presentation?.hotkey,
+            onActivate: () => activateRegisteredCommand(result.entry)
+          }
+        })
+
+      return [...commandEntries, ...legacyEntries]
+    }
+
+    const namespaceEntries = listVirtualCommandNamespaces(commandSession.context, {
+      namespace: commandNamespace ?? undefined
+    })
+      .filter((namespace) => namespace.hasChildren)
+      .map<PaletteRenderedEntry | null>((namespace) => {
+        const runnableEntries = namespace.entries.filter((entry) => canPaletteLaunchCommand(entry))
+        if (runnableEntries.length === 0) return null
+
+        return {
+          id: `namespace:${namespace.id}`,
+          label: namespace.segment,
+          hint: 'Enter',
+          onActivate: () => {
+            setCommandNamespace(namespace.id)
+            setQuery('')
+            return { type: 'keep-open' as const }
+          }
+        } satisfies PaletteRenderedEntry
+      })
+      .filter((entry): entry is PaletteRenderedEntry => entry !== null)
+      .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
+
+    const commandEntries = searchCoreCommands(query, commandSession.context, {
+      namespace: commandNamespace ?? undefined
+    })
+      .filter((result) => canPaletteLaunchCommand(result.entry))
+      .filter(
+        (result) =>
+          normalizedQuery || isDirectCommandInNamespace(result.entry.command.core.id, commandNamespace)
+      )
+      .map<PaletteRenderedEntry>((result) => {
+        const presentation = result.entry.command.presentations?.find(
+          (candidate) => candidate.context === commandSession.context.kind
+        )
+        return {
+          id: `command:${result.entry.command.core.id}`,
+          label: result.entry.command.core.id,
+          subtitle: presentation?.title,
+          hint: presentation?.hotkey,
+          onActivate: () => activateRegisteredCommand(result.entry)
+        }
+      })
+
+    return [...namespaceEntries, ...commandEntries]
+  }, [
+    activateRegisteredCommand,
+    commandBrowseMode,
+    commandNamespace,
+    commandSession,
+    mode,
+    query
+  ])
+
+  const inputPlaceholder = useMemo(() => {
+    if (mode.type === 'input') {
+      return mode.placeholder ?? t('petalPalette.searchPlaceholder')
+    }
+
+    if (mode.id === 'root' && commandSession && commandBrowseMode === 'meta') {
+      return t('petalPalette.metaSearchPlaceholder')
+    }
+
+    return mode.placeholder ?? t('petalPalette.searchPlaceholder')
+  }, [commandBrowseMode, commandSession, mode, t])
+
+  const isRootCommandMode = mode.id === 'root' && commandSession !== undefined
+  const commandModeLabel =
+    commandBrowseMode === 'meta'
+      ? t('petalPalette.metaModeLabel')
+      : t('petalPalette.visualModeLabel')
+  const commandNamespaceLabel = commandNamespace ?? t('petalPalette.namespaceRootLabel')
 
   // Reset active index when filtered list changes
   useEffect(() => {
@@ -109,8 +410,8 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
   }, [activeIndex])
 
   const activate = useCallback(
-    (item: PaletteItem) => {
-      const result = item.onActivate()
+    async (item: PaletteRenderedEntry) => {
+      const result = await item.onActivate()
 
       if (!result || result.type === 'close') {
         closePalette()
@@ -123,13 +424,13 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
       setMode(result.mode)
     },
-    [closePalette, setMode]
+    [closePalette]
   )
 
-  const submitInputMode = useCallback(() => {
+  const submitInputMode = useCallback(async () => {
     if (mode.type !== 'input') return
 
-    const result = mode.onSubmit(query)
+    const result = await mode.onSubmit(query)
     if (!result || result.type === 'close') {
       closePalette()
       return
@@ -144,50 +445,92 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
 
   // Keyboard — capture phase so it fires before Canvas bubble-phase listeners
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isAltXShortcut(event) && commandSession && mode.id === 'root') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        setCommandBrowseMode((current) => (current === 'visual' ? 'meta' : 'visual'))
+        setCommandNamespace(null)
+        setQuery('')
+        setActiveIndex(0)
+        return
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
         closePalette()
         return
       }
 
-      // Tab toggles closed (caller handles open)
-      if (e.key === 'Tab') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
         closePalette()
         return
       }
 
-      if (e.key === 'ArrowDown') {
-        if (mode.type === 'input') return
-        e.preventDefault()
-        setActiveIndex((i) => (i + 1) % Math.max(1, filtered.length))
+      if (
+        event.key === 'Backspace' &&
+        commandSession &&
+        mode.id === 'root' &&
+        commandBrowseMode === 'meta' &&
+        query.length === 0 &&
+        commandNamespace !== null &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault()
+        setCommandNamespace(getParentNamespace(commandNamespace))
+        setActiveIndex(0)
         return
       }
 
-      if (e.key === 'ArrowUp') {
+      if (event.key === 'ArrowDown') {
         if (mode.type === 'input') return
-        e.preventDefault()
-        setActiveIndex((i) => (i - 1 + Math.max(1, filtered.length)) % Math.max(1, filtered.length))
+        event.preventDefault()
+        setActiveIndex((index) => (index + 1) % Math.max(1, filtered.length))
         return
       }
 
-      if (e.key === 'Enter') {
-        e.preventDefault()
+      if (event.key === 'ArrowUp') {
+        if (mode.type === 'input') return
+        event.preventDefault()
+        setActiveIndex(
+          (index) => (index - 1 + Math.max(1, filtered.length)) % Math.max(1, filtered.length)
+        )
+        return
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault()
         if (mode.type === 'input') {
-          submitInputMode()
+          void submitInputMode()
           return
         }
         const item = filtered[activeIndex]
-        if (item) activate(item)
+        if (item) {
+          void activate(item)
+        }
       }
     }
 
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [filtered, activeIndex, activate, closePalette, mode.type, submitInputMode])
+  }, [
+    activeIndex,
+    activate,
+    closePalette,
+    commandBrowseMode,
+    commandNamespace,
+    commandSession,
+    filtered,
+    mode,
+    query.length,
+    submitInputMode
+  ])
 
   // Dismiss on pointer down outside
   useEffect(() => {
@@ -224,18 +567,40 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={mode.placeholder ?? t('petalPalette.searchPlaceholder')}
+            placeholder={inputPlaceholder}
             autoComplete="off"
             spellCheck={false}
           />
         </div>
+
+        {isRootCommandMode ? (
+          <div className="petal-palette__command-meta">
+            <span className="petal-palette__command-mode">{commandModeLabel}</span>
+            {commandBrowseMode === 'meta' ? (
+              <span className="petal-palette__command-namespace">{commandNamespaceLabel}</span>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mode.title || mode.subtitle ? (
+          <div className="petal-palette__mode-copy">
+            {mode.title ? (
+              <div className="petal-palette__mode-title">{mode.title}</div>
+            ) : null}
+            {mode.subtitle ? (
+              <div className="petal-palette__mode-subtitle">{mode.subtitle}</div>
+            ) : null}
+          </div>
+        ) : null}
 
         {mode.type === 'input' ? (
           <div className="petal-palette__submit-wrap">
             <button
               type="button"
               className="petal-palette__submit"
-              onClick={submitInputMode}
+              onClick={() => {
+                void submitInputMode()
+              }}
             >
               {mode.submitLabel ?? 'Submit'}
             </button>
@@ -261,7 +626,9 @@ export default function PetalPalette({ items, onClose, placeholder }: PetalPalet
                     .join(' ')}
                   role="option"
                   aria-selected={i === activeIndex}
-                  onClick={() => activate(item)}
+                  onClick={() => {
+                    void activate(item)
+                  }}
                   onMouseEnter={() => setActiveIndex(i)}
                   tabIndex={-1}
                 >
