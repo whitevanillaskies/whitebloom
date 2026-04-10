@@ -1,5 +1,6 @@
 import type React from 'react'
 import type { Size } from '../shared/types'
+import type { WhitebloomCommandsByContext } from '../commands/types'
 
 export interface BudNodeProps {
   id: string
@@ -62,6 +63,13 @@ export interface WhitebloomModule {
    * module needs a consistent color identity across the UI.
    */
   accentColor: string
+  /**
+   * Optional command families contributed by this module.
+   *
+   * Commands stay in the shared command registry, but modules can declare their
+   * own context-bound command surface directly as part of module registration.
+   */
+  commands?: WhitebloomCommandsByContext
 
   NodeComponent: React.ComponentType<BudNodeProps>
   /** Present only for `defaultRenderer: 'internal'` modules */

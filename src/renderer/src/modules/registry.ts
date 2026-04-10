@@ -1,9 +1,17 @@
 import type { WhitebloomModule } from './types'
+import {
+  createModuleCommandProvider,
+  registerCommandProvider
+} from '../commands/registry'
 
 const registry = new Map<string, WhitebloomModule>()
 
 export function registerModule(module: WhitebloomModule): void {
   registry.set(module.id, module)
+
+  if (module.commands) {
+    registerCommandProvider(createModuleCommandProvider(module.id, module.commands))
+  }
 }
 
 export function resolveModuleById(id: string | null): WhitebloomModule | undefined {
