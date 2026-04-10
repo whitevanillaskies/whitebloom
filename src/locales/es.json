@@ -162,6 +162,12 @@
     "visualModeLabel": "Visual",
     "metaModeLabel": "Meta",
     "namespaceRootLabel": "Raíz",
+    "busyTitle": "Trabajando",
+    "busyLabel": "Este comando sigue en ejecución.",
+    "cancellingTitle": "Cancelando",
+    "cancellingLabel": "Whitebloom pidió al comando que se abortara.",
+    "stalledTitle": "El comando no responde",
+    "stalledLabel": "Pulsa Escape otra vez para forzar el cierre de la paleta.",
     "noResults": "Sin resultados"
   },
   "petalMenu": {

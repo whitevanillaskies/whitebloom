@@ -10,6 +10,8 @@ import {
   type AnyWhitebloomCommandContext,
   type WhitebloomCommandFlowStep,
   type WhitebloomCommandFlowTransition,
+  type WhitebloomCommandInteractionController,
+  type WhitebloomCommandLatentState,
   type WhitebloomRegisteredCommandForContext
 } from '@renderer/commands'
 import './PetalPalette.css'
@@ -87,6 +89,18 @@ type PetalPaletteProps = {
 
 const MAX_VISIBLE_ITEMS = 8
 const ITEM_HEIGHT_PX = 36
+const ABORT_GRACE_MS = 3000
+const NOOP_INTERACTION_CONTROLLER: WhitebloomCommandInteractionController = {
+  signal: new AbortController().signal,
+  setBusyState: () => {}
+}
+
+type PaletteAbortPhase = 'idle' | 'requested' | 'stalled'
+type ActivePaletteOperation = {
+  token: number
+  abortController: AbortController
+  interaction: WhitebloomCommandInteractionController
+}
 
 function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase()
@@ -130,6 +144,10 @@ function isAltXShortcut(event: KeyboardEvent): boolean {
   )
 }
 
+function clampProgress(progress: number): number {
+  return Math.max(0, Math.min(1, progress))
+}
+
 export default function PetalPalette({
   items,
   onClose,
@@ -153,27 +171,151 @@ export default function PetalPalette({
     commandSession?.initialMode ?? 'visual'
   )
   const [commandNamespace, setCommandNamespace] = useState<string | null>(null)
+  const [busyState, setBusyState] = useState<WhitebloomCommandLatentState | null>(null)
+  const [abortPhase, setAbortPhase] = useState<PaletteAbortPhase>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const mountedRef = useRef(false)
+  const operationTokenRef = useRef(0)
+  const activeOperationRef = useRef<ActivePaletteOperation | null>(null)
+  const abortTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     setMode(initialMode)
   }, [initialMode])
 
   useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (abortTimerRef.current !== null) {
+        window.clearTimeout(abortTimerRef.current)
+        abortTimerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     setCommandBrowseMode(commandSession?.initialMode ?? 'visual')
     setCommandNamespace(null)
   }, [commandSession])
 
+  const clearAbortTimer = useCallback(() => {
+    if (abortTimerRef.current !== null) {
+      window.clearTimeout(abortTimerRef.current)
+      abortTimerRef.current = null
+    }
+  }, [])
+
+  const beginOperation = useCallback(() => {
+    clearAbortTimer()
+    const token = operationTokenRef.current + 1
+    operationTokenRef.current = token
+    const abortController = new AbortController()
+    const interaction: WhitebloomCommandInteractionController = {
+      signal: abortController.signal,
+      setBusyState: (state) => {
+        if (!mountedRef.current) return
+        if (activeOperationRef.current?.token !== token) return
+
+        if (!state) {
+          setBusyState(null)
+          return
+        }
+
+        setBusyState({
+          ...state,
+          ...(typeof state.progress === 'number'
+            ? { progress: clampProgress(state.progress) }
+            : {})
+        })
+      }
+    }
+
+    activeOperationRef.current = {
+      token,
+      abortController,
+      interaction
+    }
+    setAbortPhase('idle')
+    setBusyState(null)
+    return token
+  }, [clearAbortTimer])
+
+  const finishOperation = useCallback(
+    (token: number) => {
+      if (activeOperationRef.current?.token !== token) return
+      activeOperationRef.current = null
+      clearAbortTimer()
+      if (!mountedRef.current) return
+      setAbortPhase('idle')
+      setBusyState(null)
+    },
+    [clearAbortTimer]
+  )
+
+  const invalidateActiveOperation = useCallback(() => {
+    operationTokenRef.current += 1
+    activeOperationRef.current?.abortController.abort()
+    activeOperationRef.current = null
+    clearAbortTimer()
+    setAbortPhase('idle')
+    setBusyState(null)
+  }, [clearAbortTimer])
+
   const closePalette = useCallback(() => {
+    invalidateActiveOperation()
     setMode(initialMode)
     setQuery('')
     setActiveIndex(0)
     setCommandBrowseMode(commandSession?.initialMode ?? 'visual')
     setCommandNamespace(null)
     onClose()
-  }, [commandSession, initialMode, onClose])
+  }, [commandSession, initialMode, invalidateActiveOperation, onClose])
+
+  const requestAbortCurrentOperation = useCallback(() => {
+    const activeOperation = activeOperationRef.current
+    if (!activeOperation || busyState === null) return false
+
+    if (abortPhase === 'stalled') {
+      closePalette()
+      return true
+    }
+
+    if (abortPhase === 'requested') {
+      return true
+    }
+
+    activeOperation.abortController.abort()
+    setAbortPhase('requested')
+    setBusyState({
+      title: t('petalPalette.cancellingTitle'),
+      label: t('petalPalette.cancellingLabel'),
+      progress: null
+    })
+
+    clearAbortTimer()
+    abortTimerRef.current = window.setTimeout(() => {
+      if (!mountedRef.current) return
+      if (activeOperationRef.current?.token !== activeOperation.token) return
+
+      setAbortPhase('stalled')
+      setBusyState({
+        title: t('petalPalette.stalledTitle'),
+        label: t('petalPalette.stalledLabel'),
+        progress: null
+      })
+    }, ABORT_GRACE_MS)
+
+    return true
+  }, [abortPhase, busyState, clearAbortTimer, closePalette, t])
+
+  const getActiveInteractionController = useCallback(() => {
+    return activeOperationRef.current?.interaction ?? NOOP_INTERACTION_CONTROLLER
+  }, [])
+
+  const isBusy = busyState !== null
 
   const executePaletteCommand = useCallback(
     async (commandId: string, args?: unknown) => {
@@ -181,6 +323,7 @@ export default function PetalPalette({
 
       const result = await executeCommandById(commandId, args, commandSession.context, {
         source: commandSession.source ?? 'palette',
+        interaction: getActiveInteractionController(),
         metadata: {
           browseMode: commandBrowseMode,
           ...(commandNamespace ? { namespace: commandNamespace } : {})
@@ -194,7 +337,7 @@ export default function PetalPalette({
 
       return { type: 'close' as const }
     },
-    [commandBrowseMode, commandNamespace, commandSession]
+    [commandBrowseMode, commandNamespace, commandSession, getActiveInteractionController]
   )
 
   function createCommandFlowMode(
@@ -212,7 +355,11 @@ export default function PetalPalette({
         initialValue: step.initialValue,
         onSubmit: async (value) => {
           if (!commandSession) return { type: 'keep-open' as const }
-          const transition = await step.onSubmit(value, commandSession.context)
+          const transition = await step.onSubmit(
+            value,
+            commandSession.context,
+            getActiveInteractionController()
+          )
           return handleCommandFlowTransition(entry, transition)
         }
       }
@@ -235,7 +382,10 @@ export default function PetalPalette({
           hint: choice.hotkey,
           onActivate: async () => {
             if (!commandSession) return { type: 'keep-open' as const }
-            const transition = await choice.onSelect(commandSession.context)
+            const transition = await choice.onSelect(
+              commandSession.context,
+              getActiveInteractionController()
+            )
             return handleCommandFlowTransition(entry, transition)
           }
         }
@@ -264,13 +414,16 @@ export default function PetalPalette({
     async (entry: WhitebloomRegisteredCommandForContext<any>) => {
       if (entry.command.flow) {
         if (!commandSession) return { type: 'keep-open' as const }
-        const transition = await entry.command.flow.start(commandSession.context)
+        const transition = await entry.command.flow.start(
+          commandSession.context,
+          getActiveInteractionController()
+        )
         return handleCommandFlowTransition(entry, transition)
       }
 
       return executePaletteCommand(entry.command.core.id)
     },
-    [commandSession, executePaletteCommand]
+    [commandSession, executePaletteCommand, getActiveInteractionController]
   )
 
   const filtered = useMemo<PaletteRenderedEntry[]>(() => {
@@ -390,6 +543,22 @@ export default function PetalPalette({
       ? t('petalPalette.metaModeLabel')
       : t('petalPalette.visualModeLabel')
   const commandNamespaceLabel = commandNamespace ?? t('petalPalette.namespaceRootLabel')
+  const busyTitle =
+    abortPhase === 'requested'
+      ? t('petalPalette.cancellingTitle')
+      : abortPhase === 'stalled'
+        ? t('petalPalette.stalledTitle')
+        : busyState?.title ?? t('petalPalette.busyTitle')
+  const busyLabel =
+    abortPhase === 'requested'
+      ? t('petalPalette.cancellingLabel')
+      : abortPhase === 'stalled'
+        ? t('petalPalette.stalledLabel')
+        : busyState?.label ?? t('petalPalette.busyLabel')
+  const busyProgress =
+    abortPhase === 'idle' && typeof busyState?.progress === 'number'
+      ? clampProgress(busyState.progress)
+      : null
 
   // Reset active index when filtered list changes
   useEffect(() => {
@@ -411,8 +580,35 @@ export default function PetalPalette({
 
   const activate = useCallback(
     async (item: PaletteRenderedEntry) => {
-      const result = await item.onActivate()
+      const operationToken = beginOperation()
+      try {
+        const result = await item.onActivate()
 
+        if (!result || result.type === 'close') {
+          closePalette()
+          return
+        }
+
+        if (result.type === 'keep-open') {
+          return
+        }
+
+        setMode(result.mode)
+      } catch (error) {
+        console.warn('[petal-palette] command activation failed', error)
+      } finally {
+        finishOperation(operationToken)
+      }
+    },
+    [beginOperation, closePalette, finishOperation]
+  )
+
+  const submitInputMode = useCallback(async () => {
+    if (mode.type !== 'input') return
+
+    const operationToken = beginOperation()
+    try {
+      const result = await mode.onSubmit(query)
       if (!result || result.type === 'close') {
         closePalette()
         return
@@ -423,29 +619,25 @@ export default function PetalPalette({
       }
 
       setMode(result.mode)
-    },
-    [closePalette]
-  )
-
-  const submitInputMode = useCallback(async () => {
-    if (mode.type !== 'input') return
-
-    const result = await mode.onSubmit(query)
-    if (!result || result.type === 'close') {
-      closePalette()
-      return
+    } catch (error) {
+      console.warn('[petal-palette] input submission failed', error)
+    } finally {
+      finishOperation(operationToken)
     }
-
-    if (result.type === 'keep-open') {
-      return
-    }
-
-    setMode(result.mode)
-  }, [closePalette, mode, query])
+  }, [beginOperation, closePalette, finishOperation, mode, query])
 
   // Keyboard — capture phase so it fires before Canvas bubble-phase listeners
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isBusy) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        if (event.key === 'Escape') {
+          requestAbortCurrentOperation()
+        }
+        return
+      }
+
       if (isAltXShortcut(event) && commandSession && mode.id === 'root') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -527,21 +719,24 @@ export default function PetalPalette({
     commandNamespace,
     commandSession,
     filtered,
+    isBusy,
     mode,
     query.length,
+    requestAbortCurrentOperation,
     submitInputMode
   ])
 
   // Dismiss on pointer down outside
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
+      if (isBusy) return
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         closePalette()
       }
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [closePalette])
+  }, [closePalette, isBusy])
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -551,10 +746,24 @@ export default function PetalPalette({
   const listMaxHeight = MAX_VISIBLE_ITEMS * ITEM_HEIGHT_PX
 
   return createPortal(
-    <div className="petal-palette__backdrop">
+    <div
+      className={[
+        'petal-palette__backdrop',
+        isBusy ? 'petal-palette__backdrop--busy' : '',
+        abortPhase === 'stalled' ? 'petal-palette__backdrop--stalled' : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <div
         ref={containerRef}
-        className="petal-palette"
+        className={[
+          'petal-palette',
+          isBusy ? 'petal-palette--busy' : '',
+          abortPhase === 'stalled' ? 'petal-palette--stalled' : ''
+        ]
+          .filter(Boolean)
+          .join(' ')}
         role="dialog"
         aria-modal="true"
         aria-label={t('petalPalette.ariaLabel')}
@@ -570,6 +779,8 @@ export default function PetalPalette({
             placeholder={inputPlaceholder}
             autoComplete="off"
             spellCheck={false}
+            readOnly={isBusy}
+            aria-disabled={isBusy}
           />
         </div>
 
@@ -593,11 +804,31 @@ export default function PetalPalette({
           </div>
         ) : null}
 
-        {mode.type === 'input' ? (
+        {isBusy ? (
+          <div
+            className="petal-palette__busy"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div className="petal-palette__busy-spinner" aria-hidden="true" />
+            <div className="petal-palette__busy-title">{busyTitle}</div>
+            <div className="petal-palette__busy-label">{busyLabel}</div>
+            {busyProgress !== null ? (
+              <div className="petal-palette__busy-progress" aria-hidden="true">
+                <div
+                  className="petal-palette__busy-progress-fill"
+                  style={{ width: `${busyProgress * 100}%` }}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : mode.type === 'input' ? (
           <div className="petal-palette__submit-wrap">
             <button
               type="button"
               className="petal-palette__submit"
+              disabled={isBusy}
               onClick={() => {
                 void submitInputMode()
               }}

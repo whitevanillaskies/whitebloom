@@ -252,11 +252,15 @@ Goal: turn the command palette into a real command dispatcher over the registry.
 - Ensure stale async completions cannot mutate a palette that has already been reset or reopened.
 - Decide what `Escape` does while latent work is active.
 
-#### Work Unit 2.5: Optional Disabled Commands
+#### Work Unit 2.5: Hide Unavailable Commands
 
-- Add disabled rendering for commands that are currently unavailable.
-- Render them visibly but non-interactively.
-- Disabled state should come from command availability, not palette-local special casing.
+- The palette should show what the user can do right now.
+- Commands that are unavailable in the current snapshotted invocation context should be hidden, not rendered disabled.
+- This applies to both:
+  - dolled-up visual mode
+  - naked/meta mode namespace browsing
+- Availability should continue to come from command resolution, not palette-local special casing.
+- Exhaustive command discovery belongs in documentation and future command reference surfaces, not in the live palette.
 
 ### Phase 3: Broaden Command Consumption Across UI
 
@@ -445,7 +449,7 @@ This order keeps the architecture aligned with `emacs_commands.md`: registry fir
 - How broad the initial context set should be beyond `canvas` and `arrangements`.
 - How much args-schema rigor should land early versus being phased in.
 - Which existing mutations should be the first mandatory command-backed actions.
-- Whether disabled command rendering should land before any connectivity-aware label option ships.
+- Whether a future command reference/help surface should expose unavailable commands outside the live palette.
 - Whether the connectivity heartbeat should be always-on, focus-scoped, or feature-scoped.
 - Whether latent commands should support cancellation in the first implementation or only blocking/non-cancelable behavior.
 - Whether structured latent presenters are enough initially, or whether there is a near-term real need for custom latent content.

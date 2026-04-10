@@ -8,6 +8,7 @@ import type {
   WhitebloomCommandExecutionListener,
   WhitebloomCommandExecutionOptions,
   WhitebloomCommandExecutionResult,
+  WhitebloomCommandInteractionController,
   WhitebloomRegisteredCommandForContext
 } from './types'
 
@@ -17,6 +18,10 @@ type InFlightExecution<TKind extends WhitebloomCommandContextKey> = {
 }
 
 const executionListeners = new Set<WhitebloomCommandExecutionListener>()
+const NOOP_INTERACTION_CONTROLLER: WhitebloomCommandInteractionController = {
+  signal: new AbortController().signal,
+  setBusyState: () => {}
+}
 
 export function isRegisteredCommandAvailable<TKind extends WhitebloomCommandContextKey>(
   entry: WhitebloomRegisteredCommandForContext<TKind>,
@@ -213,8 +218,13 @@ export async function executeRegisteredCommand<
   try {
     const result = await (entry.command.core.run as (
       args: TArgs,
-      context: WhitebloomCommandContext<TKind>
-    ) => TResult | Promise<TResult>)(normalizedArgs as TArgs, context)
+      context: WhitebloomCommandContext<TKind>,
+      interaction: WhitebloomCommandInteractionController
+    ) => TResult | Promise<TResult>)(
+      normalizedArgs as TArgs,
+      context,
+      options.interaction ?? NOOP_INTERACTION_CONTROLLER
+    )
 
     return finishExecution(inFlight, {
       ok: true,

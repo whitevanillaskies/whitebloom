@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, ArrowLeft, Layers, Trash2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useMicaDragState } from '../../mica'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
@@ -11,9 +11,6 @@ import {
 import {
   PetalPalette,
   type PaletteCommandSession,
-  type PaletteInputMode,
-  type PaletteItem,
-  type PaletteMode
 } from '../petal'
 import ArrangementsDesktop from './ArrangementsDesktop'
 import BinView from './BinView'
@@ -156,31 +153,6 @@ export default function ArrangementsView({
   const desktopViewportRef = useRef<HTMLElement>(null)
   const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
   const flattenedSetNodes = useMemo(() => flattenSetNodes(sets), [sets])
-  const arrangementsCommandContext = useMemo<ArrangementsCommandContext>(
-    () =>
-      createArrangementsCommandContext({
-        selection: { materialKeys: [] },
-        availableBinIds: bins.map((bin) => bin.id),
-        availableSetIds: flattenedSetNodes.map((setNode) => setNode.id),
-        actions: {
-          createBin: ({ position, name }) => createBinAtPoint(position, name)
-        }
-      }),
-    [bins, createBinAtPoint, flattenedSetNodes]
-  )
-  const openPalette = useCallback(
-    (initialMode: PaletteCommandSession['initialMode'] = 'visual') => {
-      setPaletteSession({
-        context: arrangementsCommandContext,
-        initialMode,
-        source: 'palette'
-      })
-    },
-    [arrangementsCommandContext]
-  )
-  const closePalette = useCallback(() => {
-    setPaletteSession(null)
-  }, [])
   const arrangementsMicaPolicy = useMemo(
     () => ({
       hostId: ARRANGEMENTS_MICA_HOST_ID,
@@ -206,6 +178,82 @@ export default function ArrangementsView({
     if (!workspaceRoot || isHydrated) return
     void loadArrangements()
   }, [workspaceRoot, isHydrated, loadArrangements])
+
+  const handleDeleteBin = useCallback(
+    (binId: string) => {
+      for (const window of arrangementsMica.windows) {
+        if (window.kind !== 'bin-view') continue
+        if (window.payload.binId !== binId) continue
+        arrangementsMica.close(window.id)
+      }
+      deleteBin(binId)
+      void saveArrangements()
+    },
+    [arrangementsMica, deleteBin, saveArrangements]
+  )
+
+  const arrangementsCommandContext = useMemo<ArrangementsCommandContext>(
+    () =>
+      createArrangementsCommandContext({
+        selection: { materialKeys: [] },
+        availableBinIds: bins.map((bin) => bin.id),
+        availableSetIds: flattenedSetNodes.map((setNode) => setNode.id),
+        availableBins: bins
+          .filter((bin) => bin.kind === 'user')
+          .map((bin) => ({ id: bin.id, name: bin.name })),
+        availableSets: flattenedSetNodes,
+        actions: {
+          createBin: ({ position, name }) => createBinAtPoint(position, name),
+          createBinAtViewportCenter: (name) => {
+            const rect = desktopViewportRef.current?.getBoundingClientRect()
+            if (!rect) return null
+
+            return createBinAtViewportCenter(
+              {
+                width: rect.width,
+                height: rect.height
+              },
+              name
+            )
+          },
+          renameBin,
+          deleteBin: handleDeleteBin,
+          createRootSet,
+          renameSet,
+          deleteSet: async (setId) => {
+            deleteSet(setId)
+            await saveArrangements()
+          }
+        }
+      }),
+    [
+      bins,
+      createBinAtPoint,
+      createBinAtViewportCenter,
+      createRootSet,
+      deleteSet,
+      flattenedSetNodes,
+      handleDeleteBin,
+      renameBin,
+      renameSet,
+      saveArrangements
+    ]
+  )
+
+  const openPalette = useCallback(
+    (initialMode: PaletteCommandSession['initialMode'] = 'visual') => {
+      setPaletteSession({
+        context: arrangementsCommandContext,
+        initialMode,
+        source: 'palette'
+      })
+    },
+    [arrangementsCommandContext]
+  )
+
+  const closePalette = useCallback(() => {
+    setPaletteSession(null)
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -245,222 +293,6 @@ export default function ArrangementsView({
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [closePalette, openPalette, paletteSession])
-
-  const handleDeleteBin = useCallback(
-    (binId: string) => {
-      for (const window of arrangementsMica.windows) {
-        if (window.kind !== 'bin-view') continue
-        if (window.payload.binId !== binId) continue
-        arrangementsMica.close(window.id)
-      }
-      deleteBin(binId)
-      void saveArrangements()
-    },
-    [arrangementsMica, deleteBin, saveArrangements]
-  )
-
-  const paletteItems = useMemo<PaletteItem[]>(
-    () => {
-      const userBins = bins.filter((bin) => bin.kind === 'user')
-
-      const renameBinPickerMode: PaletteMode = {
-        id: 'rename-bin-target',
-        items: userBins.map((bin) => ({
-          id: `rename-bin-target:${bin.id}`,
-          label: bin.name,
-          subtitle: 'Choose a bin to rename',
-          icon: <Archive size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: {
-              id: `rename-bin-input:${bin.id}`,
-              type: 'input',
-              placeholder: 'Type the new bin name',
-              submitLabel: 'Rename Bin',
-              initialValue: bin.name,
-              onSubmit: (value) => {
-                const normalizedValue = value.trim()
-                if (!normalizedValue) return { type: 'keep-open' as const }
-                void renameBin(bin.id, normalizedValue)
-                return { type: 'close' as const }
-              }
-            } satisfies PaletteInputMode
-          })
-        })),
-        placeholder: 'Choose a bin to rename',
-        emptyLabel: 'No bins available'
-      }
-
-      const removeBinPickerMode: PaletteMode = {
-        id: 'remove-bin-target',
-        items: userBins.map((bin) => ({
-          id: `remove-bin-target:${bin.id}`,
-          label: bin.name,
-          subtitle: 'Remove this bin from Arrangements',
-          icon: <Trash2 size={14} strokeWidth={1.8} />,
-          onActivate: () => {
-            handleDeleteBin(bin.id)
-            return { type: 'close' as const }
-          }
-        })),
-        placeholder: 'Choose a bin to remove',
-        emptyLabel: 'No bins available'
-      }
-
-      const renameSetPickerMode: PaletteMode = {
-        id: 'rename-set-target',
-        items: flattenedSetNodes.map((setNode) => ({
-          id: `rename-set-target:${setNode.id}`,
-          label: setNode.name,
-          subtitle: setNode.depth > 0 ? `Depth ${setNode.depth}` : 'Root set',
-          icon: <Layers size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: {
-              id: `rename-set-input:${setNode.id}`,
-              type: 'input',
-              placeholder: 'Type the new set name',
-              submitLabel: 'Rename Set',
-              initialValue: setNode.name,
-              onSubmit: (value) => {
-                const normalizedValue = value.trim()
-                if (!normalizedValue) return { type: 'keep-open' as const }
-                void renameSet(setNode.id, normalizedValue)
-                return { type: 'close' as const }
-              }
-            } satisfies PaletteInputMode
-          })
-        })),
-        placeholder: 'Choose a set to rename',
-        emptyLabel: 'No sets available'
-      }
-
-      const removeSetPickerMode: PaletteMode = {
-        id: 'remove-set-target',
-        items: flattenedSetNodes.map((setNode) => ({
-          id: `remove-set-target:${setNode.id}`,
-          label: setNode.name,
-          subtitle: setNode.depth > 0 ? `Remove nested set at depth ${setNode.depth}` : 'Remove root set',
-          icon: <Trash2 size={14} strokeWidth={1.8} />,
-          onActivate: () => {
-            deleteSet(setNode.id)
-            void saveArrangements()
-            return { type: 'close' as const }
-          }
-        })),
-        placeholder: 'Choose a set to remove',
-        emptyLabel: 'No sets available'
-      }
-
-      return [
-        {
-          id: 'create-bin',
-          label: 'New Bin',
-          subtitle: 'Name a new bin, then create it at the desktop viewport center',
-          icon: <Archive size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: {
-              id: 'create-bin-input',
-              type: 'input',
-              placeholder: 'Type the new bin name',
-              submitLabel: 'Create Bin',
-              initialValue: 'New Bin',
-              onSubmit: (value) => {
-                const normalizedValue = value.trim()
-                if (!normalizedValue) return { type: 'keep-open' as const }
-
-                const rect = desktopViewportRef.current?.getBoundingClientRect()
-                if (!rect) return { type: 'keep-open' as const }
-
-                void createBinAtViewportCenter(
-                  {
-                    width: rect.width,
-                    height: rect.height
-                  },
-                  normalizedValue
-                )
-                return { type: 'close' as const }
-              }
-            } satisfies PaletteInputMode
-          })
-        },
-        {
-          id: 'rename-bin',
-          label: 'Rename Bin',
-          subtitle: 'Choose a bin, then type its new name',
-          icon: <Archive size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: renameBinPickerMode
-          })
-        },
-        {
-          id: 'remove-bin',
-          label: 'Remove Bin',
-          subtitle: 'Choose a bin to remove from Arrangements',
-          icon: <Trash2 size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: removeBinPickerMode
-          })
-        },
-        {
-          id: 'create-set',
-          label: 'New Set',
-          subtitle: 'Name a new root set in the Sets Island',
-          icon: <Layers size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: {
-              id: 'create-set-input',
-              type: 'input',
-              placeholder: 'Type the new set name',
-              submitLabel: 'Create Set',
-              initialValue: 'New Set',
-              onSubmit: (value) => {
-                const normalizedValue = value.trim()
-                if (!normalizedValue) return { type: 'keep-open' as const }
-                void createRootSet(normalizedValue)
-                return { type: 'close' as const }
-              }
-            } satisfies PaletteInputMode
-          })
-        },
-        {
-          id: 'rename-set',
-          label: 'Rename Set',
-          subtitle: 'Choose a set, then type its new name',
-          icon: <Layers size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: renameSetPickerMode
-          })
-        },
-        {
-          id: 'remove-set',
-          label: 'Remove Set',
-          subtitle: 'Choose a set to remove from Arrangements',
-          icon: <Trash2 size={14} strokeWidth={1.8} />,
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: removeSetPickerMode
-          })
-        }
-      ]
-    },
-    [
-      bins,
-      createBinAtViewportCenter,
-      createRootSet,
-      deleteSet,
-      flattenedSetNodes,
-      handleDeleteBin,
-      renameBin,
-      renameSet,
-      saveArrangements
-    ]
-  )
 
   const handleOpenBin = useCallback(
     (binId: string) => {
@@ -590,7 +422,7 @@ export default function ArrangementsView({
           </MicaHost>
           {paletteSession ? (
             <PetalPalette
-              items={paletteItems}
+              items={[]}
               onClose={closePalette}
               placeholder="Search Arrangements commands"
               commandSession={paletteSession}

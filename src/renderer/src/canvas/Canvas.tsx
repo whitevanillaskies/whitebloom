@@ -47,7 +47,6 @@ import {
   Diamond,
   FileText,
   FolderPlus,
-  Globe,
   Link2,
   PanelsTopLeft,
   Scan,
@@ -59,9 +58,7 @@ import {
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type {
   PaletteCommandSession,
-  PaletteInputMode,
   PaletteItem,
-  PaletteMode,
   PetalMenuItem
 } from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
@@ -129,21 +126,6 @@ const INTERNAL_CLUSTER_EDGE_Z_INDEX = 5
 
 const WEB_RESOURCE_DROP_ERROR =
   "Can't embed web resources — save the image to your local drive first, then drop it."
-
-function normalizeWebPageUrl(value: string): string | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-
-  const normalizedInput = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed) ? trimmed : `https://${trimmed}`
-
-  try {
-    const url = new URL(normalizedInput)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
-    return url.toString()
-  } catch {
-    return null
-  }
-}
 
 type NodeBounds = {
   left: number
@@ -1255,22 +1237,40 @@ export function Canvas({
           canOpenSelectionInNativeEditor:
             selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id
         },
+        insertionPoint: getDefaultCanvasInsertionPoint(),
+        linkableBoards:
+          workspaceRoot === null
+            ? []
+            : workspaceBoards
+                .filter((path) => path !== boardPath)
+                .map((path) => ({
+                  resource: toWorkspaceBoardResource(path, workspaceRoot) ?? '',
+                  name: getBoardNameFromPath(path),
+                  subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
+                }))
+                .filter((board) => board.resource.length > 0),
         actions: {
           createBud: createBudAtPoint,
           deleteSelection,
           bloomSelection,
-          openSelectionInNativeEditor
+          openSelectionInNativeEditor,
+          openArrangements: onOpenArrangements
         }
       }),
     [
       bloomSelection,
       createBudAtPoint,
       deleteSelection,
+      getDefaultCanvasInsertionPoint,
+      boardPath,
       openSelectionInNativeEditor,
+      onOpenArrangements,
       selectedBudModule,
       selectedBudNode,
       selectedEdgeIds,
-      selectedNodeIds
+      selectedNodeIds,
+      workspaceBoards,
+      workspaceRoot
     ]
   )
 
@@ -2527,73 +2527,7 @@ export function Canvas({
       items.unshift(...clusterItems)
     }
 
-    const addUrlPageMode: PaletteInputMode = {
-      id: 'add-url-page',
-      type: 'input',
-      placeholder: t('canvas.addUrlPagePalettePlaceholder'),
-      submitLabel: t('canvas.addUrlPageSubmitLabel'),
-      onSubmit: (value) => {
-        const resource = normalizeWebPageUrl(value)
-        if (!resource) return { type: 'keep-open' as const }
-
-        createBudAtPoint({
-          position: getDefaultCanvasInsertionPoint(),
-          moduleType: webPageBloomModule.id,
-          size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
-          resource
-        })
-
-        return { type: 'close' as const }
-      }
-    }
-
-    items.push({
-      id: 'add-url-page',
-      label: t('canvas.paletteAddUrlPageLabel'),
-      icon: <Globe size={14} strokeWidth={1.8} />,
-      onActivate: () => ({
-        type: 'set-mode',
-        mode: addUrlPageMode
-      })
-    })
-
     if (workspaceRoot !== null) {
-      const linkableBoards = workspaceBoards.filter((path) => path !== boardPath)
-      const linkBoardMode: PaletteMode = {
-        id: 'link-board',
-        items: linkableBoards.map((linkableBoardPath) => ({
-          id: `link-board:${linkableBoardPath}`,
-          label: getBoardNameFromPath(linkableBoardPath),
-          subtitle: getWorkspaceRelativeBoardPath(linkableBoardPath, workspaceRoot),
-          icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
-          onActivate: () => {
-            const resource = toWorkspaceBoardResource(linkableBoardPath, workspaceRoot)
-            if (!resource) {
-              setWorkspaceActionError(t('canvas.invalidSubboardLinkBody'))
-              return { type: 'close' as const }
-            }
-
-            createBudAtPoint({
-              position: getDefaultCanvasInsertionPoint(),
-              moduleType: boardBloomModule.id,
-              size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
-              label: getBoardNameFromPath(linkableBoardPath),
-              resource
-            })
-            return { type: 'close' as const }
-          }
-        })),
-        placeholder: t('canvas.linkBoardPalettePlaceholder'),
-        emptyLabel: t('canvas.linkBoardPaletteEmpty')
-      }
-
-      items.push({
-        id: 'open-arrangements',
-        label: t('canvas.paletteArrangementsLabel'),
-        icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
-        hint: 'Arr',
-        onActivate: onOpenArrangements
-      })
       items.push({
         id: 'link-file',
         label: t('canvas.paletteLinkFileLabel'),
@@ -2609,15 +2543,6 @@ export function Canvas({
         onActivate: () => {
           void handleImportResources()
         }
-      })
-      items.push({
-        id: 'link-board',
-        label: t('canvas.paletteLinkBoardLabel'),
-        icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
-        onActivate: () => ({
-          type: 'set-mode',
-          mode: linkBoardMode
-        })
       })
       items.push({
         id: 'create-focus-writer',
@@ -2651,20 +2576,14 @@ export function Canvas({
     fitSelectedClusterToChildren,
     toggleSelectedClusterAutofit,
     workspaceRoot,
-    getDefaultCanvasInsertionPoint,
-    createBudAtPoint,
     createClusterFromSelection,
     createFocusWriterBud,
     handleImportResources,
     handleLinkResources,
     createSchemaBloomBud,
     openPromoteSubboardModal,
-    onOpenArrangements,
-    boardPath,
     selectedCluster,
-    setWorkspaceActionError,
     t,
-    workspaceBoards,
     screenToFlowPosition,
     addNode
   ])

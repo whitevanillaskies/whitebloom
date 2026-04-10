@@ -37,6 +37,12 @@ export type CanvasCommandSelection = {
   edgeIds: string[]
 }
 
+export type CanvasLinkableBoard = {
+  resource: string
+  name: string
+  subtitle?: string
+}
+
 export type CanvasCommandCapabilities = {
   canBloomSelection?: boolean
   canOpenSelectionInNativeEditor?: boolean
@@ -47,6 +53,7 @@ export type CanvasCommandActions = {
   deleteSelection?: () => void
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
+  openArrangements?: () => void
 }
 
 /**
@@ -58,6 +65,8 @@ export type CanvasCommandActions = {
 export type CanvasCommandContext = CommandContextBase<'canvas'> & {
   selection: CanvasCommandSelection
   capabilities: CanvasCommandCapabilities
+  insertionPoint?: WhitebloomCanvasPoint
+  linkableBoards?: CanvasLinkableBoard[]
   actions: CanvasCommandActions
 }
 
@@ -91,8 +100,25 @@ export type ArrangementsCommandSelection = {
   materialKeys: string[]
 }
 
+export type ArrangementsCommandBin = {
+  id: string
+  name: string
+}
+
+export type ArrangementsCommandSet = {
+  id: string
+  name: string
+  depth: number
+}
+
 export type ArrangementsCommandActions = {
   createBin?: (input: ArrangementsCreateBinCommandArgs) => Promise<string | null> | string | null
+  createBinAtViewportCenter?: (name?: string) => Promise<string | null> | string | null
+  renameBin?: (binId: string, name: string) => Promise<boolean> | boolean
+  deleteBin?: (binId: string) => void | Promise<void>
+  createRootSet?: (name?: string) => Promise<string | null> | string | null
+  renameSet?: (setId: string, name: string) => Promise<boolean> | boolean
+  deleteSet?: (setId: string) => void | Promise<void>
   assignMaterialsToBin?: (
     materialKeys: string[],
     binId: string
@@ -117,6 +143,8 @@ export type ArrangementsCommandContext = CommandContextBase<'arrangements'> & {
   selection: ArrangementsCommandSelection
   availableBinIds: string[]
   availableSetIds: string[]
+  availableBins?: ArrangementsCommandBin[]
+  availableSets?: ArrangementsCommandSet[]
   actions: ArrangementsCommandActions
 }
 
@@ -153,11 +181,31 @@ export type WhitebloomCommandWhen<TContext extends AnyWhitebloomCommandContext> 
   context: TContext
 ) => boolean
 
+export type WhitebloomCommandLatentState = {
+  title?: string
+  label?: string
+  /**
+   * Optional normalized progress value between 0 and 1.
+   *
+   * When omitted or null, the palette should render an indeterminate spinner.
+   */
+  progress?: number | null
+}
+
+export type WhitebloomCommandInteractionController = {
+  signal: AbortSignal
+  setBusyState: (state: WhitebloomCommandLatentState | null) => void
+}
+
 export type WhitebloomCommandRun<
   TContext extends AnyWhitebloomCommandContext,
   TArgs = void,
   TResult = void
-> = (args: TArgs, context: TContext) => TResult | Promise<TResult>
+> = (
+  args: TArgs,
+  context: TContext,
+  interaction: WhitebloomCommandInteractionController
+) => TResult | Promise<TResult>
 
 export type WhitebloomCommandDisplayMetadata = {
   title: string
@@ -209,7 +257,8 @@ export type WhitebloomCommandFlowHandler<
   TContext extends AnyWhitebloomCommandContext,
   TArgs = void
 > = (
-  context: TContext
+  context: TContext,
+  interaction: WhitebloomCommandInteractionController
 ) => WhitebloomCommandFlowTransition<TContext, TArgs> | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
 
 export type WhitebloomCommandFlowInputHandler<
@@ -217,7 +266,8 @@ export type WhitebloomCommandFlowInputHandler<
   TArgs = void
 > = (
   value: string,
-  context: TContext
+  context: TContext,
+  interaction: WhitebloomCommandInteractionController
 ) => WhitebloomCommandFlowTransition<TContext, TArgs> | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
 
 export type WhitebloomCommandFlowChoice<
@@ -367,6 +417,7 @@ export type WhitebloomCommandExecutionOptions = {
   source?: string
   groupId?: string
   metadata?: WhitebloomCommandExecutionMetadata
+  interaction?: WhitebloomCommandInteractionController
 }
 
 export type WhitebloomCommandExecutionEnvelope<
