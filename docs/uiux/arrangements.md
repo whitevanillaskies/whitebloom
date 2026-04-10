@@ -8,9 +8,10 @@
 - Avoid breadcrumbs, inspectors, dense chrome, or administrative clutter.
 
 - Only material appears in Arrangements.
-- Material means any workspace item with backing file substance.
+- Material means any persistent workspace resource the user may steward across boards.
 - Boards are material.
 - Bud-backed files are material.
+- Imported URLs are material.
 - Leaf nodes are not material and never appear in Arrangements.
 
 - The default Arrangements state is the desktop itself, not an `Unclassified` bin.
@@ -28,6 +29,7 @@
 
 - Sending material to `Trash` is an explicit Arrangements action.
 - Deleting a node from a board must not send its material to `Trash`.
+- Deleting a URL node from a board must not remove its URL material from Arrangements.
 - Emptying `Trash` permanently deletes the backing files and removes their Arrangements records.
 - Before destructive deletion, the UI should surface whether the material is still referenced by any board.
 
@@ -53,6 +55,7 @@
 - Smart sets are read-only.
 - Smart sets are never stored directly; they are derived from workspace state.
 - `Stale` is a core smart set: material not referenced by any board.
+- Imported URL material with no board references belongs in `Stale`.
 - Other smart sets may be added later without changing the core model.
 
 - Boards and other material types should feel like peers in Arrangements.
@@ -81,6 +84,7 @@
 - Double-click on desktop items is contextual.
 - Double-clicking a bloomable material blooms it.
 - Double-clicking a board opens that board.
+- Double-clicking a URL material opens it in the browser.
 - If opening a board would discard unsaved board edits, the app prompts first.
 - Double-clicking a bin opens Bin View.
 
