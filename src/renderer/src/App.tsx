@@ -13,6 +13,7 @@ import WorkspaceHome from './components/workspace-home/WorkspaceHome'
 import { PetalButton, PetalPanel } from './components/petal'
 import { useBoardStore } from './stores/board'
 import { useWorkspaceStore } from './stores/workspace'
+import { useConnectivityHeartbeat } from './stores/useConnectivityHeartbeat'
 import {
   isTextLeafNode,
   lexicalContentToPlainText,
@@ -72,6 +73,9 @@ async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string)
 
 function App(): React.JSX.Element {
   const { t } = useTranslation()
+
+  useConnectivityHeartbeat()
+
   const boardPath = useBoardStore((s) => s.path)
   const boardName = useBoardStore((s) => s.name)
   const boardBrief = useBoardStore((s) => s.brief)

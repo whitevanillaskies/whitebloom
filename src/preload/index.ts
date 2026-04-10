@@ -250,7 +250,8 @@ const api = {
     ipcRenderer.invoke('thumbnail:get-uri', boardPath, workspaceRoot),
   discardThumbnail: (boardPath: string, workspaceRoot: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('thumbnail:discard', boardPath, workspaceRoot),
-  setLanguage: (lang: string): Promise<void> => ipcRenderer.invoke('app:set-language', lang)
+  setLanguage: (lang: string): Promise<void> => ipcRenderer.invoke('app:set-language', lang),
+  probeNetwork: (): Promise<{ reachable: boolean }> => ipcRenderer.invoke('network:probe')
 }
 
 if (process.contextIsolated) {

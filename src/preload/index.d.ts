@@ -227,6 +227,7 @@ declare global {
       ) => Promise<{ ok: boolean; uri: string | null }>
       discardThumbnail: (boardPath: string, workspaceRoot: string) => Promise<{ ok: boolean }>
       setLanguage: (lang: string) => Promise<void>
+      probeNetwork: () => Promise<{ reachable: boolean }>
     }
   }
 }
