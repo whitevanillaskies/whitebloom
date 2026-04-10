@@ -1,4 +1,6 @@
 .cluster-node {
+  --cluster-spring-duration: 240ms;
+  --cluster-spring-scale-from: 1;
   position: relative;
   border-radius: var(--radius-border-frame);
   border: 5px solid white;
@@ -19,6 +21,7 @@
     box-shadow 120ms ease,
     opacity 120ms ease,
     filter 120ms ease;
+  transform-origin: center;
 }
 
 .cluster-node__header {
@@ -166,6 +169,24 @@
   border-color: rgba(var(--cluster-color-rgb), 0.36);
   animation: cluster-accept-pulse 1800ms ease-in-out infinite;
 }
+
+@keyframes cluster-settle {
+  0% {
+    transform: scale(var(--cluster-spring-scale-from));
+    filter: saturate(0.992);
+  }
+
+  100% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+}
+/* TODO possiblyremove animations for this */
+
+/* .cluster-node--settle {
+  animation: cluster-settle var(--cluster-spring-duration) cubic-bezier(0.2, 0.85, 0.32, 1) both;
+  will-change: transform;
+} */
 
 @keyframes cluster-accept-pulse {
   0%,

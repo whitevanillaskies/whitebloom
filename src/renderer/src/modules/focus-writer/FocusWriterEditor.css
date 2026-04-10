@@ -95,32 +95,131 @@
   user-select: none;
 }
 
-/* ── Preview mode ─────────────────────────────────────────────── */
+/* ── Book preview mode ────────────────────────────────────────── */
 
-.fw-editor--preview {
+.fw-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-primary-bg);
   outline: none;
+  box-sizing: border-box;
 }
 
-.fw-editor__preview-para {
+/* Off-screen measurement div — sized by JS, never visible */
+.fw-preview__measure {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  /* Typography must match .fw-preview__para exactly */
   font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  box-sizing: border-box;
+}
+
+.fw-preview__measure .fw-preview__para {
+  margin: 0 0 1.3em;
+}
+
+/* Spread — two pages side by side, centred */
+.fw-preview__spread {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  padding: 88px 56px 32px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Individual page column */
+.fw-preview__page-col {
+  flex: 0 1 500px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Book-spine divider between the two pages */
+.fw-preview__spine {
+  flex-shrink: 0;
+  margin: 0 60px;
+  align-self: stretch;
+}
+
+.fw-preview__para {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 15.5px;
+  font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
   color: var(--color-primary-fg);
-  margin: 0 0 1.6em;
+  margin: 0 0 1.3em;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: break-word;
 }
 
-.fw-editor__preview-para:last-child {
+.fw-preview__para:last-child {
   margin-bottom: 0;
 }
 
-.fw-editor__preview-empty {
-  margin: 0;
-  font-family: 'Source Serif 4';
-  font-size: 18px;
-  color: var(--color-muted-fg);
+.fw-preview__empty {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 17px;
   font-style: italic;
+  color: var(--color-muted-fg);
+  margin: 0;
+}
+
+/* Navigation bar */
+.fw-preview__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 110px;
+  flex-shrink: 0;
+}
+
+.fw-preview__nav-btn {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  cursor: pointer;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 20px;
+  color: var(--color-muted-fg);
+  line-height: 1;
+  transition: color 100ms ease;
+  user-select: none;
+}
+
+.fw-preview__nav-btn:hover:not(:disabled) {
+  color: var(--color-secondary-fg);
+}
+
+.fw-preview__nav-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+.fw-preview__page-num {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--color-muted-fg);
+  user-select: none;
+  min-width: 48px;
+  text-align: center;
 }
 
 /* ── Mode indicator ───────────────────────────────────────────── */

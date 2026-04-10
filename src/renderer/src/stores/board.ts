@@ -65,6 +65,11 @@ type BoardState = Board & {
   patchShapeStyles: (ids: string[], patch: Partial<ShapeStyle>) => void
   updateNodePosition: (id: string, x: number, y: number) => void
   updateNodeSize: (id: string, w: number, h: number) => void
+  updateClusterFrame: (
+    id: string,
+    position: { x: number; y: number },
+    size: { w: number; h: number }
+  ) => void
   updateNodeLabel: (id: string, label?: string) => void
   updateNodeText: (id: string, patch: TextLayoutPatch) => void
   updateEdgeLabelLayout: (id: string, labelLayout?: EdgeLabelLayout) => void
@@ -591,6 +596,43 @@ export const useBoardStore = create<BoardState>((set) => ({
         return { ...touchNode(n, timestamp, username), size: { w, h } }
       })
       return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  updateClusterFrame: (id, position, size) =>
+    set((state) => {
+      const cluster = state.nodes.find(
+        (node): node is ClusterNode => isClusterNode(node) && node.id === id
+      )
+      if (!cluster) return state
+
+      if (
+        cluster.position.x === position.x &&
+        cluster.position.y === position.y &&
+        cluster.size.w === size.w &&
+        cluster.size.h === size.h
+      ) {
+        return state
+      }
+
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const updatedNodes = state.nodes.map((node) =>
+        isClusterNode(node) && node.id === id
+          ? {
+              ...touchNode(node, timestamp, username),
+              position,
+              size
+            }
+          : node
+      )
+      const nodes = reconcileNodeClusterMemberships(
+        updatedNodes,
+        updatedNodes.filter((node) => !isClusterNode(node)).map((node) => node.id),
+        timestamp,
+        username
+      )
+
+      return { nodes, isDirty: shouldMarkBoardDirty(state) }
     }),
 
   updateNodeLabel: (id, label) =>

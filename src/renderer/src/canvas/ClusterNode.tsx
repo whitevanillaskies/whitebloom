@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 import { type NodeProps, useUpdateNodeInternals } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
 import type { ClusterColor, Size } from '@renderer/shared/types'
@@ -13,12 +13,19 @@ export type ClusterIndicator = {
   title?: string
 }
 
+export type ClusterSpringResize = {
+  token: number
+  strength: number
+  durationMs: number
+}
+
 export type ClusterData = {
   label?: string
   color: ClusterColor
   size: Size
   indicators?: ClusterIndicator[]
   membershipCue?: 'accept' | 'release' | null
+  springResize?: ClusterSpringResize | null
 }
 
 const MIN_CLUSTER_WIDTH = 180
@@ -28,20 +35,18 @@ export function ClusterNode({
   id,
   data,
   selected,
+  dragging,
   positionAbsoluteX,
   positionAbsoluteY
 }: NodeProps) {
   const clusterData = data as ClusterData
   const label = clusterData.label?.trim() || 'Cluster'
   const indicators = clusterData.indicators ?? []
-  const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
-  const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
+  const updateClusterFrame = useBoardStore((s) => s.updateClusterFrame)
   const updateNodeLabel = useBoardStore((s) => s.updateNodeLabel)
-  const reconcileClusterMembershipsForCluster = useBoardStore(
-    (s) => s.reconcileClusterMembershipsForCluster
-  )
   const updateNodeInternals = useUpdateNodeInternals()
   const [localSize, setLocalSize] = useState(clusterData.size)
+  const [springAnimation, setSpringAnimation] = useState<ClusterSpringResize | null>(null)
   const [editing, setEditing] = useState(false)
   const [draftLabel, setDraftLabel] = useState(clusterData.label ?? '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -57,11 +62,9 @@ export function ClusterNode({
   const handleResizeCommit = useCallback(
     ({ position, size }: { position: { x: number; y: number }; size: Size }) => {
       setLocalSize(size)
-      updateNodePosition(id, position.x, position.y)
-      updateNodeSize(id, size.w, size.h)
-      reconcileClusterMembershipsForCluster(id)
+      updateClusterFrame(id, position, size)
     },
-    [id, reconcileClusterMembershipsForCluster, updateNodePosition, updateNodeSize]
+    [id, updateClusterFrame]
   )
 
   const { activeCorner, beginResize, isResizing } = useFixedCornerResize({
@@ -78,6 +81,20 @@ export function ClusterNode({
     if (isResizing) return
     setLocalSize(clusterData.size)
   }, [clusterData.size, isResizing])
+
+  useEffect(() => {
+    if (!clusterData.springResize || dragging || isResizing) {
+      setSpringAnimation(null)
+      return
+    }
+
+    setSpringAnimation(null)
+    const frame = window.requestAnimationFrame(() => {
+      setSpringAnimation(clusterData.springResize ?? null)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [clusterData.springResize, dragging, isResizing])
 
   useEffect(() => {
     if (editing) return
@@ -97,6 +114,13 @@ export function ClusterNode({
   useEffect(() => {
     updateNodeInternals(id)
   }, [id, localSize.h, localSize.w, updateNodeInternals])
+
+  const springStyle = springAnimation
+    ? ({
+        '--cluster-spring-duration': `${springAnimation.durationMs}ms`,
+        '--cluster-spring-scale-from': `${1 + springAnimation.strength}`
+      } as CSSProperties)
+    : undefined
 
   const startEditing = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -135,10 +159,19 @@ export function ClusterNode({
   return (
     <>
       <div
-        className={`cluster-node cluster-node--${clusterData.color}${selected ? ' cluster-node--selected' : ''}${clusterData.membershipCue ? ` cluster-node--cue-${clusterData.membershipCue}` : ''}${isResizing || editing ? ' nodrag nopan' : ''}`}
-        style={{ width: localSize.w, height: localSize.h }}
+        className={`cluster-node cluster-node--${clusterData.color}${selected ? ' cluster-node--selected' : ''}${clusterData.membershipCue ? ` cluster-node--cue-${clusterData.membershipCue}` : ''}${isResizing || editing ? ' nodrag nopan' : ''}${springAnimation ? ' cluster-node--settle' : ''}`}
+        style={
+          springStyle
+            ? { width: localSize.w, height: localSize.h, ...springStyle }
+            : { width: localSize.w, height: localSize.h }
+        }
         title={label}
         onDoubleClick={startEditing}
+        onAnimationEnd={(e) => {
+          if (e.animationName === 'cluster-settle') {
+            setSpringAnimation(null)
+          }
+        }}
       >
         <div className="cluster-node__header">
           {editing ? (

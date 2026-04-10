@@ -77,6 +77,8 @@
     "searchPalettePlaceholder": "Buscar en la paleta",
     "paletteTextLabel": "Texto",
     "paletteClusterLabel": "Crear clúster",
+    "paletteFitClusterLabel": "Ajustar clúster a nodos",
+    "paletteFitClusterSubtitle": "Redimensiona este clúster para envolver sus nodos hijos",
     "paletteEnableClusterAutofitLabel": "Activar autoajuste al contenido",
     "paletteEnableClusterAutofitSubtitle": "Expande este clúster automáticamente cuando sus nodos hijos sobresalen",
     "paletteDisableClusterAutofitLabel": "Desactivar autoajuste al contenido",

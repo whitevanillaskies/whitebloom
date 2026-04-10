@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BudEditorProps } from '../types'
 import { useTranslation } from 'react-i18next'
 import './FocusWriterEditor.css'
@@ -76,23 +76,225 @@ function MirrorContent({
 }
 
 // ---------------------------------------------------------------------------
-// Preview — Source Serif 4, read-only rendered text
+// BookPreview — paginated Apple Books-style read view
 // ---------------------------------------------------------------------------
 
-function PreviewContent({ text }: { text: string }) {
+function BookPreview({
+  text,
+  modeLabel,
+  onClose,
+  onExitPreview,
+}: {
+  text: string
+  modeLabel: string
+  onClose: () => void
+  onExitPreview: () => void
+}) {
   const { t } = useTranslation()
-  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim())
-  if (paragraphs.length === 0) {
-    return <p className="fw-editor__preview-empty">{t('focusWriter.emptyPreview')}</p>
-  }
+  const containerRef = useRef<HTMLDivElement>(null)
+  const pageAreaRef = useRef<HTMLDivElement>(null)
+  const measureRef = useRef<HTMLDivElement>(null)
+  const [pages, setPages] = useState<string[][]>([])
+  const [currentPage, setCurrentPage] = useState(0)
+
+  const paginate = useCallback(() => {
+    const pageArea = pageAreaRef.current
+    const measure = measureRef.current
+    if (!pageArea || !measure) return
+
+    const style = window.getComputedStyle(pageArea)
+    const availableHeight =
+      pageArea.clientHeight -
+      parseFloat(style.paddingTop) -
+      parseFloat(style.paddingBottom)
+    const availableWidth = pageArea.clientWidth
+    if (availableHeight <= 0 || availableWidth === 0) return
+
+    measure.style.width = `${availableWidth}px`
+    measure.style.height = `${availableHeight}px`
+
+    const paragraphs = text.split(/\n\n+/).filter((p) => p.trim())
+    if (paragraphs.length === 0) {
+      setPages([[]])
+      setCurrentPage(0)
+      return
+    }
+
+    while (measure.firstChild) measure.removeChild(measure.firstChild)
+
+    const result: string[][] = []
+    let currentPageParas: string[] = []
+
+    for (const para of paragraphs) {
+      const el = document.createElement('p')
+      el.className = 'fw-preview__para'
+      el.textContent = para
+      measure.appendChild(el)
+
+      if (measure.scrollHeight > availableHeight) {
+        if (currentPageParas.length === 0) {
+          // Paragraph alone is taller than the page — force it on its own page
+          result.push([para])
+          measure.removeChild(el)
+          while (measure.firstChild) measure.removeChild(measure.firstChild)
+        } else {
+          // Doesn't fit — push current page, start fresh
+          result.push(currentPageParas)
+          currentPageParas = [para]
+          while (measure.firstChild) measure.removeChild(measure.firstChild)
+          const freshEl = document.createElement('p')
+          freshEl.className = 'fw-preview__para'
+          freshEl.textContent = para
+          measure.appendChild(freshEl)
+        }
+      } else {
+        currentPageParas.push(para)
+      }
+    }
+
+    if (currentPageParas.length > 0) {
+      result.push(currentPageParas)
+    }
+
+    setPages(result)
+    // Keep position but clamp to a valid spread-start (even) index
+    setCurrentPage((prev) => {
+      const maxLeft =
+        result.length <= 1 ? 0 : result.length % 2 === 0 ? result.length - 2 : result.length - 1
+      const clamped = Math.min(prev, maxLeft)
+      // Snap to nearest spread boundary (round down to even)
+      return clamped % 2 === 0 ? clamped : Math.max(0, clamped - 1)
+    })
+  }, [text])
+
+  useLayoutEffect(() => {
+    paginate()
+  }, [paginate])
+
+  useEffect(() => {
+    const pageArea = pageAreaRef.current
+    if (!pageArea) return
+    const ro = new ResizeObserver(paginate)
+    ro.observe(pageArea)
+    return () => ro.disconnect()
+  }, [paginate])
+
+  useEffect(() => {
+    containerRef.current?.focus()
+  }, [])
+
+  // Spreads advance two pages at a time. currentPage is always the left page (even index).
+  const maxLeftPage =
+    pages.length <= 1 ? 0 : pages.length % 2 === 0 ? pages.length - 2 : pages.length - 1
+  const totalSpreads = Math.ceil(pages.length / 2)
+  const currentSpread = Math.floor(currentPage / 2) + 1
+
+  const goNext = useCallback(() => {
+    setCurrentPage((p) => {
+      const max = pages.length <= 1 ? 0 : pages.length % 2 === 0 ? pages.length - 2 : pages.length - 1
+      return Math.min(p + 2, max)
+    })
+  }, [pages.length])
+
+  const goPrev = useCallback(() => {
+    setCurrentPage((p) => Math.max(p - 2, 0))
+  }, [])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const isMod = e.ctrlKey || e.metaKey
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (isMod && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        onExitPreview()
+        return
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault()
+        goNext()
+        return
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault()
+        goPrev()
+        return
+      }
+    },
+    [onClose, onExitPreview, goNext, goPrev]
+  )
+
+  const isEmpty = text.trim() === ''
+  const leftParas = pages[currentPage] ?? []
+  const rightParas = pages[currentPage + 1] ?? null
+
   return (
-    <>
-      {paragraphs.map((p, i) => (
-        <p key={i} className="fw-editor__preview-para">
-          {p}
-        </p>
-      ))}
-    </>
+    <div
+      ref={containerRef}
+      className="fw-preview"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      {/* Off-screen measurement div — sized by JS to match one page column */}
+      <div ref={measureRef} className="fw-preview__measure" aria-hidden="true" />
+
+      <div className="fw-preview__spread">
+        {/* Left page */}
+        <div ref={pageAreaRef} className="fw-preview__page-col">
+          {isEmpty ? (
+            <p className="fw-preview__empty">{t('focusWriter.emptyPreview')}</p>
+          ) : (
+            leftParas.map((para, i) => (
+              <p key={i} className="fw-preview__para">{para}</p>
+            ))
+          )}
+        </div>
+
+        {/* Right page — only rendered when there's a second page to show */}
+        {!isEmpty && rightParas !== null && (
+          <>
+            <div className="fw-preview__spine" aria-hidden="true" />
+            <div className="fw-preview__page-col">
+              {rightParas.map((para, i) => (
+                <p key={i} className="fw-preview__para">{para}</p>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {!isEmpty && totalSpreads > 1 && (
+        <div className="fw-preview__nav">
+          <button
+            className="fw-preview__nav-btn"
+            onClick={goPrev}
+            disabled={currentPage === 0}
+            tabIndex={-1}
+            aria-label="Previous spread"
+          >
+            ‹
+          </button>
+          <span className="fw-preview__page-num">
+            {currentSpread} / {totalSpreads}
+          </span>
+          <button
+            className="fw-preview__nav-btn"
+            onClick={goNext}
+            disabled={currentPage >= maxLeftPage}
+            tabIndex={-1}
+            aria-label="Next spread"
+          >
+            ›
+          </button>
+        </div>
+      )}
+
+      <span className="fw-editor__mode-indicator" aria-hidden="true">{modeLabel}</span>
+    </div>
   )
 }
 
@@ -244,25 +446,6 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     [flushAndClose, updateActivePara, mode, dynamicSubState]
   )
 
-  const handlePreviewKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const isMod = e.ctrlKey || e.metaKey
-
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        flushAndClose()
-        return
-      }
-
-      if (isMod && e.key.toLowerCase() === 'p') {
-        e.preventDefault()
-        setMode(lastWritingModeRef.current)
-        return
-      }
-    },
-    [flushAndClose]
-  )
-
   // ── Focus management ────────────────────────────────────────────────────
 
   // Initial focus + resize
@@ -324,16 +507,12 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
 
   if (mode === 'preview') {
     return (
-      <div
-        className="fw-editor fw-editor--preview"
-        tabIndex={0}
-        onKeyDown={handlePreviewKeyDown}
-      >
-        <div className="fw-editor__column">
-          <PreviewContent text={text} />
-        </div>
-        <span className="fw-editor__mode-indicator" aria-hidden="true">{modeLabel}</span>
-      </div>
+      <BookPreview
+        text={text}
+        modeLabel={modeLabel}
+        onClose={flushAndClose}
+        onExitPreview={() => setMode(lastWritingModeRef.current)}
+      />
     )
   }
 

@@ -24,35 +24,13 @@
       "plain": "Cluster Features\nCluster toolbar for locking maybe, and absolutely for colors."
     },
     {
-      "id": "cddee476-83c8-4bf0-86f0-58cd398eadc1",
-      "kind": "leaf",
-      "type": "text",
-      "position": {
-        "x": 106.28336589028879,
-        "y": 243.4149397384377
-      },
-      "size": {
-        "w": 320,
-        "h": 75
-      },
-      "content": "{\"root\":{\"children\":[{\"children\":[{\"detail\":0,\"format\":0,\"mode\":\"normal\",\"style\":\"\",\"text\":\"not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them.\",\"type\":\"text\",\"version\":1}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\"}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"root\",\"version\":1}}",
-      "widthMode": "fixed",
-      "wrapWidth": 320,
-      "created": "2026-04-07T16:25:21.991Z",
-      "createdBy": "anon",
-      "updatedAt": "2026-04-09T20:16:57.026Z",
-      "updatedBy": "anon",
-      "plain": "not exactly a bug but a missing feature with clusters, we can't drop text (nodes in general, I guess) directly into them."
-    },
-    {
       "id": "fe1a2707-b13f-4287-83f7-e3b4833f163e",
       "kind": "cluster",
       "type": null,
       "label": "Cluster",
       "color": "blue",
       "children": [
-        "b5e1220c-10fe-4b2e-a0cf-293d93301b75",
-        "cddee476-83c8-4bf0-86f0-58cd398eadc1"
+        "b5e1220c-10fe-4b2e-a0cf-293d93301b75"
       ],
       "position": {
         "x": 59,

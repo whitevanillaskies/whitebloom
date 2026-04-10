@@ -25,7 +25,7 @@ import { TextNode } from './TextNode'
 import { BudNode } from './BudNode'
 import { ShapeNode } from './ShapeNode'
 import { ClusterNode } from './ClusterNode'
-import type { ClusterData, ClusterIndicator } from './ClusterNode'
+import type { ClusterData, ClusterIndicator, ClusterSpringResize } from './ClusterNode'
 import { ProximityTracker } from './ProximityTracker'
 import { WbEdge } from './WbEdge'
 import type { WbEdgeData } from './WbEdge'
@@ -106,6 +106,9 @@ const MATERIAL_MIME = 'application/x-wb-material-key'
 const DEFAULT_TEXT_NODE_SIZE = { w: 200, h: 40 }
 const DEFAULT_CLUSTER_SIZE = { w: 320, h: 220 }
 const CLUSTER_SELECTION_PADDING = 48
+const CLUSTER_SPRING_MIN_RESIZE_DELTA = 14
+const CLUSTER_SPRING_MAX_RESIZE_DELTA = 240
+const CLUSTER_SPRING_CLEANUP_BUFFER_MS = 96
 const CLUSTER_EDGE_Z_INDEX = -1
 const INTERNAL_CLUSTER_EDGE_Z_INDEX = 5
 
@@ -245,6 +248,43 @@ function getClusterFrameFromChildBounds(
       right: position.x + size.w,
       bottom: position.y + size.h
     }
+  }
+}
+
+type ClusterFrame = NonNullable<ReturnType<typeof getClusterFrameFromChildBounds>>
+
+function areBoundsEqual(left: NodeBounds, right: NodeBounds): boolean {
+  return (
+    left.left === right.left &&
+    left.top === right.top &&
+    left.right === right.right &&
+    left.bottom === right.bottom
+  )
+}
+
+function buildClusterSpringResize(
+  currentBounds: NodeBounds,
+  nextBounds: NodeBounds
+): Omit<ClusterSpringResize, 'token'> | null {
+  const currentWidth = currentBounds.right - currentBounds.left
+  const currentHeight = currentBounds.bottom - currentBounds.top
+  const nextWidth = nextBounds.right - nextBounds.left
+  const nextHeight = nextBounds.bottom - nextBounds.top
+  const widthDelta = nextWidth - currentWidth
+  const heightDelta = nextHeight - currentHeight
+  const maxResizeDelta = Math.max(Math.abs(widthDelta), Math.abs(heightDelta))
+
+  if (maxResizeDelta === 0) return null
+
+  const minDelta = CLUSTER_SPRING_MIN_RESIZE_DELTA
+  if (maxResizeDelta < minDelta) return null
+
+  const denominator = Math.max(1, CLUSTER_SPRING_MAX_RESIZE_DELTA - minDelta)
+  const normalized = Math.min(1, Math.max(0, (maxResizeDelta - minDelta) / denominator))
+
+  return {
+    strength: Number((0.008 + normalized * 0.016).toFixed(4)),
+    durationMs: Math.round(170 + normalized * 90)
   }
 }
 
@@ -547,8 +587,7 @@ export function Canvas({
   const boardViewport = useBoardStore((s) => s.viewport)
   const isDirty = useBoardStore((s) => s.isDirty)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
-  const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
-  const fitClusterToChildren = useBoardStore((s) => s.fitClusterToChildren)
+  const updateClusterFrame = useBoardStore((s) => s.updateClusterFrame)
   const translateCluster = useBoardStore((s) => s.translateCluster)
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
   const updateViewport = useBoardStore((s) => s.updateViewport)
@@ -558,9 +597,6 @@ export function Canvas({
   const addCluster = useBoardStore((s) => s.addCluster)
   const createClusterFromNodes = useBoardStore((s) => s.createClusterFromNodes)
   const reconcileNodeClusterMembership = useBoardStore((s) => s.reconcileNodeClusterMembership)
-  const reconcileClusterMembershipsForCluster = useBoardStore(
-    (s) => s.reconcileClusterMembershipsForCluster
-  )
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
   const storeAddEdge = useBoardStore((s) => s.addEdge)
   const storeDeleteEdge = useBoardStore((s) => s.deleteEdge)
@@ -801,6 +837,80 @@ export function Canvas({
     return mapping
   }, [boardNodes, t])
 
+  const springResizeSequenceRef = useRef(0)
+  const springResizeTimeoutsRef = useRef(new Map<string, number>())
+  const [springResizeById, setSpringResizeById] = useState(
+    () => new Map<string, ClusterSpringResize>()
+  )
+
+  const triggerClusterSpringResize = useCallback(
+    (id: string, animation: Omit<ClusterSpringResize, 'token'>) => {
+      const token = springResizeSequenceRef.current + 1
+      springResizeSequenceRef.current = token
+
+      setSpringResizeById((prev) => {
+        const next = new Map(prev)
+        next.set(id, { ...animation, token })
+        return next
+      })
+
+      const existingTimeout = springResizeTimeoutsRef.current.get(id)
+      if (existingTimeout !== undefined) {
+        window.clearTimeout(existingTimeout)
+      }
+
+      const timeoutId = window.setTimeout(() => {
+        setSpringResizeById((prev) => {
+          const current = prev.get(id)
+          if (!current || current.token !== token) return prev
+
+          const next = new Map(prev)
+          next.delete(id)
+          return next
+        })
+
+        if (springResizeTimeoutsRef.current.get(id) === timeoutId) {
+          springResizeTimeoutsRef.current.delete(id)
+        }
+      }, animation.durationMs + CLUSTER_SPRING_CLEANUP_BUFFER_MS)
+
+      springResizeTimeoutsRef.current.set(id, timeoutId)
+    },
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of springResizeTimeoutsRef.current.values()) {
+        window.clearTimeout(timeoutId)
+      }
+      springResizeTimeoutsRef.current.clear()
+    }
+  }, [])
+
+  const fitClusterToFrame = useCallback(
+    (
+      cluster: BoardClusterNode,
+      nextFrame: ClusterFrame,
+      options?: {
+        animationFromBounds?: NodeBounds | null
+      }
+    ) => {
+      const currentBounds = getStoredNodeBounds(cluster)
+      if (areBoundsEqual(currentBounds, nextFrame.bounds)) return false
+
+      const animationFromBounds = options?.animationFromBounds ?? currentBounds
+      const springResize = buildClusterSpringResize(animationFromBounds, nextFrame.bounds)
+      if (springResize) {
+        triggerClusterSpringResize(cluster.id, springResize)
+      }
+
+      updateClusterFrame(cluster.id, nextFrame.position, nextFrame.size)
+      return true
+    },
+    [triggerClusterSpringResize, updateClusterFrame]
+  )
+
   useEffect(() => {
     for (const cluster of boardNodes) {
       if (
@@ -811,18 +921,24 @@ export function Canvas({
         continue
       }
 
-      const clusterBounds = getStoredNodeBounds(cluster)
-      const hasOverhang = cluster.children.some((childId) => {
-        const child = boardNodesById.get(childId)
-        if (!child || isClusterNode(child)) return false
-        return !isBoundsFullyInside(getStoredNodeBounds(child), clusterBounds)
-      })
+      const childBounds = cluster.children
+        .map((childId) => {
+          const child = boardNodesById.get(childId)
+          if (!child || isClusterNode(child)) return null
+          return getStoredNodeBounds(child)
+        })
+        .filter((bounds): bounds is NodeBounds => bounds !== null)
+      const nextFrame = getClusterFrameFromChildBounds(childBounds, CLUSTER_SELECTION_PADDING)
+      if (!nextFrame) continue
 
-      if (hasOverhang) {
-        fitClusterToChildren(cluster.id, CLUSTER_SELECTION_PADDING)
-      }
+      const currentBounds = getStoredNodeBounds(cluster)
+      if (areBoundsEqual(nextFrame.bounds, currentBounds)) continue
+
+      fitClusterToFrame(cluster, nextFrame, {
+        animationFromBounds: getRenderedNodeBounds(cluster.id, screenToFlowPosition)
+      })
     }
-  }, [boardNodes, boardNodesById, fitClusterToChildren])
+  }, [boardNodes, boardNodesById, fitClusterToFrame, screenToFlowPosition])
 
   useEffect(() => {
     return window.api.onCloseRequested(() => {
@@ -845,7 +961,8 @@ export function Canvas({
             label: n.label,
             color: n.color,
             size: n.size,
-            indicators: clusterIndicatorsById.get(n.id) ?? []
+            indicators: clusterIndicatorsById.get(n.id) ?? [],
+            springResize: springResizeById.get(n.id) ?? null
           } satisfies ClusterData,
           zIndex: 2,
           draggable: true
@@ -898,7 +1015,7 @@ export function Canvas({
         zIndex: isClustered ? 10 : 1
       }
     })
-  }, [autoEditRequest, boardNodes, clusterIndicatorsById])
+  }, [autoEditRequest, boardNodes, clusterIndicatorsById, springResizeById])
 
   // Local state so RF can update positions during drag
   const [nodes, setNodes] = useState<RFNode[]>(schemaNodes)
@@ -994,6 +1111,7 @@ export function Canvas({
           sourceClusterId !== null &&
           targetClusterId !== null &&
           sourceClusterId === targetClusterId
+        const edgeZIndex = isFullyInternal ? INTERNAL_CLUSTER_EDGE_Z_INDEX : CLUSTER_EDGE_Z_INDEX
 
         const edgeStyle = normalizeEdgeStyle(e)
         const markerColor = resolveCanvasMarkerColor(edgeStyle.stroke.color)
@@ -1006,7 +1124,7 @@ export function Canvas({
           targetHandle: e.targetHandle ?? null,
           type: 'wb',
           label: e.label,
-          zIndex: isFullyInternal ? INTERNAL_CLUSTER_EDGE_Z_INDEX : CLUSTER_EDGE_Z_INDEX,
+          zIndex: edgeZIndex,
           markerEnd: buildReactFlowMarker(edgeStyle.endMarker, markerColor, edgeStyle.stroke.width),
           markerStart: buildReactFlowMarker(
             edgeStyle.startMarker,
@@ -1014,6 +1132,7 @@ export function Canvas({
             edgeStyle.stroke.width
           ),
           data: {
+            edgeZIndex,
             normalizedStyle: edgeStyle,
             normalizedLabelLayout: normalizeEdgeLabelLayout(e)
           } satisfies WbEdgeData
@@ -1076,18 +1195,26 @@ export function Canvas({
     const nextFrame = getClusterFrameFromChildBounds(childBounds, CLUSTER_SELECTION_PADDING)
     if (!nextFrame) return
 
-    updateNodePosition(selectedCluster.id, nextFrame.position.x, nextFrame.position.y)
-    updateNodeSize(selectedCluster.id, nextFrame.size.w, nextFrame.size.h)
-    reconcileClusterMembershipsForCluster(selectedCluster.id)
-  }, [
-    boardNodes,
-    nodes,
-    screenToFlowPosition,
-    reconcileClusterMembershipsForCluster,
-    selectedCluster,
-    updateNodePosition,
-    updateNodeSize
-  ])
+    const liveClusterNode = liveNodesById.get(selectedCluster.id)
+    const liveClusterBounds =
+      getRenderedNodeBounds(selectedCluster.id, screenToFlowPosition) ??
+      (liveClusterNode
+        ? getNodeBounds(
+            {
+              position: liveClusterNode.position,
+              width: liveClusterNode.width,
+              height: liveClusterNode.height
+            },
+            liveClusterNode.type === 'cluster'
+              ? (liveClusterNode.data as ClusterData).size
+              : undefined
+          )
+        : null)
+
+    fitClusterToFrame(selectedCluster, nextFrame, {
+      animationFromBounds: liveClusterBounds
+    })
+  }, [boardNodes, fitClusterToFrame, nodes, screenToFlowPosition, selectedCluster])
 
   const toggleSelectedClusterAutofit = useCallback(() => {
     if (!selectedCluster) return
@@ -1268,7 +1395,7 @@ export function Canvas({
                 x: expandedBounds.left,
                 y: expandedBounds.top
               },
-              data: { ...clusterData, size } satisfies ClusterData
+              data: { ...clusterData, size, springResize: null } satisfies ClusterData
             }
           })
         }
@@ -1383,7 +1510,12 @@ export function Canvas({
               isAlreadyInternal || isPendingInternal
                 ? INTERNAL_CLUSTER_EDGE_Z_INDEX
                 : CLUSTER_EDGE_Z_INDEX
-            return edge.zIndex === targetZIndex ? edge : { ...edge, zIndex: targetZIndex }
+            if (edge.zIndex === targetZIndex && edge.data?.edgeZIndex === targetZIndex) return edge
+            return {
+              ...edge,
+              zIndex: targetZIndex,
+              data: edge.data ? { ...edge.data, edgeZIndex: targetZIndex } : edge.data
+            }
           })
         )
       }
@@ -2185,21 +2317,37 @@ export function Canvas({
     }
 
     if (selectedCluster) {
-      items.unshift({
-        id: 'toggle-cluster-autofit',
-        label:
-          selectedCluster.autofitToContents === true
-            ? t('canvas.paletteDisableClusterAutofitLabel')
-            : t('canvas.paletteEnableClusterAutofitLabel'),
-        subtitle:
-          selectedCluster.autofitToContents === true
-            ? t('canvas.paletteDisableClusterAutofitSubtitle')
-            : t('canvas.paletteEnableClusterAutofitSubtitle'),
-        icon: <Scan size={14} strokeWidth={1.8} />,
-        onActivate: () => {
-          toggleSelectedClusterAutofit()
+      const clusterItems: PaletteItem[] = [
+        {
+          id: 'toggle-cluster-autofit',
+          label:
+            selectedCluster.autofitToContents === true
+              ? t('canvas.paletteDisableClusterAutofitLabel')
+              : t('canvas.paletteEnableClusterAutofitLabel'),
+          subtitle:
+            selectedCluster.autofitToContents === true
+              ? t('canvas.paletteDisableClusterAutofitSubtitle')
+              : t('canvas.paletteEnableClusterAutofitSubtitle'),
+          icon: <Scan size={14} strokeWidth={1.8} />,
+          onActivate: () => {
+            toggleSelectedClusterAutofit()
+          }
         }
-      })
+      ]
+
+      if (selectedCluster.children.length > 0) {
+        clusterItems.unshift({
+          id: 'fit-cluster-to-nodes',
+          label: t('canvas.paletteFitClusterLabel'),
+          subtitle: t('canvas.paletteFitClusterSubtitle'),
+          icon: <Scan size={14} strokeWidth={1.8} />,
+          onActivate: () => {
+            fitSelectedClusterToChildren()
+          }
+        })
+      }
+
+      items.unshift(...clusterItems)
     }
 
     if (workspaceRoot !== null) {
@@ -2293,6 +2441,7 @@ export function Canvas({
 
     return items
   }, [
+    fitSelectedClusterToChildren,
     toggleSelectedClusterAutofit,
     workspaceRoot,
     getDefaultCanvasInsertionPoint,

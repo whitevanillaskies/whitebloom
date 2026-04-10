@@ -77,6 +77,8 @@
     "searchPalettePlaceholder": "Search Palette",
     "paletteTextLabel": "Text",
     "paletteClusterLabel": "Create Cluster",
+    "paletteFitClusterLabel": "Fit Cluster to Nodes",
+    "paletteFitClusterSubtitle": "Resize this cluster to wrap its child nodes",
     "paletteEnableClusterAutofitLabel": "Enable Autofit to Contents",
     "paletteEnableClusterAutofitSubtitle": "Automatically expand this cluster when child nodes overhang",
     "paletteDisableClusterAutofitLabel": "Disable Autofit to Contents",

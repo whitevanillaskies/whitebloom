@@ -12,6 +12,7 @@ import './WbEdge.css'
 export type WbEdgeData = {
   normalizedStyle: EdgeStyle
   normalizedLabelLayout: EdgeLabelLayout
+  edgeZIndex: number
 }
 
 function resolveDashArray(dash: EdgeStyle['stroke']['dash']): string | undefined {
@@ -194,6 +195,7 @@ export function WbEdge({
 
   const stroke = resolveCanvasStrokeColor(edgeStyle.stroke.color, 'var(--color-secondary-fg)')
   const labelColor = resolveCanvasTextColor(edgeStyle.labelColor)
+  const labelZIndex = edgeData.edgeZIndex
   const strokeDasharray = resolveDashArray(edgeStyle.stroke.dash)
   const hitWidth = Math.max(strokeWidth + 20, 24)
 
@@ -226,6 +228,7 @@ export function WbEdge({
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelDisplayX}px,${labelDisplayY}px)`,
+              zIndex: labelZIndex,
             }}
           >
             <input
@@ -267,6 +270,7 @@ export function WbEdge({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelDisplayX}px,${labelDisplayY}px)`,
               color: labelColor,
+              zIndex: labelZIndex,
             }}
             onDoubleClick={startEditing}
             onMouseDown={handleLabelMouseDown}
