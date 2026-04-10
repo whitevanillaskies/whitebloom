@@ -47,6 +47,7 @@ import {
   Diamond,
   FileText,
   FolderPlus,
+  Globe,
   Link2,
   PanelsTopLeft,
   Scan,
@@ -56,12 +57,13 @@ import {
   Type
 } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
-import type { PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/components/petal'
+import type { PaletteInputMode, PaletteItem, PaletteMode, PetalMenuItem } from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
 import { videoModule } from '../modules/video'
 import { schemaBloomModule } from '../modules/schemabloom'
+import { webPageBloomModule } from '../modules/webpagebloom'
 import type { WhitebloomModule } from '../modules/types'
 import {
   absolutePathToFileUri,
@@ -114,6 +116,21 @@ const INTERNAL_CLUSTER_EDGE_Z_INDEX = 5
 
 const WEB_RESOURCE_DROP_ERROR =
   "Can't embed web resources — save the image to your local drive first, then drop it."
+
+function normalizeWebPageUrl(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const normalizedInput = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed) ? trimmed : `https://${trimmed}`
+
+  try {
+    const url = new URL(normalizedInput)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
 
 type NodeBounds = {
   left: number
@@ -2349,6 +2366,36 @@ export function Canvas({
 
       items.unshift(...clusterItems)
     }
+
+    const addUrlPageMode: PaletteInputMode = {
+      id: 'add-url-page',
+      type: 'input',
+      placeholder: t('canvas.addUrlPagePalettePlaceholder'),
+      submitLabel: t('canvas.addUrlPageSubmitLabel'),
+      onSubmit: (value) => {
+        const resource = normalizeWebPageUrl(value)
+        if (!resource) return { type: 'keep-open' as const }
+
+        createBudAtPoint({
+          position: getDefaultCanvasInsertionPoint(),
+          moduleType: webPageBloomModule.id,
+          size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+          resource
+        })
+
+        return { type: 'close' as const }
+      }
+    }
+
+    items.push({
+      id: 'add-url-page',
+      label: t('canvas.paletteAddUrlPageLabel'),
+      icon: <Globe size={14} strokeWidth={1.8} />,
+      onActivate: () => ({
+        type: 'set-mode',
+        mode: addUrlPageMode
+      })
+    })
 
     if (workspaceRoot !== null) {
       const linkableBoards = workspaceBoards.filter((path) => path !== boardPath)

@@ -88,9 +88,12 @@
     "paletteLinkFileLabel": "Link File",
     "paletteImportFileLabel": "Import File",
     "paletteLinkBoardLabel": "Link Board",
+    "paletteAddUrlPageLabel": "Add URL Page",
     "paletteArrangementsLabel": "Open Arrangements",
     "paletteFocusWriterLabel": "Focus Writer",
     "paletteSchemaBloomLabel": "DB Schema Drafter",
+    "addUrlPagePalettePlaceholder": "Paste a URL",
+    "addUrlPageSubmitLabel": "Add URL Page",
     "linkBoardPalettePlaceholder": "Choose a board to link",
     "linkBoardPaletteEmpty": "No local boards available"
   },
