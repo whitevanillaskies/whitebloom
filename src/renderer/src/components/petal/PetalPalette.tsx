@@ -542,12 +542,6 @@ export default function PetalPalette({
     return mode.placeholder ?? t('petalPalette.searchPlaceholder')
   }, [commandBrowseMode, commandSession, mode, t])
 
-  const isRootCommandMode = mode.id === 'root' && commandSession !== undefined
-  const commandModeLabel =
-    commandBrowseMode === 'meta'
-      ? t('petalPalette.metaModeLabel')
-      : t('petalPalette.visualModeLabel')
-  const commandNamespaceLabel = commandNamespace ?? t('petalPalette.namespaceRootLabel')
   const busyTitle =
     abortPhase === 'requested'
       ? t('petalPalette.cancellingTitle')
@@ -775,6 +769,9 @@ export default function PetalPalette({
         onMouseDown={(e) => e.preventDefault()}
       >
         <div className="petal-palette__search">
+          {commandBrowseMode === 'meta' && commandNamespace !== null ? (
+            <span className="petal-palette__input-prefix">{commandNamespace}</span>
+          ) : null}
           <input
             ref={inputRef}
             className="petal-palette__input"
@@ -788,15 +785,6 @@ export default function PetalPalette({
             aria-disabled={isBusy}
           />
         </div>
-
-        {isRootCommandMode ? (
-          <div className="petal-palette__command-meta">
-            <span className="petal-palette__command-mode">{commandModeLabel}</span>
-            {commandBrowseMode === 'meta' ? (
-              <span className="petal-palette__command-namespace">{commandNamespaceLabel}</span>
-            ) : null}
-          </div>
-        ) : null}
 
         {mode.title || mode.subtitle ? (
           <div className="petal-palette__mode-copy">
