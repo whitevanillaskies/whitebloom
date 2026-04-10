@@ -472,27 +472,30 @@ export default function PetalPalette({
       return [...commandEntries, ...legacyEntries]
     }
 
-    const namespaceEntries = listVirtualCommandNamespaces(commandSession.context, {
-      namespace: commandNamespace ?? undefined
-    })
-      .filter((namespace) => namespace.hasChildren)
-      .map<PaletteRenderedEntry | null>((namespace) => {
-        const runnableEntries = namespace.entries.filter((entry) => canPaletteLaunchCommand(entry))
-        if (runnableEntries.length === 0) return null
+    const showNamespaceEntries = commandNamespace !== null || normalizedQuery.length > 0
+    const namespaceEntries = showNamespaceEntries
+      ? listVirtualCommandNamespaces(commandSession.context, {
+          namespace: commandNamespace ?? undefined
+        })
+          .filter((namespace) => namespace.hasChildren)
+          .map<PaletteRenderedEntry | null>((namespace) => {
+            const runnableEntries = namespace.entries.filter((entry) => canPaletteLaunchCommand(entry))
+            if (runnableEntries.length === 0) return null
 
-        return {
-          id: `namespace:${namespace.id}`,
-          label: namespace.segment,
-          hint: 'Enter',
-          onActivate: () => {
-            setCommandNamespace(namespace.id)
-            setQuery('')
-            return { type: 'keep-open' as const }
-          }
-        } satisfies PaletteRenderedEntry
-      })
-      .filter((entry): entry is PaletteRenderedEntry => entry !== null)
-      .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
+            return {
+              id: `namespace:${namespace.id}`,
+              label: namespace.segment,
+              hint: 'Enter',
+              onActivate: () => {
+                setCommandNamespace(namespace.id)
+                setQuery('')
+                return { type: 'keep-open' as const }
+              }
+            } satisfies PaletteRenderedEntry
+          })
+          .filter((entry): entry is PaletteRenderedEntry => entry !== null)
+          .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
+      : []
 
     const commandEntries = searchCoreCommands(query, commandSession.context, {
       namespace: commandNamespace ?? undefined
@@ -500,7 +503,9 @@ export default function PetalPalette({
       .filter((result) => canPaletteLaunchCommand(result.entry))
       .filter(
         (result) =>
-          normalizedQuery || isDirectCommandInNamespace(result.entry.command.core.id, commandNamespace)
+          normalizedQuery ||
+          commandNamespace === null ||
+          isDirectCommandInNamespace(result.entry.command.core.id, commandNamespace)
       )
       .map<PaletteRenderedEntry>((result) => {
         const presentation = result.entry.command.presentations?.find(

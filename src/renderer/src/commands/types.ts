@@ -1,5 +1,6 @@
 import type React from 'react'
 import type { GardenPoint } from '../../../shared/arrangements'
+import type { ShapePreset } from '@renderer/shared/types'
 
 /**
  * Command contexts describe the surface a command is executing within.
@@ -32,6 +33,11 @@ export type CanvasCreateBudCommandArgs = {
   label?: string
 }
 
+export type CanvasCreateShapeCommandArgs = {
+  position: WhitebloomCanvasPoint
+  preset: ShapePreset
+}
+
 export type CanvasCommandSelection = {
   nodeIds: string[]
   edgeIds: string[]
@@ -50,6 +56,7 @@ export type CanvasCommandCapabilities = {
 
 export type CanvasCommandActions = {
   createBud?: (input: CanvasCreateBudCommandArgs) => string
+  createShape?: (input: CanvasCreateShapeCommandArgs) => void
   deleteSelection?: () => void
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>

@@ -1225,6 +1225,22 @@ export function Canvas({
     await window.api.openFile(selectedBudNode.resource)
   }, [selectedBudNode])
 
+  const createShapeAtPoint = useCallback(
+    (preset: ShapePreset, position: FlowPosition) => {
+      const definition = getShapePresetDefinition(preset)
+      const id = crypto.randomUUID()
+      addNode({
+        id,
+        kind: 'leaf',
+        type: 'shape',
+        position,
+        size: definition.defaultSize,
+        shape: { preset, style: DEFAULT_SHAPE_STYLE }
+      } as BoardNodeDraft)
+    },
+    [addNode]
+  )
+
   const canvasCommandContext = useMemo(
     () =>
       createCanvasCommandContext({
@@ -1251,6 +1267,7 @@ export function Canvas({
                 .filter((board) => board.resource.length > 0),
         actions: {
           createBud: createBudAtPoint,
+          createShape: ({ preset, position }) => createShapeAtPoint(preset, position),
           deleteSelection,
           bloomSelection,
           openSelectionInNativeEditor,
@@ -1260,6 +1277,7 @@ export function Canvas({
     [
       bloomSelection,
       createBudAtPoint,
+      createShapeAtPoint,
       deleteSelection,
       getDefaultCanvasInsertionPoint,
       boardPath,
@@ -2588,20 +2606,16 @@ export function Canvas({
     addNode
   ])
 
-  const createShapeAtPoint = useCallback(
-    (preset: ShapePreset, position: FlowPosition) => {
-      const definition = getShapePresetDefinition(preset)
-      const id = crypto.randomUUID()
-      addNode({
-        id,
-        kind: 'leaf',
-        type: 'shape',
-        position,
-        size: definition.defaultSize,
-        shape: { preset, style: DEFAULT_SHAPE_STYLE }
-      } as BoardNodeDraft)
+  const activateShapeCommand = useCallback(
+    (id: string, source: WhitebloomCommandExecutionOptions['source']) => {
+      void runCanvasCommand(id, undefined, {
+        source,
+        metadata: {
+          trigger: 'shape'
+        }
+      })
     },
-    [addNode]
+    [runCanvasCommand]
   )
 
   const shapeMenuItems = useMemo<PetalMenuItem[]>(
@@ -2610,34 +2624,37 @@ export function Canvas({
         id: 'shape-rectangle',
         label: 'Rectangle',
         icon: <Square size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('rectangle', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawRectangle, 'menu')
       },
       {
         id: 'shape-slanted-rectangle',
         label: 'Slanted Rectangle',
         icon: <Square size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('slanted-rectangle', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawSlantedRectangle, 'menu')
       },
       {
         id: 'shape-diamond',
         label: 'Diamond',
         icon: <Diamond size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('diamond', getDefaultCanvasInsertionPoint())
+        onActivate: () => activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond, 'menu')
       },
       {
         id: 'shape-ellipse',
         label: 'Ellipse',
         icon: <Circle size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('ellipse', getDefaultCanvasInsertionPoint())
+        onActivate: () => activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse, 'menu')
       },
       {
         id: 'shape-terminator',
         label: 'Terminator',
         icon: <Circle size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('terminator', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawTerminator, 'menu')
       }
     ],
-    [createShapeAtPoint, getDefaultCanvasInsertionPoint]
+    [activateShapeCommand]
   )
 
   const canvasContextMenuItems = useMemo<PetalMenuItem[]>(
@@ -2646,31 +2663,39 @@ export function Canvas({
         id: 'shape-rectangle',
         label: 'Rectangle',
         icon: <Square size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('rectangle', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawRectangle, 'context-menu')
       },
       {
         id: 'shape-slanted-rectangle',
         label: 'Slanted Rectangle',
         icon: <Square size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('slanted-rectangle', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(
+            WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawSlantedRectangle,
+            'context-menu'
+          )
       },
       {
         id: 'shape-diamond',
         label: 'Diamond',
         icon: <Diamond size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('diamond', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond, 'context-menu')
       },
       {
         id: 'shape-ellipse',
         label: 'Ellipse',
         icon: <Circle size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('ellipse', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse, 'context-menu')
       },
       {
         id: 'shape-terminator',
         label: 'Terminator',
         icon: <Circle size={14} strokeWidth={1.8} />,
-        onActivate: () => createShapeAtPoint('terminator', getDefaultCanvasInsertionPoint())
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawTerminator, 'context-menu')
       },
       { id: 'shapes-sep', type: 'separator' as const },
       {
@@ -2693,8 +2718,7 @@ export function Canvas({
       }
     ],
     [
-      createShapeAtPoint,
-      getDefaultCanvasInsertionPoint,
+      activateShapeCommand,
       handleImportResources,
       handleLinkResources,
       t,

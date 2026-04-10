@@ -14,6 +14,7 @@ export type {
   ArrangementsIncludeMaterialsInSetCommandArgs,
   ArrangementsMoveMaterialsToDesktopCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
+  CanvasCreateShapeCommandArgs,
   WhitebloomCommand,
   WhitebloomCommandArgsSchema,
   WhitebloomCommandProvider,

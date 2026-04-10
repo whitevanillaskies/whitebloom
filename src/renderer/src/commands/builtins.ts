@@ -15,15 +15,22 @@ import type {
   ArrangementsMoveMaterialsToDesktopCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
   CanvasCreateBudCommandArgs,
+  CanvasCreateShapeCommandArgs,
   CanvasLinkableBoard,
   WhitebloomCommandForContext
 } from './types'
+import type { ShapePreset } from '@renderer/shared/types'
 
 export const WHITEBLOOM_COMMAND_IDS = {
   canvas: {
     addBud: 'board.add-bud',
     addUrlPage: 'board.add-url-page',
     linkBoard: 'board.link-board',
+    shapeDrawRectangle: 'board.shape.draw-rectangle',
+    shapeDrawSlantedRectangle: 'board.shape.draw-slanted-rectangle',
+    shapeDrawDiamond: 'board.shape.draw-diamond',
+    shapeDrawEllipse: 'board.shape.draw-ellipse',
+    shapeDrawTerminator: 'board.shape.draw-terminator',
     deleteSelection: 'selection.delete',
     bloomSelection: 'node.bloom',
     openSelectionInNativeEditor: 'resource.open-native',
@@ -43,6 +50,14 @@ export const WHITEBLOOM_COMMAND_IDS = {
     deleteSet: 'arrangements.set.delete'
   }
 } as const
+
+const CANVAS_SHAPE_COMMANDS: Array<{ id: string; preset: ShapePreset }> = [
+  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawRectangle, preset: 'rectangle' },
+  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawSlantedRectangle, preset: 'slanted-rectangle' },
+  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond, preset: 'diamond' },
+  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse, preset: 'ellipse' },
+  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawTerminator, preset: 'terminator' }
+]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -567,6 +582,23 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
       }
     }
   },
+  ...CANVAS_SHAPE_COMMANDS.map<WhitebloomCommandForContext<'canvas'>>(({ id, preset }) => ({
+    core: {
+      id,
+      when: (context) =>
+        typeof context.actions.createShape === 'function' && context.insertionPoint !== undefined,
+      run: async (_args, context) => {
+        if (!context.actions.createShape || !context.insertionPoint) {
+          throw new Error('Canvas context cannot create shapes.')
+        }
+
+        context.actions.createShape({
+          position: context.insertionPoint,
+          preset
+        } satisfies CanvasCreateShapeCommandArgs)
+      }
+    }
+  })),
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addUrlPage,
