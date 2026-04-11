@@ -14,11 +14,14 @@
     "directories": {
       "output": "dist"
     },
-    "publish": {
-      "provider": "github",
-      "owner": "whitevanillaskies",
-      "repo": "whitebloom"
-    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "whitevanillaskies",
+        "repo": "whitebloom",
+        "releaseType": "draft"
+      }
+    ],
     "win": {
       "target": [
         "nsis",
@@ -43,7 +46,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
-    "release": "npm run build && electron-builder --publish always",
+    "release": "npm run build && electron-builder --publish always --win --linux",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
