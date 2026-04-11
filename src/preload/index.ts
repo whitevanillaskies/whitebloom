@@ -113,6 +113,10 @@ type ArrangementsReferencesResult = {
   boardPaths: string[]
 }
 
+type ArrangementsRegisterLinkedMaterialsResult = {
+  ok: boolean
+}
+
 type ProjectFinderSidebarLocation = {
   label: string
   path: string
@@ -162,8 +166,7 @@ const api = {
     ipcRenderer.invoke('board:trash', boardPath),
   createBoard: (workspaceRoot: string, name: string): Promise<BoardCreateResult> =>
     ipcRenderer.invoke('board:create', workspaceRoot, name),
-  showLinkFileDialog: (): Promise<FileLinkDialogResult> =>
-    ipcRenderer.invoke('file:link-dialog'),
+  showLinkFileDialog: (): Promise<FileLinkDialogResult> => ipcRenderer.invoke('file:link-dialog'),
   showImportFileDialog: (): Promise<FileImportDialogResult> =>
     ipcRenderer.invoke('file:import-dialog'),
   copyWorkspaceResource: (
@@ -205,6 +208,11 @@ const api = {
     materialKey: string
   ): Promise<ArrangementsReferencesResult> =>
     ipcRenderer.invoke('arrangements:referenced-by', workspaceRoot, materialKey),
+  registerArrangementsLinkedMaterials: (
+    workspaceRoot: string,
+    materials: Array<{ key: string; displayName?: string }>
+  ): Promise<ArrangementsRegisterLinkedMaterialsResult> =>
+    ipcRenderer.invoke('arrangements:register-linked-materials', workspaceRoot, materials),
   readBlossom: (workspaceRoot: string, resource: string): Promise<string> =>
     ipcRenderer.invoke('blossom:read', workspaceRoot, resource),
   writeBlossom: (workspaceRoot: string, resource: string, data: string): Promise<{ ok: boolean }> =>

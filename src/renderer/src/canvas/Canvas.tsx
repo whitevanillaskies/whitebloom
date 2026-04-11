@@ -39,7 +39,9 @@ import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
-import MaterialsWindow, { MaterialsDragGhost } from '@renderer/components/arrangements/MaterialsWindow'
+import MaterialsWindow, {
+  MaterialsDragGhost
+} from '@renderer/components/arrangements/MaterialsWindow'
 import {
   ARRANGEMENTS_MICA_HOST_ID,
   createArrangementsDropTargetId,
@@ -65,11 +67,7 @@ import {
   Type
 } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
-import type {
-  PaletteCommandSession,
-  PaletteItem,
-  PetalMenuItem
-} from '@renderer/components/petal'
+import type { PaletteCommandSession, PaletteItem, PetalMenuItem } from '@renderer/components/petal'
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
@@ -165,6 +163,7 @@ type BudPlacement = {
   resource: string
   moduleType: string | null
   size: { w: number; h: number }
+  label?: string
 }
 type ExternalResourceInput = {
   filePath: string
@@ -553,6 +552,20 @@ function getFileNameFromPath(filePath: string): string {
   return normalized.slice(normalized.lastIndexOf('/') + 1) || filePath
 }
 
+function isLinkedFileMaterialKey(resource: string): boolean {
+  return resource.trim().startsWith('file:///')
+}
+
+function isWebLinkedMaterialKey(resource: string): boolean {
+  const normalized = resource.trim()
+  return normalized.startsWith('http://') || normalized.startsWith('https://')
+}
+
+function isWorkspaceManagedMaterialResource(resource: string): boolean {
+  const normalized = resource.trim()
+  return normalized.startsWith('wloc:blossoms/') || normalized.startsWith('wloc:res/')
+}
+
 function resolveWorkspaceMaterialAbsolutePath(
   resource: string,
   workspaceRoot: string | null
@@ -560,7 +573,12 @@ function resolveWorkspaceMaterialAbsolutePath(
   if (!workspaceRoot || !resource.startsWith('wloc:')) return null
 
   const relativePath = decodeURIComponent(resource.slice('wloc:'.length)).replace(/^\/+/, '')
-  if (!relativePath || relativePath === '.' || relativePath === '..' || relativePath.startsWith('../')) {
+  if (
+    !relativePath ||
+    relativePath === '.' ||
+    relativePath === '..' ||
+    relativePath.startsWith('../')
+  ) {
     return null
   }
 
@@ -570,7 +588,7 @@ function resolveWorkspaceMaterialAbsolutePath(
 }
 
 function resolveLinkedMaterialAbsolutePath(resource: string): string | null {
-  if (!resource.startsWith('file:///')) return null
+  if (!isLinkedFileMaterialKey(resource)) return null
 
   try {
     const url = new URL(resource)
@@ -679,7 +697,27 @@ export function Canvas({
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
   const loadArrangements = useArrangementsStore((s) => s.loadArrangements)
+  const refreshArrangementsMaterials = useArrangementsStore((s) => s.refreshMaterials)
   const isArrangementsHydrated = useArrangementsStore((s) => s.isHydrated)
+
+  const currentBoardReferencedMaterialList = useMemo(
+    () =>
+      [
+        ...new Set(
+          boardNodes
+            .map((node) =>
+              'resource' in node && typeof node.resource === 'string' ? node.resource.trim() : ''
+            )
+            .filter((resource) => resource.length > 0)
+        )
+      ].sort((left, right) => left.localeCompare(right)),
+    [boardNodes]
+  )
+  const currentBoardReferencedMaterialSignature = currentBoardReferencedMaterialList.join('\u0000')
+  const currentBoardReferencedMaterialKeys = useMemo(
+    () => new Set(currentBoardReferencedMaterialList),
+    [currentBoardReferencedMaterialSignature]
+  )
 
   const { screenToFlowPosition } = useReactFlow()
 
@@ -716,7 +754,7 @@ export function Canvas({
     () =>
       ({
         type: 'canvas'
-      } as const),
+      }) as const,
     []
   )
 
@@ -745,11 +783,21 @@ export function Canvas({
   }, [])
 
   const handleOpenMaterials = useCallback(() => {
+    const syncMaterials = () => {
+      if (!workspaceRoot) return
+      if (isArrangementsHydrated) {
+        void refreshArrangementsMaterials()
+        return
+      }
+      void loadArrangements()
+    }
+
     const existing = materialsMica.windows.find((w) => w.kind === 'materials')
     if (existing) {
       if (existing.visibility === 'open') {
         materialsMica.close(existing.id)
       } else {
+        syncMaterials()
         materialsMica.focus(existing.id)
       }
       return
@@ -760,15 +808,51 @@ export function Canvas({
       geometry: { ...DEFAULT_MATERIALS_GEOMETRY },
       uiState: {}
     })
-    if (!isArrangementsHydrated && workspaceRoot) {
-      void loadArrangements()
-    }
-  }, [materialsMica, isArrangementsHydrated, workspaceRoot, loadArrangements])
+    syncMaterials()
+  }, [
+    materialsMica,
+    workspaceRoot,
+    isArrangementsHydrated,
+    refreshArrangementsMaterials,
+    loadArrangements
+  ])
 
   const getDefaultCanvasInsertionPoint = useCallback((): FlowPosition => {
     if (canvasContextMenu) return canvasContextMenu.flowPosition
     return screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   }, [canvasContextMenu, screenToFlowPosition])
+
+  const syncBudMaterialRecord = useCallback(
+    (resource: string, label?: string) => {
+      if (!workspaceRoot) return
+      const materialAlreadyTracked = useArrangementsStore
+        .getState()
+        .materials.some((material) => material.key === resource)
+
+      if (isWebLinkedMaterialKey(resource) || isLinkedFileMaterialKey(resource)) {
+        if (materialAlreadyTracked && isArrangementsHydrated) return
+
+        void (async () => {
+          const result = await window.api.registerArrangementsLinkedMaterials(workspaceRoot, [
+            label?.trim() ? { key: resource, displayName: label.trim() } : { key: resource }
+          ])
+          if (result.ok && isArrangementsHydrated) {
+            await refreshArrangementsMaterials()
+          }
+        })()
+        return
+      }
+
+      if (
+        isArrangementsHydrated &&
+        !materialAlreadyTracked &&
+        isWorkspaceManagedMaterialResource(resource)
+      ) {
+        void refreshArrangementsMaterials()
+      }
+    },
+    [isArrangementsHydrated, refreshArrangementsMaterials, workspaceRoot]
+  )
 
   const createBudAtPoint = useCallback(
     (input: {
@@ -788,9 +872,10 @@ export function Canvas({
         resource: input.resource,
         ...(input.label ? { label: input.label } : {})
       })
+      syncBudMaterialRecord(input.resource, input.label)
       return id
     },
-    [addNode]
+    [addNode, syncBudMaterialRecord]
   )
 
   useArrangementsDropTarget({
@@ -2540,6 +2625,13 @@ export function Canvas({
                 moduleType: boardBloomModule.id,
                 size: boardBloomModule.defaultSize ?? { w: 196, h: 128 }
               }
+            } else if (material.kind === 'linked' && isWebLinkedMaterialKey(material.key)) {
+              placement = {
+                resource: material.key,
+                moduleType: webPageBloomModule.id,
+                size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+                label: material.displayName
+              }
             } else {
               const absolutePath =
                 material.kind === 'linked'
@@ -2555,7 +2647,7 @@ export function Canvas({
                 resource: material.key,
                 moduleType: module?.id ?? null,
                 size: isDirectory
-                  ? module?.defaultSize ?? { w: 88, h: 88 }
+                  ? (module?.defaultSize ?? { w: 88, h: 88 })
                   : await computeDroppedBudSize({
                       filePath: absolutePath,
                       module
@@ -2563,22 +2655,27 @@ export function Canvas({
               }
             }
 
-            const createdBudId = await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
-              position: {
-                x: basePosition.x + createdCount * 24,
-                y: basePosition.y + createdCount * 24
+            const createdBudId = await runCanvasCommand(
+              WHITEBLOOM_COMMAND_IDS.canvas.addBud,
+              {
+                position: {
+                  x: basePosition.x + createdCount * 24,
+                  y: basePosition.y + createdCount * 24
+                },
+                moduleType: placement.moduleType,
+                size: placement.size,
+                resource: placement.resource,
+                ...(placement.label ? { label: placement.label } : {})
               },
-              moduleType: placement.moduleType,
-              size: placement.size,
-              resource: placement.resource
-            }, {
-              source: 'drag-drop',
-              groupId,
-              metadata: {
-                payloadKind: 'arrangements-material',
-                materialKind: material.kind
+              {
+                source: 'drag-drop',
+                groupId,
+                metadata: {
+                  payloadKind: 'arrangements-material',
+                  materialKind: material.kind
+                }
               }
-            })
+            )
             if (createdBudId === null) continue
             createdCount += 1
           } catch (error) {
@@ -2637,21 +2734,25 @@ export function Canvas({
 
         if (!placement.value) continue
 
-        const createdBudId = await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
-          position: {
-            x: basePosition.x + createdCount * 24,
-            y: basePosition.y + createdCount * 24
+        const createdBudId = await runCanvasCommand(
+          WHITEBLOOM_COMMAND_IDS.canvas.addBud,
+          {
+            position: {
+              x: basePosition.x + createdCount * 24,
+              y: basePosition.y + createdCount * 24
+            },
+            moduleType: placement.value.moduleType,
+            size: placement.value.size,
+            resource: placement.value.resource
           },
-          moduleType: placement.value.moduleType,
-          size: placement.value.size,
-          resource: placement.value.resource
-        }, {
-          source: 'file-picker',
-          groupId,
-          metadata: {
-            preferredBehavior
+          {
+            source: 'file-picker',
+            groupId,
+            metadata: {
+              preferredBehavior
+            }
           }
-        })
+        )
         if (createdBudId === null) continue
         createdCount += 1
       }
@@ -2842,13 +2943,15 @@ export function Canvas({
         id: 'shape-diamond',
         label: 'Diamond',
         icon: <Diamond size={14} strokeWidth={1.8} />,
-        onActivate: () => activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond, 'menu')
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond, 'menu')
       },
       {
         id: 'shape-ellipse',
         label: 'Ellipse',
         icon: <Circle size={14} strokeWidth={1.8} />,
-        onActivate: () => activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse, 'menu')
+        onActivate: () =>
+          activateShapeCommand(WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse, 'menu')
       },
       {
         id: 'shape-terminator',
@@ -2921,13 +3024,7 @@ export function Canvas({
         disabled: workspaceRoot === null
       }
     ],
-    [
-      activateShapeCommand,
-      handleImportResources,
-      handleLinkResources,
-      t,
-      workspaceRoot
-    ]
+    [activateShapeCommand, handleImportResources, handleLinkResources, t, workspaceRoot]
   )
 
   const onMouseDown = useCallback(
@@ -3030,17 +3127,21 @@ export function Canvas({
           return
         }
 
-        await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
-          position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
-          moduleType: boardBloomModule.id,
-          size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
-          resource: materialKey
-        }, {
-          source: 'drag-drop',
-          metadata: {
-            payloadKind: 'board-resource'
+        await runCanvasCommand(
+          WHITEBLOOM_COMMAND_IDS.canvas.addBud,
+          {
+            position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+            moduleType: boardBloomModule.id,
+            size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
+            resource: materialKey
+          },
+          {
+            source: 'drag-drop',
+            metadata: {
+              payloadKind: 'board-resource'
+            }
           }
-        })
+        )
         return
       }
 
@@ -3169,21 +3270,25 @@ export function Canvas({
         if (!result.value) continue
 
         const { resource, moduleType, size } = result.value
-        const createdBudId = await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
-          position: {
-            x: basePosition.x + createdCount * 24,
-            y: basePosition.y + createdCount * 24
+        const createdBudId = await runCanvasCommand(
+          WHITEBLOOM_COMMAND_IDS.canvas.addBud,
+          {
+            position: {
+              x: basePosition.x + createdCount * 24,
+              y: basePosition.y + createdCount * 24
+            },
+            moduleType,
+            size,
+            resource
           },
-          moduleType,
-          size,
-          resource
-        }, {
-          source: 'drag-drop',
-          groupId,
-          metadata: {
-            payloadKind: 'native-files'
+          {
+            source: 'drag-drop',
+            groupId,
+            metadata: {
+              payloadKind: 'native-files'
+            }
           }
-        })
+        )
         if (createdBudId === null) continue
         createdCount += 1
       }
@@ -3192,13 +3297,7 @@ export function Canvas({
         setImageDropError(firstFailure)
       }
     },
-    [
-      activeTool,
-      runCanvasCommand,
-      screenToFlowPosition,
-      workspaceRoot,
-      t
-    ]
+    [activeTool, runCanvasCommand, screenToFlowPosition, workspaceRoot, t]
   )
 
   const onMoveEnd = useCallback(
@@ -3217,251 +3316,252 @@ export function Canvas({
           <MaterialsWindow
             onClose={() => materialsMica.close(win.id)}
             onOpenBoard={onOpenBoard}
+            currentBoardReferencedMaterialKeys={currentBoardReferencedMaterialKeys}
             onPlaceMaterialsOnCanvas={placeArrangementsMaterialsOnCanvas}
           />
         )
       }}
       renderOverlay={() => <MaterialsDragGhost />}
     >
-    <BloomContext.Provider value={handleBloom}>
-      {activeBloom === null && (
-        <div
-          ref={canvasDropTargetRef}
-          className={[
-            'canvas__drop-surface',
-            isMaterialsCanvasDropActive ? 'canvas__drop-surface--materials-over' : ''
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            zIndexMode="manual"
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onPaneClick={onPaneClick}
-            onNodeClick={onNodeClick}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onPaneContextMenu={onPaneContextMenu}
-            onMoveEnd={onMoveEnd}
-            className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
-            elementsSelectable={activeTool === 'pointer'}
-            nodesDraggable={activeTool === 'pointer'}
-            nodesConnectable={activeTool === 'pointer'}
-            selectNodesOnDrag={false}
-            selectionOnDrag={activeTool === 'pointer'}
-            elevateNodesOnSelect={false}
-            panOnDrag={panOnDragButtons}
-            connectionMode={ConnectionMode.Loose}
-            connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
-            {...(boardViewport
-              ? { defaultViewport: boardViewport }
-              : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
-            proOptions={{ hideAttribution: true }}
-            data-board-capture="root"
-          >
-            <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
-            <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-            <div data-board-capture="exclude">
-              <MiniMap nodeStrokeWidth={1} zoomable pannable />
-            </div>
-            <Panel position="top-left">
-              <div data-board-capture="exclude">
-                <BoardContextBar
-                  name={boardName}
-                  workspaceRoot={workspaceRoot}
-                  workspaceName={workspaceConfig?.name}
-                  isDirty={isDirty}
-                  onNameChange={(name) => updateBoardMeta({ name })}
-                  onSave={() => void handleSave()}
-                  onGoHome={onGoHome}
-                  onGoToWorkspaceHome={onGoToWorkspaceHome}
-                  onNewBoard={handleNewBoard}
-                  onOverflow={setOverflowAnchor}
-                />
-              </div>
-            </Panel>
-
-            <Panel position="bottom-center">
-              <div data-board-capture="exclude">
-                <CanvasToolbar
-                  activeTool={activeTool}
-                  onToolChange={setActiveTool}
-                  onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
-                />
-              </div>
-            </Panel>
-          </ReactFlow>
-        </div>
-      )}
-
-      {activeBloom === null && <EdgeToolbar />}
-
-      {activeBloom === null && <ShapeToolbar />}
-
-      {settingsOpen && (
-        <SettingsModal
-          name={boardName}
-          brief={boardBrief}
-          onChange={updateBoardMeta}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
-
-      {promoteSubboardModalOpen ? (
-        <PromoteSubboardModal
-          boardName={promoteSubboardName}
-          busy={promoteSubboardInFlight}
-          onBoardNameChange={setPromoteSubboardName}
-          onClose={closePromoteSubboardModal}
-          onSubmit={() => void handlePromoteClusterToSubboard()}
-        />
-      ) : null}
-
-      {imageDropError ? (
-        <PetalPanel
-          title={t('canvas.dropFailedTitle')}
-          body={imageDropError}
-          onClose={() => setImageDropError(null)}
-        >
-          <div className="petal-panel__actions">
-            <PetalButton onClick={() => setImageDropError(null)}>Close</PetalButton>
-          </div>
-        </PetalPanel>
-      ) : null}
-
-      {workspaceActionError ? (
-        <PetalPanel
-          title={t('canvas.workspaceActionFailedTitle')}
-          body={workspaceActionError}
-          onClose={() => setWorkspaceActionError(null)}
-        >
-          <div className="petal-panel__actions">
-            <PetalButton onClick={() => setWorkspaceActionError(null)}>
-              {t('canvas.closeButton')}
-            </PetalButton>
-          </div>
-        </PetalPanel>
-      ) : null}
-
-      {pendingDocumentAction ? (
-        <PetalPanel
-          title={confirmDialogTitle}
-          body={confirmDialogBody}
-          onClose={handleCancelDocumentAction}
-        >
-          <div className="petal-panel__actions">
-            <PetalButton onClick={handleCancelDocumentAction}>
-              {t('canvas.cancelButton')}
-            </PetalButton>
-            <PetalButton intent="destructive" onClick={handleConfirmDocumentAction}>
-              {confirmDialogConfirmLabel}
-            </PetalButton>
-          </div>
-        </PetalPanel>
-      ) : null}
-
-      {trashBoardConfirmOpen ? (
-        <PetalPanel
-          title={t('canvas.moveToTrashTitle')}
-          body={t('canvas.moveToTrashBody')}
-          onClose={() => setTrashBoardConfirmOpen(false)}
-        >
-          <div className="petal-panel__actions">
-            <PetalButton onClick={() => setTrashBoardConfirmOpen(false)}>
-              {t('canvas.cancelButton')}
-            </PetalButton>
-            <PetalButton
-              intent="destructive"
-              onClick={() => void handleTrashBoard()}
-              disabled={trashBoardInFlight}
-            >
-              {t('canvas.moveToTrashButton')}
-            </PetalButton>
-          </div>
-        </PetalPanel>
-      ) : null}
-
-      {activeBloom !== null && workspaceRoot !== null && (
-        <BloomModal
-          bloom={activeBloom}
-          workspaceRoot={workspaceRoot}
-          onClose={() => setActiveBloom(null)}
-        />
-      )}
-
-      {paletteSession && (
-        <PetalPalette
-          items={paletteItems}
-          onClose={closePalette}
-          placeholder={t('canvas.searchPalettePlaceholder')}
-          commandSession={paletteSession}
-        />
-      )}
-
-      {overflowAnchor
-        ? (() => {
-            const items: PetalMenuItem[] = [
-              {
-                id: 'settings',
-                label: t('canvas.boardSettingsMenuItem'),
-                icon: <Settings2 size={14} strokeWidth={1.8} />,
-                onActivate: () => setSettingsOpen(true)
-              },
-              ...(workspaceRoot === null
-                ? [
-                    {
-                      id: 'promote',
-                      label: t('canvas.promoteToWorkspaceMenuItem'),
-                      icon: <FolderPlus size={14} strokeWidth={1.8} />,
-                      onActivate: () => void handlePromoteToWorkspace(),
-                      disabled: promoteInFlight
-                    }
-                  ]
-                : []),
-              {
-                id: 'trash',
-                label: t('canvas.moveToTrashMenuItem'),
-                icon: <Trash2 size={14} strokeWidth={1.8} />,
-                intent: 'destructive' as const,
-                onActivate: () => setTrashBoardConfirmOpen(true),
-                disabled: trashBoardInFlight
-              }
+      <BloomContext.Provider value={handleBloom}>
+        {activeBloom === null && (
+          <div
+            ref={canvasDropTargetRef}
+            className={[
+              'canvas__drop-surface',
+              isMaterialsCanvasDropActive ? 'canvas__drop-surface--materials-over' : ''
             ]
-            return (
-              <PetalMenu
-                items={items}
-                anchor={overflowAnchor}
-                onClose={() => setOverflowAnchor(null)}
-              />
-            )
-          })()
-        : null}
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              zIndexMode="manual"
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onPaneClick={onPaneClick}
+              onNodeClick={onNodeClick}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onPaneContextMenu={onPaneContextMenu}
+              onMoveEnd={onMoveEnd}
+              className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
+              elementsSelectable={activeTool === 'pointer'}
+              nodesDraggable={activeTool === 'pointer'}
+              nodesConnectable={activeTool === 'pointer'}
+              selectNodesOnDrag={false}
+              selectionOnDrag={activeTool === 'pointer'}
+              elevateNodesOnSelect={false}
+              panOnDrag={panOnDragButtons}
+              connectionMode={ConnectionMode.Loose}
+              connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
+              {...(boardViewport
+                ? { defaultViewport: boardViewport }
+                : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
+              proOptions={{ hideAttribution: true }}
+              data-board-capture="root"
+            >
+              <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
+              <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+              <div data-board-capture="exclude">
+                <MiniMap nodeStrokeWidth={1} zoomable pannable />
+              </div>
+              <Panel position="top-left">
+                <div data-board-capture="exclude">
+                  <BoardContextBar
+                    name={boardName}
+                    workspaceRoot={workspaceRoot}
+                    workspaceName={workspaceConfig?.name}
+                    isDirty={isDirty}
+                    onNameChange={(name) => updateBoardMeta({ name })}
+                    onSave={() => void handleSave()}
+                    onGoHome={onGoHome}
+                    onGoToWorkspaceHome={onGoToWorkspaceHome}
+                    onNewBoard={handleNewBoard}
+                    onOverflow={setOverflowAnchor}
+                  />
+                </div>
+              </Panel>
 
-      {canvasContextMenu ? (
-        <PetalMenu
-          items={canvasContextMenuItems}
-          anchor={canvasContextMenu.anchor}
-          onClose={closeCanvasContextMenu}
-        />
-      ) : null}
+              <Panel position="bottom-center">
+                <div data-board-capture="exclude">
+                  <CanvasToolbar
+                    activeTool={activeTool}
+                    onToolChange={setActiveTool}
+                    onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
+                  />
+                </div>
+              </Panel>
+            </ReactFlow>
+          </div>
+        )}
 
-      {shapeMenuAnchor ? (
-        <PetalMenu
-          items={shapeMenuItems}
-          anchor={shapeMenuAnchor}
-          onClose={() => setShapeMenuAnchor(null)}
-        />
-      ) : null}
-    </BloomContext.Provider>
+        {activeBloom === null && <EdgeToolbar />}
+
+        {activeBloom === null && <ShapeToolbar />}
+
+        {settingsOpen && (
+          <SettingsModal
+            name={boardName}
+            brief={boardBrief}
+            onChange={updateBoardMeta}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
+
+        {promoteSubboardModalOpen ? (
+          <PromoteSubboardModal
+            boardName={promoteSubboardName}
+            busy={promoteSubboardInFlight}
+            onBoardNameChange={setPromoteSubboardName}
+            onClose={closePromoteSubboardModal}
+            onSubmit={() => void handlePromoteClusterToSubboard()}
+          />
+        ) : null}
+
+        {imageDropError ? (
+          <PetalPanel
+            title={t('canvas.dropFailedTitle')}
+            body={imageDropError}
+            onClose={() => setImageDropError(null)}
+          >
+            <div className="petal-panel__actions">
+              <PetalButton onClick={() => setImageDropError(null)}>Close</PetalButton>
+            </div>
+          </PetalPanel>
+        ) : null}
+
+        {workspaceActionError ? (
+          <PetalPanel
+            title={t('canvas.workspaceActionFailedTitle')}
+            body={workspaceActionError}
+            onClose={() => setWorkspaceActionError(null)}
+          >
+            <div className="petal-panel__actions">
+              <PetalButton onClick={() => setWorkspaceActionError(null)}>
+                {t('canvas.closeButton')}
+              </PetalButton>
+            </div>
+          </PetalPanel>
+        ) : null}
+
+        {pendingDocumentAction ? (
+          <PetalPanel
+            title={confirmDialogTitle}
+            body={confirmDialogBody}
+            onClose={handleCancelDocumentAction}
+          >
+            <div className="petal-panel__actions">
+              <PetalButton onClick={handleCancelDocumentAction}>
+                {t('canvas.cancelButton')}
+              </PetalButton>
+              <PetalButton intent="destructive" onClick={handleConfirmDocumentAction}>
+                {confirmDialogConfirmLabel}
+              </PetalButton>
+            </div>
+          </PetalPanel>
+        ) : null}
+
+        {trashBoardConfirmOpen ? (
+          <PetalPanel
+            title={t('canvas.moveToTrashTitle')}
+            body={t('canvas.moveToTrashBody')}
+            onClose={() => setTrashBoardConfirmOpen(false)}
+          >
+            <div className="petal-panel__actions">
+              <PetalButton onClick={() => setTrashBoardConfirmOpen(false)}>
+                {t('canvas.cancelButton')}
+              </PetalButton>
+              <PetalButton
+                intent="destructive"
+                onClick={() => void handleTrashBoard()}
+                disabled={trashBoardInFlight}
+              >
+                {t('canvas.moveToTrashButton')}
+              </PetalButton>
+            </div>
+          </PetalPanel>
+        ) : null}
+
+        {activeBloom !== null && workspaceRoot !== null && (
+          <BloomModal
+            bloom={activeBloom}
+            workspaceRoot={workspaceRoot}
+            onClose={() => setActiveBloom(null)}
+          />
+        )}
+
+        {paletteSession && (
+          <PetalPalette
+            items={paletteItems}
+            onClose={closePalette}
+            placeholder={t('canvas.searchPalettePlaceholder')}
+            commandSession={paletteSession}
+          />
+        )}
+
+        {overflowAnchor
+          ? (() => {
+              const items: PetalMenuItem[] = [
+                {
+                  id: 'settings',
+                  label: t('canvas.boardSettingsMenuItem'),
+                  icon: <Settings2 size={14} strokeWidth={1.8} />,
+                  onActivate: () => setSettingsOpen(true)
+                },
+                ...(workspaceRoot === null
+                  ? [
+                      {
+                        id: 'promote',
+                        label: t('canvas.promoteToWorkspaceMenuItem'),
+                        icon: <FolderPlus size={14} strokeWidth={1.8} />,
+                        onActivate: () => void handlePromoteToWorkspace(),
+                        disabled: promoteInFlight
+                      }
+                    ]
+                  : []),
+                {
+                  id: 'trash',
+                  label: t('canvas.moveToTrashMenuItem'),
+                  icon: <Trash2 size={14} strokeWidth={1.8} />,
+                  intent: 'destructive' as const,
+                  onActivate: () => setTrashBoardConfirmOpen(true),
+                  disabled: trashBoardInFlight
+                }
+              ]
+              return (
+                <PetalMenu
+                  items={items}
+                  anchor={overflowAnchor}
+                  onClose={() => setOverflowAnchor(null)}
+                />
+              )
+            })()
+          : null}
+
+        {canvasContextMenu ? (
+          <PetalMenu
+            items={canvasContextMenuItems}
+            anchor={canvasContextMenu.anchor}
+            onClose={closeCanvasContextMenu}
+          />
+        ) : null}
+
+        {shapeMenuAnchor ? (
+          <PetalMenu
+            items={shapeMenuItems}
+            anchor={shapeMenuAnchor}
+            onClose={() => setShapeMenuAnchor(null)}
+          />
+        ) : null}
+      </BloomContext.Provider>
     </MicaHost>
   )
 }

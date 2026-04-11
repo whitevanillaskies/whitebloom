@@ -112,6 +112,10 @@ type ArrangementsReferencesResult = {
   boardPaths: string[]
 }
 
+type ArrangementsRegisterLinkedMaterialsResult = {
+  ok: boolean
+}
+
 type ProjectFinderSidebarLocation = {
   label: string
   path: string
@@ -189,6 +193,10 @@ declare global {
         workspaceRoot: string,
         materialKey: string
       ) => Promise<ArrangementsReferencesResult>
+      registerArrangementsLinkedMaterials: (
+        workspaceRoot: string,
+        materials: Array<{ key: string; displayName?: string }>
+      ) => Promise<ArrangementsRegisterLinkedMaterialsResult>
       readBlossom: (workspaceRoot: string, resource: string) => Promise<string>
       writeBlossom: (
         workspaceRoot: string,

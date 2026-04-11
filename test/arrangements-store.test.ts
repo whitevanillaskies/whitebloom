@@ -21,7 +21,6 @@ function resetArrangementsStore(): void {
     binAssignments: empty.binAssignments,
     desktopPlacements: empty.desktopPlacements,
     cameraState: empty.cameraState,
-    activeBinView: null,
     isHydrated: false
   })
 }
@@ -33,7 +32,10 @@ beforeEach(() => {
   vi.stubGlobal('window', {
     api: {
       readArrangements: vi.fn(async () => ({ ok: true, state: createEmptyGardenState() })),
-      saveArrangements: vi.fn(async (_workspaceRoot: string, state: unknown) => ({ ok: true, state })),
+      saveArrangements: vi.fn(async (_workspaceRoot: string, state: unknown) => ({
+        ok: true,
+        state
+      })),
       enumerateArrangementsMaterial: vi.fn(async () => ({ ok: true, materials: [] })),
       emptyArrangementsTrash: vi.fn(async () => ({ ok: true }))
     }
@@ -122,8 +124,7 @@ describe('arrangements store', () => {
         'wloc:res/keep.png': 'bin-1'
       },
       memberships: [{ materialKey: 'wloc:res/trash.png', setId: 'set-1' }],
-      desktopPlacements: { 'wloc:res/trash.png': { x: 5, y: 6 } },
-      activeBinView: SYSTEM_TRASH_BIN_ID
+      desktopPlacements: { 'wloc:res/trash.png': { x: 5, y: 6 } }
     })
 
     const ok = await useArrangementsStore.getState().emptyTrash()
@@ -137,7 +138,6 @@ describe('arrangements store', () => {
       { key: 'wloc:res/keep.png', kind: 'resource', displayName: 'keep', extension: '.png' }
     ])
     expect(useArrangementsStore.getState().memberships).toEqual([])
-    expect(useArrangementsStore.getState().activeBinView).toBeNull()
   })
 
   it('saves the persisted garden shape without duplicating trash assignments', async () => {

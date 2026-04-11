@@ -8,7 +8,11 @@ import type {
   GardenPoint,
   GardenSetNode
 } from '../../../shared/arrangements'
-import { createEmptyGardenState, CURRENT_GARDEN_VERSION, SYSTEM_TRASH_BIN_ID } from '../../../shared/arrangements'
+import {
+  createEmptyGardenState,
+  CURRENT_GARDEN_VERSION,
+  SYSTEM_TRASH_BIN_ID
+} from '../../../shared/arrangements'
 import { useWorkspaceStore } from './workspace'
 
 type ArrangementsState = {
@@ -22,6 +26,7 @@ type ArrangementsState = {
   pendingRenameTarget: { kind: 'bin' | 'set'; id: string } | null
   isHydrated: boolean
   loadArrangements: () => Promise<boolean>
+  refreshMaterials: () => Promise<boolean>
   saveArrangements: () => Promise<boolean>
   assignToBin: (materialKey: ArrangementsMaterialKey, binId: string) => void
   removeFromBin: (materialKey: ArrangementsMaterialKey) => void
@@ -49,31 +54,36 @@ type ArrangementsState = {
   clearArrangements: () => void
 }
 
-function getEmptyArrangementsState(): Omit<ArrangementsState, keyof Pick<ArrangementsState,
-  | 'loadArrangements'
-  | 'saveArrangements'
-  | 'assignToBin'
-  | 'removeFromBin'
-  | 'addToSet'
-  | 'removeFromSet'
-  | 'moveMaterialOnDesktop'
-  | 'moveBinOnDesktop'
-  | 'sendToTrash'
-  | 'emptyTrash'
-  | 'createBin'
-  | 'createBinAtPoint'
-  | 'createBinAtViewportCenter'
-  | 'renameBin'
-  | 'deleteBin'
-  | 'createSet'
-  | 'createRootSet'
-  | 'createChildSet'
-  | 'renameSet'
-  | 'deleteSet'
-  | 'markPendingRenameTarget'
-  | 'setCamera'
-  | 'clearArrangements'
->> {
+function getEmptyArrangementsState(): Omit<
+  ArrangementsState,
+  keyof Pick<
+    ArrangementsState,
+    | 'loadArrangements'
+    | 'refreshMaterials'
+    | 'saveArrangements'
+    | 'assignToBin'
+    | 'removeFromBin'
+    | 'addToSet'
+    | 'removeFromSet'
+    | 'moveMaterialOnDesktop'
+    | 'moveBinOnDesktop'
+    | 'sendToTrash'
+    | 'emptyTrash'
+    | 'createBin'
+    | 'createBinAtPoint'
+    | 'createBinAtViewportCenter'
+    | 'renameBin'
+    | 'deleteBin'
+    | 'createSet'
+    | 'createRootSet'
+    | 'createChildSet'
+    | 'renameSet'
+    | 'deleteSet'
+    | 'markPendingRenameTarget'
+    | 'setCamera'
+    | 'clearArrangements'
+  >
+> {
   const emptyGarden = createEmptyGardenState()
   return {
     materials: [],
@@ -92,7 +102,10 @@ function toBinPlacementKey(binId: string): string {
   return `bin:${binId}`
 }
 
-function collectSetIds(sets: GardenSetNode[], output: Set<string> = new Set<string>()): Set<string> {
+function collectSetIds(
+  sets: GardenSetNode[],
+  output: Set<string> = new Set<string>()
+): Set<string> {
   for (const set of sets) {
     output.add(set.id)
     collectSetIds(set.children, output)
@@ -100,7 +113,10 @@ function collectSetIds(sets: GardenSetNode[], output: Set<string> = new Set<stri
   return output
 }
 
-function collectSetIdsFromNode(setNode: GardenSetNode, output: Set<string> = new Set<string>()): Set<string> {
+function collectSetIdsFromNode(
+  setNode: GardenSetNode,
+  output: Set<string> = new Set<string>()
+): Set<string> {
   output.add(setNode.id)
   for (const child of setNode.children) {
     collectSetIdsFromNode(child, output)
@@ -155,11 +171,7 @@ function removeSetNode(
   return removed ? { nextSets, removed } : { nextSets: sets, removed: null }
 }
 
-function renameSetNode(
-  sets: GardenSetNode[],
-  setId: string,
-  name: string
-): GardenSetNode[] {
+function renameSetNode(sets: GardenSetNode[], setId: string, name: string): GardenSetNode[] {
   let changed = false
 
   const nextSets = sets.map((setNode) => {
@@ -201,10 +213,35 @@ function buildPersistedGardenState(state: ArrangementsState) {
   }
 }
 
-function getTrashContents(state: Pick<ArrangementsState, 'binAssignments'>): ArrangementsMaterialKey[] {
+function getTrashContents(
+  state: Pick<ArrangementsState, 'binAssignments'>
+): ArrangementsMaterialKey[] {
   return Object.entries(state.binAssignments)
     .filter(([, binId]) => binId === SYSTEM_TRASH_BIN_ID)
     .map(([materialKey]) => materialKey)
+}
+
+function reconcileMaterialState(
+  materials: ArrangementsMaterial[],
+  state: Pick<ArrangementsState, 'memberships' | 'binAssignments' | 'desktopPlacements'>
+): Pick<ArrangementsState, 'memberships' | 'binAssignments' | 'desktopPlacements'> {
+  const validMaterialKeys = new Set(materials.map((material) => material.key))
+
+  return {
+    memberships: state.memberships.filter((membership) =>
+      validMaterialKeys.has(membership.materialKey)
+    ),
+    binAssignments: Object.fromEntries(
+      Object.entries(state.binAssignments).filter(([materialKey]) =>
+        validMaterialKeys.has(materialKey)
+      )
+    ) as Record<ArrangementsMaterialKey, string>,
+    desktopPlacements: Object.fromEntries(
+      Object.entries(state.desktopPlacements).filter(
+        ([placementKey]) => placementKey.startsWith('bin:') || validMaterialKeys.has(placementKey)
+      )
+    ) as Record<string, GardenPoint>
+  }
 }
 
 let arrangementsSavePromise: Promise<boolean> | null = null
@@ -266,21 +303,48 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
     }
 
     const trashAssignments = Object.fromEntries(
-      stateResult.state.trashContents.map((materialKey) => [materialKey, SYSTEM_TRASH_BIN_ID] as const)
+      stateResult.state.trashContents.map(
+        (materialKey) => [materialKey, SYSTEM_TRASH_BIN_ID] as const
+      )
     )
-
-    set({
-      materials: materialsResult.materials,
-      bins: stateResult.state.bins,
-      sets: stateResult.state.sets,
+    const reconciledState = reconcileMaterialState(materialsResult.materials, {
       memberships: stateResult.state.memberships,
       binAssignments: {
         ...stateResult.state.binAssignments,
         ...trashAssignments
       },
-      desktopPlacements: stateResult.state.desktopPlacements,
+      desktopPlacements: stateResult.state.desktopPlacements
+    })
+
+    set({
+      materials: materialsResult.materials,
+      bins: stateResult.state.bins,
+      sets: stateResult.state.sets,
+      memberships: reconciledState.memberships,
+      binAssignments: reconciledState.binAssignments,
+      desktopPlacements: reconciledState.desktopPlacements,
       cameraState: stateResult.state.cameraState,
       isHydrated: true
+    })
+
+    return true
+  },
+
+  refreshMaterials: async () => {
+    const workspaceRoot = useWorkspaceStore.getState().root
+    if (!workspaceRoot) return false
+
+    const materialsResult = await window.api.enumerateArrangementsMaterial(workspaceRoot)
+    if (!materialsResult.ok) return false
+
+    set((state) => {
+      const reconciledState = reconcileMaterialState(materialsResult.materials, state)
+      return {
+        materials: materialsResult.materials,
+        memberships: reconciledState.memberships,
+        binAssignments: reconciledState.binAssignments,
+        desktopPlacements: reconciledState.desktopPlacements
+      }
     })
 
     return true
@@ -322,7 +386,11 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
     set((state) => {
       const validSetIds = collectSetIds(state.sets)
       if (!validSetIds.has(setId)) return state
-      if (state.memberships.some((membership) => membership.materialKey === materialKey && membership.setId === setId)) {
+      if (
+        state.memberships.some(
+          (membership) => membership.materialKey === materialKey && membership.setId === setId
+        )
+      ) {
         return state
       }
 
@@ -580,7 +648,8 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
         sets: nextSets,
         memberships: state.memberships.filter((membership) => !removedSetIds.has(membership.setId)),
         pendingRenameTarget:
-          state.pendingRenameTarget?.kind === 'set' && removedSetIds.has(state.pendingRenameTarget.id)
+          state.pendingRenameTarget?.kind === 'set' &&
+          removedSetIds.has(state.pendingRenameTarget.id)
             ? null
             : state.pendingRenameTarget
       }

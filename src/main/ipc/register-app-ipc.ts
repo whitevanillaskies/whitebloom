@@ -12,7 +12,8 @@ import { resolveResource } from '../resource-uri'
 import {
   emptyArrangementsTrash,
   enumerateWorkspaceMaterial,
-  findBoardsReferencingMaterial
+  findBoardsReferencingMaterial,
+  registerLinkedMaterials
 } from '../services/workspace-material'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import { probeNetwork } from '../services/network-probe'
@@ -49,6 +50,10 @@ type ArrangementsEnumerateResult = {
 type ArrangementsReferencesResult = {
   ok: boolean
   boardPaths: string[]
+}
+
+type ArrangementsRegisterLinkedMaterialsResult = {
+  ok: boolean
 }
 
 export function registerAppIpc(context: MainProcessContext): void {
@@ -117,6 +122,22 @@ export function registerAppIpc(context: MainProcessContext): void {
         }
       } catch {
         return { ok: false, boardPaths: [] }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'arrangements:register-linked-materials',
+    async (
+      _event,
+      workspaceRoot: string,
+      materials: Array<{ key: string; displayName?: string }>
+    ): Promise<ArrangementsRegisterLinkedMaterialsResult> => {
+      try {
+        await registerLinkedMaterials(workspaceRoot, materials)
+        return { ok: true }
+      } catch {
+        return { ok: false }
       }
     }
   )

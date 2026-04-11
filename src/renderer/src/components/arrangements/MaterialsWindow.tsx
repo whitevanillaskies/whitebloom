@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, Boxes, File, FolderTree, LayoutDashboard, Layers, Link, Link2, Pencil, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  Boxes,
+  File,
+  FolderTree,
+  LayoutDashboard,
+  Layers,
+  Link,
+  Link2,
+  Pencil,
+  Trash2
+} from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { MicaWindow, useMicaDragState } from '../../mica'
@@ -36,6 +47,7 @@ type SidebarSel =
 const SEL_BINS: SidebarSel = { kind: 'bins' }
 const SEL_STALE: SidebarSel = { kind: 'smart-set', id: 'stale' }
 const SEL_TRASH: SidebarSel = { kind: 'trash' }
+const EMPTY_MATERIAL_KEY_SET = new Set<string>()
 
 // ── Material row ───────────────────────────────────────────────────────────────
 
@@ -44,11 +56,19 @@ type IconState =
   | { status: 'ready'; dataUrl: string }
   | { status: 'fallback' }
 
+function isWebLinkedMaterialKey(resource: string): boolean {
+  const normalized = resource.trim()
+  return normalized.startsWith('http://') || normalized.startsWith('https://')
+}
+
 function useMaterialIcon(material: ArrangementsMaterial, workspaceRoot: string): IconState {
   const [state, setState] = useState<IconState>({ status: 'loading' })
 
   useEffect(() => {
-    if (material.kind === 'board') {
+    if (
+      material.kind === 'board' ||
+      (material.kind === 'linked' && isWebLinkedMaterialKey(material.key))
+    ) {
       setState({ status: 'fallback' })
       return
     }
@@ -228,8 +248,15 @@ function BinSection({
 
   const handleRenameKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') { e.preventDefault(); commitRename() }
-      if (e.key === 'Escape') { e.preventDefault(); setDraftName(title); onRenameCancel?.() }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        commitRename()
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setDraftName(title)
+        onRenameCancel?.()
+      }
     },
     [commitRename, title, onRenameCancel]
   )
@@ -303,9 +330,7 @@ function BinSection({
           ))}
         </div>
       )}
-      {expanded && materials.length === 0 && (
-        <p className="materials-window__bin-empty">Empty</p>
-      )}
+      {expanded && materials.length === 0 && <p className="materials-window__bin-empty">Empty</p>}
     </div>
   )
 }
@@ -357,7 +382,7 @@ function SetTreeNode({
       ({
         type: 'set',
         setId: node.id
-      } as const),
+      }) as const,
     [node.id]
   )
 
@@ -518,10 +543,9 @@ export function MaterialsDragGhost(): React.JSX.Element | null {
 
   return (
     <div
-      className={[
-        'materials-window__drag-ghost',
-        `materials-window__drag-ghost--${tone}`
-      ].join(' ')}
+      className={['materials-window__drag-ghost', `materials-window__drag-ghost--${tone}`].join(
+        ' '
+      )}
       style={{
         left: session.pointer.screen.x + 10,
         top: session.pointer.screen.y + 14,
@@ -535,9 +559,7 @@ export function MaterialsDragGhost(): React.JSX.Element | null {
       <div className="materials-window__drag-ghost-card">
         <File size={12} strokeWidth={1.5} className="materials-window__drag-ghost-file-icon" />
         <span className="materials-window__drag-ghost-name">{label}</span>
-        {count > 1 ? (
-          <span className="materials-window__drag-ghost-badge">{count}</span>
-        ) : null}
+        {count > 1 ? <span className="materials-window__drag-ghost-badge">{count}</span> : null}
       </div>
     </div>
   )
@@ -548,6 +570,7 @@ export function MaterialsDragGhost(): React.JSX.Element | null {
 type MaterialsWindowProps = {
   onClose: () => void
   onOpenBoard: (boardPath: string) => void
+  currentBoardReferencedMaterialKeys?: Set<string>
   onPlaceMaterialsOnCanvas?: (
     materials: ArrangementsMaterial[],
     screenPoint: { x: number; y: number }
@@ -557,6 +580,7 @@ type MaterialsWindowProps = {
 export default function MaterialsWindow({
   onClose,
   onOpenBoard,
+  currentBoardReferencedMaterialKeys,
   onPlaceMaterialsOnCanvas
 }: MaterialsWindowProps): React.JSX.Element {
   const windowRef = useRef<HTMLDivElement>(null)
@@ -590,11 +614,10 @@ export default function MaterialsWindow({
     | { kind: 'bin'; binId: string; anchor: { x: number; y: number } }
     | null
   >(null)
+  const [referencedMaterialKeys, setReferencedMaterialKeys] = useState<Set<string>>(new Set())
+  const [isReferenceScanPending, setIsReferenceScanPending] = useState(false)
 
-  const userBins = useMemo(
-    () => bins.filter((b) => b.kind === 'user'),
-    [bins]
-  )
+  const userBins = useMemo(() => bins.filter((b) => b.kind === 'user'), [bins])
 
   // Non-trash materials (trash bin excluded from the list view)
   const visibleMaterials = useMemo(
@@ -607,6 +630,55 @@ export default function MaterialsWindow({
     () => materials.filter((m) => binAssignments[m.key] === SYSTEM_TRASH_BIN_ID),
     [materials, binAssignments]
   )
+
+  useEffect(() => {
+    if (workspaceRoot === null) {
+      setReferencedMaterialKeys(new Set())
+      setIsReferenceScanPending(false)
+      return
+    }
+
+    const currentBoardKeys = currentBoardReferencedMaterialKeys ?? EMPTY_MATERIAL_KEY_SET
+    const initialKeys = new Set(currentBoardKeys)
+    setReferencedMaterialKeys(initialKeys)
+
+    if (materials.length === 0) {
+      setIsReferenceScanPending(false)
+      return
+    }
+
+    let cancelled = false
+    setIsReferenceScanPending(true)
+
+    void (async () => {
+      const nextReferencedKeys = new Set(initialKeys)
+      const materialsToCheck = materials.filter((material) => !currentBoardKeys.has(material.key))
+      const results = await Promise.all(
+        materialsToCheck.map(async (material) => {
+          const result = await window.api.getArrangementsReferences(workspaceRoot, material.key)
+          return {
+            key: material.key,
+            isReferenced: result.ok && result.boardPaths.length > 0
+          }
+        })
+      )
+
+      if (cancelled) return
+
+      for (const result of results) {
+        if (result.isReferenced) {
+          nextReferencedKeys.add(result.key)
+        }
+      }
+
+      setReferencedMaterialKeys(nextReferencedKeys)
+      setIsReferenceScanPending(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentBoardReferencedMaterialKeys, materials, workspaceRoot])
 
   // Bins view: group materials by bin
   const looseMaterials = useMemo(
@@ -628,22 +700,24 @@ export default function MaterialsWindow({
     return map
   }, [visibleMaterials, binAssignments, userBins])
 
+  const staleMaterials = useMemo(
+    () => visibleMaterials.filter((material) => !referencedMaterialKeys.has(material.key)),
+    [referencedMaterialKeys, visibleMaterials]
+  )
+
   // Set / smart-set view: filter materials
   const filteredMaterials = useMemo(() => {
     if (sel.kind === 'bins') return []
     if (sel.kind === 'trash') return []
     if (sel.kind === 'smart-set') {
-      // Stale: not yet computable without cross-board analysis
-      return []
+      return staleMaterials
     }
     // Set lens
     const memberKeys = new Set(
-      memberships
-        .filter((m) => m.setId === sel.id)
-        .map((m) => m.materialKey)
+      memberships.filter((m) => m.setId === sel.id).map((m) => m.materialKey)
     )
     return visibleMaterials.filter((m) => memberKeys.has(m.key))
-  }, [sel, memberships, visibleMaterials])
+  }, [sel, memberships, staleMaterials, visibleMaterials])
 
   const handleToggleSet = useCallback((id: string) => {
     setSetExpandedIds((prev) => {
@@ -692,7 +766,9 @@ export default function MaterialsWindow({
           id: 'new-root-set',
           label: 'New Set',
           icon: <Layers size={14} strokeWidth={1.7} />,
-          onActivate: () => { void createRootSet() }
+          onActivate: () => {
+            void createRootSet()
+          }
         }
       ]
     }
@@ -703,13 +779,17 @@ export default function MaterialsWindow({
         label: 'New Child Set',
         subtitle: 'Create a nested set under this set',
         icon: <FolderTree size={14} strokeWidth={1.7} />,
-        onActivate: () => { void createChildSet(contextMenuState.setId) }
+        onActivate: () => {
+          void createChildSet(contextMenuState.setId)
+        }
       },
       {
         id: 'rename-set',
         label: 'Rename Set',
         icon: <Pencil size={14} strokeWidth={1.7} />,
-        onActivate: () => { markPendingRenameTarget({ kind: 'set', id: contextMenuState.setId }) }
+        onActivate: () => {
+          markPendingRenameTarget({ kind: 'set', id: contextMenuState.setId })
+        }
       },
       {
         id: 'remove-set',
@@ -722,10 +802,19 @@ export default function MaterialsWindow({
         }
       }
     ]
-  }, [contextMenuState, createChildSet, createRootSet, deleteSet, markPendingRenameTarget, saveArrangements])
+  }, [
+    contextMenuState,
+    createChildSet,
+    createRootSet,
+    deleteSet,
+    markPendingRenameTarget,
+    saveArrangements
+  ])
 
   const handleRenameCommit = useCallback(
-    (setId: string, name: string) => { void renameSet(setId, name) },
+    (setId: string, name: string) => {
+      void renameSet(setId, name)
+    },
     [renameSet]
   )
 
@@ -736,7 +825,9 @@ export default function MaterialsWindow({
   // ── Bin context menu ──────────────────────────────────────────────────────────
 
   const handleOpenBinsViewContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const headingTarget = (e.target as HTMLElement | null)?.closest('.materials-window__bin-heading')
+    const headingTarget = (e.target as HTMLElement | null)?.closest(
+      '.materials-window__bin-heading'
+    )
     if (headingTarget) return
     e.preventDefault()
     setBinContextMenuState({ kind: 'root', anchor: { x: e.clientX, y: e.clientY } })
@@ -796,7 +887,9 @@ export default function MaterialsWindow({
   }, [binContextMenuState, createBin, deleteBin, markPendingRenameTarget, saveArrangements])
 
   const handleBinRenameCommit = useCallback(
-    (binId: string, name: string) => { void renameBin(binId, name) },
+    (binId: string, name: string) => {
+      void renameBin(binId, name)
+    },
     [renameBin]
   )
 
@@ -885,7 +978,12 @@ export default function MaterialsWindow({
           ].join(' ')}
           onClick={() => setSel(SEL_BINS)}
         >
-          <Boxes size={12} strokeWidth={1.6} className="materials-window__nav-icon" aria-hidden="true" />
+          <Boxes
+            size={12}
+            strokeWidth={1.6}
+            className="materials-window__nav-icon"
+            aria-hidden="true"
+          />
           <span className="materials-window__nav-label">Bins</span>
         </button>
         <button
@@ -898,14 +996,18 @@ export default function MaterialsWindow({
           ].join(' ')}
           onClick={() => setSel(SEL_TRASH)}
         >
-          <Trash2 size={12} strokeWidth={1.6} className="materials-window__nav-icon" aria-hidden="true" />
+          <Trash2
+            size={12}
+            strokeWidth={1.6}
+            className="materials-window__nav-icon"
+            aria-hidden="true"
+          />
           <span className="materials-window__nav-label">Trash</span>
           {trashMaterials.length > 0 && (
             <span className="materials-window__nav-count">{trashMaterials.length}</span>
           )}
-        </button>        
+        </button>
       </div>
-
 
       {/* Sets tree */}
       <div
@@ -948,8 +1050,16 @@ export default function MaterialsWindow({
           ].join(' ')}
           onClick={() => setSel(SEL_STALE)}
         >
-          <Link size={12} strokeWidth={1.6} className="materials-window__nav-icon materials-window__nav-icon--smart" aria-hidden="true" />
+          <Link
+            size={12}
+            strokeWidth={1.6}
+            className="materials-window__nav-icon materials-window__nav-icon--smart"
+            aria-hidden="true"
+          />
           <span className="materials-window__nav-label">Stale</span>
+          {staleMaterials.length > 0 && (
+            <span className="materials-window__nav-count">{staleMaterials.length}</span>
+          )}
         </button>
       </div>
     </div>
@@ -1019,9 +1129,27 @@ export default function MaterialsWindow({
           </div>
         ) : sel.kind === 'smart-set' && sel.id === 'stale' ? (
           <div className="materials-window__set-view">
-            <p className="materials-window__empty">
-              Stale detection requires cross-board analysis — coming soon.
-            </p>
+            {false && (
+              <p className="materials-window__empty">
+                Stale detection requires cross-board analysis — coming soon.
+              </p>
+            )}
+            {isReferenceScanPending ? (
+              <p className="materials-window__empty">Checking board references.</p>
+            ) : filteredMaterials.length === 0 ? (
+              <p className="materials-window__empty">No stale materials.</p>
+            ) : (
+              filteredMaterials.map((m) => (
+                <MaterialRow
+                  key={m.key}
+                  material={m}
+                  workspaceRoot={workspaceRoot}
+                  dragSource={{ kind: 'desktop' }}
+                  onActivate={handleActivateMaterial}
+                  onResolveDrop={handleResolveDrop}
+                />
+              ))
+            )}
           </div>
         ) : (
           <div className="materials-window__set-view">
