@@ -12,3 +12,10 @@ test/workspaces/
 .github/agents/
 .vscode/
 .idea/
+dist/
+out/
+release/
+*.exe
+*.AppImage
+*.dmg
+*.deb
