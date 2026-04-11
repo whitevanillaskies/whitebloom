@@ -701,7 +701,10 @@ export default function MaterialsWindow({
   }, [visibleMaterials, binAssignments, userBins])
 
   const staleMaterials = useMemo(
-    () => visibleMaterials.filter((material) => !referencedMaterialKeys.has(material.key)),
+    () =>
+      visibleMaterials.filter(
+        (material) => material.kind !== 'board' && !referencedMaterialKeys.has(material.key)
+      ),
     [referencedMaterialKeys, visibleMaterials]
   )
 

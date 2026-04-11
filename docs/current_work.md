@@ -52,13 +52,6 @@ Mica windows, drag coordinator, drop targets, and the SetsIsland tree interactio
 ## Implementation
 
 
-## Phase 5: Material Type Support
-Goal: ensure all current material types behave consistently.
-
-**Work Unit 5.3: URL material support**
-- Treat imported URLs as first-class materials in the Materials window.
-- Ensure unreferenced URL materials appear in `Stale`.
-
 ## Phase 7: Files Window
 Goal: introduce the second independent Mica window for workspace file import.
 
