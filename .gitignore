@@ -6,3 +6,5 @@ out
 *.log*
 .mailmap
 docs/
+test/boards/
+test/workspaces/
