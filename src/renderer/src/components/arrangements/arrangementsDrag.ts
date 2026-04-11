@@ -74,6 +74,10 @@ export type ArrangementsMaterialDropCommand =
       binId: string
     }
   | {
+      kind: 'remove-from-bin'
+      materialKey: string
+    }
+  | {
       kind: 'send-to-trash'
       materialKey: string
     }
@@ -93,6 +97,9 @@ export type ArrangementsDropTargetMeta =
     }
   | {
       type: 'canvas'
+    }
+  | {
+      type: 'loose'
     }
   | {
       type: 'set'
@@ -231,6 +238,11 @@ function createArrangementsMutationCommandContext(materialKeys: string[]) {
           assignToBin(materialKey, binId)
         }
       },
+      removeMaterialsFromBin: (keys) => {
+        for (const materialKey of keys) {
+          removeFromBin(materialKey)
+        }
+      },
       includeMaterialsInSet: (keys, setId) => {
         for (const materialKey of keys) {
           addToSet(materialKey, setId)
@@ -292,6 +304,13 @@ export function createArrangementsMaterialDropCommands(
         kind: 'assign-to-bin',
         materialKey,
         binId: meta.binId
+      }))
+    }
+    case 'loose': {
+      if (payload.source.kind === 'desktop') return []
+      return payload.materialKeys.map((materialKey) => ({
+        kind: 'remove-from-bin',
+        materialKey
       }))
     }
     case 'set': {
@@ -356,6 +375,16 @@ function applyArrangementsMaterialDropCommands(commands: ArrangementsMaterialDro
           executionOptions
         )
         break
+      case 'remove-from-bin':
+        dispatchArrangementsMutationCommand(
+          WHITEBLOOM_COMMAND_IDS.arrangements.removeMaterialsFromBin,
+          {
+            materialKeys: [command.materialKey]
+          },
+          materialKeys,
+          executionOptions
+        )
+        break
       case 'send-to-trash':
         dispatchArrangementsMutationCommand(
           WHITEBLOOM_COMMAND_IDS.arrangements.sendMaterialsToTrash,
@@ -396,7 +425,7 @@ type PendingDragState = {
 }
 
 export function createArrangementsDropTargetId(
-  kind: 'desktop' | 'canvas' | 'window' | 'set' | 'bin' | 'trash',
+  kind: 'desktop' | 'canvas' | 'window' | 'set' | 'bin' | 'trash' | 'loose',
   id?: string
 ): string {
   return id ? `arrangements:${kind}:${id}` : `arrangements:${kind}`

@@ -5,6 +5,7 @@ export type {
   WhitebloomAnyCommand,
   ArrangementsCommandContext,
   ArrangementsAssignMaterialsToBinCommandArgs,
+  ArrangementsRemoveMaterialsFromBinCommandArgs,
   ArrangementsCommandBin,
   CanvasCommandContext,
   ArrangementsCommandActions,

@@ -88,6 +88,10 @@ export type ArrangementsAssignMaterialsToBinCommandArgs = {
   binId: string
 }
 
+export type ArrangementsRemoveMaterialsFromBinCommandArgs = {
+  materialKeys: string[]
+}
+
 export type ArrangementsIncludeMaterialsInSetCommandArgs = {
   materialKeys: string[]
   setId: string
@@ -131,6 +135,7 @@ export type ArrangementsCommandActions = {
     materialKeys: string[],
     binId: string
   ) => void | Promise<void>
+  removeMaterialsFromBin?: (materialKeys: string[]) => void | Promise<void>
   includeMaterialsInSet?: (
     materialKeys: string[],
     setId: string

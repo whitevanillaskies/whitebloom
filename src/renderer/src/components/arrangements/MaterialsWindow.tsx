@@ -369,6 +369,7 @@ function SidebarBinRow({ bin, isSelected, onSelect }: SidebarBinRowProps): React
     id: targetId,
     hostId: ARRANGEMENTS_MICA_HOST_ID,
     element: rowRef.current,
+    priority: 2,
     meta: dropTargetMeta
   })
 
@@ -641,6 +642,7 @@ export default function MaterialsWindow({
   onPlaceMaterialsOnCanvas
 }: MaterialsWindowProps): React.JSX.Element {
   const windowRef = useRef<HTMLDivElement>(null)
+  const binsRowRef = useRef<HTMLButtonElement>(null)
   const trashRowRef = useRef<HTMLButtonElement>(null)
   const materials = useArrangementsStore((s) => s.materials)
   const bins = useArrangementsStore((s) => s.bins)
@@ -983,7 +985,12 @@ export default function MaterialsWindow({
     () => createArrangementsDropTargetId('trash', 'materials-window-trash'),
     []
   )
+  const looseTargetId = useMemo(
+    () => createArrangementsDropTargetId('loose', 'materials-window-bins'),
+    []
+  )
   const isTrashDropActive = useArrangementsDragTargetActive(trashTargetId)
+  const isLooseDropActive = useArrangementsDragTargetActive(looseTargetId)
 
   useArrangementsDropTarget({
     id: windowOccluderTargetId,
@@ -992,6 +999,16 @@ export default function MaterialsWindow({
     priority: 1,
     meta: {
       type: 'occluder'
+    }
+  })
+
+  useArrangementsDropTarget({
+    id: looseTargetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: binsRowRef.current,
+    priority: 2,
+    meta: {
+      type: 'loose'
     }
   })
 
@@ -1051,10 +1068,13 @@ export default function MaterialsWindow({
     <div className="materials-window__sidebar">
       {/* Bins */}
       <div className="materials-window__sidebar-section">
+        <span className="materials-window__sidebar-heading">Bins</span>
         <button
+          ref={binsRowRef}
           type="button"
           className={[
             'materials-window__nav-row',
+            isLooseDropActive ? 'materials-window__nav-row--drag-over' : '',
             sel.kind === 'bins' ? 'materials-window__nav-row--selected' : ''
           ].join(' ')}
           onClick={() => setSel(SEL_BINS)}

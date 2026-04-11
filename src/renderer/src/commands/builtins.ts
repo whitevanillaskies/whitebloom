@@ -14,6 +14,7 @@ import type {
   ArrangementsCommandSet,
   ArrangementsIncludeMaterialsInSetCommandArgs,
   ArrangementsMoveMaterialsToDesktopCommandArgs,
+  ArrangementsRemoveMaterialsFromBinCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
   CanvasCommandContext,
   CanvasCreateBudCommandArgs,
@@ -45,6 +46,7 @@ export const WHITEBLOOM_COMMAND_IDS = {
     renameBin: 'arrangements.bin.rename',
     deleteBin: 'arrangements.bin.delete',
     assignMaterialsToBin: 'arrangements.material.assign-to-bin',
+    removeMaterialsFromBin: 'arrangements.material.remove-from-bin',
     includeMaterialsInSet: 'arrangements.material.include-in-set',
     sendMaterialsToTrash: 'arrangements.material.send-to-trash',
     moveMaterialsToDesktop: 'arrangements.material.move-to-desktop',
@@ -171,6 +173,18 @@ function parseAssignMaterialsToBinArgs(args: unknown): ArrangementsAssignMateria
   return {
     materialKeys: parseStringArray(args.materialKeys, 'materialKeys'),
     binId: parseString(args.binId, 'binId')
+  }
+}
+
+function parseRemoveMaterialsFromBinArgs(
+  args: unknown
+): ArrangementsRemoveMaterialsFromBinCommandArgs {
+  if (!isRecord(args)) {
+    throw new Error('Remove-from-bin arguments must be an object.')
+  }
+
+  return {
+    materialKeys: parseStringArray(args.materialKeys, 'materialKeys')
   }
 }
 
@@ -1013,6 +1027,23 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
         }
 
         await context.actions.assignMaterialsToBin(args.materialKeys, args.binId)
+      }
+    }
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.arrangements.removeMaterialsFromBin,
+      aliases: ['arrangements.material.unbin'],
+      when: (context) =>
+        typeof context.actions.removeMaterialsFromBin === 'function' &&
+        context.selection.materialKeys.length > 0,
+      argsSchema: parseRemoveMaterialsFromBinArgs,
+      run: async (args, context) => {
+        if (!context.actions.removeMaterialsFromBin) {
+          throw new Error('Arrangements context cannot remove materials from bins.')
+        }
+
+        await context.actions.removeMaterialsFromBin(args.materialKeys)
       }
     }
   },
