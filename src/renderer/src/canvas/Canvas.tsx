@@ -39,7 +39,7 @@ import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
-import MaterialsWindow from '@renderer/components/arrangements/MaterialsWindow'
+import MaterialsWindow, { MaterialsDragGhost } from '@renderer/components/arrangements/MaterialsWindow'
 import {
   ARRANGEMENTS_MICA_HOST_ID,
   createArrangementsDropTargetId,
@@ -3221,6 +3221,7 @@ export function Canvas({
           />
         )
       }}
+      renderOverlay={() => <MaterialsDragGhost />}
     >
     <BloomContext.Provider value={handleBloom}>
       {activeBloom === null && (

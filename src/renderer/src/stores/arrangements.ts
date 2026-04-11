@@ -207,6 +207,44 @@ function getTrashContents(state: Pick<ArrangementsState, 'binAssignments'>): Arr
     .map(([materialKey]) => materialKey)
 }
 
+let arrangementsSavePromise: Promise<boolean> | null = null
+let arrangementsSaveQueued = false
+
+async function performArrangementsSave(): Promise<boolean> {
+  const workspaceRoot = useWorkspaceStore.getState().root
+  if (!workspaceRoot) return false
+
+  const result = await window.api.saveArrangements(
+    workspaceRoot,
+    buildPersistedGardenState(useArrangementsStore.getState())
+  )
+  return result.ok
+}
+
+function requestArrangementsSave(): Promise<boolean> {
+  if (arrangementsSavePromise) {
+    arrangementsSaveQueued = true
+    return arrangementsSavePromise
+  }
+
+  arrangementsSavePromise = (async () => {
+    let lastResult = false
+
+    try {
+      do {
+        arrangementsSaveQueued = false
+        lastResult = await performArrangementsSave()
+      } while (arrangementsSaveQueued)
+
+      return lastResult
+    } finally {
+      arrangementsSavePromise = null
+    }
+  })()
+
+  return arrangementsSavePromise
+}
+
 export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
   ...getEmptyArrangementsState(),
 
@@ -249,11 +287,7 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
   },
 
   saveArrangements: async () => {
-    const workspaceRoot = useWorkspaceStore.getState().root
-    if (!workspaceRoot) return false
-
-    const result = await window.api.saveArrangements(workspaceRoot, buildPersistedGardenState(get()))
-    return result.ok
+    return requestArrangementsSave()
   },
 
   assignToBin: (materialKey, binId) =>
@@ -558,3 +592,18 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
 
   clearArrangements: () => set(getEmptyArrangementsState())
 }))
+
+useArrangementsStore.subscribe((state, previousState) => {
+  if (!state.isHydrated || !previousState.isHydrated) return
+
+  const persistedSliceChanged =
+    state.bins !== previousState.bins ||
+    state.sets !== previousState.sets ||
+    state.memberships !== previousState.memberships ||
+    state.binAssignments !== previousState.binAssignments ||
+    state.desktopPlacements !== previousState.desktopPlacements ||
+    state.cameraState !== previousState.cameraState
+
+  if (!persistedSliceChanged) return
+  void requestArrangementsSave()
+})

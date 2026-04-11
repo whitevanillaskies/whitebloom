@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Boxes, FolderTree, LayoutDashboard, Layers, Link, Link2, Pencil, Trash2 } from 'lucide-react'
+import { Boxes, File, FolderTree, LayoutDashboard, Layers, Link, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { MicaWindow } from '../../mica'
+import { MicaWindow, useMicaDragState } from '../../mica'
 import { PetalMenu } from '../petal'
 import type { PetalMenuItem } from '../petal'
 import type { ArrangementsMaterial, GardenSetNode } from '../../../../shared/arrangements'
@@ -10,6 +10,7 @@ import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
 import { resolveWorkspaceBoardPath } from '../../shared/board-resource'
 import {
   ARRANGEMENTS_MICA_HOST_ID,
+  ARRANGEMENTS_MATERIAL_DRAG_KIND,
   createArrangementsDropTargetId,
   useArrangementsDragTargetActive,
   useArrangementsDropTarget,
@@ -18,7 +19,9 @@ import {
   useArrangementsSpringLoadHover,
   type ArrangementsDragSource,
   type ArrangementsDropResolution,
-  type ArrangementsMaterialDragPayload
+  type ArrangementsMaterialDragPayload,
+  type ArrangementsMaterialDragPreview,
+  type ArrangementsDropTargetMeta
 } from './arrangementsDrag'
 import './MaterialsWindow.css'
 
@@ -425,6 +428,52 @@ function SetTreeNode({
   )
 }
 
+// ── Drag ghost ────────────────────────────────────────────────────────────────
+
+export function MaterialsDragGhost(): React.JSX.Element | null {
+  const session = useMicaDragState((state) => state.session)
+  const activeTargetId = useMicaDragState((state) => state.activeTargetId)
+  const activeTarget = useMicaDragState((state) =>
+    state.activeTargetId ? state.targets[state.activeTargetId] : null
+  )
+
+  if (session?.payload.kind !== ARRANGEMENTS_MATERIAL_DRAG_KIND) return null
+
+  const payload = session.payload.data as ArrangementsMaterialDragPayload
+  const preview = session.preview?.meta as ArrangementsMaterialDragPreview | undefined
+  const activeMeta = activeTarget?.meta as ArrangementsDropTargetMeta | undefined
+  const label = preview?.label ?? payload.primaryMaterialKey
+  const count = preview?.count ?? payload.materialKeys.length
+  const stackCount = preview?.stackCount ?? count
+  const tone = activeMeta?.type === 'trash' ? 'danger' : activeTargetId ? 'accept' : 'neutral'
+
+  return (
+    <div
+      className={[
+        'materials-window__drag-ghost',
+        `materials-window__drag-ghost--${tone}`
+      ].join(' ')}
+      style={{
+        left: session.pointer.screen.x + 10,
+        top: session.pointer.screen.y + 14,
+        ['--mw-drag-stack' as string]: Math.min(stackCount, 3)
+      }}
+      aria-hidden="true"
+    >
+      {stackCount > 1 ? (
+        <div className="materials-window__drag-ghost-stack" aria-hidden="true" />
+      ) : null}
+      <div className="materials-window__drag-ghost-card">
+        <File size={12} strokeWidth={1.5} className="materials-window__drag-ghost-file-icon" />
+        <span className="materials-window__drag-ghost-name">{label}</span>
+        {count > 1 ? (
+          <span className="materials-window__drag-ghost-badge">{count}</span>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 type MaterialsWindowProps = {
@@ -442,6 +491,7 @@ export default function MaterialsWindow({
   onPlaceMaterialsOnCanvas
 }: MaterialsWindowProps): React.JSX.Element {
   const windowRef = useRef<HTMLDivElement>(null)
+  const trashRowRef = useRef<HTMLButtonElement>(null)
   const materials = useArrangementsStore((s) => s.materials)
   const bins = useArrangementsStore((s) => s.bins)
   const sets = useArrangementsStore((s) => s.sets)
@@ -631,6 +681,11 @@ export default function MaterialsWindow({
     () => createArrangementsDropTargetId('window', 'materials-window'),
     []
   )
+  const trashTargetId = useMemo(
+    () => createArrangementsDropTargetId('trash', 'materials-window-trash'),
+    []
+  )
+  const isTrashDropActive = useArrangementsDragTargetActive(trashTargetId)
 
   useArrangementsDropTarget({
     id: windowOccluderTargetId,
@@ -639,6 +694,16 @@ export default function MaterialsWindow({
     priority: 1,
     meta: {
       type: 'occluder'
+    }
+  })
+
+  useArrangementsDropTarget({
+    id: trashTargetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: trashRowRef.current,
+    priority: 2,
+    meta: {
+      type: 'trash'
     }
   })
 
@@ -676,9 +741,11 @@ export default function MaterialsWindow({
           <span className="materials-window__nav-label">Bins</span>
         </button>
         <button
+          ref={trashRowRef}
           type="button"
           className={[
             'materials-window__nav-row',
+            isTrashDropActive ? 'materials-window__nav-row--drag-over' : '',
             sel.kind === 'trash' ? 'materials-window__nav-row--selected' : ''
           ].join(' ')}
           onClick={() => setSel(SEL_TRASH)}
