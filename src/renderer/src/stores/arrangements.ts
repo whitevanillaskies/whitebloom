@@ -35,6 +35,7 @@ type ArrangementsState = {
   moveMaterialOnDesktop: (materialKey: ArrangementsMaterialKey, position: GardenPoint) => void
   moveBinOnDesktop: (binId: string, position: GardenPoint) => void
   sendToTrash: (materialKey: ArrangementsMaterialKey) => void
+  deleteMaterialsFromTrash: (materialKeys: ArrangementsMaterialKey[]) => Promise<boolean>
   emptyTrash: () => Promise<boolean>
   createBin: (name: string) => string | null
   createBinAtPoint: (position: GardenPoint, name?: string) => Promise<string | null>
@@ -68,6 +69,7 @@ function getEmptyArrangementsState(): Omit<
     | 'moveMaterialOnDesktop'
     | 'moveBinOnDesktop'
     | 'sendToTrash'
+    | 'deleteMaterialsFromTrash'
     | 'emptyTrash'
     | 'createBin'
     | 'createBinAtPoint'
@@ -430,20 +432,20 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       }
     })),
 
-  emptyTrash: async () => {
+  deleteMaterialsFromTrash: async (materialKeys) => {
     const workspaceRoot = useWorkspaceStore.getState().root
-    if (!workspaceRoot) return false
+    if (!workspaceRoot || materialKeys.length === 0) return false
 
-    const trashContents = getTrashContents(get())
-    const result = await window.api.emptyArrangementsTrash(workspaceRoot, trashContents)
+    const normalizedMaterialKeys = [...new Set(materialKeys.map((materialKey) => materialKey.trim()))]
+    const result = await window.api.emptyArrangementsTrash(workspaceRoot, normalizedMaterialKeys)
     if (!result.ok) return false
 
     set((state) => {
-      const trashed = new Set(trashContents)
+      const trashed = new Set(normalizedMaterialKeys)
       const nextAssignments = { ...state.binAssignments }
       const nextPlacements = { ...state.desktopPlacements }
 
-      for (const materialKey of trashContents) {
+      for (const materialKey of normalizedMaterialKeys) {
         delete nextAssignments[materialKey]
         delete nextPlacements[materialKey]
       }
@@ -458,6 +460,11 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
 
     await get().saveArrangements()
     return true
+  },
+
+  emptyTrash: async () => {
+    const trashContents = getTrashContents(get())
+    return get().deleteMaterialsFromTrash(trashContents)
   },
 
   createBin: (name) => {

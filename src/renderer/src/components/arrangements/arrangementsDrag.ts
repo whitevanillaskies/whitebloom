@@ -21,6 +21,7 @@ import {
   type WhitebloomCommandExecutionOptions
 } from '../../commands'
 import { useArrangementsStore } from '../../stores/arrangements'
+import { sendMaterialsToTrashWithReferenceGuard } from './materialReferences'
 
 export const ARRANGEMENTS_MICA_HOST_ID = 'arrangements-desktop'
 export const ARRANGEMENTS_MATERIAL_DRAG_KIND = 'arrangements-material'
@@ -215,8 +216,7 @@ function createArrangementsMutationCommandContext(materialKeys: string[]) {
     addToSet,
     assignToBin,
     moveMaterialOnDesktop,
-    removeFromBin,
-    sendToTrash
+    removeFromBin
   } = useArrangementsStore.getState()
 
   return createArrangementsCommandContext({
@@ -236,10 +236,8 @@ function createArrangementsMutationCommandContext(materialKeys: string[]) {
           addToSet(materialKey, setId)
         }
       },
-      sendMaterialsToTrash: (keys) => {
-        for (const materialKey of keys) {
-          sendToTrash(materialKey)
-        }
+      sendMaterialsToTrash: async (keys) => {
+        await sendMaterialsToTrashWithReferenceGuard(keys)
       },
       moveMaterialsToDesktop: (items) => {
         for (const item of items) {

@@ -16,6 +16,11 @@ import { useWorkspaceStore } from '../../stores/workspace'
 import { MicaWindow, useMicaDragState } from '../../mica'
 import { PetalMenu } from '../petal'
 import type { PetalMenuItem } from '../petal'
+import {
+  PetalToolbar,
+  PetalToolbarGroup,
+  PetalToolbarButton
+} from '../petal/window'
 import type { ArrangementsMaterial, GardenSetNode } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
 import { resolveWorkspaceBoardPath } from '../../shared/board-resource'
@@ -34,6 +39,10 @@ import {
   type ArrangementsMaterialDragPreview,
   type ArrangementsDropTargetMeta
 } from './arrangementsDrag'
+import {
+  deleteMaterialsFromTrashWithReferenceGuard,
+  getLiveMaterialReferenceIndex
+} from './materialReferences'
 import './MaterialsWindow.css'
 
 // ── Sidebar selection ──────────────────────────────────────────────────────────
@@ -639,10 +648,9 @@ export default function MaterialsWindow({
     }
 
     const currentBoardKeys = currentBoardReferencedMaterialKeys ?? EMPTY_MATERIAL_KEY_SET
-    const initialKeys = new Set(currentBoardKeys)
-    setReferencedMaterialKeys(initialKeys)
+    setReferencedMaterialKeys(new Set(currentBoardKeys))
 
-    if (materials.length === 0) {
+    if (materials.length === 0 || workspaceRoot === null) {
       setIsReferenceScanPending(false)
       return
     }
@@ -651,27 +659,17 @@ export default function MaterialsWindow({
     setIsReferenceScanPending(true)
 
     void (async () => {
-      const nextReferencedKeys = new Set(initialKeys)
-      const materialsToCheck = materials.filter((material) => !currentBoardKeys.has(material.key))
-      const results = await Promise.all(
-        materialsToCheck.map(async (material) => {
-          const result = await window.api.getArrangementsReferences(workspaceRoot, material.key)
-          return {
-            key: material.key,
-            isReferenced: result.ok && result.boardPaths.length > 0
-          }
-        })
+      const referencesByMaterialKey = await getLiveMaterialReferenceIndex(
+        materials.map((material) => material.key)
       )
-
       if (cancelled) return
-
-      for (const result of results) {
-        if (result.isReferenced) {
-          nextReferencedKeys.add(result.key)
-        }
-      }
-
-      setReferencedMaterialKeys(nextReferencedKeys)
+      setReferencedMaterialKeys(
+        new Set(
+          Object.entries(referencesByMaterialKey)
+            .filter(([, boardPaths]) => boardPaths.length > 0)
+            .map(([materialKey]) => materialKey)
+        )
+      )
       setIsReferenceScanPending(false)
     })()
 
@@ -956,6 +954,10 @@ export default function MaterialsWindow({
       const meta = resolution.target?.meta
       if (meta?.type === 'occluder') return true
       if (!meta || meta.type !== 'canvas') return false
+      if (payload.source.kind === 'trash') {
+        window.alert("Can't use materials in Trash. Remove them from Trash first.")
+        return true
+      }
       if (!onPlaceMaterialsOnCanvas) return false
 
       const droppedMaterials = payload.materialKeys
@@ -968,6 +970,26 @@ export default function MaterialsWindow({
     },
     [materialsByKey, onPlaceMaterialsOnCanvas]
   )
+
+  const handleEmptyTrash = useCallback(async () => {
+    if (trashMaterials.length === 0) return
+    await deleteMaterialsFromTrashWithReferenceGuard(trashMaterials.map((material) => material.key))
+  }, [trashMaterials])
+
+  const toolbar =
+    sel.kind === 'trash' ? (
+      <PetalToolbar>
+        <PetalToolbarGroup>
+          <PetalToolbarButton
+            label="Empty Trash"
+            disabled={trashMaterials.length === 0}
+            onClick={() => void handleEmptyTrash()}
+          >
+            <Trash2 size={13} strokeWidth={1.8} />
+          </PetalToolbarButton>
+        </PetalToolbarGroup>
+      </PetalToolbar>
+    ) : undefined
 
   const sidebar = (
     <div className="materials-window__sidebar">
@@ -1073,6 +1095,7 @@ export default function MaterialsWindow({
       title="Materials"
       onClose={onClose}
       sidebar={sidebar}
+      toolbar={toolbar}
       className="materials-window"
       windowRef={windowRef}
       aria-label="Materials"

@@ -375,29 +375,71 @@ export async function findBoardsReferencingMaterial(
   const normalizedMaterialKey = materialKey.trim()
   if (!normalizedMaterialKey) return []
 
+  const index = await buildMaterialReferenceIndex(workspaceRoot, [normalizedMaterialKey])
+  return index[normalizedMaterialKey] ?? []
+}
+
+export async function buildMaterialReferenceIndex(
+  workspaceRoot: string,
+  materialKeys?: string[]
+): Promise<Record<string, string[]>> {
+  const normalizedFilter =
+    materialKeys && materialKeys.length > 0
+      ? new Set(materialKeys.map((materialKey) => materialKey.trim()).filter(Boolean))
+      : null
   const boardPaths = await collectBoardFilesRecursively(workspaceRoot)
-  const referencingBoards: string[] = []
+  const referencesByKey = new Map<string, Set<string>>()
 
   for (const boardPath of boardPaths) {
     try {
       const board = JSON.parse(await readFile(boardPath, 'utf-8')) as Board
-      const referencesMaterial = board.nodes.some((node) => {
-        const resource = (node as BoardNode).resource
-        return typeof resource === 'string' && resource.trim() === normalizedMaterialKey
-      })
+      const referencedKeys = new Set(
+        board.nodes
+          .map((node) => {
+            const resource = (node as BoardNode).resource
+            return typeof resource === 'string' ? resource.trim() : ''
+          })
+          .filter(
+            (resource) =>
+              resource.length > 0 && (!normalizedFilter || normalizedFilter.has(resource))
+          )
+      )
 
-      if (referencesMaterial) {
-        referencingBoards.push(boardPath)
+      for (const resource of referencedKeys) {
+        const boardsForResource = referencesByKey.get(resource) ?? new Set<string>()
+        boardsForResource.add(boardPath)
+        referencesByKey.set(resource, boardsForResource)
       }
     } catch {
       // Invalid board files are ignored for best-effort reference checks.
     }
   }
 
-  referencingBoards.sort((left, right) =>
-    left.localeCompare(right, undefined, { sensitivity: 'base' })
-  )
-  return referencingBoards
+  const index = Object.fromEntries(
+    [...referencesByKey.entries()]
+      .map(
+        ([materialKey, boardSet]) =>
+          [
+            materialKey,
+            [...boardSet].sort((left, right) =>
+              left.localeCompare(right, undefined, { sensitivity: 'base' })
+            )
+          ] as const
+      )
+      .sort(([leftKey], [rightKey]) =>
+        leftKey.localeCompare(rightKey, undefined, { sensitivity: 'base' })
+      )
+  ) as Record<string, string[]>
+
+  if (!normalizedFilter) return index
+
+  for (const materialKey of normalizedFilter) {
+    if (!(materialKey in index)) {
+      index[materialKey] = []
+    }
+  }
+
+  return index
 }
 
 export async function emptyArrangementsTrash(

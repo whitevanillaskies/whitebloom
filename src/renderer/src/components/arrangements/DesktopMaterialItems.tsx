@@ -3,6 +3,7 @@ import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import type { ArrangementsMaterial } from '../../../../shared/arrangements'
 import { useLocalArrangementsMaterialSelection } from './arrangementsSelection'
+import { sendMaterialsToTrashWithReferenceGuard } from './materialReferences'
 import MaterialItem from './MaterialItem'
 
 // Auto-layout grid for materials without an explicit placement
@@ -31,7 +32,6 @@ export default function DesktopMaterialItems({
   const materials = useArrangementsStore((s) => s.materials)
   const desktopPlacements = useArrangementsStore((s) => s.desktopPlacements)
   const binAssignments = useArrangementsStore((s) => s.binAssignments)
-  const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
 
   // Only show materials NOT in trash and with no bin assignment or dropped on desktop
@@ -86,14 +86,16 @@ export default function DesktopMaterialItems({
       if (tag === 'input' || tag === 'textarea') return
 
       e.preventDefault()
-      for (const key of selectedKeys) {
-        sendToTrash(key)
-      }
-      clear()
+      void (async () => {
+        const moved = await sendMaterialsToTrashWithReferenceGuard(selectedKeys)
+        if (moved) {
+          clear()
+        }
+      })()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [clear, selectedKeys, sendToTrash])
+  }, [clear, selectedKeys])
 
   // Click-off to deselect
   useEffect(() => {

@@ -22,6 +22,10 @@ import {
   useArrangementsSpringLoadHover
 } from './arrangementsDrag'
 import { useControlledArrangementsMaterialSelection } from './arrangementsSelection'
+import {
+  deleteMaterialsFromTrashWithReferenceGuard,
+  sendMaterialsToTrashWithReferenceGuard
+} from './materialReferences'
 import './BinView.css'
 
 type ViewMode = 'icon' | 'list'
@@ -340,8 +344,6 @@ export default function BinView({
   const bins = useArrangementsStore((s) => s.bins)
   const materials = useArrangementsStore((s) => s.materials)
   const binAssignments = useArrangementsStore((s) => s.binAssignments)
-  const sendToTrash = useArrangementsStore((s) => s.sendToTrash)
-  const emptyTrash = useArrangementsStore((s) => s.emptyTrash)
   const workspaceRoot = useWorkspaceStore((s) => s.root)
   const contentDropRef = useRef<HTMLDivElement>(null)
   const contentTargetId = createArrangementsDropTargetId(
@@ -403,33 +405,17 @@ export default function BinView({
       e.preventDefault()
 
       if (isTrash) {
-        if (!workspaceRoot) return
         const trashKeys = [...selectedKeys]
-
-        // Check references (parallel, best-effort)
-        const refResults = await Promise.all(
-          trashKeys.map((key) => window.api.getArrangementsReferences(workspaceRoot, key))
-        )
-        const allBoardPaths = new Set<string>()
-        for (const result of refResults) {
-          if (result.ok) result.boardPaths.forEach((p) => allBoardPaths.add(p))
-        }
-
-        const msg =
-          allBoardPaths.size > 0
-            ? `${trashKeys.length} item(s) are still referenced by ${allBoardPaths.size} board(s). Permanently delete anyway?`
-            : `Permanently delete ${trashKeys.length} item(s)? This cannot be undone.`
-
-        if (!window.confirm(msg)) return
-        await emptyTrash()
+        const deleted = await deleteMaterialsFromTrashWithReferenceGuard(trashKeys)
+        if (!deleted) return
       } else {
-        // Move to trash
-        for (const key of selectedKeys) sendToTrash(key)
+        const moved = await sendMaterialsToTrashWithReferenceGuard(selectedKeys)
+        if (!moved) return
         clear()
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [clear, selectedKeys, isTrash, workspaceRoot, emptyTrash, sendToTrash]
+    [clear, selectedKeys, isTrash]
   )
 
   useEffect(() => {

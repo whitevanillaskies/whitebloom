@@ -112,6 +112,11 @@ type ArrangementsReferencesResult = {
   boardPaths: string[]
 }
 
+type ArrangementsReferenceIndexResult = {
+  ok: boolean
+  references: Record<string, string[]>
+}
+
 type ArrangementsRegisterLinkedMaterialsResult = {
   ok: boolean
 }
@@ -193,6 +198,10 @@ declare global {
         workspaceRoot: string,
         materialKey: string
       ) => Promise<ArrangementsReferencesResult>
+      getArrangementsReferenceIndex: (
+        workspaceRoot: string,
+        materialKeys?: string[]
+      ) => Promise<ArrangementsReferenceIndexResult>
       registerArrangementsLinkedMaterials: (
         workspaceRoot: string,
         materials: Array<{ key: string; displayName?: string }>

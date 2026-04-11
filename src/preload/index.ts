@@ -113,6 +113,11 @@ type ArrangementsReferencesResult = {
   boardPaths: string[]
 }
 
+type ArrangementsReferenceIndexResult = {
+  ok: boolean
+  references: Record<string, string[]>
+}
+
 type ArrangementsRegisterLinkedMaterialsResult = {
   ok: boolean
 }
@@ -208,6 +213,11 @@ const api = {
     materialKey: string
   ): Promise<ArrangementsReferencesResult> =>
     ipcRenderer.invoke('arrangements:referenced-by', workspaceRoot, materialKey),
+  getArrangementsReferenceIndex: (
+    workspaceRoot: string,
+    materialKeys?: string[]
+  ): Promise<ArrangementsReferenceIndexResult> =>
+    ipcRenderer.invoke('arrangements:reference-index', workspaceRoot, materialKeys),
   registerArrangementsLinkedMaterials: (
     workspaceRoot: string,
     materials: Array<{ key: string; displayName?: string }>

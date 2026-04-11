@@ -10,6 +10,7 @@ import { openResource } from '../services/file-resource'
 import { getProjectFinderShell, listProjectFinderDirectory } from '../services/project-finder'
 import { resolveResource } from '../resource-uri'
 import {
+  buildMaterialReferenceIndex,
   emptyArrangementsTrash,
   enumerateWorkspaceMaterial,
   findBoardsReferencingMaterial,
@@ -50,6 +51,11 @@ type ArrangementsEnumerateResult = {
 type ArrangementsReferencesResult = {
   ok: boolean
   boardPaths: string[]
+}
+
+type ArrangementsReferenceIndexResult = {
+  ok: boolean
+  references: Record<string, string[]>
 }
 
 type ArrangementsRegisterLinkedMaterialsResult = {
@@ -122,6 +128,24 @@ export function registerAppIpc(context: MainProcessContext): void {
         }
       } catch {
         return { ok: false, boardPaths: [] }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'arrangements:reference-index',
+    async (
+      _event,
+      workspaceRoot: string,
+      materialKeys?: string[]
+    ): Promise<ArrangementsReferenceIndexResult> => {
+      try {
+        return {
+          ok: true,
+          references: await buildMaterialReferenceIndex(workspaceRoot, materialKeys)
+        }
+      } catch {
+        return { ok: false, references: {} }
       }
     }
   )
