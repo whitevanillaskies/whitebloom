@@ -646,7 +646,6 @@ function blurToolbarButtonIfFocused(): void {
 type CanvasProps = {
   onGoHome: () => void
   onGoToWorkspaceHome: () => void
-  onOpenArrangements: () => void
   onNewBoard: () => void
   onOpenBoard: (boardPath: string) => void
 }
@@ -654,7 +653,6 @@ type CanvasProps = {
 export function Canvas({
   onGoHome,
   onGoToWorkspaceHome,
-  onOpenArrangements,
   onNewBoard,
   onOpenBoard
 }: CanvasProps) {
@@ -1483,7 +1481,6 @@ export function Canvas({
           deleteSelection,
           bloomSelection,
           openSelectionInNativeEditor,
-          openArrangements: onOpenArrangements,
           openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined
         }
       })
@@ -1498,7 +1495,6 @@ export function Canvas({
       boardPath,
       handleOpenMaterials,
       openSelectionInNativeEditor,
-      onOpenArrangements,
       selectedBudModule,
       selectedBudNode,
       selectedEdgeIds,

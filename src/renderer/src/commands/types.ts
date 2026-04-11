@@ -60,7 +60,6 @@ export type CanvasCommandActions = {
   deleteSelection?: () => void
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
-  openArrangements?: () => void
   openMaterials?: () => void
 }
 

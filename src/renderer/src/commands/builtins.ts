@@ -37,7 +37,6 @@ export const WHITEBLOOM_COMMAND_IDS = {
     deleteSelection: 'selection.delete',
     bloomSelection: 'node.bloom',
     openSelectionInNativeEditor: 'resource.open-native',
-    openArrangements: 'arrangements.open',
     openMaterials: 'arrangements.open-materials'
   },
   arrangements: {
@@ -845,29 +844,6 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
         context: 'canvas',
         title: 'Open Natively',
         subtitle: 'Open the selected resource in the native editor or host app'
-      }
-    ]
-  },
-  {
-    core: {
-      id: WHITEBLOOM_COMMAND_IDS.canvas.openArrangements,
-      aliases: ['workspace.open-arrangements'],
-      when: (context) => typeof context.actions.openArrangements === 'function',
-      run: async (_args, context) => {
-        if (!context.actions.openArrangements) {
-          throw new Error('Canvas context cannot open arrangements.')
-        }
-
-        await context.actions.openArrangements()
-      }
-    },
-    presentations: [
-      {
-        context: 'canvas',
-        title: 'Open Arrangements',
-        subtitle: 'Open the arrangements desktop for this workspace',
-        icon: PanelsTopLeft,
-        hotkey: 'Arr'
       }
     ]
   },

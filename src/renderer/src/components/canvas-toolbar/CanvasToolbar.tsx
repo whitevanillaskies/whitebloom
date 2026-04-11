@@ -1,4 +1,4 @@
-import { CalendarClock, Hand, MousePointer2, Shapes, Type } from 'lucide-react'
+import { Hand, MousePointer2, Shapes, Type } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import './CanvasToolbar.css'
 import type { Tool } from '@renderer/canvas/tools'

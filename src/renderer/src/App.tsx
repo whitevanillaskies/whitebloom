@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { useTranslation } from 'react-i18next'
 import { Canvas } from './canvas/Canvas'
-import ArrangementsView from './components/arrangements/ArrangementsView'
 import ProjectFinderWindow, {
   type ProjectFinderMode
 } from './components/project-finder/ProjectFinderWindow'
@@ -28,8 +27,7 @@ type RecentBoardItem = {
   thumbnailUri?: string
 }
 
-type AppView = 'arrangements' | 'board' | 'workspace-home' | 'start'
-type ReturnView = 'board' | 'workspace-home'
+type AppView = 'board' | 'workspace-home' | 'start'
 
 type BusyAction =
   | 'open'
@@ -46,11 +44,10 @@ type PendingTrashBoard = {
   clearWorkspace?: boolean
 }
 
-type PendingNavigationTarget = 'arrangements' | 'start' | 'workspace-home'
+type PendingNavigationTarget = 'start' | 'workspace-home'
 
 type PendingViewTransition = {
   target: PendingNavigationTarget
-  returnView?: ReturnView
 }
 
 type PendingBoardOpen = {
@@ -107,7 +104,6 @@ function App(): React.JSX.Element {
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false)
   const [newBoardName, setNewBoardName] = useState('Board')
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
-  const [arrangementsReturnView, setArrangementsReturnView] = useState<ReturnView>('workspace-home')
   const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null)
   const [projectFinderMode, setProjectFinderMode] = useState<ProjectFinderMode | null>(null)
 
@@ -186,12 +182,6 @@ function App(): React.JSX.Element {
   }, [boardPath, boardTransient, isDirty, workspaceRoot])
 
   const applyViewTransition = useCallback((transition: PendingViewTransition) => {
-    if (transition.target === 'arrangements') {
-      setArrangementsReturnView(transition.returnView ?? 'workspace-home')
-      setView('arrangements')
-      return
-    }
-
     setView(transition.target)
   }, [])
 
@@ -280,28 +270,6 @@ function App(): React.JSX.Element {
       })()
     })
   }, [boardPath, captureCurrentBoardThumbnailOnClose, isDirty])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (workspaceRoot === null) return
-      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.altKey) return
-      if (event.key.toLowerCase() !== 'a') return
-
-      event.preventDefault()
-
-      if (view === 'board') {
-        requestViewTransition({ target: 'arrangements', returnView: 'board' })
-        return
-      }
-
-      if (view === 'workspace-home') {
-        requestViewTransition({ target: 'arrangements', returnView: 'workspace-home' })
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestViewTransition, view, workspaceRoot])
 
   const openBoardByPath = useCallback(
     async (nextBoardPath: string) => {
@@ -621,19 +589,7 @@ function App(): React.JSX.Element {
     () => requestViewTransition({ target: 'workspace-home' }),
     [requestViewTransition]
   )
-  const handleOpenArrangementsFromWorkspace = useCallback(
-    () => requestViewTransition({ target: 'arrangements', returnView: 'workspace-home' }),
-    [requestViewTransition]
-  )
-  const handleOpenArrangementsFromBoard = useCallback(
-    () => requestViewTransition({ target: 'arrangements', returnView: 'board' }),
-    [requestViewTransition]
-  )
   const handleReturnToBoard = useCallback(() => setView('board'), [])
-  const handleReturnFromArrangements = useCallback(
-    () => setView(arrangementsReturnView),
-    [arrangementsReturnView]
-  )
   const handleConfirmViewTransition = useCallback(async () => {
     if (!pendingNavigation) return
 
@@ -692,7 +648,6 @@ function App(): React.JSX.Element {
             <Canvas
               onGoHome={handleGoHome}
               onGoToWorkspaceHome={handleGoToWorkspaceHome}
-              onOpenArrangements={handleOpenArrangementsFromBoard}
               onNewBoard={handleNewBoardFromCanvas}
               onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
             />
@@ -712,23 +667,7 @@ function App(): React.JSX.Element {
     )
   }
 
-  if (view === 'arrangements' && workspaceRoot !== null) {
-    return (
-      <>
-        <ArrangementsView
-          workspaceName={workspaceConfig?.name}
-          onBack={handleReturnFromArrangements}
-          onOpenBoard={handleOpenWorkspaceBoard}
-        />
-        {pendingNavigationDialog}
-      </>
-    )
-  }
-
-  if (
-    view === 'workspace-home' ||
-    (workspaceRoot !== null && view !== 'start' && view !== 'arrangements')
-  ) {
+  if (view === 'workspace-home' || (workspaceRoot !== null && view !== 'start')) {
     return (
       <>
         <WorkspaceHome
@@ -739,7 +678,6 @@ function App(): React.JSX.Element {
           boards={workspaceBoards.map((path) => ({ path, thumbnailUri: boardThumbnails[path] }))}
           currentBoardName={canReturnToBoard ? currentBoardName : null}
           onReturnToBoard={canReturnToBoard ? handleReturnToBoard : null}
-          onOpenArrangements={workspaceRoot !== null ? handleOpenArrangementsFromWorkspace : null}
           onCreateBoard={handleOpenCreateBoardModal}
           onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
           onTrashBoard={(nextBoardPath) =>
