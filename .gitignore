@@ -5,6 +5,6 @@ out
 .eslintcache
 *.log*
 .mailmap
-docs/
-test/boards/
-test/workspaces/
+docs
+test/boards
+test/workspaces
