@@ -54,3 +54,68 @@ The approve step is also where a sandboxing decision naturally lives — you can
 ### Sequencing
 
 This feature should not land until the module system is stable. Agent-generated modules will break constantly if the module contract is still evolving. The right order: stabilize the contract, build the module registry, define the sandbox boundary, then open this lane. Doing it earlier means the generated code is permanently chasing a moving target.
+
+
+## Ink architecture vocabulary
+
+The ink system is trending toward a two-level painting model rather than a naive "draw directly into the saved layer" approach.
+
+### Current direction
+
+- **Ink** is the subsystem and medium: brushes, strokes, pressure, erasing, masking, compositing rules.
+- **Glass Buffer** is the transient live drawing workspace.
+- **Acetate** is the persistent overlay object attached to a compatible surface.
+- **Transfer** is the act of moving what was drawn in the Glass Buffer into an Acetate.
+- **Baking** is export or flattening into an external file artifact, not normal authoring.
+
+The user should not be exposed to this vocabulary directly. User-facing language can stay simple and just talk about layers. These terms are internal architectural names meant to keep the model clear while building the system.
+
+### Why two levels make sense
+
+The Glass Buffer should not be the source of truth. It is a working surface.
+
+That means:
+- load an Acetate
+- project it into the Glass Buffer
+- draw in the Glass Buffer
+- Transfer the changes back into the Acetate
+- only Bake when exporting to another format
+
+This keeps the shared drawing experience universal while preserving surface-correct saved data.
+
+### Why this is attractive
+
+This approach allows Whitebloom to share almost all drawing behavior across surfaces:
+- stylus input
+- stroke smoothing
+- pressure handling
+- erasing
+- masking
+- transient compositing
+- preview behavior
+
+The surface-specific code then becomes an adapter problem:
+- how the current surface projects into the Glass Buffer
+- how masking is defined
+- how a Transfer maps back into the persistent Acetate representation
+- how Baking/export works for that surface
+
+### Relationship to coordinate spaces
+
+This model does not replace the coordinate-space work. It complements it.
+
+The saved Acetate still needs to preserve the correct canonical data for the target surface:
+- board surface: world coordinates
+- image surface: UVs
+- PDF surface: PagedUVs
+- video surface: RangedUVs
+
+The Glass Buffer is therefore a shared authoring stage, not a universal storage format.
+
+### Naming note
+
+`Acetate` currently feels like the strongest internal name for the persistent overlay object because it evokes a transparent layer laid over a surface.
+
+`Glass Buffer` feels like the strongest internal name for the transient drawing stage because it preserves the current "glass layer" intuition already present in the canvas discussion.
+
+These names should remain provisional until the system is implemented enough to confirm that they still fit the real workflow.
