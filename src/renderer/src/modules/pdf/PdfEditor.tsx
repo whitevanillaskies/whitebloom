@@ -4,9 +4,13 @@ import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mj
 import {
   ChevronLeft,
   ChevronRight,
+  Columns2,
+  GalleryVertical,
   Minus,
   PanelLeft,
+  RectangleHorizontal,
   Plus,
+  Rows3,
   X
 } from 'lucide-react'
 import type { BudEditorProps } from '../types'
@@ -34,6 +38,14 @@ type ThumbnailState = {
 type PageLayout = {
   width: number
   height: number
+}
+
+type ViewMode = 'single' | 'single-continuous' | 'facing' | 'facing-continuous'
+type SpreadLead = 'odd' | 'even'
+
+type Spread = {
+  key: string
+  pages: [number | null, number | null]
 }
 
 type PageCanvasProps = {
@@ -119,6 +131,40 @@ function PdfPageCanvas({ doc, pageNumber, scale, layout }: PageCanvasProps) {
   )
 }
 
+function buildFacingSpreads(pageCount: number, lead: SpreadLead): Spread[] {
+  const spreads: Spread[] = []
+  let current: [number | null, number | null] = [null, null]
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    const goesLeft = (lead === 'odd' && pageNumber % 2 === 1) || (lead === 'even' && pageNumber % 2 === 0)
+    if (goesLeft) {
+      if (current[0] !== null || current[1] !== null) {
+        spreads.push({
+          key: `${current[0] ?? 'blank'}-${current[1] ?? 'blank'}-${spreads.length}`,
+          pages: current
+        })
+      }
+      current = [pageNumber, null]
+    } else {
+      current[1] = pageNumber
+      spreads.push({
+        key: `${current[0] ?? 'blank'}-${current[1] ?? 'blank'}-${spreads.length}`,
+        pages: current
+      })
+      current = [null, null]
+    }
+  }
+
+  if (current[0] !== null || current[1] !== null) {
+    spreads.push({
+      key: `${current[0] ?? 'blank'}-${current[1] ?? 'blank'}-${spreads.length}`,
+      pages: current
+    })
+  }
+
+  return spreads
+}
+
 export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) {
   const [documentProxy, setDocumentProxy] = useState<PDFDocumentProxy | null>(null)
   const [pageCount, setPageCount] = useState(0)
@@ -127,9 +173,19 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [thumbnails, setThumbnails] = useState<ThumbnailState[]>([])
   const [activePage, setActivePage] = useState(1)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [viewMode, setViewMode] = useState<ViewMode>('single-continuous')
+  const [spreadLead, setSpreadLead] = useState<SpreadLead>('odd')
   const [pageLayouts, setPageLayouts] = useState<Record<number, PageLayout>>({})
   const pageRefs = useRef<Record<number, HTMLElement | null>>({})
   const scrollViewportRef = useRef<HTMLDivElement | null>(null)
+
+  const facingSpreads = buildFacingSpreads(pageCount, spreadLead)
+  const activeSpreadIndex = Math.max(
+    0,
+    facingSpreads.findIndex((spread) => spread.pages.includes(activePage))
+  )
+  const activeSpread = facingSpreads[activeSpreadIndex] ?? null
+  const isContinuousMode = viewMode === 'single-continuous' || viewMode === 'facing-continuous'
 
   useEffect(() => {
     let cancelled = false
@@ -294,8 +350,15 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   }, [documentProxy, pageCount])
 
   useEffect(() => {
+    if (isContinuousMode) return
     const viewport = scrollViewportRef.current
-    if (!viewport || pageCount === 0) return
+    if (!viewport) return
+    viewport.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }, [activePage, activeSpreadIndex, isContinuousMode, viewMode])
+
+  useEffect(() => {
+    const viewport = scrollViewportRef.current
+    if (!viewport || pageCount === 0 || !isContinuousMode) return
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -321,7 +384,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     }
 
     return () => observer.disconnect()
-  }, [pageCount, documentProxy, scale])
+  }, [isContinuousMode, pageCount, documentProxy, scale, viewMode])
 
   function scrollToPage(pageNumber: number): void {
     pageRefs.current[pageNumber]?.scrollIntoView({
@@ -341,17 +404,36 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   }
 
   function handlePreviousPage(): void {
+    if (viewMode === 'facing') {
+      const nextSpread = Math.max(0, activeSpreadIndex - 1)
+      const candidate = facingSpreads[nextSpread]?.pages.find((page) => page !== null) ?? 1
+      scrollToPage(candidate)
+      return
+    }
+
     const nextPage = Math.max(1, activePage - 1)
     scrollToPage(nextPage)
   }
 
   function handleNextPage(): void {
+    if (viewMode === 'facing') {
+      const nextSpread = Math.min(facingSpreads.length - 1, activeSpreadIndex + 1)
+      const candidate = facingSpreads[nextSpread]?.pages.find((page) => page !== null) ?? pageCount
+      scrollToPage(candidate)
+      return
+    }
+
     const nextPage = Math.min(pageCount, activePage + 1)
     scrollToPage(nextPage)
   }
 
+  const discretePages =
+    viewMode === 'single'
+      ? [activePage]
+      : activeSpread?.pages.filter((page): page is number => page !== null) ?? []
+
   return (
-    <div className="pdf-editor">
+    <div className={`pdf-editor pdf-editor--${viewMode}`}>
       <div className="pdf-editor__chrome">
         <div className="pdf-editor__toolbar">
           <div className="pdf-editor__toolbar-group">
@@ -362,6 +444,62 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
               aria-label={sidebarOpen ? 'Hide page sidebar' : 'Show page sidebar'}
             >
               <PanelLeft size={15} strokeWidth={1.7} />
+            </button>
+            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`pdf-editor__icon-button${viewMode === 'single' ? ' pdf-editor__icon-button--active' : ''}`}
+              onClick={() => setViewMode('single')}
+              aria-label="Single page"
+              title="Single page"
+            >
+              <RectangleHorizontal size={15} strokeWidth={1.7} />
+            </button>
+            <button
+              type="button"
+              className={`pdf-editor__icon-button${viewMode === 'single-continuous' ? ' pdf-editor__icon-button--active' : ''}`}
+              onClick={() => setViewMode('single-continuous')}
+              aria-label="Continuous page"
+              title="Continuous page"
+            >
+              <Rows3 size={15} strokeWidth={1.7} />
+            </button>
+            <button
+              type="button"
+              className={`pdf-editor__icon-button${viewMode === 'facing' ? ' pdf-editor__icon-button--active' : ''}`}
+              onClick={() => setViewMode('facing')}
+              aria-label="Facing pages"
+              title="Facing pages"
+            >
+              <Columns2 size={15} strokeWidth={1.7} />
+            </button>
+            <button
+              type="button"
+              className={`pdf-editor__icon-button${viewMode === 'facing-continuous' ? ' pdf-editor__icon-button--active' : ''}`}
+              onClick={() => setViewMode('facing-continuous')}
+              aria-label="Continuous facing pages"
+              title="Continuous facing pages"
+            >
+              <GalleryVertical size={15} strokeWidth={1.7} />
+            </button>
+            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`pdf-editor__toggle-chip${spreadLead === 'odd' ? ' pdf-editor__toggle-chip--active' : ''}`}
+              onClick={() => setSpreadLead('odd')}
+              aria-label="Odd pages first"
+              title="Odd pages first"
+            >
+              Odd First
+            </button>
+            <button
+              type="button"
+              className={`pdf-editor__toggle-chip${spreadLead === 'even' ? ' pdf-editor__toggle-chip--active' : ''}`}
+              onClick={() => setSpreadLead('even')}
+              aria-label="Even pages first"
+              title="Even pages first"
+            >
+              Even First
             </button>
           </div>
 
@@ -470,29 +608,109 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             </div>
           ) : null}
 
-          {!errorMessage && documentProxy ? (
+          {!errorMessage && documentProxy && isContinuousMode ? (
             <div className="pdf-editor__page-stack">
-              {Array.from({ length: pageCount }, (_, index) => {
-                const pageNumber = index + 1
-                return (
-                  <section
-                    key={pageNumber}
-                    ref={(element) => {
-                      pageRefs.current[pageNumber] = element
-                    }}
-                    className="pdf-editor__page"
-                    data-page-number={pageNumber}
-                  >
-                    <div className="pdf-editor__page-meta">{pageNumber}</div>
-                    <PdfPageCanvas
-                      doc={documentProxy}
-                      pageNumber={pageNumber}
-                      scale={scale}
-                      layout={pageLayouts[pageNumber] ?? null}
-                    />
+              {viewMode === 'single-continuous'
+                ? Array.from({ length: pageCount }, (_, index) => {
+                    const pageNumber = index + 1
+                    return (
+                      <section
+                        key={pageNumber}
+                        ref={(element) => {
+                          pageRefs.current[pageNumber] = element
+                        }}
+                        className="pdf-editor__page"
+                        data-page-number={pageNumber}
+                      >
+                        <div className="pdf-editor__page-meta">{pageNumber}</div>
+                        <PdfPageCanvas
+                          doc={documentProxy}
+                          pageNumber={pageNumber}
+                          scale={scale}
+                          layout={pageLayouts[pageNumber] ?? null}
+                        />
+                      </section>
+                    )
+                  })
+                : facingSpreads.map((spread) => (
+                    <section
+                      key={spread.key}
+                      ref={(element) => {
+                        const primaryPage = spread.pages.find((page) => page !== null)
+                        if (primaryPage !== undefined) {
+                          pageRefs.current[primaryPage] = element
+                        }
+                      }}
+                      className="pdf-editor__spread"
+                      data-page-number={spread.pages.find((page) => page !== null) ?? undefined}
+                    >
+                      <div className="pdf-editor__spread-meta">
+                        {spread.pages[0] ?? '—'} · {spread.pages[1] ?? '—'}
+                      </div>
+                      <div className="pdf-editor__spread-pages">
+                        {spread.pages.map((pageNumber, slotIndex) =>
+                          pageNumber !== null ? (
+                            <div key={pageNumber} className="pdf-editor__spread-page">
+                              <PdfPageCanvas
+                                doc={documentProxy}
+                                pageNumber={pageNumber}
+                                scale={scale}
+                                layout={pageLayouts[pageNumber] ?? null}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              key={`blank-${spread.key}-${slotIndex}`}
+                              className="pdf-editor__spread-placeholder"
+                            />
+                          )
+                        )}
+                      </div>
+                    </section>
+                  ))}
+            </div>
+          ) : null}
+
+          {!errorMessage && documentProxy && !isContinuousMode ? (
+            <div className="pdf-editor__discrete-stage">
+              {viewMode === 'single'
+                ? discretePages.map((pageNumber) => (
+                    <section key={pageNumber} className="pdf-editor__page pdf-editor__page--discrete">
+                      <div className="pdf-editor__page-meta">{pageNumber}</div>
+                      <PdfPageCanvas
+                        doc={documentProxy}
+                        pageNumber={pageNumber}
+                        scale={scale}
+                        layout={pageLayouts[pageNumber] ?? null}
+                      />
+                    </section>
+                  ))
+                : (
+                  <section className="pdf-editor__spread pdf-editor__spread--discrete">
+                    <div className="pdf-editor__spread-meta">
+                      {activeSpread?.pages[0] ?? '—'} · {activeSpread?.pages[1] ?? '—'}
+                    </div>
+                    <div className="pdf-editor__spread-pages">
+                      {(activeSpread?.pages ?? [null, null]).map((pageNumber, slotIndex) =>
+                        pageNumber !== null ? (
+                          <div key={pageNumber} className="pdf-editor__spread-page">
+                            <PdfPageCanvas
+                              doc={documentProxy}
+                              pageNumber={pageNumber}
+                              scale={scale}
+                              layout={pageLayouts[pageNumber] ?? null}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            key={`blank-discrete-${slotIndex}`}
+                            className="pdf-editor__spread-placeholder"
+                          />
+                        )
+                      )}
+                    </div>
                   </section>
-                )
-              })}
+                  )}
             </div>
           ) : null}
         </div>
