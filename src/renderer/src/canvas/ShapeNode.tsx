@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Handle, Position, type NodeProps, useInternalNode, useUpdateNodeInternals } from '@xyflow/react'
+import { type NodeProps, useInternalNode, useUpdateNodeInternals } from '@xyflow/react'
 import type { ShapeNodeData as PersistedShapeNodeData, Size } from '@renderer/shared/types'
 import { useBoardStore } from '@renderer/stores/board'
-import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants'
 import { getShapePresetDefinition, supportsNonUniformScale, type ShapePrimitive } from './shapePresets'
 import { NodeResizeHandles } from './NodeResizeHandles'
 import { useFixedCornerResize } from './useFixedCornerResize'
+import { CardinalHandles } from './CardinalHandles'
 import {
   getSvgStrokeProps,
   resolveCanvasFillColor,
@@ -270,32 +270,15 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
         ) : null}
       </div>
 
-      <span style={{ visibility: dragging ? 'hidden' : undefined }}>
-        <Handle
-          id={NODE_HANDLE_IDS.top}
-          type="target"
-          position={Position.Top}
-          style={{ top: -CONNECTION_HANDLE_OUTSET_PX, left: handleMap.get('top')?.x }}
-        />
-        <Handle
-          id={NODE_HANDLE_IDS.left}
-          type="target"
-          position={Position.Left}
-          style={{ left: -CONNECTION_HANDLE_OUTSET_PX, top: handleMap.get('left')?.y }}
-        />
-        <Handle
-          id={NODE_HANDLE_IDS.bottom}
-          type="source"
-          position={Position.Bottom}
-          style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX, left: handleMap.get('bottom')?.x }}
-        />
-        <Handle
-          id={NODE_HANDLE_IDS.right}
-          type="source"
-          position={Position.Right}
-          style={{ right: -CONNECTION_HANDLE_OUTSET_PX, top: handleMap.get('right')?.y }}
-        />
-      </span>
+      <CardinalHandles
+        hidden={dragging}
+        offsets={{
+          top: handleMap.get('top')?.x,
+          left: handleMap.get('left')?.y,
+          bottom: handleMap.get('bottom')?.x,
+          right: handleMap.get('right')?.y
+        }}
+      />
       <NodeResizeHandles
         visible={((selected ?? false) || isResizing) && !dragging}
         activeCorner={activeCorner}

@@ -1,12 +1,12 @@
 import React, { useCallback, useContext } from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { CONNECTION_HANDLE_OUTSET_PX, NODE_HANDLE_IDS } from './canvas-constants'
+import { type NodeProps } from '@xyflow/react'
 import { HelpCircle, AlertCircle } from 'lucide-react'
 import { resolveModuleById } from '../modules/registry'
 import type { Size } from '../shared/types'
 import { BloomContext } from './BloomContext'
 import { NativeFileBudNode } from './NativeFileBudNode'
 import type { WhitebloomModule } from '../modules/types'
+import { CardinalHandles } from './CardinalHandles'
 
 // ---------------------------------------------------------------------------
 // Data shape stored in the RF node's `data` field for all bud nodes
@@ -213,44 +213,9 @@ function BudNodeInner({
 // BudNode — the single ReactFlow node component for all bud types
 // ---------------------------------------------------------------------------
 
-const budHandles = (
-  <>
-    <Handle
-      id={NODE_HANDLE_IDS.top}
-      type="target"
-      position={Position.Top}
-      style={{ top: -CONNECTION_HANDLE_OUTSET_PX }}
-    />
-    <Handle
-      id={NODE_HANDLE_IDS.left}
-      type="target"
-      position={Position.Left}
-      style={{ left: -CONNECTION_HANDLE_OUTSET_PX }}
-    />
-    <Handle
-      id={NODE_HANDLE_IDS.bottom}
-      type="source"
-      position={Position.Bottom}
-      style={{ bottom: -CONNECTION_HANDLE_OUTSET_PX }}
-    />
-    <Handle
-      id={NODE_HANDLE_IDS.right}
-      type="source"
-      position={Position.Right}
-      style={{ right: -CONNECTION_HANDLE_OUTSET_PX }}
-    />
-  </>
-)
-
 export function BudNode({ id, data, selected, dragging }: NodeProps) {
   const budData = data as BudData
   const module = resolveModuleById(budData.moduleType)
-  const handles = (
-    <span style={{ visibility: dragging ? 'hidden' : undefined }}>
-      {budHandles}
-    </span>
-  )
-
   // Void-typed bud (type: null) — no handler registered, open with OS default
   if (budData.moduleType === null) {
     return (
@@ -263,7 +228,7 @@ export function BudNode({ id, data, selected, dragging }: NodeProps) {
           selected={selected ?? false}
           onOpen={() => void window.api.openFile(budData.resource)}
         />
-        {handles}
+        <CardinalHandles hidden={dragging} />
       </>
     )
   }
@@ -278,7 +243,7 @@ export function BudNode({ id, data, selected, dragging }: NodeProps) {
           size={budData.size}
           selected={selected ?? false}
         />
-        {handles}
+        <CardinalHandles hidden={dragging} />
       </>
     )
   }
@@ -292,7 +257,7 @@ export function BudNode({ id, data, selected, dragging }: NodeProps) {
         dragging={dragging ?? false}
         module={module}
       />
-      {handles}
+      <CardinalHandles hidden={dragging} />
     </>
   )
 }

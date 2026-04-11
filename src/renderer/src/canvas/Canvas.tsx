@@ -99,6 +99,7 @@ import {
   isClusterNode,
   isShapeLeafNode,
   isTextLeafNode,
+  isValidEdgeHandlePair,
   DEFAULT_SHAPE_STYLE,
   normalizeEdgeLabelLayout,
   normalizeEdgeStyle
@@ -1941,6 +1942,17 @@ export function Canvas({
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      if (
+        !connection.source ||
+        !connection.target ||
+        !isValidEdgeHandlePair({
+          sourceHandle: connection.sourceHandle,
+          targetHandle: connection.targetHandle
+        })
+      ) {
+        return
+      }
+
       storeAddEdge({
         id: crypto.randomUUID(),
         from: connection.source,
@@ -3358,6 +3370,7 @@ export function Canvas({
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              isValidConnection={isValidEdgeHandlePair}
               onPaneClick={onPaneClick}
               onNodeClick={onNodeClick}
               onDragOver={onDragOver}

@@ -16,6 +16,7 @@ import {
   mergeShapeStyle,
   normalizeEdgeLabelLayout,
   normalizeEdgeStyle,
+  sanitizeBoardEdges,
   isClusterNode,
   isShapeLeafNode
 } from '@renderer/shared/types'
@@ -987,6 +988,13 @@ export const useBoardStore = create<BoardState>((set) => ({
       const nodes = sanitizeClusterChildren(
         board.nodes.map((node) => normalizeNodeMetadata(node, fallbackTimestamp, DEFAULT_USERNAME))
       )
+      const sanitizedEdges = sanitizeBoardEdges(nodes, board.edges)
+      if (sanitizedEdges.issues.length > 0) {
+        console.warn('[board] removed invalid edges while opening board', {
+          path,
+          issues: sanitizedEdges.issues
+        })
+      }
       return {
         version: CURRENT_BOARD_VERSION,
         path,
@@ -994,9 +1002,11 @@ export const useBoardStore = create<BoardState>((set) => ({
         name: board.name,
         brief: board.brief,
         nodes,
-        edges: board.edges,
+        edges: sanitizedEdges.edges,
         viewport: board.viewport,
-        isDirty: false
+        isDirty:
+          sanitizedEdges.issues.length > 0 &&
+          shouldMarkBoardDirty({ transient: board.transient === true ? true : undefined })
       }
     })
 }))

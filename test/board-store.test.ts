@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_USERNAME } from '../src/shared/app-settings'
 import { useBoardStore } from '../src/renderer/src/stores/board'
-import { CURRENT_BOARD_VERSION, makeLexicalContent, type Board } from '@renderer/shared/types'
+import { CURRENT_BOARD_VERSION, isValidEdgeHandlePair, makeLexicalContent, type Board } from '@renderer/shared/types'
 
 function resetBoardStore(): void {
   useBoardStore.setState({
@@ -180,6 +180,60 @@ describe('board store', () => {
 
     expect(cluster1.children).toEqual(['node-a'])
     expect(cluster2.children).toEqual(['node-b'])
+  })
+
+  it('removes duplicate edges on load and marks persistent boards dirty so repairs can be saved', () => {
+    const board = {
+      version: CURRENT_BOARD_VERSION,
+      nodes: [
+        {
+          id: 'source',
+          kind: 'leaf',
+          type: 'text',
+          position: { x: 0, y: 0 },
+          size: { w: 120, h: 80 },
+          content: makeLexicalContent('Source')
+        },
+        {
+          id: 'target',
+          kind: 'leaf',
+          type: 'text',
+          position: { x: 240, y: 0 },
+          size: { w: 120, h: 80 },
+          content: makeLexicalContent('Target')
+        }
+      ],
+      edges: [
+        {
+          id: 'valid-edge',
+          from: 'source',
+          to: 'target',
+          sourceHandle: 'top',
+          targetHandle: 'left'
+        },
+        {
+          id: 'duplicate-edge',
+          from: 'source',
+          to: 'target',
+          sourceHandle: 'top',
+          targetHandle: 'left'
+        }
+      ]
+    } as Board
+
+    useBoardStore.getState().loadBoard(board, 'D:/boards/invalid-edges.wb.json')
+
+    const state = useBoardStore.getState()
+    expect(state.edges.map((edge) => edge.id)).toEqual(['valid-edge'])
+    expect(state.isDirty).toBe(true)
+  })
+
+  it('allows any cardinal handle direction while still rejecting unknown handle ids', () => {
+    expect(isValidEdgeHandlePair({ sourceHandle: 'bottom', targetHandle: 'top' })).toBe(true)
+    expect(isValidEdgeHandlePair({ sourceHandle: 'right', targetHandle: 'left' })).toBe(true)
+    expect(isValidEdgeHandlePair({ sourceHandle: 'top', targetHandle: 'left' })).toBe(true)
+    expect(isValidEdgeHandlePair({ sourceHandle: 'bottom', targetHandle: 'right' })).toBe(true)
+    expect(isValidEdgeHandlePair({ sourceHandle: 'center', targetHandle: 'left' })).toBe(false)
   })
 
   it('removes deleted nodes from cluster membership', () => {

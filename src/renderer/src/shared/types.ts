@@ -299,6 +299,69 @@ export type Board = {
   viewport?: BoardViewport
 }
 
+const NODE_HANDLE_IDS = new Set(['top', 'left', 'bottom', 'right'])
+
+export function isKnownNodeHandleId(handleId: string | null | undefined): boolean {
+  return handleId == null || NODE_HANDLE_IDS.has(handleId)
+}
+
+export function isValidEdgeHandlePair(edge: Pick<BoardEdge, 'sourceHandle' | 'targetHandle'>): boolean {
+  return isKnownNodeHandleId(edge.sourceHandle) && isKnownNodeHandleId(edge.targetHandle)
+}
+
+export type BoardSanitizationIssue = {
+  kind: 'dangling-edge-node' | 'cluster-edge-endpoint' | 'invalid-edge-handle' | 'duplicate-edge'
+  edgeId: string
+}
+
+function buildEdgeSanitizationSignature(
+  edge: Omit<BoardEdge, 'id'>
+): string {
+  return JSON.stringify(edge)
+}
+
+export function sanitizeBoardEdges(
+  nodes: BoardNode[],
+  edges: BoardEdge[]
+): { edges: BoardEdge[]; issues: BoardSanitizationIssue[] } {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]))
+  const nextEdges: BoardEdge[] = []
+  const issues: BoardSanitizationIssue[] = []
+  const seenSignatures = new Set<string>()
+
+  for (const edge of edges) {
+    const sourceNode = nodeById.get(edge.from)
+    const targetNode = nodeById.get(edge.to)
+
+    if (!sourceNode || !targetNode) {
+      issues.push({ kind: 'dangling-edge-node', edgeId: edge.id })
+      continue
+    }
+
+    if (isClusterNode(sourceNode) || isClusterNode(targetNode)) {
+      issues.push({ kind: 'cluster-edge-endpoint', edgeId: edge.id })
+      continue
+    }
+
+    if (!isValidEdgeHandlePair(edge)) {
+      issues.push({ kind: 'invalid-edge-handle', edgeId: edge.id })
+      continue
+    }
+
+    const { id: _id, ...signaturePayload } = edge
+    const signature = buildEdgeSanitizationSignature(signaturePayload)
+    if (seenSignatures.has(signature)) {
+      issues.push({ kind: 'duplicate-edge', edgeId: edge.id })
+      continue
+    }
+
+    seenSignatures.add(signature)
+    nextEdges.push(edge)
+  }
+
+  return { edges: nextEdges, issues }
+}
+
 export function isClusterNode(node: BoardNode): node is ClusterNode {
   return node.kind === 'cluster'
 }
