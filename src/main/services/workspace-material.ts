@@ -178,14 +178,24 @@ function upsertExternalMaterialRecord(
 function createMaterial(
   kind: ArrangementsMaterial['kind'],
   key: string,
-  fileName: string
+  fileName: string,
+  displayName?: string
 ): ArrangementsMaterial {
   const extension = normalizeExtension(fileName)
   return {
     key,
     kind,
-    displayName: getDisplayName(fileName, extension ?? ''),
+    displayName: normalizeOptionalText(displayName) ?? getDisplayName(fileName, extension ?? ''),
     extension
+  }
+}
+
+async function readBoardDisplayName(boardPath: string): Promise<string | undefined> {
+  try {
+    const board = JSON.parse(await readFile(boardPath, 'utf-8')) as { name?: unknown }
+    return normalizeOptionalText(board.name)
+  } catch {
+    return undefined
   }
 }
 
@@ -428,8 +438,15 @@ export async function enumerateWorkspaceMaterial(
 ): Promise<ArrangementsMaterial[]> {
   const workspace = await readWorkspace(workspaceRoot)
 
-  const boardMaterials = workspace.boards.map((boardPath) =>
-    createMaterial('board', toWlocKey(workspaceRoot, boardPath), basename(boardPath))
+  const boardMaterials = await Promise.all(
+    workspace.boards.map(async (boardPath) =>
+      createMaterial(
+        'board',
+        toWlocKey(workspaceRoot, boardPath),
+        basename(boardPath),
+        await readBoardDisplayName(boardPath)
+      )
+    )
   )
   const blossomMaterials = await collectWorkspaceOwnedMaterials(
     workspaceRoot,

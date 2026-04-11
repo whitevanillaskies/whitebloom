@@ -697,6 +697,7 @@ export function Canvas({
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
   const loadArrangements = useArrangementsStore((s) => s.loadArrangements)
+  const arrangementsMaterials = useArrangementsStore((s) => s.materials)
   const refreshArrangementsMaterials = useArrangementsStore((s) => s.refreshMaterials)
   const isArrangementsHydrated = useArrangementsStore((s) => s.isHydrated)
 
@@ -1441,8 +1442,14 @@ export function Canvas({
   )
 
   const canvasCommandContext = useMemo(
-    () =>
-      createCanvasCommandContext({
+    () => {
+      const boardMaterialNamesByResource = new Map(
+        arrangementsMaterials
+          .filter((material) => material.kind === 'board')
+          .map((material) => [material.key, material.displayName] as const)
+      )
+
+      return createCanvasCommandContext({
         selection: {
           nodeIds: selectedNodeIds,
           edgeIds: selectedEdgeIds
@@ -1458,11 +1465,16 @@ export function Canvas({
             ? []
             : workspaceBoards
                 .filter((path) => path !== boardPath)
-                .map((path) => ({
-                  resource: toWorkspaceBoardResource(path, workspaceRoot) ?? '',
-                  name: getBoardNameFromPath(path),
-                  subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
-                }))
+                .map((path) => {
+                  const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
+                  return {
+                    resource,
+                    name:
+                      (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
+                      getBoardNameFromPath(path),
+                    subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
+                  }
+                })
                 .filter((board) => board.resource.length > 0),
         actions: {
           createBud: createBudAtPoint,
@@ -1473,8 +1485,10 @@ export function Canvas({
           openArrangements: onOpenArrangements,
           openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined
         }
-      }),
+      })
+    },
     [
+      arrangementsMaterials,
       bloomSelection,
       createBudAtPoint,
       createShapeAtPoint,
@@ -2623,7 +2637,8 @@ export function Canvas({
               placement = {
                 resource: material.key,
                 moduleType: boardBloomModule.id,
-                size: boardBloomModule.defaultSize ?? { w: 196, h: 128 }
+                size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
+                label: material.displayName
               }
             } else if (material.kind === 'linked' && isWebLinkedMaterialKey(material.key)) {
               placement = {

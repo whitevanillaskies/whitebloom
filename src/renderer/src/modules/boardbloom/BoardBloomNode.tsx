@@ -11,7 +11,8 @@ type ThumbnailState = { status: 'loading' } | { status: 'ready'; src: string } |
 
 function deriveLabel(resource: string): string {
   const normalized = resource.replace(/\\/g, '/')
-  const segment = normalized.slice(normalized.lastIndexOf('/') + 1)
+  const localResource = normalized.startsWith('wloc:') ? normalized.slice('wloc:'.length) : normalized
+  const segment = localResource.slice(localResource.lastIndexOf('/') + 1)
   return segment.replace(/\.wb\.json$/i, '') || segment || resource
 }
 
