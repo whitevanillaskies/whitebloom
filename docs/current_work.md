@@ -82,3 +82,121 @@ Goal: preserve the most important stewardship information.
 
 **Work Unit 8.3: Staleness computation validation**
 - Confirm stale logic is correct for boards, files, and URLs.
+
+---
+
+## Future Work: PDF, Ink, and Lecture Capture
+
+### Rationale
+
+Whitebloom has received direct user validation for a very specific local-first teaching workflow:
+- Open a multipage PDF onto the canvas.
+- Annotate over it live with a stylus while projecting to a lecture hall.
+- Optionally save or export the result afterward.
+
+The core value is not document archival or heavy editing. It is responsive lecture-time performance, clarity, and portability. This work should therefore be optimized around a premium, low-friction teaching surface rather than around general-purpose PDF software complexity.
+
+### Product Priorities
+
+**Primary**
+- Multipage PDF viewing on the board canvas.
+- Live stylus-first annotation over PDFs and over the board itself.
+- Local-first performance suitable for live teaching.
+
+**Secondary**
+- Reusable ink layers that can be shown, hidden, and selected deliberately.
+- Non-destructive annotation workflows for both boards and PDFs.
+
+**Lower priority**
+- Baking or exporting annotations into PDF output.
+- Session recording to a local video file with audio.
+
+### High-Level Workstreams
+
+#### 1. PDF multipage viewer
+
+Introduce a PDF module that supports the lecturer use case first:
+- Open multipage PDFs as first-class board materials.
+- Preserve a minimal, Apple-like document feel with restrained chrome.
+- Prioritize page visibility, navigation, zoom, and lecture readability over document-authoring depth.
+- Treat export, markup persistence, and advanced document manipulation as follow-on concerns unless they directly support live teaching.
+
+Rendering should be built on `PDF.js`, not on Chromium's stock PDF viewer and not on a prebuilt React viewer shell.
+
+**Rationale:**
+- Chromium can display PDFs, but its built-in viewer is the wrong abstraction level for Whitebloom.
+- Whitebloom needs tight control over the document surface so the experience can match Apple Preview rather than feeling like an embedded browser widget.
+- We will need direct control over multipage presentation, zoom behavior, page navigation, and the future ink overlay system.
+- The PDF surface must remain visually and behaviorally consistent with Whitebloom's own design language instead of inheriting a generic browser PDF UI.
+- `PDF.js` provides the right foundation: a mature PDF rendering engine with enough low-level control to build a custom viewer without surrendering the product surface.
+
+This viewer should feel native to Whitebloom's design language: premium, compact, precise, and free of unnecessary ornament.
+
+#### 2. Ink as a first-class Whitebloom concept
+
+Ink should not be treated as an afterthought bolted onto PDFs alone. It should become a first-class overlay artifact in the workspace model.
+
+At a high level:
+- Ink is a Whitebloom-owned annotation resource.
+- Ink resources can target compatible surfaces such as the board canvas and PDFs.
+- The underlying coordinate model must remain surface-specific.
+  - Board ink uses infinite-canvas/world coordinates.
+  - PDF ink uses document/page coordinates.
+- The user experience should emphasize layers, visibility, and active drawing target rather than raw file mechanics.
+
+Terminology and file extensions can evolve later. The important part is the model: annotations are explicit workspace artifacts, not hidden incidental state.
+
+#### 3. Ink on canvas via a glass layer
+
+Board annotation should use a dedicated overlay layer above the React Flow canvas:
+- The overlay remains visually transparent and non-interactive until an ink tool is active.
+- When no ink tool is selected, the board behaves exactly like the existing canvas.
+- When an ink tool is active, pointer input is routed to the overlay instead of normal board manipulation.
+- The overlay stays synchronized with the board viewport so strokes are authored in board/world space rather than screen space.
+
+This separation keeps node and graph interaction independent from annotation rendering, and it enables future layer visibility, locking, and tool expansion without entangling the core canvas implementation.
+
+#### 4. Ink on PDF
+
+PDF annotation should reuse the general ink concept but operate in PDF-specific coordinates:
+- Ink belongs to Whitebloom first, not to the PDF file format.
+- A PDF can expose zero, one, or multiple compatible annotation layers.
+- The lecturer workflow should optimize for immediate, low-friction live markup rather than for PDF-standard editability.
+- Exporting or baking annotations back into a PDF should remain an explicit action, not the default editing model.
+
+This keeps Whitebloom free to support non-destructive overlays, quick layers, and more flexible lecture workflows than native PDF annotations alone would comfortably allow.
+
+#### 5. Ink layers
+
+Layers should be treated as a core part of the annotation model, not as a later embellishment.
+
+Expected behavior:
+- The user can see existing compatible layers when entering an ink tool.
+- The user can choose which layer is active for drawing.
+- Layers can be shown or hidden without destroying them.
+- Quick temporary layers can be created immediately and saved later if desired.
+- Saved layers can be reused deliberately instead of being implicitly fused into the material forever.
+
+This resolves the tension between shared annotations and context-specific annotations: reuse becomes explicit rather than accidental.
+
+#### 6. Baking PDF annotations
+
+Baking/export is useful, but it is not the primary product value for the validated teaching workflow.
+
+Keep this work scoped as a later output concern:
+- Preserve Whitebloom-owned overlays as the primary editable state.
+- Treat PDF baking/export as a deliberate downstream action.
+- Distinguish between flattening annotations into page content and writing native PDF annotation objects; these are separate product choices and should not be conflated.
+
+#### 7. Session recording
+
+Built-in lecture recording is strategically interesting and may become a strong differentiator, especially in restricted education environments where installing separate capture tools is difficult.
+
+However, it should remain lower priority than the PDF + ink workflow itself.
+
+The high-level goal is:
+- Capture the live presentation/annotation session locally.
+- Include audio.
+- Produce a portable output such as MP4.
+
+This should be approached as an adjacent workflow enhancer, not as a blocker for the core lecture annotation experience.
