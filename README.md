@@ -1,10 +1,13 @@
 # WHITEBLOOM
 
-A whiteboard. Local only, plaintext first, modular.
+A whiteboard. Local only, plaintext first, modular. ~99.9% vibecoded.
 
 ## Precompiled Binaries
 
-There's binaries for both Windows and Linux. No Apple binaries unless somebody sponsors me $100 for the Apple Developer plan, and even then it's subject to Apple requirements (I don't know if I need an actual Mac, which I don't own). If you want precompile binaries for Apple contact me and we may discuss it.
+There's binaries for both Windows and Linux on the Releases tab.
+
+### Apple
+No Apple binaries unless somebody sponsors me $100 for the Apple Developer plan, and even then it's subject to Apple requirements (I don't know if I need an actual Mac, which I don't own). If you want precompile binaries for Apple contact me and we may discuss it.
 
 ## Project Setup
 
