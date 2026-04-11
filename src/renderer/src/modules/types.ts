@@ -70,6 +70,12 @@ export interface WhitebloomModule {
    * own context-bound command surface directly as part of module registration.
    */
   commands?: WhitebloomCommandsByContext
+  /**
+   * Controls how the bloom modal prepares editor data.
+   * - `blossom` (default): load string content through blossom read/write IPC.
+   * - `resource`: open the resource directly; the editor owns loading/rendering.
+   */
+  editorDataSource?: 'blossom' | 'resource'
 
   NodeComponent: React.ComponentType<BudNodeProps>
   /** Present only for `defaultRenderer: 'internal'` modules */

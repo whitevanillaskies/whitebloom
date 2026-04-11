@@ -1,13 +1,16 @@
 import type { WhitebloomModule } from '../types'
+import { PdfEditor } from './PdfEditor'
 import { PdfIcon } from './PdfIcon'
 import { PdfNodeComponent } from './PdfNodeComponent'
 
 export const pdfModule: WhitebloomModule = {
   id: 'com.whitebloom.pdf',
   extensions: ['.pdf'],
-  defaultRenderer: 'external',
+  defaultRenderer: 'internal',
   defaultSize: { w: 180, h: 120 },
+  editorDataSource: 'resource',
   IconComponent: PdfIcon,
   accentColor: '--color-accent-red',
-  NodeComponent: PdfNodeComponent
+  NodeComponent: PdfNodeComponent,
+  EditorComponent: PdfEditor
 }

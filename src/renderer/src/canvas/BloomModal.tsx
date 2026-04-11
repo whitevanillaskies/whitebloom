@@ -18,8 +18,14 @@ type Props = {
 export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
   const { t } = useTranslation()
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
+  const editorDataSource = bloom.module.editorDataSource ?? 'blossom'
 
   useEffect(() => {
+    if (editorDataSource === 'resource') {
+      setLoadState({ status: 'ready', initialData: '' })
+      return
+    }
+
     setLoadState({ status: 'loading' })
     window.api
       .readBlossom(workspaceRoot, bloom.resource)
@@ -30,14 +36,15 @@ export function BloomModal({ bloom, workspaceRoot, onClose }: Props) {
           message: err instanceof Error ? err.message : t('bloomModal.readError')
         })
       )
-  }, [workspaceRoot, bloom.resource])
+  }, [editorDataSource, workspaceRoot, bloom.resource, t])
 
   const handleSave = useCallback(
     async (data: string): Promise<void> => {
+      if (editorDataSource === 'resource') return
       const result = await window.api.writeBlossom(workspaceRoot, bloom.resource, data)
       if (!result.ok) throw new Error(t('bloomModal.saveError'))
     },
-    [workspaceRoot, bloom.resource]
+    [editorDataSource, workspaceRoot, bloom.resource, t]
   )
 
   const { EditorComponent } = bloom.module

@@ -20,6 +20,7 @@ const MIME_TYPES: Record<string, string> = {
   '.mp4': 'video/mp4',
   '.ogg': 'video/ogg',
   '.ogv': 'video/ogg',
+  '.pdf': 'application/pdf',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.tif': 'image/tiff',
