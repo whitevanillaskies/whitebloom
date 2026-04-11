@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import {
@@ -42,6 +42,7 @@ type PageLayout = {
 
 type ViewMode = 'single' | 'single-continuous' | 'facing' | 'facing-continuous'
 type SpreadLead = 'odd' | 'even'
+type SpreadGapMode = 'open' | 'flush'
 
 type Spread = {
   key: string
@@ -131,6 +132,74 @@ function PdfPageCanvas({ doc, pageNumber, scale, layout }: PageCanvasProps) {
   )
 }
 
+const MemoizedPdfPageCanvas = memo(PdfPageCanvas)
+
+type VirtualizedPdfPageProps = {
+  doc: PDFDocumentProxy
+  pageNumber: number
+  scale: number
+  layout: PageLayout | null
+  viewportRef: { current: HTMLDivElement | null }
+}
+
+function VirtualizedPdfPage({
+  doc,
+  pageNumber,
+  scale,
+  layout,
+  viewportRef
+}: VirtualizedPdfPageProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [isNearViewport, setIsNearViewport] = useState(false)
+  const [hasRendered, setHasRendered] = useState(false)
+
+  useEffect(() => {
+    const element = containerRef.current
+    const root = viewportRef.current
+    if (!element || !root) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        const nextVisible = entry?.isIntersecting === true
+        setIsNearViewport(nextVisible)
+        if (nextVisible) {
+          setHasRendered(true)
+        }
+      },
+      {
+        root,
+        rootMargin: '1400px 0px 1400px 0px',
+        threshold: 0
+      }
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [viewportRef])
+
+  const shouldRender = isNearViewport || hasRendered
+  const shellStyle =
+    layout !== null
+      ? {
+          width: layout.width + 24,
+          minHeight: layout.height + 24
+        }
+      : undefined
+
+  return (
+    <div ref={containerRef} className="pdf-editor__virtual-page" style={shellStyle}>
+      {shouldRender ? (
+        <MemoizedPdfPageCanvas doc={doc} pageNumber={pageNumber} scale={scale} layout={layout} />
+      ) : (
+        <div className="pdf-editor__page-shell pdf-editor__page-shell--placeholder" style={shellStyle}>
+          <div className="pdf-editor__page-ghost" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function buildFacingSpreads(pageCount: number, lead: SpreadLead): Spread[] {
   const spreads: Spread[] = []
   let current: [number | null, number | null] = [null, null]
@@ -175,11 +244,26 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('single-continuous')
   const [spreadLead, setSpreadLead] = useState<SpreadLead>('odd')
-  const [pageLayouts, setPageLayouts] = useState<Record<number, PageLayout>>({})
+  const [spreadGapMode, setSpreadGapMode] = useState<SpreadGapMode>('open')
+  const [basePageLayouts, setBasePageLayouts] = useState<Record<number, PageLayout>>({})
   const pageRefs = useRef<Record<number, HTMLElement | null>>({})
   const scrollViewportRef = useRef<HTMLDivElement | null>(null)
 
-  const facingSpreads = buildFacingSpreads(pageCount, spreadLead)
+  const pageLayouts = useMemo<Record<number, PageLayout>>(() => {
+    const nextLayouts: Record<number, PageLayout> = {}
+
+    for (const [key, baseLayout] of Object.entries(basePageLayouts)) {
+      const pageNumber = Number(key)
+      nextLayouts[pageNumber] = {
+        width: baseLayout.width * scale,
+        height: baseLayout.height * scale
+      }
+    }
+
+    return nextLayouts
+  }, [basePageLayouts, scale])
+
+  const facingSpreads = useMemo(() => buildFacingSpreads(pageCount, spreadLead), [pageCount, spreadLead])
   const activeSpreadIndex = Math.max(
     0,
     facingSpreads.findIndex((spread) => spread.pages.includes(activePage))
@@ -203,7 +287,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     setErrorMessage(null)
     setThumbnails([])
     setActivePage(1)
-    setPageLayouts({})
+    setBasePageLayouts({})
 
     void task.promise
       .then((doc) => {
@@ -245,14 +329,14 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     const doc = documentProxy
     let cancelled = false
 
-    async function loadPageLayouts(): Promise<void> {
+    async function loadBasePageLayouts(): Promise<void> {
       const layouts: Record<number, PageLayout> = {}
 
       for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
         const page = await doc.getPage(pageNumber)
         if (cancelled) return
 
-        const viewport = page.getViewport({ scale })
+        const viewport = page.getViewport({ scale: 1 })
         layouts[pageNumber] = {
           width: viewport.width,
           height: viewport.height
@@ -264,19 +348,19 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
       }
 
       if (!cancelled) {
-        setPageLayouts(layouts)
+        setBasePageLayouts(layouts)
       }
     }
 
-    void loadPageLayouts().catch((error: unknown) => {
+    void loadBasePageLayouts().catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error)
-      logger.error('page layout preload failed', { pageCount, scale, message })
+      logger.error('page layout preload failed', { pageCount, message })
     })
 
     return () => {
       cancelled = true
     }
-  }, [documentProxy, pageCount, scale])
+  }, [documentProxy, pageCount])
 
   useEffect(() => {
     if (!documentProxy || pageCount === 0) return
@@ -433,7 +517,9 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
       : activeSpread?.pages.filter((page): page is number => page !== null) ?? []
 
   return (
-    <div className={`pdf-editor pdf-editor--${viewMode}`}>
+    <div
+      className={`pdf-editor pdf-editor--${viewMode} pdf-editor--spread-gap-${spreadGapMode}`}
+    >
       <div className="pdf-editor__chrome">
         <div className="pdf-editor__toolbar">
           <div className="pdf-editor__toolbar-group">
@@ -500,6 +586,25 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
               title="Even pages first"
             >
               Even First
+            </button>
+            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`pdf-editor__toggle-chip${spreadGapMode === 'flush' ? ' pdf-editor__toggle-chip--active' : ''}`}
+              onClick={() => setSpreadGapMode('flush')}
+              aria-label="Center gap flush"
+              title="Center gap flush"
+            >
+              Gap Flush
+            </button>
+            <button
+              type="button"
+              className={`pdf-editor__toggle-chip${spreadGapMode === 'open' ? ' pdf-editor__toggle-chip--active' : ''}`}
+              onClick={() => setSpreadGapMode('open')}
+              aria-label="Center gap open"
+              title="Center gap open"
+            >
+              Gap Open
             </button>
           </div>
 
@@ -623,11 +728,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                         data-page-number={pageNumber}
                       >
                         <div className="pdf-editor__page-meta">{pageNumber}</div>
-                        <PdfPageCanvas
+                        <VirtualizedPdfPage
                           doc={documentProxy}
                           pageNumber={pageNumber}
                           scale={scale}
                           layout={pageLayouts[pageNumber] ?? null}
+                          viewportRef={scrollViewportRef}
                         />
                       </section>
                     )
@@ -651,11 +757,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                         {spread.pages.map((pageNumber, slotIndex) =>
                           pageNumber !== null ? (
                             <div key={pageNumber} className="pdf-editor__spread-page">
-                              <PdfPageCanvas
+                              <VirtualizedPdfPage
                                 doc={documentProxy}
                                 pageNumber={pageNumber}
                                 scale={scale}
                                 layout={pageLayouts[pageNumber] ?? null}
+                                viewportRef={scrollViewportRef}
                               />
                             </div>
                           ) : (
@@ -677,7 +784,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                 ? discretePages.map((pageNumber) => (
                     <section key={pageNumber} className="pdf-editor__page pdf-editor__page--discrete">
                       <div className="pdf-editor__page-meta">{pageNumber}</div>
-                      <PdfPageCanvas
+                      <MemoizedPdfPageCanvas
                         doc={documentProxy}
                         pageNumber={pageNumber}
                         scale={scale}
@@ -694,7 +801,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                       {(activeSpread?.pages ?? [null, null]).map((pageNumber, slotIndex) =>
                         pageNumber !== null ? (
                           <div key={pageNumber} className="pdf-editor__spread-page">
-                            <PdfPageCanvas
+                            <MemoizedPdfPageCanvas
                               doc={documentProxy}
                               pageNumber={pageNumber}
                               scale={scale}
