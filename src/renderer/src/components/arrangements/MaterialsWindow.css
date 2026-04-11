@@ -80,7 +80,7 @@
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 5px 10px;
+  padding: 5px 10px 5px 5px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -131,16 +131,17 @@
   box-shadow: inset 0 0 0 1px rgba(30, 135, 255, 0.4);
 }
 
-/* Indented bin rows under the Bins header */
+/* Indented bin rows under the Bins header.
+   Depth-1 set text starts at: paddingLeft(22) + chevron(16) + gap(5) = 43px.
+   Bin rows are leaf items (no chevron), so match that text start directly. */
 .materials-window__nav-row--bin {
-  padding-left: 24px;
+  padding-left: 43px;
 }
 
-/* Chevron toggle on the Bins nav row */
+/* Chevron toggle on the Bins nav row — same geometry as .materials-window__set-chevron */
 .materials-window__bins-chevron {
   flex-shrink: 0;
-  width: 8px;
-  margin-right: -2px;
+  width: 16px;
   font-size: 11px;
   line-height: 1;
   color: var(--color-muted-fg);
@@ -149,8 +150,6 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 2px;
-  border-radius: 2px;
 }
 
 .materials-window__bins-chevron--open {
