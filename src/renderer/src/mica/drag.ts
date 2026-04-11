@@ -69,6 +69,7 @@ export type MicaDropTargetDescriptor<
   bounds: MicaScreenRect | null
   disabled?: boolean
   hoverIntentDelayMs?: number
+  priority?: number
   meta?: TMeta
 }
 
@@ -95,6 +96,7 @@ export type MicaDropTargetBindingOptions<
   TMeta = unknown
 > = Omit<MicaDropTargetDescriptor<TAcceptedKind, TMeta>, 'bounds'> & {
   element: HTMLElement | null
+  registeredAt?: number
 }
 
 export type MicaDragStartInput<
@@ -243,7 +245,12 @@ function getTopmostMatchingTarget(
       )
       .filter((target) => canMicaDropTargetAcceptPayload(target, session.payload))
       .filter((target) => isPointInMicaScreenRect(pointer.screen, target.bounds))
-      .sort((left, right) => right.registeredAt - left.registeredAt)[0] ?? null
+      .sort((left, right) => {
+        const leftPriority = left.priority ?? 0
+        const rightPriority = right.priority ?? 0
+        if (leftPriority !== rightPriority) return rightPriority - leftPriority
+        return right.registeredAt - left.registeredAt
+      })[0] ?? null
 
   return {
     targetId: match?.id ?? null,
@@ -278,6 +285,7 @@ function areDropTargetsEquivalent(
     left.acceptedPayloadKinds === right.acceptedPayloadKinds &&
     left.disabled === right.disabled &&
     left.hoverIntentDelayMs === right.hoverIntentDelayMs &&
+    left.priority === right.priority &&
     left.meta === right.meta &&
     areMicaScreenRectsEqual(left.bounds, right.bounds)
   )
@@ -561,8 +569,10 @@ export function useMicaDropTarget<
   acceptedPayloadKinds,
   disabled,
   hoverIntentDelayMs,
+  priority,
   meta,
-  element
+  element,
+  registeredAt
 }: MicaDropTargetBindingOptions<TAcceptedKind, TMeta>): void {
   useLayoutEffect(() => {
     if (!element) return
@@ -575,6 +585,7 @@ export function useMicaDropTarget<
         bounds: measureMicaElementScreenRect(element),
         disabled,
         hoverIntentDelayMs,
+        priority,
         meta
       } satisfies MicaDropTargetDescriptor<TAcceptedKind, TMeta>
 
@@ -583,12 +594,12 @@ export function useMicaDropTarget<
       if (existingTarget) {
         coordinator.updateDropTarget(id, descriptor)
       } else {
-        coordinator.registerDropTarget(descriptor)
+        coordinator.registerDropTarget(descriptor, registeredAt)
       }
     }
 
     syncBounds()
-  }, [acceptedPayloadKinds, disabled, element, hostId, hoverIntentDelayMs, id, meta])
+  }, [acceptedPayloadKinds, disabled, element, hostId, hoverIntentDelayMs, id, meta, priority, registeredAt])
 
   useLayoutEffect(() => {
     if (!element) {
@@ -604,6 +615,7 @@ export function useMicaDropTarget<
         bounds: measureMicaElementScreenRect(element),
         disabled,
         hoverIntentDelayMs,
+        priority,
         meta
       } satisfies MicaDropTargetDescriptor<TAcceptedKind, TMeta>
 
@@ -612,7 +624,7 @@ export function useMicaDropTarget<
       if (existingTarget) {
         coordinator.updateDropTarget(id, descriptor)
       } else {
-        coordinator.registerDropTarget(descriptor)
+        coordinator.registerDropTarget(descriptor, registeredAt)
       }
     }
 
@@ -639,5 +651,5 @@ export function useMicaDropTarget<
       window.cancelAnimationFrame(frameId)
       getMicaDragCoordinator().unregisterDropTarget(id)
     }
-  }, [element, id])
+  }, [element, id, priority, registeredAt])
 }

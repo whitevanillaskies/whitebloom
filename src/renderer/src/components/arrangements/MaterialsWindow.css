@@ -122,6 +122,16 @@
   white-space: nowrap;
 }
 
+.materials-window__nav-count {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-muted-fg);
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 1px 6px;
+}
+
 /* ── Set tree ───────────────────────────────────────────────────────────────── */
 
 .materials-window__set-tree,
@@ -158,22 +168,35 @@
   color: var(--color-accent-blue);
 }
 
+.materials-window__set-row--drag-over {
+  background: rgba(30, 135, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(30, 135, 255, 0.28);
+}
+
+.materials-window__set-row--intent-ready {
+  box-shadow: inset 0 0 0 1px rgba(30, 135, 255, 0.4);
+}
+
 .materials-window__set-row--selected .materials-window__set-icon {
   color: var(--color-accent-blue);
 }
 
 .materials-window__set-chevron {
   flex-shrink: 0;
-  width: 10px;
+  width: 16px;
   font-size: 11px;
   line-height: 1;
   color: transparent;
   transition: transform 120ms;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
 }
 
 .materials-window__set-chevron--visible {
   color: var(--color-muted-fg);
+  cursor: pointer;
 }
 
 .materials-window__set-chevron--open {
@@ -200,6 +223,14 @@
 
 .materials-window__bin-section {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.materials-window__bin-section--drag-over .materials-window__bin-heading {
+  background: rgba(30, 135, 255, 0.12);
+}
+
+.materials-window__bin-section--intent-ready .materials-window__bin-heading {
+  box-shadow: inset 0 0 0 1px rgba(30, 135, 255, 0.36);
 }
 
 .materials-window__bin-section:last-child {
@@ -296,6 +327,10 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
+.materials-window__material-row--dragging {
+  opacity: 0.44;
+}
+
 .materials-window__material-icon {
   display: flex;
   align-items: center;
@@ -332,4 +367,20 @@
   color: var(--color-muted-fg);
   font-family: 'Source Code Pro', monospace;
   opacity: 0.7;
+}
+
+/* ── Set rename input ───────────────────────────────────────────────────────── */
+
+.materials-window__set-rename-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 3px;
+  margin: -1px 0;
+  border: 1px solid var(--color-accent-blue);
+  border-radius: 3px;
+  background: var(--color-primary-bg, #fff);
+  color: var(--color-primary-fg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  outline: none;
 }

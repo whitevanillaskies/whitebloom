@@ -11,6 +11,7 @@ type MicaWindowProps = {
   children?: React.ReactNode
   className?: string
   style?: React.CSSProperties
+  windowRef?: React.Ref<HTMLDivElement>
   'aria-label'?: string
 }
 
@@ -23,12 +24,14 @@ export default function MicaWindow({
   children,
   className,
   style,
+  windowRef,
   'aria-label': ariaLabel
 }: MicaWindowProps): React.JSX.Element {
   const resolvedToolbar = toolbar ?? headerActions
 
   return (
     <div
+      ref={windowRef}
       className={['mica-window', className].filter(Boolean).join(' ')}
       style={style}
       role="region"

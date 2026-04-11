@@ -9,6 +9,16 @@
   cursor: grabbing !important;
 }
 
+.canvas__drop-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas__drop-surface--materials-over {
+  box-shadow: inset 0 0 0 2px rgba(30, 135, 255, 0.28);
+}
+
 /* Text tool: enforce crosshair cursor everywhere */
 .canvas--tool-text,
 .canvas--tool-text * {

@@ -88,6 +88,12 @@ export type ArrangementsDropTargetMeta =
       camera: GardenCameraState
     }
   | {
+      type: 'occluder'
+    }
+  | {
+      type: 'canvas'
+    }
+  | {
       type: 'set'
       setId: string
     }
@@ -107,9 +113,13 @@ type UseArrangementsMaterialDragOptions = {
   desktopPosition?: MicaScreenPoint
   onSelect?: (key: string, additive: boolean) => void
   onDragCommitted?: (materialKeys: string[]) => void
+  onResolveDrop?: (
+    resolution: ArrangementsDropResolution,
+    payload: ArrangementsMaterialDragPayload
+  ) => boolean
 }
 
-type ArrangementsDropResolution = {
+export type ArrangementsDropResolution = {
   target:
     | (MicaRegisteredDropTarget<typeof ARRANGEMENTS_MATERIAL_DRAG_KIND, ArrangementsDropTargetMeta> & {
         bounds: MicaScreenRect
@@ -388,7 +398,7 @@ type PendingDragState = {
 }
 
 export function createArrangementsDropTargetId(
-  kind: 'desktop' | 'set' | 'bin' | 'trash',
+  kind: 'desktop' | 'canvas' | 'window' | 'set' | 'bin' | 'trash',
   id?: string
 ): string {
   return id ? `arrangements:${kind}:${id}` : `arrangements:${kind}`
@@ -400,6 +410,7 @@ export function useArrangementsDropTarget(
     'acceptedPayloadKinds' | 'bounds'
   > & {
     element: HTMLElement | null
+    registeredAt?: number
   }
 ): void {
   const hoverIntentDelayMs =
@@ -442,7 +453,8 @@ export function useArrangementsMaterialDrag({
   source,
   desktopPosition,
   onSelect,
-  onDragCommitted
+  onDragCommitted,
+  onResolveDrop
 }: UseArrangementsMaterialDragOptions): {
   isDragging: boolean
   onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void
@@ -474,8 +486,13 @@ export function useArrangementsMaterialDrag({
           resolution
         ) {
           const dragPayload = completedSession.payload.data as ArrangementsMaterialDragPayload
-          const commands = createArrangementsMaterialDropCommands(resolution, dragPayload)
-          if (applyArrangementsMaterialDropCommands(commands)) {
+          const handledByCustomDrop = onResolveDrop?.(resolution, dragPayload) ?? false
+          const handled =
+            handledByCustomDrop ||
+            applyArrangementsMaterialDropCommands(
+              createArrangementsMaterialDropCommands(resolution, dragPayload)
+            )
+          if (handled) {
             onDragCommitted?.(dragPayload.materialKeys)
           }
         }
@@ -486,7 +503,7 @@ export function useArrangementsMaterialDrag({
       pendingRef.current = null
       setIsDragging(false)
     },
-    [isDragging, onDragCommitted]
+    [isDragging, onDragCommitted, onResolveDrop]
   )
 
   const onPointerDown = useCallback(

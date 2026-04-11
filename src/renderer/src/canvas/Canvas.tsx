@@ -40,6 +40,12 @@ import BoardContextBar from '@renderer/components/board-context-bar/BoardContext
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
 import MaterialsWindow from '@renderer/components/arrangements/MaterialsWindow'
+import {
+  ARRANGEMENTS_MICA_HOST_ID,
+  createArrangementsDropTargetId,
+  useArrangementsDragTargetActive,
+  useArrangementsDropTarget
+} from '@renderer/components/arrangements/arrangementsDrag'
 import { MicaHost, useMicaHost, MICA_PERSISTENCE_BOUNDARY } from '@renderer/mica'
 import { useArrangementsStore } from '@renderer/stores/arrangements'
 import {
@@ -81,6 +87,7 @@ import {
   resolveWorkspaceBoardPath,
   toWorkspaceBoardResource
 } from '@renderer/shared/board-resource'
+import type { ArrangementsMaterial } from '../../../shared/arrangements'
 import type {
   Board,
   BoardEdge,
@@ -131,6 +138,7 @@ const WEB_RESOURCE_DROP_ERROR =
   "Can't embed web resources — save the image to your local drive first, then drop it."
 
 const CANVAS_MATERIALS_MICA_HOST_ID = 'canvas-materials'
+const MATERIALS_CANVAS_DROP_TARGET_ID = createArrangementsDropTargetId('canvas', 'materials-window')
 const DEFAULT_MATERIALS_GEOMETRY = {
   x: 60,
   y: 60,
@@ -545,6 +553,37 @@ function getFileNameFromPath(filePath: string): string {
   return normalized.slice(normalized.lastIndexOf('/') + 1) || filePath
 }
 
+function resolveWorkspaceMaterialAbsolutePath(
+  resource: string,
+  workspaceRoot: string | null
+): string | null {
+  if (!workspaceRoot || !resource.startsWith('wloc:')) return null
+
+  const relativePath = decodeURIComponent(resource.slice('wloc:'.length)).replace(/^\/+/, '')
+  if (!relativePath || relativePath === '.' || relativePath === '..' || relativePath.startsWith('../')) {
+    return null
+  }
+
+  const normalizedRoot = workspaceRoot.replace(/[\\/]+$/, '')
+  const normalizedRelative = relativePath.replace(/\//g, '\\')
+  return `${normalizedRoot}\\${normalizedRelative}`
+}
+
+function resolveLinkedMaterialAbsolutePath(resource: string): string | null {
+  if (!resource.startsWith('file:///')) return null
+
+  try {
+    const url = new URL(resource)
+    let pathname = decodeURIComponent(url.pathname)
+    if (/^\/[a-zA-Z]:\//.test(pathname)) {
+      pathname = pathname.slice(1)
+    }
+    return pathname.replace(/\//g, '\\')
+  } catch {
+    return null
+  }
+}
+
 function normalizeBoardNodesForSave(nodes: BoardNode[]): BoardNode[] {
   return nodes.map((node) => {
     if (!isTextLeafNode(node)) return node
@@ -644,6 +683,7 @@ export function Canvas({
 
   const { screenToFlowPosition } = useReactFlow()
 
+  const canvasDropTargetRef = useRef<HTMLDivElement>(null)
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
   const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
@@ -669,6 +709,16 @@ export function Canvas({
     null
   )
   const transientAutosaveRef = useRef<string | null>(null)
+  const isMaterialsCanvasDropActive = useArrangementsDragTargetActive(
+    MATERIALS_CANVAS_DROP_TARGET_ID
+  )
+  const materialsCanvasDropTargetMeta = useMemo(
+    () =>
+      ({
+        type: 'canvas'
+      } as const),
+    []
+  )
 
   // ── Materials Mica host ──────────────────────────────────────────────────────
   const materialsMicaPolicy = useMemo(
@@ -742,6 +792,14 @@ export function Canvas({
     },
     [addNode]
   )
+
+  useArrangementsDropTarget({
+    id: MATERIALS_CANVAS_DROP_TARGET_ID,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: canvasDropTargetRef.current,
+    disabled: activeBloom !== null || (activeTool !== 'pointer' && activeTool !== 'hand'),
+    meta: materialsCanvasDropTargetMeta
+  })
 
   const handleBloom = useCallback(
     (bloom: ActiveBloom) => {
@@ -2460,6 +2518,94 @@ export function Canvas({
     ]
   )
 
+  const placeArrangementsMaterialsOnCanvas = useCallback(
+    (materials: ArrangementsMaterial[], screenPoint: { x: number; y: number }) => {
+      void (async () => {
+        const basePosition = screenToFlowPosition(screenPoint)
+        const groupId = createCommandExecutionGroupId()
+        let createdCount = 0
+        let firstFailure: string | null = null
+
+        for (const material of materials) {
+          try {
+            let placement: BudPlacement
+
+            if (material.kind === 'board') {
+              if (!workspaceRoot) {
+                throw new Error(t('canvas.invalidSubboardLinkBody'))
+              }
+
+              placement = {
+                resource: material.key,
+                moduleType: boardBloomModule.id,
+                size: boardBloomModule.defaultSize ?? { w: 196, h: 128 }
+              }
+            } else {
+              const absolutePath =
+                material.kind === 'linked'
+                  ? resolveLinkedMaterialAbsolutePath(material.key)
+                  : resolveWorkspaceMaterialAbsolutePath(material.key, workspaceRoot)
+              if (!absolutePath) {
+                throw new Error(`Unable to resolve ${material.displayName}.`)
+              }
+
+              const isDirectory = await window.api.isDirectory(absolutePath)
+              const module = await resolveDroppedModule(absolutePath, isDirectory)
+              placement = {
+                resource: material.key,
+                moduleType: module?.id ?? null,
+                size: isDirectory
+                  ? module?.defaultSize ?? { w: 88, h: 88 }
+                  : await computeDroppedBudSize({
+                      filePath: absolutePath,
+                      module
+                    })
+              }
+            }
+
+            const createdBudId = await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addBud, {
+              position: {
+                x: basePosition.x + createdCount * 24,
+                y: basePosition.y + createdCount * 24
+              },
+              moduleType: placement.moduleType,
+              size: placement.size,
+              resource: placement.resource
+            }, {
+              source: 'drag-drop',
+              groupId,
+              metadata: {
+                payloadKind: 'arrangements-material',
+                materialKind: material.kind
+              }
+            })
+            if (createdBudId === null) continue
+            createdCount += 1
+          } catch (error) {
+            const message = error instanceof Error ? error.message : t('canvas.dropError')
+            if (message === t('canvas.invalidSubboardLinkBody')) {
+              setWorkspaceActionError(message)
+              continue
+            }
+            firstFailure ??= message
+          }
+        }
+
+        if (firstFailure) {
+          setImageDropError(firstFailure)
+        }
+      })()
+    },
+    [
+      computeDroppedBudSize,
+      resolveDroppedModule,
+      runCanvasCommand,
+      screenToFlowPosition,
+      t,
+      workspaceRoot
+    ]
+  )
+
   const placePickedResources = useCallback(
     async (filePaths: string[], preferredBehavior: 'link' | 'import'): Promise<void> => {
       const basePosition = getDefaultCanvasInsertionPoint()
@@ -3071,78 +3217,89 @@ export function Canvas({
           <MaterialsWindow
             onClose={() => materialsMica.close(win.id)}
             onOpenBoard={onOpenBoard}
+            onPlaceMaterialsOnCanvas={placeArrangementsMaterialsOnCanvas}
           />
         )
       }}
     >
     <BloomContext.Provider value={handleBloom}>
       {activeBloom === null && (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          zIndexMode="manual"
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onPaneClick={onPaneClick}
-          onNodeClick={onNodeClick}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onPaneContextMenu={onPaneContextMenu}
-          onMoveEnd={onMoveEnd}
-          className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
-          elementsSelectable={activeTool === 'pointer'}
-          nodesDraggable={activeTool === 'pointer'}
-          nodesConnectable={activeTool === 'pointer'}
-          selectNodesOnDrag={false}
-          selectionOnDrag={activeTool === 'pointer'}
-          elevateNodesOnSelect={false}
-          panOnDrag={panOnDragButtons}
-          connectionMode={ConnectionMode.Loose}
-          connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
-          {...(boardViewport
-            ? { defaultViewport: boardViewport }
-            : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
-          proOptions={{ hideAttribution: true }}
-          data-board-capture="root"
+        <div
+          ref={canvasDropTargetRef}
+          className={[
+            'canvas__drop-surface',
+            isMaterialsCanvasDropActive ? 'canvas__drop-surface--materials-over' : ''
+          ]
+            .filter(Boolean)
+            .join(' ')}
         >
-          <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
-          <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-          <div data-board-capture="exclude">
-            <MiniMap nodeStrokeWidth={1} zoomable pannable />
-          </div>
-          <Panel position="top-left">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            zIndexMode="manual"
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onPaneClick={onPaneClick}
+            onNodeClick={onNodeClick}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onPaneContextMenu={onPaneContextMenu}
+            onMoveEnd={onMoveEnd}
+            className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
+            elementsSelectable={activeTool === 'pointer'}
+            nodesDraggable={activeTool === 'pointer'}
+            nodesConnectable={activeTool === 'pointer'}
+            selectNodesOnDrag={false}
+            selectionOnDrag={activeTool === 'pointer'}
+            elevateNodesOnSelect={false}
+            panOnDrag={panOnDragButtons}
+            connectionMode={ConnectionMode.Loose}
+            connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
+            {...(boardViewport
+              ? { defaultViewport: boardViewport }
+              : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
+            proOptions={{ hideAttribution: true }}
+            data-board-capture="root"
+          >
+            <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
+            <Background gap={25} size={1} color="var(--color-secondary-fg)" />
             <div data-board-capture="exclude">
-              <BoardContextBar
-                name={boardName}
-                workspaceRoot={workspaceRoot}
-                workspaceName={workspaceConfig?.name}
-                isDirty={isDirty}
-                onNameChange={(name) => updateBoardMeta({ name })}
-                onSave={() => void handleSave()}
-                onGoHome={onGoHome}
-                onGoToWorkspaceHome={onGoToWorkspaceHome}
-                onNewBoard={handleNewBoard}
-                onOverflow={setOverflowAnchor}
-              />
+              <MiniMap nodeStrokeWidth={1} zoomable pannable />
             </div>
-          </Panel>
+            <Panel position="top-left">
+              <div data-board-capture="exclude">
+                <BoardContextBar
+                  name={boardName}
+                  workspaceRoot={workspaceRoot}
+                  workspaceName={workspaceConfig?.name}
+                  isDirty={isDirty}
+                  onNameChange={(name) => updateBoardMeta({ name })}
+                  onSave={() => void handleSave()}
+                  onGoHome={onGoHome}
+                  onGoToWorkspaceHome={onGoToWorkspaceHome}
+                  onNewBoard={handleNewBoard}
+                  onOverflow={setOverflowAnchor}
+                />
+              </div>
+            </Panel>
 
-          <Panel position="bottom-center">
-            <div data-board-capture="exclude">
-              <CanvasToolbar
-                activeTool={activeTool}
-                onToolChange={setActiveTool}
-                onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
-              />
-            </div>
-          </Panel>
-        </ReactFlow>
+            <Panel position="bottom-center">
+              <div data-board-capture="exclude">
+                <CanvasToolbar
+                  activeTool={activeTool}
+                  onToolChange={setActiveTool}
+                  onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
+                />
+              </div>
+            </Panel>
+          </ReactFlow>
+        </div>
       )}
 
       {activeBloom === null && <EdgeToolbar />}
