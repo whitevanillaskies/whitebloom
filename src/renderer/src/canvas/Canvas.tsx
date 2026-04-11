@@ -39,6 +39,9 @@ import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
 import PromoteSubboardModal from '@renderer/components/subboard/PromoteSubboardModal'
+import MaterialsWindow from '@renderer/components/arrangements/MaterialsWindow'
+import { MicaHost, useMicaHost, MICA_PERSISTENCE_BOUNDARY } from '@renderer/mica'
+import { useArrangementsStore } from '@renderer/stores/arrangements'
 import {
   ArrowDownToLine,
   Boxes,
@@ -126,6 +129,16 @@ const INTERNAL_CLUSTER_EDGE_Z_INDEX = 5
 
 const WEB_RESOURCE_DROP_ERROR =
   "Can't embed web resources — save the image to your local drive first, then drop it."
+
+const CANVAS_MATERIALS_MICA_HOST_ID = 'canvas-materials'
+const DEFAULT_MATERIALS_GEOMETRY = {
+  x: 60,
+  y: 60,
+  width: 560,
+  height: 440,
+  minWidth: 400,
+  minHeight: 320
+} as const
 
 type NodeBounds = {
   left: number
@@ -626,6 +639,8 @@ export function Canvas({
   const unhandledDropSetting = useAppSettingsStore((s) => s.files.unhandledDrop)
   const warnLargeImport = useAppSettingsStore((s) => s.files.warnLargeImport)
   const loadAppSettings = useAppSettingsStore((s) => s.loadAppSettings)
+  const loadArrangements = useArrangementsStore((s) => s.loadArrangements)
+  const isArrangementsHydrated = useArrangementsStore((s) => s.isHydrated)
 
   const { screenToFlowPosition } = useReactFlow()
 
@@ -655,9 +670,50 @@ export function Canvas({
   )
   const transientAutosaveRef = useRef<string | null>(null)
 
+  // ── Materials Mica host ──────────────────────────────────────────────────────
+  const materialsMicaPolicy = useMemo(
+    () => ({
+      hostId: CANVAS_MATERIALS_MICA_HOST_ID,
+      placementMode: 'screen-space' as const,
+      windowLimit: 'single' as const,
+      allowedKinds: ['materials'] as const,
+      persistence: {
+        ...MICA_PERSISTENCE_BOUNDARY,
+        route: 'session' as const,
+        geometry: 'session' as const,
+        visibility: 'session' as const,
+        focus: 'session' as const,
+        uiState: 'session' as const
+      }
+    }),
+    []
+  )
+  const materialsMica = useMicaHost(materialsMicaPolicy)
+
   const closeCanvasContextMenu = useCallback(() => {
     setCanvasContextMenu(null)
   }, [])
+
+  const handleOpenMaterials = useCallback(() => {
+    const existing = materialsMica.windows.find((w) => w.kind === 'materials')
+    if (existing) {
+      if (existing.visibility === 'open') {
+        materialsMica.close(existing.id)
+      } else {
+        materialsMica.focus(existing.id)
+      }
+      return
+    }
+    materialsMica.open({
+      kind: 'materials',
+      payload: {},
+      geometry: { ...DEFAULT_MATERIALS_GEOMETRY },
+      uiState: {}
+    })
+    if (!isArrangementsHydrated && workspaceRoot) {
+      void loadArrangements()
+    }
+  }, [materialsMica, isArrangementsHydrated, workspaceRoot, loadArrangements])
 
   const getDefaultCanvasInsertionPoint = useCallback((): FlowPosition => {
     if (canvasContextMenu) return canvasContextMenu.flowPosition
@@ -1271,7 +1327,8 @@ export function Canvas({
           deleteSelection,
           bloomSelection,
           openSelectionInNativeEditor,
-          openArrangements: onOpenArrangements
+          openArrangements: onOpenArrangements,
+          openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined
         }
       }),
     [
@@ -1281,6 +1338,7 @@ export function Canvas({
       deleteSelection,
       getDefaultCanvasInsertionPoint,
       boardPath,
+      handleOpenMaterials,
       openSelectionInNativeEditor,
       onOpenArrangements,
       selectedBudModule,
@@ -3005,6 +3063,18 @@ export function Canvas({
   )
 
   return (
+    <MicaHost
+      host={materialsMica}
+      renderWindow={({ window: win }) => {
+        if (win.kind !== 'materials') return null
+        return (
+          <MaterialsWindow
+            onClose={() => materialsMica.close(win.id)}
+            onOpenBoard={onOpenBoard}
+          />
+        )
+      }}
+    >
     <BloomContext.Provider value={handleBloom}>
       {activeBloom === null && (
         <ReactFlow
@@ -3234,5 +3304,6 @@ export function Canvas({
         />
       ) : null}
     </BloomContext.Provider>
+    </MicaHost>
   )
 }

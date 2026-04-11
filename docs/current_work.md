@@ -51,39 +51,6 @@ Mica windows, drag coordinator, drop targets, and the SetsIsland tree interactio
 
 ## Implementation
 
-## Phase 2: Establish Materials Window Shell
-Goal: introduce the new Mica window entry point and framing.
-
-**Work Unit 2.1: Add `Materials` command to canvas palette**
-- Add palette action.
-- Open a standalone Mica floating window from board context.
-
-**Work Unit 2.2: Build Materials window frame**
-- Create base window layout with left sidebar and right content area.
-- Ensure it can open and close independently from the board and from other windows.
-
-**Work Unit 2.3: Define window state model**
-- Track current sidebar selection: `Bins`, specific set, or smart set.
-- Make `Bins` the default selection on open.
-
-## Phase 3: Build Sidebar Navigation Model
-Goal: reproduce the new navigation structure cleanly.
-
-**Work Unit 3.1: Implement sidebar section structure**
-- Add three sections: `Bins`, `Sets`, `Smart Sets`.
-
-**Work Unit 3.2: Reuse/adapt Sets tree**
-- Reuse former `SetsIsland` hierarchy interactions where possible.
-- Support collapse/expand behavior for hierarchical sets.
-
-**Work Unit 3.3: Add smart set section**
-- Render read-only smart sets at the bottom.
-- Ensure `Stale` appears first.
-
-**Work Unit 3.4: Wire selection behavior**
-- Clicking `Bins` returns to bin-organized view.
-- Clicking a set or smart set switches to lens/filter mode.
-
 ## Phase 4: Build Materials List Rendering
 Goal: implement the core right-side content behavior.
 

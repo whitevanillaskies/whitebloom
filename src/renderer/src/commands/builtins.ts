@@ -2,7 +2,7 @@ import {
   createBuiltinCommandProvider,
   registerCommandProvider
 } from './registry'
-import { Archive, Download, Globe, Layers, PanelsTopLeft, Tag, Trash2 } from 'lucide-react'
+import { Archive, Boxes, Download, Globe, Layers, PanelsTopLeft, Tag, Trash2 } from 'lucide-react'
 import { boardBloomModule } from '../modules/boardbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
 import { normalizeWebPageUrl } from '../shared/web-page-url'
@@ -36,7 +36,8 @@ export const WHITEBLOOM_COMMAND_IDS = {
     deleteSelection: 'selection.delete',
     bloomSelection: 'node.bloom',
     openSelectionInNativeEditor: 'resource.open-native',
-    openArrangements: 'arrangements.open'
+    openArrangements: 'arrangements.open',
+    openMaterials: 'arrangements.open-materials'
   },
   arrangements: {
     createBin: 'arrangements.bin.create',
@@ -853,6 +854,28 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
         subtitle: 'Open the arrangements desktop for this workspace',
         icon: PanelsTopLeft,
         hotkey: 'Arr'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.openMaterials,
+      aliases: ['workspace.materials', 'materials'],
+      when: (context) => typeof context.actions.openMaterials === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.openMaterials) {
+          throw new Error('Canvas context cannot open materials.')
+        }
+
+        await context.actions.openMaterials()
+      }
+    },
+    presentations: [
+      {
+        context: 'canvas',
+        title: 'Materials',
+        subtitle: 'Open the materials window',
+        icon: Boxes
       }
     ]
   }

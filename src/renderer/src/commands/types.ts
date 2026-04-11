@@ -61,6 +61,7 @@ export type CanvasCommandActions = {
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
   openArrangements?: () => void
+  openMaterials?: () => void
 }
 
 /**
