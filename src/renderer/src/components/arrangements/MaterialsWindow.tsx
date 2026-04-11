@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Archive,
-  Boxes,
   File,
   FolderTree,
   LayoutDashboard,
@@ -21,7 +20,7 @@ import {
   PetalToolbarGroup,
   PetalToolbarButton
 } from '../petal/window'
-import type { ArrangementsMaterial, GardenSetNode } from '../../../../shared/arrangements'
+import type { ArrangementsMaterial, GardenBin, GardenSetNode } from '../../../../shared/arrangements'
 import { SYSTEM_TRASH_BIN_ID } from '../../../../shared/arrangements'
 import { resolveWorkspaceBoardPath } from '../../shared/board-resource'
 import {
@@ -49,6 +48,7 @@ import './MaterialsWindow.css'
 
 type SidebarSel =
   | { kind: 'bins' }
+  | { kind: 'bin'; id: string }
   | { kind: 'set'; id: string }
   | { kind: 'smart-set'; id: 'stale' }
   | { kind: 'trash' }
@@ -344,6 +344,54 @@ function BinSection({
   )
 }
 
+// ── Sidebar bin row ────────────────────────────────────────────────────────────
+
+type SidebarBinRowProps = {
+  bin: GardenBin
+  isSelected: boolean
+  onSelect: () => void
+}
+
+function SidebarBinRow({ bin, isSelected, onSelect }: SidebarBinRowProps): React.JSX.Element {
+  const rowRef = useRef<HTMLButtonElement>(null)
+  const targetId = useMemo(
+    () => createArrangementsDropTargetId('bin', `mw-sidebar-${bin.id}`),
+    [bin.id]
+  )
+  const isDropActive = useArrangementsDragTargetActive(targetId)
+  const isSpringLoadReady = useArrangementsSpringLoadHover(targetId)
+  const dropTargetMeta = useMemo(
+    () => ({ type: 'bin', binId: bin.id } as const),
+    [bin.id]
+  )
+
+  useArrangementsDropTarget({
+    id: targetId,
+    hostId: ARRANGEMENTS_MICA_HOST_ID,
+    element: rowRef.current,
+    meta: dropTargetMeta
+  })
+
+  return (
+    <button
+      ref={rowRef}
+      type="button"
+      className={[
+        'materials-window__nav-row',
+        'materials-window__nav-row--bin',
+        isSelected ? 'materials-window__nav-row--selected' : '',
+        isDropActive ? 'materials-window__nav-row--drag-over' : '',
+        isSpringLoadReady ? 'materials-window__nav-row--intent-ready' : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={onSelect}
+    >
+      <span className="materials-window__nav-label">{bin.name}</span>
+    </button>
+  )
+}
+
 // ── Set tree node (sidebar) ────────────────────────────────────────────────────
 
 type SetTreeNodeProps = {
@@ -612,6 +660,7 @@ export default function MaterialsWindow({
   const workspaceRoot = useWorkspaceStore((s) => s.root)
 
   const [sel, setSel] = useState<SidebarSel>(SEL_BINS)
+  const [binsExpanded, setBinsExpanded] = useState(true)
   const [setExpandedIds, setSetExpandedIds] = useState<Set<string>>(new Set())
   const [contextMenuState, setContextMenuState] = useState<
     | { kind: 'root'; anchor: { x: number; y: number } }
@@ -627,6 +676,13 @@ export default function MaterialsWindow({
   const [isReferenceScanPending, setIsReferenceScanPending] = useState(false)
 
   const userBins = useMemo(() => bins.filter((b) => b.kind === 'user'), [bins])
+
+  // If the selected bin is deleted, fall back to the all-bins overview
+  useEffect(() => {
+    if (sel.kind === 'bin' && !userBins.some((b) => b.id === sel.id)) {
+      setSel(SEL_BINS)
+    }
+  }, [sel, userBins])
 
   // Non-trash materials (trash bin excluded from the list view)
   const visibleMaterials = useMemo(
@@ -993,7 +1049,7 @@ export default function MaterialsWindow({
 
   const sidebar = (
     <div className="materials-window__sidebar">
-      {/* Bins anchor */}
+      {/* Bins */}
       <div className="materials-window__sidebar-section">
         <button
           type="button"
@@ -1003,14 +1059,30 @@ export default function MaterialsWindow({
           ].join(' ')}
           onClick={() => setSel(SEL_BINS)}
         >
-          <Boxes
-            size={12}
-            strokeWidth={1.6}
-            className="materials-window__nav-icon"
+          <span
+            className={[
+              'materials-window__bins-chevron',
+              binsExpanded ? 'materials-window__bins-chevron--open' : ''
+            ].join(' ')}
+            onClick={(e) => {
+              e.stopPropagation()
+              setBinsExpanded((p) => !p)
+            }}
             aria-hidden="true"
-          />
+          >
+            ›
+          </span>
           <span className="materials-window__nav-label">Bins</span>
         </button>
+        {binsExpanded &&
+          userBins.map((bin) => (
+            <SidebarBinRow
+              key={bin.id}
+              bin={bin}
+              isSelected={sel.kind === 'bin' && sel.id === bin.id}
+              onSelect={() => setSel({ kind: 'bin', id: bin.id })}
+            />
+          ))}
         <button
           ref={trashRowRef}
           type="button"
@@ -1134,6 +1206,23 @@ export default function MaterialsWindow({
             ))}
             {looseMaterials.length === 0 && userBins.length === 0 && (
               <p className="materials-window__empty">Right-click to create a bin.</p>
+            )}
+          </div>
+        ) : sel.kind === 'bin' ? (
+          <div className="materials-window__set-view">
+            {(binMaterialsMap.get(sel.id)?.length ?? 0) === 0 ? (
+              <p className="materials-window__empty">Empty.</p>
+            ) : (
+              (binMaterialsMap.get(sel.id) ?? []).map((m) => (
+                <MaterialRow
+                  key={m.key}
+                  material={m}
+                  workspaceRoot={workspaceRoot}
+                  dragSource={{ kind: 'bin', binId: sel.id }}
+                  onActivate={handleActivateMaterial}
+                  onResolveDrop={handleResolveDrop}
+                />
+              ))
             )}
           </div>
         ) : sel.kind === 'trash' ? (

@@ -127,6 +127,36 @@
   white-space: nowrap;
 }
 
+.materials-window__nav-row--intent-ready {
+  box-shadow: inset 0 0 0 1px rgba(30, 135, 255, 0.4);
+}
+
+/* Indented bin rows under the Bins header */
+.materials-window__nav-row--bin {
+  padding-left: 24px;
+}
+
+/* Chevron toggle on the Bins nav row */
+.materials-window__bins-chevron {
+  flex-shrink: 0;
+  width: 8px;
+  margin-right: -2px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-muted-fg);
+  transition: transform 120ms;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 2px;
+}
+
+.materials-window__bins-chevron--open {
+  transform: rotate(90deg);
+}
+
 .materials-window__nav-count {
   flex-shrink: 0;
   font-size: 10px;
