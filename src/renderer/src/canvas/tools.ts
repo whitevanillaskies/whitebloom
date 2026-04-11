@@ -1,1 +1,1 @@
-export type Tool = 'pointer' | 'hand' | 'text'
+export type Tool = 'pointer' | 'hand' | 'text' | 'ink'

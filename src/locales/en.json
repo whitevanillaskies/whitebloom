@@ -188,6 +188,8 @@
     "pointerLabel": "Pointer",
     "handLabel": "Hand",
     "addTextLabel": "Add text",
+    "inkLabel": "Ink",
+    "acetateLabel": "Toggle acetate layer",
     "alertsLabel": "TODO - alerts",
     "commentsLabel": "TODO - comments",
     "shapesLabel": "TODO - shapes"

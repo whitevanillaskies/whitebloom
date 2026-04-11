@@ -188,6 +188,8 @@
     "pointerLabel": "Puntero",
     "handLabel": "Mano",
     "addTextLabel": "Agregar texto",
+    "inkLabel": "Tinta",
+    "acetateLabel": "Alternar capa de acetato",
     "alertsLabel": "TODO - alertas",
     "commentsLabel": "TODO - comentarios",
     "shapesLabel": "TODO - formas"

@@ -33,6 +33,7 @@ import { EdgeToolbar } from './EdgeToolbar'
 import { ShapeToolbar } from './ShapeToolbar'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
+import { InkOverlay } from './InkOverlay'
 import '../modules/index'
 import { dispatchDirectory, dispatchModule, resolveModuleById } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
@@ -723,6 +724,7 @@ export function Canvas({
 
   const canvasDropTargetRef = useRef<HTMLDivElement>(null)
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
+  const [acetateVisible, setAcetateVisible] = useState(true)
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
   const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
@@ -2445,11 +2447,11 @@ export function Canvas({
   const confirmDialogConfirmLabel =
     pendingDocumentAction === 'newBoard' ? t('canvas.discardButton') : t('canvas.exitButton')
 
-  const panOnDragButtons = useMemo(() => {
-    if (activeTool === 'hand') return [0, 1, 2]
-    if (activeTool === 'pointer') return [1, 2]
-    return false
-  }, [activeTool])
+    const panOnDragButtons = useMemo(() => {
+      if (activeTool === 'hand') return [0, 1, 2]
+      if (activeTool === 'pointer') return [1, 2]
+      return false
+    }, [activeTool])
 
   useEffect(() => {
     if (activeTool !== 'pointer' && canvasContextMenu !== null) {
@@ -3394,6 +3396,7 @@ export function Canvas({
             >
               <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
               <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+              <InkOverlay active={activeTool === 'ink'} acetateVisible={acetateVisible} />
               <div data-board-capture="exclude">
                 <MiniMap nodeStrokeWidth={1} zoomable pannable />
               </div>
@@ -3419,6 +3422,8 @@ export function Canvas({
                   <CanvasToolbar
                     activeTool={activeTool}
                     onToolChange={setActiveTool}
+                    acetateVisible={acetateVisible}
+                    onAcetateToggle={() => setAcetateVisible((current) => !current)}
                     onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
                   />
                 </div>

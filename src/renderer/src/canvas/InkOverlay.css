@@ -1,0 +1,31 @@
+.ink-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.ink-overlay--active {
+  pointer-events: auto;
+}
+
+.ink-overlay__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ink-overlay__canvas--visible {
+  opacity: 1;
+}
+
+.ink-overlay__canvas--acetate {
+  opacity: 1;
+}
+
+.ink-overlay__canvas--glass {
+  opacity: 1;
+}

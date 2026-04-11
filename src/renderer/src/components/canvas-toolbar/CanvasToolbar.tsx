@@ -1,4 +1,4 @@
-import { Hand, MousePointer2, Shapes, Type } from 'lucide-react'
+import { Hand, Layers3, MousePointer2, Pen, Shapes, Type } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import './CanvasToolbar.css'
 import type { Tool } from '@renderer/canvas/tools'
@@ -6,10 +6,18 @@ import type { Tool } from '@renderer/canvas/tools'
 type CanvasToolbarProps = {
     activeTool: Tool
     onToolChange: (tool: Tool) => void
+    acetateVisible: boolean
+    onAcetateToggle: () => void
     onShapesClick?: (anchor: { x: number; y: number }) => void
 }
 
-export default function CanvasToolbar({ activeTool, onToolChange, onShapesClick }: CanvasToolbarProps) {
+export default function CanvasToolbar({
+    activeTool,
+    onToolChange,
+    acetateVisible,
+    onAcetateToggle,
+    onShapesClick
+}: CanvasToolbarProps) {
     const { t } = useTranslation()
 
     const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -44,6 +52,24 @@ export default function CanvasToolbar({ activeTool, onToolChange, onShapesClick 
                 aria-label={t('canvasToolbar.addTextLabel')}
             >
                 <Type size={16} strokeWidth={2} />
+            </button>
+            <button
+                type="button"
+                onMouseDown={preventMouseFocus}
+                onClick={() => onToolChange('ink')}
+                className={`canvas-toolbar__button${activeTool === 'ink' ? ' canvas-toolbar__button--active' : ''}`}
+                aria-label={t('canvasToolbar.inkLabel')}
+            >
+                <Pen size={16} strokeWidth={2} />
+            </button>
+            <button
+                type="button"
+                onMouseDown={preventMouseFocus}
+                onClick={onAcetateToggle}
+                className={`canvas-toolbar__button${acetateVisible ? ' canvas-toolbar__button--toggle-active' : ''}`}
+                aria-label={t('canvasToolbar.acetateLabel')}
+            >
+                <Layers3 size={16} strokeWidth={2} />
             </button>
             <button
                 type="button"

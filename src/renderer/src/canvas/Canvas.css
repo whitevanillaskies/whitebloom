@@ -25,6 +25,11 @@
   cursor: crosshair !important;
 }
 
+.canvas--tool-ink,
+.canvas--tool-ink * {
+  cursor: crosshair !important;
+}
+
 /* Toolbars should always use normal system cursors regardless of active tool. */
 .canvas--tool-hand .canvas-toolbar,
 .canvas--tool-hand .canvas-toolbar *,
@@ -37,24 +42,35 @@
 .canvas--tool-text .selection-toolbar,
 .canvas--tool-text .selection-toolbar *,
 .canvas--tool-text .board-context-bar,
-.canvas--tool-text .board-context-bar * {
+.canvas--tool-text .board-context-bar *,
+.canvas--tool-ink .canvas-toolbar,
+.canvas--tool-ink .canvas-toolbar *,
+.canvas--tool-ink .selection-toolbar,
+.canvas--tool-ink .selection-toolbar *,
+.canvas--tool-ink .board-context-bar,
+.canvas--tool-ink .board-context-bar * {
   cursor: auto !important;
 }
 
 /* Keep explicit button affordance on toolbar controls. */
 .canvas--tool-hand .canvas-toolbar__button,
 .canvas--tool-text .canvas-toolbar__button,
+.canvas--tool-ink .canvas-toolbar__button,
 .canvas--tool-hand .petal-toolbar-button,
 .canvas--tool-text .petal-toolbar-button,
+.canvas--tool-ink .petal-toolbar-button,
 .canvas--tool-hand .board-context-bar__identity--workspace,
 .canvas--tool-text .board-context-bar__identity--workspace,
+.canvas--tool-ink .board-context-bar__identity--workspace,
 .canvas--tool-hand .board-context-bar__name,
-.canvas--tool-text .board-context-bar__name {
+.canvas--tool-text .board-context-bar__name,
+.canvas--tool-ink .board-context-bar__name {
   cursor: pointer !important;
 }
 
 .canvas--tool-hand .board-context-bar__name,
-.canvas--tool-text .board-context-bar__name {
+.canvas--tool-text .board-context-bar__name,
+.canvas--tool-ink .board-context-bar__name {
   cursor: text !important;
 }
 
