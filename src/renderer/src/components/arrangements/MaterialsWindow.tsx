@@ -521,7 +521,7 @@ function SetTreeNode({
           isDropActive ? 'materials-window__set-row--drag-over' : '',
           isSpringLoadReady ? 'materials-window__set-row--intent-ready' : ''
         ].join(' ')}
-        style={{ paddingLeft: 10 + depth * 12 }}
+        style={{ '--materials-window-set-depth': depth } as React.CSSProperties}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         role="treeitem"

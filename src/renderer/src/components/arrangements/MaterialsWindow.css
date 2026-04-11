@@ -3,6 +3,19 @@
 .materials-window {
   display: flex;
   flex-direction: column;
+  --materials-window-sidebar-row-pad-x: 10px;
+  --materials-window-sidebar-row-pad-y: 5px;
+  --materials-window-sidebar-leading-size: 16px;
+  --materials-window-sidebar-leading-gap: 6px;
+  --materials-window-sidebar-indent-step: 12px;
+  --materials-window-sidebar-label-start: calc(
+    var(--materials-window-sidebar-row-pad-x) +
+      var(--materials-window-sidebar-leading-size) +
+      var(--materials-window-sidebar-leading-gap)
+  );
+  --materials-window-sidebar-child-label-start: calc(
+    var(--materials-window-sidebar-label-start) + var(--materials-window-sidebar-indent-step)
+  );
 }
 
 .materials-window .mica-window__sidebar {
@@ -63,7 +76,7 @@
 
 .materials-window__sidebar-heading {
   display: block;
-  padding: 4px 10px 2px;
+  padding: 4px var(--materials-window-sidebar-row-pad-x) 2px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -78,9 +91,9 @@
 .materials-window__nav-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--materials-window-sidebar-leading-gap);
   width: 100%;
-  padding: 5px 10px 5px 5px;
+  padding: var(--materials-window-sidebar-row-pad-y) var(--materials-window-sidebar-row-pad-x);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -112,6 +125,8 @@
 
 .materials-window__nav-icon {
   flex-shrink: 0;
+  width: var(--materials-window-sidebar-leading-size);
+  height: var(--materials-window-sidebar-leading-size);
   color: var(--color-muted-fg);
 }
 
@@ -135,13 +150,13 @@
    Depth-1 set text starts at: paddingLeft(22) + chevron(16) + gap(5) = 43px.
    Bin rows are leaf items (no chevron), so match that text start directly. */
 .materials-window__nav-row--bin {
-  padding-left: 43px;
+  padding-left: var(--materials-window-sidebar-child-label-start);
 }
 
 /* Chevron toggle on the Bins nav row — same geometry as .materials-window__set-chevron */
 .materials-window__bins-chevron {
   flex-shrink: 0;
-  width: 16px;
+  width: var(--materials-window-sidebar-leading-size);
   font-size: 11px;
   line-height: 1;
   color: var(--color-muted-fg);
@@ -183,8 +198,15 @@
 .materials-window__set-row {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  gap: var(--materials-window-sidebar-leading-gap);
+  padding:
+    var(--materials-window-sidebar-row-pad-y)
+    var(--materials-window-sidebar-row-pad-x)
+    var(--materials-window-sidebar-row-pad-y)
+    calc(
+      var(--materials-window-sidebar-row-pad-x) +
+        (var(--materials-window-set-depth, 0) * var(--materials-window-sidebar-indent-step))
+    );
   cursor: pointer;
   border-radius: 4px;
   font-family: 'DM Sans', sans-serif;
@@ -217,7 +239,7 @@
 
 .materials-window__set-chevron {
   flex-shrink: 0;
-  width: 16px;
+  width: var(--materials-window-sidebar-leading-size);
   font-size: 11px;
   line-height: 1;
   color: transparent;
