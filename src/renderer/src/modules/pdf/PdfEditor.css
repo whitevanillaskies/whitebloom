@@ -74,6 +74,18 @@
   color: var(--color-primary-fg);
 }
 
+.pdf-editor__icon-button--toggle-active::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+  background: var(--color-accent-green);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
 .pdf-editor__icon-button:disabled {
   opacity: 0.38;
   cursor: default;
@@ -143,6 +155,10 @@
   position: relative;
   min-height: 0;
   overflow: hidden;
+}
+
+.pdf-editor--tool-ink .pdf-editor__viewport {
+  cursor: crosshair;
 }
 
 .pdf-editor__sidebar {
@@ -253,6 +269,11 @@
   box-sizing: border-box;
   overscroll-behavior: contain;
   scrollbar-gutter: stable both-edges;
+}
+
+.pdf-editor__viewport-frame {
+  position: relative;
+  height: 100%;
 }
 
 .pdf-editor__page-stack {
@@ -424,4 +445,24 @@
   font-size: 13px;
   line-height: 1.55;
   color: var(--color-secondary-fg);
+}
+
+.pdf-ink-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.pdf-ink-overlay--active {
+  pointer-events: auto;
+}
+
+.pdf-ink-overlay__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
 }

@@ -6,8 +6,10 @@ import {
   ChevronRight,
   Columns2,
   GalleryVertical,
+  Layers3,
   Minus,
   PanelLeft,
+  Pen,
   RectangleHorizontal,
   Plus,
   Rows3,
@@ -16,6 +18,7 @@ import {
 import type { BudEditorProps } from '../types'
 import { resourceToMediaSrc } from '@renderer/shared/resource-url'
 import { createLogger } from '../../../../shared/logger'
+import { PdfInkOverlay } from './PdfInkOverlay'
 import './PdfEditor.css'
 
 GlobalWorkerOptions.workerSrc = new URL(
@@ -125,7 +128,7 @@ function PdfPageCanvas({ doc, pageNumber, scale, layout }: PageCanvasProps) {
       : undefined
 
   return (
-    <div className="pdf-editor__page-shell" style={shellStyle}>
+    <div className="pdf-editor__page-shell" style={shellStyle} data-pdf-page-shell={pageNumber}>
       {renderError ? <div className="pdf-editor__page-error">{renderError}</div> : null}
       <canvas ref={canvasRef} className="pdf-editor__page-canvas" />
     </div>
@@ -241,6 +244,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [thumbnails, setThumbnails] = useState<ThumbnailState[]>([])
   const [activePage, setActivePage] = useState(1)
+  const [activeTool, setActiveTool] = useState<'navigate' | 'ink'>('navigate')
+  const [acetateVisible, setAcetateVisible] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('single-continuous')
   const [spreadLead, setSpreadLead] = useState<SpreadLead>('odd')
@@ -518,7 +523,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
 
   return (
     <div
-      className={`pdf-editor pdf-editor--${viewMode} pdf-editor--spread-gap-${spreadGapMode}`}
+      className={`pdf-editor pdf-editor--${viewMode} pdf-editor--spread-gap-${spreadGapMode}${activeTool === 'ink' ? ' pdf-editor--tool-ink' : ''}`}
     >
       <div className="pdf-editor__chrome">
         <div className="pdf-editor__toolbar">
@@ -657,6 +662,25 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
             <button
               type="button"
+              className={`pdf-editor__icon-button${activeTool === 'ink' ? ' pdf-editor__icon-button--active' : ''}`}
+              onClick={() => setActiveTool((current) => (current === 'ink' ? 'navigate' : 'ink'))}
+              aria-label="Ink tool"
+              title="Ink tool"
+            >
+              <Pen size={15} strokeWidth={1.7} />
+            </button>
+            <button
+              type="button"
+              className={`pdf-editor__icon-button${acetateVisible ? ' pdf-editor__icon-button--toggle-active' : ''}`}
+              onClick={() => setAcetateVisible((current) => !current)}
+              aria-label="Show ink layers"
+              title="Show ink layers"
+            >
+              <Layers3 size={15} strokeWidth={1.7} />
+            </button>
+            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
               className="pdf-editor__icon-button"
               onClick={onClose}
               aria-label="Close PDF viewer"
@@ -698,7 +722,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
           </aside>
         )}
 
-        <div ref={scrollViewportRef} className="pdf-editor__viewport">
+        <div className="pdf-editor__viewport-frame">
+          <div ref={scrollViewportRef} className="pdf-editor__viewport">
           {errorMessage ? (
             <div className="pdf-editor__empty-state">
               <p className="pdf-editor__empty-title">Unable to open PDF</p>
@@ -819,6 +844,14 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                   </section>
                   )}
             </div>
+          ) : null}
+          </div>
+          {documentProxy ? (
+            <PdfInkOverlay
+              viewportRef={scrollViewportRef}
+              active={activeTool === 'ink'}
+              acetateVisible={acetateVisible}
+            />
           ) : null}
         </div>
       </div>
