@@ -1,10 +1,37 @@
 {
   "name": "whitebloom",
-  "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "version": "0.1.0-alpha.0",
+  "description": "A local whiteboard that blooms.",
   "main": "./out/main/index.js",
-  "author": "whitebloom.ar",
-  "homepage": "https://electron-vite.org",
+  "author": "White Vanilla Skies",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/whitevanillaskies/whitebloom"
+  },
+  "build": {
+    "appId": "ar.whitebloom",
+    "productName": "WHITEBLOOM",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "whitevanillaskies",
+      "repo": "whitebloom"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -16,6 +43,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
+    "release": "npm run build && electron-builder --publish always",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
