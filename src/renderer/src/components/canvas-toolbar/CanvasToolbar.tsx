@@ -47,12 +47,6 @@ export default function CanvasToolbar({ activeTool, onToolChange, onShapesClick 
             </button>
             <button
                 type="button"
-                 className={'canvas-toolbar__button'}
-                aria-label={t('canvasToolbar.alertsLabel')}>
-                    <CalendarClock size={16} strokeWidth={2} />
-            </button>
-            <button
-                type="button"
                 onMouseDown={preventMouseFocus}
                 onClick={(e) => {
                     if (!onShapesClick) return

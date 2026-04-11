@@ -3,6 +3,14 @@ import { createEmptyGardenState, SYSTEM_TRASH_BIN_ID } from '../src/shared/arran
 import { useArrangementsStore } from '../src/renderer/src/stores/arrangements'
 import { useWorkspaceStore } from '../src/renderer/src/stores/workspace'
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve
+  })
+  return { promise, resolve }
+}
+
 function resetWorkspaceStore(): void {
   useWorkspaceStore.setState({
     root: null,
@@ -21,7 +29,8 @@ function resetArrangementsStore(): void {
     binAssignments: empty.binAssignments,
     desktopPlacements: empty.desktopPlacements,
     cameraState: empty.cameraState,
-    isHydrated: false
+    isHydrated: false,
+    pendingRenameTarget: null
   })
 }
 
@@ -74,6 +83,59 @@ describe('arrangements store', () => {
       SYSTEM_TRASH_BIN_ID
     )
     expect(useArrangementsStore.getState().cameraState.zoom).toBe(1.5)
+  })
+
+  it('clears in-memory arrangements when the active workspace changes', () => {
+    useWorkspaceStore.setState({ root: 'D:/workspace-a' })
+    useArrangementsStore.setState({
+      materials: [
+        { key: 'wloc:res/a.png', kind: 'resource', displayName: 'A', extension: '.png' }
+      ],
+      bins: [
+        { id: SYSTEM_TRASH_BIN_ID, name: 'Trash', kind: 'system' },
+        { id: 'bin-a', name: 'A', kind: 'user' }
+      ],
+      isHydrated: true
+    })
+
+    useWorkspaceStore.setState({ root: 'D:/workspace-b' })
+
+    const state = useArrangementsStore.getState()
+    expect(state.isHydrated).toBe(false)
+    expect(state.materials).toEqual([])
+    expect(state.bins).toEqual([{ id: SYSTEM_TRASH_BIN_ID, name: 'Trash', kind: 'system' }])
+  })
+
+  it('ignores stale arrangement loads after the workspace changes', async () => {
+    const readDeferred = createDeferred<{ ok: true; state: ReturnType<typeof createEmptyGardenState> }>()
+    const enumerateDeferred = createDeferred<{
+      ok: true
+      materials: Array<{
+        key: string
+        kind: 'resource'
+        displayName: string
+        extension: '.png'
+      }>
+    }>()
+
+    useWorkspaceStore.setState({ root: 'D:/workspace-a' })
+    ;(window.api.readArrangements as ReturnType<typeof vi.fn>).mockReturnValueOnce(readDeferred.promise)
+    ;(window.api.enumerateArrangementsMaterial as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      enumerateDeferred.promise
+    )
+
+    const loadPromise = useArrangementsStore.getState().loadArrangements()
+
+    useWorkspaceStore.setState({ root: 'D:/workspace-b' })
+    readDeferred.resolve({ ok: true, state: createEmptyGardenState() })
+    enumerateDeferred.resolve({
+      ok: true,
+      materials: [{ key: 'wloc:res/a.png', kind: 'resource', displayName: 'A', extension: '.png' }]
+    })
+
+    await expect(loadPromise).resolves.toBe(false)
+    expect(useArrangementsStore.getState().materials).toEqual([])
+    expect(useArrangementsStore.getState().isHydrated).toBe(false)
   })
 
   it('creates bins and sets, manages memberships, and keeps trash exclusive', () => {
@@ -185,5 +247,36 @@ describe('arrangements store', () => {
       cameraState: { x: 1, y: 2, zoom: 1.25 },
       trashContents: ['wloc:res/trash.png']
     })
+  })
+
+  it('does not carry queued arrangement saves into the next workspace', async () => {
+    const firstSave = createDeferred<{ ok: boolean; state: unknown }>()
+    ;(window.api.saveArrangements as ReturnType<typeof vi.fn>)
+      .mockReturnValueOnce(firstSave.promise)
+      .mockResolvedValue({ ok: true, state: createEmptyGardenState() })
+
+    useWorkspaceStore.setState({ root: 'D:/workspace-a' })
+    useArrangementsStore.setState({
+      materials: [
+        { key: 'wloc:res/a.png', kind: 'resource', displayName: 'A', extension: '.png' }
+      ],
+      isHydrated: true
+    })
+
+    const firstRequest = useArrangementsStore.getState().saveArrangements()
+    const queuedRequest = useArrangementsStore.getState().saveArrangements()
+
+    useWorkspaceStore.setState({ root: 'D:/workspace-b' })
+    firstSave.resolve({ ok: true, state: createEmptyGardenState() })
+
+    await expect(firstRequest).resolves.toBe(true)
+    await expect(queuedRequest).resolves.toBe(true)
+    expect(window.api.saveArrangements).toHaveBeenCalledTimes(1)
+    expect(window.api.saveArrangements).toHaveBeenCalledWith(
+      'D:/workspace-a',
+      expect.objectContaining({
+        trashContents: []
+      })
+    )
   })
 })

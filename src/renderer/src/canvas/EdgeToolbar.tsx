@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useEdges, useNodes, useReactFlow, useStore } from '@xyflow/react'
+import { useEdges, useNodes, useReactFlow } from '@xyflow/react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useBoardStore } from '@renderer/stores/board'
 import { normalizeEdgeStyle } from '@renderer/shared/types'
 import { ColorControl } from './ColorControl'
 import { StrokeControl } from './StrokeControl'
 import { CanvasToolbar, CanvasToolbarBtn, CanvasToolbarSep } from './CanvasToolbar'
+import { useTransientViewportPanState } from './useTransientViewportPanState'
 import type { WbEdgeData } from './WbEdge'
 
 export function EdgeToolbar() {
@@ -18,31 +18,13 @@ export function EdgeToolbar() {
   const edges = useEdges()
   const boardEdges = useBoardStore((s) => s.edges)
   const patchEdgeStyles = useBoardStore((s) => s.patchEdgeStyles)
-
-  // Hide while panning — viewport transform changes on every pan frame
-  const transform = useStore((s) => s.transform)
-  const prevTransformRef = useRef(transform)
-  const [isPanning, setIsPanning] = useState(false)
-  const panTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    const [, , prevZoom] = prevTransformRef.current
-    const [, , nextZoom] = transform
-    prevTransformRef.current = transform
-    // Only hide on pure pan; zoom (including zoom-to-cursor) changes the zoom level
-    if (nextZoom !== prevZoom) return
-    setIsPanning(true)
-    if (panTimerRef.current) clearTimeout(panTimerRef.current)
-    panTimerRef.current = setTimeout(() => setIsPanning(false), 80)
-    return () => {
-      if (panTimerRef.current) clearTimeout(panTimerRef.current)
-    }
-  }, [transform])
+  const { isPanning, viewportInitialized } = useTransientViewportPanState()
 
   const selectedEdges = edges.filter((e) => e.selected)
   const selectedNodes = nodes.filter((node) => node.selected)
   const totalSelectedItems = selectedEdges.length + selectedNodes.length
-  if (selectedEdges.length !== 1 || totalSelectedItems !== 1 || isPanning) return null
+  if (!viewportInitialized || selectedEdges.length !== 1 || totalSelectedItems !== 1 || isPanning)
+    return null
 
   const edge = selectedEdges[0]
   const persistedEdge = boardEdges.find((candidate) => candidate.id === edge.id)

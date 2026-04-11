@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useEdges, useNodes, useReactFlow, useStore } from '@xyflow/react'
+import { useEdges, useNodes, useReactFlow } from '@xyflow/react'
 import { useBoardStore } from '@renderer/stores/board'
 import { isShapeLeafNode } from '@renderer/shared/types'
 import { ColorControl } from './ColorControl'
 import { StrokeControl } from './StrokeControl'
 import { CanvasToolbar, CanvasToolbarSep } from './CanvasToolbar'
+import { useTransientViewportPanState } from './useTransientViewportPanState'
 
 export function ShapeToolbar() {
   const { t } = useTranslation()
@@ -16,29 +16,13 @@ export function ShapeToolbar() {
   const edges = useEdges()
   const boardNodes = useBoardStore((s) => s.nodes)
   const patchShapeStyles = useBoardStore((s) => s.patchShapeStyles)
-
-  const transform = useStore((s) => s.transform)
-  const prevTransformRef = useRef(transform)
-  const [isPanning, setIsPanning] = useState(false)
-  const panTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    const [, , prevZoom] = prevTransformRef.current
-    const [, , nextZoom] = transform
-    prevTransformRef.current = transform
-    if (nextZoom !== prevZoom) return
-    setIsPanning(true)
-    if (panTimerRef.current) clearTimeout(panTimerRef.current)
-    panTimerRef.current = setTimeout(() => setIsPanning(false), 80)
-    return () => {
-      if (panTimerRef.current) clearTimeout(panTimerRef.current)
-    }
-  }, [transform])
+  const { isPanning, viewportInitialized } = useTransientViewportPanState()
 
   const selectedNodes = nodes.filter((node) => node.selected)
   const selectedEdges = edges.filter((edge) => edge.selected)
   const totalSelectedItems = selectedNodes.length + selectedEdges.length
-  if (selectedNodes.length !== 1 || totalSelectedItems !== 1 || isPanning) return null
+  if (!viewportInitialized || selectedNodes.length !== 1 || totalSelectedItems !== 1 || isPanning)
+    return null
 
   const selectedNode = selectedNodes[0]
   if (selectedNode.dragging) return null

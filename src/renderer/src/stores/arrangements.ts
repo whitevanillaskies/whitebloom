@@ -248,10 +248,16 @@ function reconcileMaterialState(
 
 let arrangementsSavePromise: Promise<boolean> | null = null
 let arrangementsSaveQueued = false
+let arrangementsQueuedWorkspaceRoot: string | null = null
+let arrangementsWorkspaceGeneration = 0
 
-async function performArrangementsSave(): Promise<boolean> {
-  const workspaceRoot = useWorkspaceStore.getState().root
-  if (!workspaceRoot) return false
+function resetArrangementsSaveQueue(): void {
+  arrangementsSaveQueued = false
+  arrangementsQueuedWorkspaceRoot = null
+}
+
+async function performArrangementsSave(workspaceRoot: string): Promise<boolean> {
+  if (useWorkspaceStore.getState().root !== workspaceRoot) return false
 
   const result = await window.api.saveArrangements(
     workspaceRoot,
@@ -261,23 +267,28 @@ async function performArrangementsSave(): Promise<boolean> {
 }
 
 function requestArrangementsSave(): Promise<boolean> {
-  if (arrangementsSavePromise) {
-    arrangementsSaveQueued = true
-    return arrangementsSavePromise
-  }
+  const workspaceRoot = useWorkspaceStore.getState().root
+  if (!workspaceRoot) return Promise.resolve(false)
+
+  arrangementsSaveQueued = true
+  arrangementsQueuedWorkspaceRoot = workspaceRoot
+  if (arrangementsSavePromise) return arrangementsSavePromise
 
   arrangementsSavePromise = (async () => {
     let lastResult = false
 
     try {
-      do {
-        arrangementsSaveQueued = false
-        lastResult = await performArrangementsSave()
-      } while (arrangementsSaveQueued)
+      while (arrangementsSaveQueued) {
+        const nextWorkspaceRoot = arrangementsQueuedWorkspaceRoot
+        resetArrangementsSaveQueue()
+        if (!nextWorkspaceRoot) continue
+        lastResult = await performArrangementsSave(nextWorkspaceRoot)
+      }
 
       return lastResult
     } finally {
       arrangementsSavePromise = null
+      resetArrangementsSaveQueue()
     }
   })()
 
@@ -289,6 +300,7 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
 
   loadArrangements: async () => {
     const workspaceRoot = useWorkspaceStore.getState().root
+    const workspaceGeneration = arrangementsWorkspaceGeneration
     if (!workspaceRoot) {
       set(getEmptyArrangementsState())
       return false
@@ -298,6 +310,13 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
       window.api.enumerateArrangementsMaterial(workspaceRoot),
       window.api.readArrangements(workspaceRoot)
     ])
+
+    if (
+      workspaceGeneration !== arrangementsWorkspaceGeneration ||
+      useWorkspaceStore.getState().root !== workspaceRoot
+    ) {
+      return false
+    }
 
     if (!materialsResult.ok || !stateResult.ok || !stateResult.state) {
       set({ ...getEmptyArrangementsState(), isHydrated: true })
@@ -334,9 +353,16 @@ export const useArrangementsStore = create<ArrangementsState>((set, get) => ({
 
   refreshMaterials: async () => {
     const workspaceRoot = useWorkspaceStore.getState().root
+    const workspaceGeneration = arrangementsWorkspaceGeneration
     if (!workspaceRoot) return false
 
     const materialsResult = await window.api.enumerateArrangementsMaterial(workspaceRoot)
+    if (
+      workspaceGeneration !== arrangementsWorkspaceGeneration ||
+      useWorkspaceStore.getState().root !== workspaceRoot
+    ) {
+      return false
+    }
     if (!materialsResult.ok) return false
 
     set((state) => {
@@ -682,4 +708,11 @@ useArrangementsStore.subscribe((state, previousState) => {
 
   if (!persistedSliceChanged) return
   void requestArrangementsSave()
+})
+
+useWorkspaceStore.subscribe((state, previousState) => {
+  if (state.root === previousState.root) return
+  arrangementsWorkspaceGeneration += 1
+  resetArrangementsSaveQueue()
+  useArrangementsStore.getState().clearArrangements()
 })
