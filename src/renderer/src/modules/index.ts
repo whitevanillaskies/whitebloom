@@ -6,6 +6,7 @@ import { boardBloomModule } from './boardbloom'
 import { schemaBloomModule } from './schemabloom'
 import { obsidianBloomModule } from './obsidianbloom'
 import { webPageBloomModule } from './webpagebloom'
+import { pdfModule } from './pdf'
 
 registerModule(imageModule)
 registerModule(videoModule)
@@ -14,3 +15,4 @@ registerModule(boardBloomModule)
 registerModule(schemaBloomModule)
 registerModule(obsidianBloomModule)
 registerModule(webPageBloomModule)
+registerModule(pdfModule)
