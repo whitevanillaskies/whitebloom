@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Boxes, File, FolderTree, LayoutDashboard, Layers, Link, Link2, Pencil, Trash2 } from 'lucide-react'
+import { Archive, Boxes, File, FolderTree, LayoutDashboard, Layers, Link, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useArrangementsStore } from '../../stores/arrangements'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { MicaWindow, useMicaDragState } from '../../mica'
@@ -149,7 +149,11 @@ type BinSectionProps = {
   workspaceRoot: string
   defaultExpanded?: boolean
   dropBinId?: string
+  pendingRenameTarget?: { kind: 'bin' | 'set'; id: string } | null
   onActivateMaterial: (material: ArrangementsMaterial) => void
+  onOpenContextMenu?: (binId: string, anchor: { x: number; y: number }) => void
+  onRenameCommit?: (binId: string, name: string) => void
+  onRenameCancel?: () => void
   onResolveDrop?: (
     resolution: ArrangementsDropResolution,
     payload: ArrangementsMaterialDragPayload
@@ -162,11 +166,21 @@ function BinSection({
   workspaceRoot,
   defaultExpanded = true,
   dropBinId,
+  pendingRenameTarget,
   onActivateMaterial,
+  onOpenContextMenu,
+  onRenameCommit,
+  onRenameCancel,
   onResolveDrop
 }: BinSectionProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const sectionRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const isPendingRename = Boolean(
+    dropBinId && pendingRenameTarget?.kind === 'bin' && pendingRenameTarget.id === dropBinId
+  )
+  const [draftName, setDraftName] = useState(title)
+
   const targetId = dropBinId
     ? createArrangementsDropTargetId('bin', `materials-window-${dropBinId}`)
     : null
@@ -191,6 +205,45 @@ function BinSection({
     meta: dropTargetMeta
   })
 
+  useEffect(() => {
+    setDraftName(title)
+  }, [title])
+
+  useEffect(() => {
+    if (!isPendingRename) return
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [isPendingRename])
+
+  const commitRename = useCallback(() => {
+    if (!dropBinId) return
+    const normalized = draftName.trim()
+    if (!normalized) {
+      setDraftName(title)
+      onRenameCancel?.()
+      return
+    }
+    onRenameCommit?.(dropBinId, normalized)
+  }, [dropBinId, draftName, title, onRenameCancel, onRenameCommit])
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitRename() }
+      if (e.key === 'Escape') { e.preventDefault(); setDraftName(title); onRenameCancel?.() }
+    },
+    [commitRename, title, onRenameCancel]
+  )
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!dropBinId || !onOpenContextMenu) return
+      e.preventDefault()
+      e.stopPropagation()
+      onOpenContextMenu(dropBinId, { x: e.clientX, y: e.clientY })
+    },
+    [dropBinId, onOpenContextMenu]
+  )
+
   return (
     <div
       ref={sectionRef}
@@ -201,12 +254,14 @@ function BinSection({
       ]
         .filter(Boolean)
         .join(' ')}
+      onContextMenu={handleContextMenu}
     >
-      <button
-        type="button"
+      <div
         className="materials-window__bin-heading"
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => !isPendingRename && setExpanded((prev) => !prev)}
         aria-expanded={expanded}
+        role="button"
+        tabIndex={0}
       >
         <span
           className={[
@@ -217,9 +272,23 @@ function BinSection({
         >
           ›
         </span>
-        <span className="materials-window__bin-title">{title}</span>
+        {isPendingRename ? (
+          <input
+            ref={inputRef}
+            className="materials-window__bin-rename-input"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={handleRenameKeyDown}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Rename bin"
+          />
+        ) : (
+          <span className="materials-window__bin-title">{title}</span>
+        )}
         <span className="materials-window__bin-count">{materials.length}</span>
-      </button>
+      </div>
       {expanded && materials.length > 0 && (
         <div className="materials-window__bin-items">
           {materials.map((m) => (
@@ -497,6 +566,9 @@ export default function MaterialsWindow({
   const sets = useArrangementsStore((s) => s.sets)
   const memberships = useArrangementsStore((s) => s.memberships)
   const binAssignments = useArrangementsStore((s) => s.binAssignments)
+  const createBin = useArrangementsStore((s) => s.createBin)
+  const renameBin = useArrangementsStore((s) => s.renameBin)
+  const deleteBin = useArrangementsStore((s) => s.deleteBin)
   const createRootSet = useArrangementsStore((s) => s.createRootSet)
   const createChildSet = useArrangementsStore((s) => s.createChildSet)
   const renameSet = useArrangementsStore((s) => s.renameSet)
@@ -511,6 +583,11 @@ export default function MaterialsWindow({
   const [contextMenuState, setContextMenuState] = useState<
     | { kind: 'root'; anchor: { x: number; y: number } }
     | { kind: 'child'; setId: string; anchor: { x: number; y: number } }
+    | null
+  >(null)
+  const [binContextMenuState, setBinContextMenuState] = useState<
+    | { kind: 'root'; anchor: { x: number; y: number } }
+    | { kind: 'bin'; binId: string; anchor: { x: number; y: number } }
     | null
   >(null)
 
@@ -653,6 +730,77 @@ export default function MaterialsWindow({
   )
 
   const handleRenameCancel = useCallback(() => {
+    markPendingRenameTarget(null)
+  }, [markPendingRenameTarget])
+
+  // ── Bin context menu ──────────────────────────────────────────────────────────
+
+  const handleOpenBinsViewContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const headingTarget = (e.target as HTMLElement | null)?.closest('.materials-window__bin-heading')
+    if (headingTarget) return
+    e.preventDefault()
+    setBinContextMenuState({ kind: 'root', anchor: { x: e.clientX, y: e.clientY } })
+  }, [])
+
+  const handleOpenBinContextMenu = useCallback(
+    (binId: string, anchor: { x: number; y: number }) => {
+      setBinContextMenuState({ kind: 'bin', binId, anchor })
+    },
+    []
+  )
+
+  const handleCloseBinContextMenu = useCallback(() => {
+    setBinContextMenuState(null)
+  }, [])
+
+  const binContextMenuItems = useMemo<PetalMenuItem[]>(() => {
+    if (!binContextMenuState) return []
+
+    if (binContextMenuState.kind === 'root') {
+      return [
+        {
+          id: 'new-bin',
+          label: 'New Bin',
+          icon: <Archive size={14} strokeWidth={1.7} />,
+          onActivate: () => {
+            const binId = createBin('New Bin')
+            if (binId) {
+              void saveArrangements()
+              markPendingRenameTarget({ kind: 'bin', id: binId })
+            }
+          }
+        }
+      ]
+    }
+
+    return [
+      {
+        id: 'rename-bin',
+        label: 'Rename Bin',
+        icon: <Pencil size={14} strokeWidth={1.7} />,
+        onActivate: () => {
+          markPendingRenameTarget({ kind: 'bin', id: binContextMenuState.binId })
+        }
+      },
+      {
+        id: 'delete-bin',
+        label: 'Delete Bin',
+        icon: <Trash2 size={14} strokeWidth={1.7} />,
+        intent: 'destructive',
+        onActivate: () => {
+          deleteBin(binContextMenuState.binId)
+          void saveArrangements()
+        }
+      }
+    ]
+  }, [binContextMenuState, createBin, deleteBin, markPendingRenameTarget, saveArrangements])
+
+  const handleBinRenameCommit = useCallback(
+    (binId: string, name: string) => { void renameBin(binId, name) },
+    [renameBin]
+  )
+
+  const handleBinRenameCancel = useCallback(() => {
     markPendingRenameTarget(null)
   }, [markPendingRenameTarget])
 
@@ -816,7 +964,10 @@ export default function MaterialsWindow({
       windowRef={windowRef}
       aria-label="Materials"
     >
-      <div className="materials-window__content">
+      <div
+        className="materials-window__content"
+        onContextMenu={sel.kind === 'bins' ? handleOpenBinsViewContextMenu : undefined}
+      >
         {workspaceRoot === null ? (
           <p className="materials-window__empty">No workspace open.</p>
         ) : sel.kind === 'bins' ? (
@@ -837,12 +988,16 @@ export default function MaterialsWindow({
                 materials={binMaterialsMap.get(bin.id) ?? []}
                 workspaceRoot={workspaceRoot}
                 dropBinId={bin.id}
+                pendingRenameTarget={pendingRenameTarget}
                 onActivateMaterial={handleActivateMaterial}
+                onOpenContextMenu={handleOpenBinContextMenu}
+                onRenameCommit={handleBinRenameCommit}
+                onRenameCancel={handleBinRenameCancel}
                 onResolveDrop={handleResolveDrop}
               />
             ))}
             {looseMaterials.length === 0 && userBins.length === 0 && (
-              <p className="materials-window__empty">No materials in this workspace.</p>
+              <p className="materials-window__empty">Right-click to create a bin.</p>
             )}
           </div>
         ) : sel.kind === 'trash' ? (
@@ -892,6 +1047,13 @@ export default function MaterialsWindow({
           items={contextMenuItems}
           anchor={contextMenuState.anchor}
           onClose={handleCloseContextMenu}
+        />
+      ) : null}
+      {binContextMenuState ? (
+        <PetalMenu
+          items={binContextMenuItems}
+          anchor={binContextMenuState.anchor}
+          onClose={handleCloseBinContextMenu}
         />
       ) : null}
     </MicaWindow>
