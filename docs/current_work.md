@@ -51,60 +51,13 @@ Mica windows, drag coordinator, drop targets, and the SetsIsland tree interactio
 
 ## Implementation
 
-## Phase 4: Build Materials List Rendering
-Goal: implement the core right-side content behavior.
-
-**Work Unit 4.1: Bins-organized document view**
-- Render loose materials as a top ungrouped section.
-- Render bins as collapsible sections below.
-- Show materials inline inside expanded sections.
-
-**Work Unit 4.2: Set lens view**
-- Render a flat list of materials matching the selected set.
-- No bin grouping in this mode.
-
-**Work Unit 4.3: Smart set lens view**
-- Render a flat list for smart sets, especially `Stale`.
-- Keep smart sets read-only as navigation lenses, not editable containers.
-
-**Work Unit 4.4: Single list-view UX**
-- Remove or avoid multi-view toggles.
-- Standardize row/item rendering across bins and set lenses.
 
 ## Phase 5: Material Type Support
 Goal: ensure all current material types behave consistently.
 
-**Work Unit 5.1: Boards as peer materials**
-- Render boards in Materials like any other material, with distinct icon only.
-- Opening behavior should open the board.
-
-**Work Unit 5.2: File-backed material behavior**
-- Preserve current open/bloom behavior for file materials.
-- Keep board reference visibility intact.
-
 **Work Unit 5.3: URL material support**
-- Treat imported URLs as first-class materials in all views.
-- Opening a URL material launches the browser.
+- Treat imported URLs as first-class materials in the Materials window.
 - Ensure unreferenced URL materials appear in `Stale`.
-
-**Work Unit 5.4: Material identity and display**
-- Confirm list rows support type-specific iconography and labels without special-casing layout.
-
-## Phase 6: Drag-and-Drop Flows
-Goal: make the new window useful during live board work.
-
-**Work Unit 6.1: Drag material into sets**
-- Allow dragging a material onto a set in the sidebar to include it.
-
-**Work Unit 6.2: Drag between bins/material contexts**
-- Support reassignment to bins from the Materials view where intended.
-- Preserve loose-material state.
-
-**Work Unit 6.3: Board-to-Materials interactions**
-- Ensure material references from boards can be managed without leaving the board context.
-
-**Work Unit 6.4: Drop-target feedback**
-- Add clean hover and affordance states for bins, sets, and smart-set-relevant areas.
 
 ## Phase 7: Files Window
 Goal: introduce the second independent Mica window for workspace file import.
@@ -136,19 +89,3 @@ Goal: preserve the most important stewardship information.
 
 **Work Unit 8.3: Staleness computation validation**
 - Confirm stale logic is correct for boards, files, and URLs.
-
-## Phase 9: Polish and Hardening
-Goal: make the refactor production-safe.
-
-**Work Unit 9.1: Empty/loading/error states**
-- Handle empty bins, empty sets, empty stale set, and partially loaded data.
-
-**Work Unit 9.2: Unsaved-board safeguards**
-- Preserve prompts when opening a board would discard unsaved edits.
-
-**Work Unit 9.3: Performance pass**
-- Check large material counts, many bins, and deep set hierarchies.
-- Add virtualization only if needed.
-
-**Work Unit 9.4: Regression test pass**
-- Verify no breakage in material creation, set inclusion, stale logic, trash behavior, and board opening.
