@@ -2,6 +2,9 @@
 
 A whiteboard. Local only, plaintext first, modular. ~99.9% vibecoded.
 
+![WHITEBLOOM screenshot](repo_assets/whiteboard_pic.jpg)
+
+
 ## Precompiled Binaries
 
 There's binaries for both Windows and Linux on the Releases tab.
