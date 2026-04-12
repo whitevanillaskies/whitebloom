@@ -4,6 +4,8 @@ A whiteboard. Local only, plaintext first, modular.
 
 ![WHITEBLOOM screenshot](repo_assets/whiteboard_pic.jpg)
 
+[Latest Release](https://github.com/whitevanillaskies/whitebloom/releases/latest)
+
 ## Features
 
 Local whiteboard with typical features such as writing text, loading images, groups, etc. Unlike cloud or proprietary whiteboards it gives you absolute control over your resources.
@@ -43,6 +45,10 @@ These are your vanilla whiteboard features, there's not much to say about it. On
 You can record your session to a .webm (we may change that later) using the meta command (`Alt-x`) `screen.start-recording`. This saves a file to `recordings/` inside the workspace folder. You can stop recording via the `screen.stop-recording` meta command, or by `F8`. Recording tries to access your microphone so you may be prompted for permissions depending on platform. If it can't find a mic an icon will appear with a muted microphone. While recording, a red dot is visible at the top right of the screen.
 
 This is not meant to be a replacement for specialized software like OBS. It's a small tool that lets you do one thing without worrying about configuration or anything like that. If you need power user features use OBS. This tool also doesn't handle system sound because that's a different can of worms and at this point, unless users absolutely require that feature, is outside the scope of the tool.
+
+## Get Whitebloom
+
+Get the [Latest Release](https://github.com/whitevanillaskies/whitebloom/releases/latest)
 
 ## Supporting the Project
 
