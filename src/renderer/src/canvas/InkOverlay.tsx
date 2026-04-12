@@ -101,6 +101,7 @@ export function InkOverlay({
   const glassCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const acetateCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const activePointerIdRef = useRef<number | null>(null)
+  const currentSamplesRef = useRef<InkBoardWorldSample[]>([])
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<InkBoardWorldSample[]>([])
   const currentOutline = useMemo(
@@ -176,6 +177,7 @@ export function InkOverlay({
   useEffect(() => {
     if (active) return
     activePointerIdRef.current = null
+    currentSamplesRef.current = []
     setCurrentSamples([])
   }, [active])
 
@@ -192,6 +194,7 @@ export function InkOverlay({
       const sample = makeSample(event, viewport, bounds)
       activePointerIdRef.current = event.pointerId
       root.setPointerCapture(event.pointerId)
+      currentSamplesRef.current = [sample]
       setCurrentSamples([sample])
       event.preventDefault()
     }
@@ -203,19 +206,25 @@ export function InkOverlay({
 
       const bounds = root.getBoundingClientRect()
       const nextSample = makeSample(event, viewport, bounds)
+      const previous = currentSamplesRef.current
+      const last = previous[previous.length - 1]
 
-      setCurrentSamples((previous) => {
-        const last = previous[previous.length - 1]
-        if (!last) return [nextSample]
+      if (!last) {
+        currentSamplesRef.current = [nextSample]
+        setCurrentSamples([nextSample])
+        event.preventDefault()
+        return
+      }
 
-        const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
-        if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing / Math.max(1, viewport.zoom)) {
-          return previous
-        }
+      const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
+      if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing / Math.max(1, viewport.zoom)) {
+        event.preventDefault()
+        return
+      }
 
-        return [...previous, nextSample]
-      })
-
+      const next = [...previous, nextSample]
+      currentSamplesRef.current = next
+      setCurrentSamples(next)
       event.preventDefault()
     }
 
@@ -227,34 +236,34 @@ export function InkOverlay({
           ? makeSample(event, viewport, bounds)
           : null
 
-      setCurrentSamples((previous) => {
-        const samples =
-          finalSample !== null &&
-          previous.length > 0 &&
-          Math.hypot(finalSample.x - previous[previous.length - 1].x, finalSample.y - previous[previous.length - 1].y) > 0
-            ? [...previous, finalSample]
-            : previous
+      const previous = currentSamplesRef.current
+      const samples =
+        finalSample !== null &&
+        previous.length > 0 &&
+        Math.hypot(finalSample.x - previous[previous.length - 1].x, finalSample.y - previous[previous.length - 1].y) > 0
+          ? [...previous, finalSample]
+          : previous
 
-        if (samples.length > 1) {
-          onTransfer({
-            id: crypto.randomUUID(),
-            tool: 'pen',
-            style: { ...DEFAULT_INK_STROKE_STYLE },
-            dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
-            samples,
-            createdAt: new Date().toISOString()
-          })
-        }
+      currentSamplesRef.current = []
+      setCurrentSamples([])
+      activePointerIdRef.current = null
 
-        return []
-      })
+      if (samples.length > 1) {
+        onTransfer({
+          id: crypto.randomUUID(),
+          tool: 'pen',
+          style: { ...DEFAULT_INK_STROKE_STYLE },
+          dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
+          samples,
+          createdAt: new Date().toISOString()
+        })
+      }
 
       try {
         root.releasePointerCapture(event.pointerId)
       } catch {
         // ignore release failures if the pointer capture lifecycle already completed
       }
-      activePointerIdRef.current = null
       event.preventDefault()
     }
 

@@ -129,14 +129,19 @@ type UseArrangementsMaterialDragOptions = {
 
 export type ArrangementsDropResolution = {
   target:
-    | (MicaRegisteredDropTarget<typeof ARRANGEMENTS_MATERIAL_DRAG_KIND, ArrangementsDropTargetMeta> & {
+    | (MicaRegisteredDropTarget<
+        typeof ARRANGEMENTS_MATERIAL_DRAG_KIND,
+        ArrangementsDropTargetMeta
+      > & {
         bounds: MicaScreenRect
       })
     | null
   pointer: MicaDragPointer
 }
 
-function createPointer(event: Pick<PointerEvent, 'pointerId' | 'pointerType' | 'clientX' | 'clientY'>): MicaDragPointer {
+function createPointer(
+  event: Pick<PointerEvent, 'pointerId' | 'pointerType' | 'clientX' | 'clientY'>
+): MicaDragPointer {
   return {
     pointerId: event.pointerId,
     pointerType:
@@ -217,21 +222,17 @@ function collectSetIds(sets: GardenSetNode[], output: string[] = []): string[] {
 }
 
 function createArrangementsMutationCommandContext(materialKeys: string[]) {
-  const {
-    bins,
-    sets,
-    addToSet,
-    assignToBin,
-    moveMaterialOnDesktop,
-    removeFromBin
-  } = useArrangementsStore.getState()
+  const { bins, sets, addToSet, assignToBin, moveMaterialOnDesktop, removeFromBin } =
+    useArrangementsStore.getState()
 
   return createArrangementsCommandContext({
-    selection: {
-      materialKeys
+    subjectSnapshot: {
+      selection: {
+        materialKeys
+      },
+      availableBinIds: bins.filter((bin) => bin.kind === 'user').map((bin) => bin.id),
+      availableSetIds: collectSetIds(sets)
     },
-    availableBinIds: bins.filter((bin) => bin.kind === 'user').map((bin) => bin.id),
-    availableSetIds: collectSetIds(sets),
     actions: {
       assignMaterialsToBin: (keys, binId) => {
         for (const materialKey of keys) {
@@ -333,11 +334,11 @@ export function createArrangementsMaterialDropCommands(
   }
 }
 
-function applyArrangementsMaterialDropCommands(commands: ArrangementsMaterialDropCommand[]): boolean {
+function applyArrangementsMaterialDropCommands(
+  commands: ArrangementsMaterialDropCommand[]
+): boolean {
   if (commands.length === 0) return false
-  const materialKeys = Array.from(
-    new Set(commands.map((command) => command.materialKey))
-  )
+  const materialKeys = Array.from(new Set(commands.map((command) => command.materialKey)))
   const groupId = createCommandExecutionGroupId()
   const executionOptions: WhitebloomCommandExecutionOptions = {
     source: 'drag-drop',
@@ -508,10 +509,7 @@ export function useArrangementsMaterialDrag({
         dragCoordinator.updateDrag(pointer)
         const resolution = resolveArrangementsDropTarget()
         const completedSession = dragCoordinator.completeDrag()
-        if (
-          completedSession?.payload.kind === ARRANGEMENTS_MATERIAL_DRAG_KIND &&
-          resolution
-        ) {
+        if (completedSession?.payload.kind === ARRANGEMENTS_MATERIAL_DRAG_KIND && resolution) {
           const dragPayload = completedSession.payload.data as ArrangementsMaterialDragPayload
           const handledByCustomDrop = onResolveDrop?.(resolution, dragPayload) ?? false
           const handled =

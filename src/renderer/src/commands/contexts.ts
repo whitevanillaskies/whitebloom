@@ -1,6 +1,9 @@
 import type {
   ArrangementsCommandContext,
   CanvasCommandContext,
+  FocusWriterCommandContext,
+  GenericModuleCommandContext,
+  PdfCommandContext,
   WhitebloomCommandModeKey
 } from './types'
 
@@ -16,5 +19,32 @@ export function createArrangementsCommandContext(
   return {
     ...input,
     majorMode: input.majorMode ?? 'canvas-mode'
+  }
+}
+
+export function createPdfCommandContext(
+  input: Omit<PdfCommandContext, 'majorMode'>
+): PdfCommandContext {
+  return {
+    ...input,
+    majorMode: 'module:com.whitebloom.pdf'
+  }
+}
+
+export function createFocusWriterCommandContext(
+  input: Omit<FocusWriterCommandContext, 'majorMode'>
+): FocusWriterCommandContext {
+  return {
+    ...input,
+    majorMode: 'module:com.whitebloom.focus-writer'
+  }
+}
+
+export function createGenericModuleCommandContext(
+  input: Omit<GenericModuleCommandContext, 'majorMode'>
+): GenericModuleCommandContext {
+  return {
+    ...input,
+    majorMode: `module:${input.subjectSnapshot.moduleId}`
   }
 }

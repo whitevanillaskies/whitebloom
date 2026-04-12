@@ -284,6 +284,12 @@ const api = {
     stroke: InkStroke
   ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
     ipcRenderer.invoke('ink:append-stroke', workspaceRoot, binding, stroke),
+  deleteInkStroke: (
+    workspaceRoot: string,
+    binding: InkSurfaceBinding,
+    strokeId: string
+  ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
+    ipcRenderer.invoke('ink:delete-stroke', workspaceRoot, binding, strokeId),
   saveRecording: (
     workspaceRoot: string,
     requestedName: string | null,

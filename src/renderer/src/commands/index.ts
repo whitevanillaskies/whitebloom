@@ -16,6 +16,8 @@ export type {
   ArrangementsMoveMaterialsToDesktopCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
   CanvasCreateShapeCommandArgs,
+  CanvasAddEdgeCommandArgs,
+  CanvasDeletedSelection,
   WhitebloomCommand,
   WhitebloomCommandArgsSchema,
   WhitebloomCommandProvider,
@@ -31,7 +33,18 @@ export type {
   CanvasCommandActions,
   CanvasCommandCapabilities,
   CanvasCommandSelection,
+  CanvasSelectionShape,
+  CanvasSubjectSnapshot,
+  CanvasToolKind,
   CanvasCreateBudCommandArgs,
+  FocusWriterCommandActions,
+  FocusWriterCommandContext,
+  FocusWriterSubjectSnapshot,
+  GenericModuleCommandContext,
+  GenericModuleSubjectSnapshot,
+  PdfCommandActions,
+  PdfCommandContext,
+  PdfSubjectSnapshot,
   WhitebloomCommandExecutionFailure,
   WhitebloomCommandExecutionFailureReason,
   WhitebloomCommandExecutionEvent,
@@ -62,11 +75,19 @@ export type {
   WhitebloomRegisteredCommand,
   WhitebloomRegisteredCommandForContext,
   WhitebloomCommandRun,
+  WhitebloomCommandUndo,
   WhitebloomVirtualCommandNamespace,
   WhitebloomCommandsByContext,
+  WhitebloomCommandEnabledWhen,
   WhitebloomCommandWhen
 } from './types'
-export { createArrangementsCommandContext, createCanvasCommandContext } from './contexts'
+export {
+  createArrangementsCommandContext,
+  createCanvasCommandContext,
+  createFocusWriterCommandContext,
+  createGenericModuleCommandContext,
+  createPdfCommandContext
+} from './contexts'
 export { WHITEBLOOM_COMMAND_IDS, whitebloomBuiltinCommandProvider } from './builtins'
 export {
   createBuiltinCommandProvider,

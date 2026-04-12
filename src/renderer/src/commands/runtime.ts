@@ -1,4 +1,5 @@
 import { getAllRegisteredCommands } from './registry'
+import { useHistoryStore } from '../history/store'
 import type {
   AnyWhitebloomCommandContext,
   WhitebloomCommandArgsSchema,
@@ -49,7 +50,7 @@ export function isRegisteredCommandAvailable<TContext extends AnyWhitebloomComma
     return false
   }
 
-  return entry.command.core.when?.(context) ?? true
+  return entry.command.core.enabledWhen?.(context) ?? true
 }
 
 export function createCommandExecutionId(): string {
@@ -220,6 +221,11 @@ export async function executeRegisteredCommand<
     providerId: entry.provider.id
   })
 
+  // Execution-time revalidation: re-evaluate mode scope and enabledWhen against the
+  // context that was current at dispatch time. This catches the gap between when the
+  // palette (or keybinding) first decided the command was available and when run()
+  // actually fires — state may have changed in between, especially for flow commands
+  // whose final submission arrives after several async steps.
   if (!isRegisteredCommandAvailable(entry, context)) {
     return finishExecution(inFlight, {
       ok: false,
@@ -257,13 +263,32 @@ export async function executeRegisteredCommand<
       ) => TResult | Promise<TResult>
     )(normalizedArgs as TArgs, context, options.interaction ?? NOOP_INTERACTION_CONTROLLER)
 
-    return finishExecution(inFlight, {
+    const outcome = finishExecution(inFlight, {
       ok: true,
       entry,
       execution: normalizedExecution,
       args: normalizedArgs,
       result
     })
+
+    // Push to history if the command declares an undo function.
+    if (entry.command.core.undo) {
+      const undoFn = entry.command.core.undo
+      const redoFn = entry.command.core.run
+      const capturedArgs = normalizedArgs as TArgs
+      const capturedResult = result as TResult
+
+      useHistoryStore.getState().push({
+        id: createCommandExecutionId(),
+        groupId: options.groupId ?? inFlight.execution.groupId,
+        modeKey: context.majorMode,
+        envelopes: [normalizedExecution],
+        undoFn: () => undoFn(capturedArgs, capturedResult, context),
+        redoFn: () => redoFn(capturedArgs, context, NOOP_INTERACTION_CONTROLLER)
+      })
+    }
+
+    return outcome
   } catch (error) {
     return finishExecution(inFlight, {
       ok: false,

@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { GardenPoint } from '../../../shared/arrangements'
-import type { ShapePreset } from '@renderer/shared/types'
+import type { BoardEdge, BoardNode, ShapePreset } from '@renderer/shared/types'
+import type { InkStroke, InkSurfaceBinding } from '../../../shared/ink'
 
 export type WhitebloomCommandModeKey = 'canvas-mode' | `module:${string}`
 
@@ -35,6 +36,18 @@ export type CanvasCreateShapeCommandArgs = {
   preset: ShapePreset
 }
 
+export type CanvasAddEdgeCommandArgs = {
+  from: string
+  to: string
+  sourceHandle?: string | null
+  targetHandle?: string | null
+}
+
+export type CanvasDeletedSelection = {
+  deletedNodes: BoardNode[]
+  deletedEdges: BoardEdge[]
+}
+
 export type CanvasCommandSelection = {
   nodeIds: string[]
   edgeIds: string[]
@@ -49,15 +62,93 @@ export type CanvasLinkableBoard = {
 export type CanvasCommandCapabilities = {
   canBloomSelection?: boolean
   canOpenSelectionInNativeEditor?: boolean
+  /** Linking is always available; no workspace required. */
+  canLinkResources?: boolean
+  /** Import requires a workspace to copy files into. */
+  canImportResources?: boolean
+  /** A cluster is the sole selected node and it has at least one child. */
+  canFitCluster?: boolean
+  /** A cluster is the sole selected node. */
+  canToggleClusterAutofit?: boolean
+  /** A cluster with children is selected and a workspace root is available. */
+  canPromoteClusterToSubboard?: boolean
+  /** At least one selected node is a fixed-width text node. */
+  canToggleTextAutoWidth?: boolean
 }
+
+export type CanvasToolKind = 'pointer' | 'hand' | 'text' | 'ink'
+
+export type CanvasSelectionShape =
+  | 'none'
+  | 'single-node'
+  | 'single-edge'
+  | 'multiple-nodes'
+  | 'multiple-edges'
+  | 'mixed'
 
 export type CanvasCommandActions = {
   createBud?: (input: CanvasCreateBudCommandArgs) => string
-  createShape?: (input: CanvasCreateShapeCommandArgs) => void
-  deleteSelection?: () => void
+  createShape?: (input: CanvasCreateShapeCommandArgs) => { nodeId: string }
+  deleteSelection?: () => CanvasDeletedSelection
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
   openMaterials?: () => void
+  /** Open the OS file-link dialog and place the picked resources on the canvas. */
+  linkResources?: () => Promise<void>
+  /**
+   * Open the OS file-import dialog and copy the picked resources into the
+   * workspace, then place them on the canvas. Absent when no workspace is open.
+   */
+  importResources?: () => Promise<void>
+  /** Insert a new text node at the current insertion point. Returns the new node id. */
+  addTextNode?: () => { nodeId: string }
+  /** Connect two nodes with an edge. Returns the new edge id. */
+  addEdge?: (params: CanvasAddEdgeCommandArgs) => { edgeId: string }
+  /** Group the current selection (or an empty cluster) into a cluster node. */
+  createCluster?: () => void
+  /**
+   * Resize the selected cluster frame to tightly wrap its children.
+   * Absent when no cluster is selected or the cluster has no children.
+   */
+  fitClusterToChildren?: () => void
+  /**
+   * Toggle auto-fit-to-contents on the selected cluster.
+   * Absent when no cluster is selected.
+   */
+  toggleClusterAutofit?: () => void
+  /**
+   * Open the promote-to-subboard modal for the selected cluster.
+   * Absent when no cluster with children is selected or no workspace is open.
+   */
+  openPromoteSubboardModal?: () => void
+  /**
+   * Convert all selected fixed-width text nodes to auto-width mode.
+   * Absent when no qualifying node is selected.
+   */
+  toggleTextAutoWidth?: () => void
+  /**
+   * Create a new Focus Writer bud at the insertion point and open it.
+   * Absent when no workspace is open.
+   */
+  addFocusWriterBud?: () => Promise<void>
+  /**
+   * Create a new Schema Bloom bud at the insertion point and open it.
+   * Absent when no workspace is open.
+   */
+  addSchemaBloomBud?: () => Promise<void>
+  /** Persist an ink stroke to the acetate for the current board surface. Returns the stroke id. */
+  appendInkStroke?: (binding: InkSurfaceBinding, stroke: InkStroke) => Promise<{ strokeId: string }>
+  /** Remove an ink stroke from the acetate. */
+  removeInkStroke?: (binding: InkSurfaceBinding, strokeId: string) => Promise<void>
+}
+
+export type CanvasSubjectSnapshot = {
+  selectionShape: CanvasSelectionShape
+  selection: CanvasCommandSelection
+  capabilities: CanvasCommandCapabilities
+  activeTool: CanvasToolKind
+  insertionPoint?: WhitebloomCanvasPoint
+  linkableBoards?: CanvasLinkableBoard[]
 }
 
 /**
@@ -68,11 +159,77 @@ export type CanvasCommandActions = {
  * context registry axis.
  */
 export type CanvasCommandContext = CommandContextBase & {
-  selection: CanvasCommandSelection
-  capabilities: CanvasCommandCapabilities
-  insertionPoint?: WhitebloomCanvasPoint
-  linkableBoards?: CanvasLinkableBoard[]
+  subjectSnapshot: CanvasSubjectSnapshot
   actions: CanvasCommandActions
+}
+
+// ---------------------------------------------------------------------------
+// PDF module
+// ---------------------------------------------------------------------------
+
+export type PdfSubjectSnapshot = {
+  /** `file:` or `wloc:` URI of the active PDF document. */
+  resource: string
+  /** Total number of pages in the document. */
+  pageCount: number
+  /** The page currently visible or focused (1-based). */
+  activePage: number
+}
+
+export type PdfCommandActions = {
+  navigateToPage?: (page: number) => void
+  extractPages?: (pages: number[]) => Promise<void>
+}
+
+export type PdfCommandContext = CommandContextBase<'module:com.whitebloom.pdf'> & {
+  subjectSnapshot: PdfSubjectSnapshot
+  actions: PdfCommandActions
+}
+
+// ---------------------------------------------------------------------------
+// Focus Writer module
+// ---------------------------------------------------------------------------
+
+export type FocusWriterSubjectSnapshot = {
+  /** `wloc:` URI of the open document. */
+  resource: string
+  /** True when the document has no content. */
+  isEmpty: boolean
+  /** True when the embedded textarea has a non-collapsed text selection. */
+  hasTextSelection: boolean
+}
+
+/**
+ * Focus Writer has no discrete command actions yet. The type is a named
+ * placeholder so commands can depend on it and expand it later without
+ * changing call sites.
+ */
+export type FocusWriterCommandActions = Record<string, never>
+
+export type FocusWriterCommandContext =
+  CommandContextBase<'module:com.whitebloom.focus-writer'> & {
+    subjectSnapshot: FocusWriterSubjectSnapshot
+    actions: FocusWriterCommandActions
+  }
+
+// ---------------------------------------------------------------------------
+// Generic module fallback
+//
+// Modules that do not yet publish a typed snapshot use this context. It
+// carries the resource and module identity so mode-scoped commands can still
+// inspect the most basic facts without needing a richer per-module contract.
+// ---------------------------------------------------------------------------
+
+export type GenericModuleSubjectSnapshot = {
+  /** The resource URI currently open in the module editor. */
+  resource: string
+  /** The owning module's id, e.g. `'com.whitebloom.boardbloom'`. */
+  moduleId: string
+}
+
+export type GenericModuleCommandContext = CommandContextBase<`module:${string}`> & {
+  subjectSnapshot: GenericModuleSubjectSnapshot
+  actions: Record<string, never>
 }
 
 export type ArrangementsCreateBinCommandArgs = {
@@ -137,6 +294,14 @@ export type ArrangementsCommandActions = {
   ) => void | Promise<void>
 }
 
+export type ArrangementsSubjectSnapshot = {
+  selection: ArrangementsCommandSelection
+  availableBinIds: string[]
+  availableSetIds: string[]
+  availableBins?: ArrangementsCommandBin[]
+  availableSets?: ArrangementsCommandSet[]
+}
+
 /**
  * Programmatic command state for arrangements mutations.
  *
@@ -145,15 +310,16 @@ export type ArrangementsCommandActions = {
  * semantic payload for mutation operations.
  */
 export type ArrangementsCommandContext = CommandContextBase & {
-  selection: ArrangementsCommandSelection
-  availableBinIds: string[]
-  availableSetIds: string[]
-  availableBins?: ArrangementsCommandBin[]
-  availableSets?: ArrangementsCommandSet[]
+  subjectSnapshot: ArrangementsSubjectSnapshot
   actions: ArrangementsCommandActions
 }
 
-export type AnyWhitebloomCommandContext = CanvasCommandContext | ArrangementsCommandContext
+export type AnyWhitebloomCommandContext =
+  | CanvasCommandContext
+  | ArrangementsCommandContext
+  | PdfCommandContext
+  | FocusWriterCommandContext
+  | GenericModuleCommandContext
 
 /**
  * Stable naked/core command id.
@@ -173,9 +339,12 @@ export type WhitebloomCommandArgsSchema<TArgs = unknown> =
       normalize?: (args: TArgs) => TArgs
     }
 
-export type WhitebloomCommandWhen<TContext extends AnyWhitebloomCommandContext> = (
+export type WhitebloomCommandEnabledWhen<TContext extends AnyWhitebloomCommandContext> = (
   context: TContext
 ) => boolean
+
+export type WhitebloomCommandWhen<TContext extends AnyWhitebloomCommandContext> =
+  WhitebloomCommandEnabledWhen<TContext>
 
 export type WhitebloomCommandLatentState = {
   title?: string
@@ -193,6 +362,19 @@ export type WhitebloomCommandInteractionController = {
   setBusyState: (state: WhitebloomCommandLatentState | null) => void
 }
 
+/**
+ * The execution body of a command.
+ *
+ * `run` receives the context that was current at dispatch time, but it must
+ * revalidate before acting on mutable state. The context snapshot may be
+ * slightly older than the world by the time `run` fires — particularly for
+ * flow commands where the user walks through several steps before submitting.
+ *
+ * Concretely: always check that any `actions.*` function you intend to call is
+ * still present and that the `subjectSnapshot` fields you depend on still hold
+ * before performing mutations. Throw if the preconditions are not met — the
+ * runtime will record the failure cleanly.
+ */
 export type WhitebloomCommandRun<
   TContext extends AnyWhitebloomCommandContext,
   TArgs = void,
@@ -202,6 +384,25 @@ export type WhitebloomCommandRun<
   context: TContext,
   interaction: WhitebloomCommandInteractionController
 ) => TResult | Promise<TResult>
+
+/**
+ * The inverse of {@link WhitebloomCommandRun}.
+ *
+ * Receives the same `args` and `result` that were captured at execution time,
+ * plus the context that was current when the undo is triggered. Implementations
+ * should exactly reverse the effect of `run`.
+ *
+ * Presence of this field is what opts a command into the history system.
+ * Commands without `undo` are treated as non-undoable and never pushed to the
+ * undo stack — this covers pure navigation, view toggles, palette interactions,
+ * and any command that is intentionally ephemeral. The `history.undo` and
+ * `history.redo` commands themselves omit `undo` for the same reason.
+ */
+export type WhitebloomCommandUndo<
+  TContext extends AnyWhitebloomCommandContext,
+  TArgs = void,
+  TResult = void
+> = (args: TArgs, result: TResult, context: TContext) => void | Promise<void>
 
 export type WhitebloomCommandDisplayMetadata = {
   title: string
@@ -215,6 +416,15 @@ export type WhitebloomCommandDisplayMetadata = {
  *
  * This is the stable identity that menus, shortcuts, scripts, LLM tooling, and
  * palette presentations should all bottom out to.
+ *
+ * ## Availability vs. safety
+ *
+ * `enabledWhen` controls whether the command is surfaced at all (palette
+ * visibility, keyboard-shortcut activation). It is evaluated against a snapshot
+ * that may be slightly stale relative to the moment `run` fires.
+ *
+ * `run` is therefore responsible for revalidating its own preconditions before
+ * mutating state — see {@link WhitebloomCommandRun} for details.
  */
 export type WhitebloomCommandCore<
   TContext extends AnyWhitebloomCommandContext = AnyWhitebloomCommandContext,
@@ -224,9 +434,14 @@ export type WhitebloomCommandCore<
   id: WhitebloomCommandId
   aliases?: string[]
   modeScope?: WhitebloomCommandModeScope
-  when?: WhitebloomCommandWhen<TContext>
+  enabledWhen?: WhitebloomCommandEnabledWhen<TContext>
   argsSchema?: WhitebloomCommandArgsSchema<TArgs>
   run: WhitebloomCommandRun<TContext, TArgs, TResult>
+  /**
+   * The inverse of `run`. Presence opts this command into the history system.
+   * Omit for commands that are non-mutating or intentionally non-undoable.
+   */
+  undo?: WhitebloomCommandUndo<TContext, TArgs, TResult>
 }
 
 /**

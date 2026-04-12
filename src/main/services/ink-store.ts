@@ -17,7 +17,10 @@ import {
   type InkWorkspaceIndex
 } from '../../shared/ink'
 
-const writeQueues = new Map<string, Promise<InkAcetate>>()
+// Queues are used only for write serialization; the resolved value is never
+// consumed from the map, so Promise<unknown> avoids awkward casts across
+// operations with different return types.
+const writeQueues = new Map<string, Promise<unknown>>()
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -129,6 +132,57 @@ function ensureTargetEntry(
   }
   index.targets.push(next)
   return next
+}
+
+async function deleteInkStrokeImmediate(
+  workspaceRoot: string,
+  binding: InkSurfaceBinding,
+  strokeId: string
+): Promise<InkAcetate | null> {
+  const targetId = createInkTargetId(binding.surfaceType, binding.resource)
+  const index = await readInkIndex(workspaceRoot)
+  const targetEntry = index.targets.find((entry) => entry.id === targetId)
+  const acetateId = targetEntry?.acetateIds[0]
+  if (!acetateId) return null
+
+  const acetateEntry = index.acetates.find((entry) => entry.id === acetateId)
+  if (!acetateEntry) return null
+
+  const acetatePath = resolveAcetatePath(workspaceRoot, acetateEntry.relativePath)
+  const current = await readAcetateAtPath(acetatePath)
+  if (!current) return null
+
+  const nowIso = new Date().toISOString()
+  const nextAcetate: InkAcetate = {
+    ...current,
+    strokes: current.strokes.filter((s) => s.id !== strokeId),
+    updatedAt: nowIso
+  }
+
+  await writeAcetateAtPath(acetatePath, nextAcetate)
+  acetateEntry.updatedAt = nowIso
+  await writeInkIndex(workspaceRoot, index)
+  return nextAcetate
+}
+
+export async function deleteInkStroke(
+  workspaceRoot: string,
+  binding: InkSurfaceBinding,
+  strokeId: string
+): Promise<InkAcetate | null> {
+  const queueKey = buildQueueKey(workspaceRoot, createInkTargetId(binding.surfaceType, binding.resource))
+  const previous = writeQueues.get(queueKey) ?? Promise.resolve(null)
+  const next = previous
+    .catch(() => null)
+    .then(async () => await deleteInkStrokeImmediate(workspaceRoot, binding, strokeId))
+
+  writeQueues.set(queueKey, next)
+
+  try {
+    return await next
+  } finally {
+    if (writeQueues.get(queueKey) === next) writeQueues.delete(queueKey)
+  }
 }
 
 export async function loadInkAcetate(

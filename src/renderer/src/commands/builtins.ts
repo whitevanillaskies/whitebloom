@@ -1,5 +1,22 @@
 import { createBuiltinCommandProvider, registerCommandProvider } from './registry'
-import { Archive, Boxes, Download, Globe, Layers, PanelsTopLeft, Tag, Trash2 } from 'lucide-react'
+import { useBoardStore } from '../stores/board'
+import { useHistoryStore } from '../history/store'
+import {
+  Archive,
+  ArrowDownToLine,
+  Boxes,
+  Database,
+  Download,
+  FileText,
+  Globe,
+  Layers,
+  Link2,
+  PanelsTopLeft,
+  Scan,
+  Tag,
+  Trash2,
+  Type
+} from 'lucide-react'
 import { boardBloomModule } from '../modules/boardbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
 import { normalizeWebPageUrl } from '../shared/web-page-url'
@@ -14,6 +31,7 @@ import type {
   ArrangementsMoveMaterialsToDesktopCommandArgs,
   ArrangementsRemoveMaterialsFromBinCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
+  CanvasAddEdgeCommandArgs,
   CanvasCommandContext,
   CanvasCreateBudCommandArgs,
   CanvasCreateShapeCommandArgs,
@@ -21,6 +39,7 @@ import type {
   WhitebloomCommandForContext
 } from './types'
 import type { ShapePreset } from '@renderer/shared/types'
+import type { InkStroke, InkSurfaceBinding } from '../../../shared/ink'
 
 export const WHITEBLOOM_COMMAND_IDS = {
   canvas: {
@@ -35,7 +54,21 @@ export const WHITEBLOOM_COMMAND_IDS = {
     deleteSelection: 'selection.delete',
     bloomSelection: 'node.bloom',
     openSelectionInNativeEditor: 'resource.open-native',
-    openMaterials: 'arrangements.open-materials'
+    openMaterials: 'arrangements.open-materials',
+    linkResources: 'board.link-resources',
+    importResources: 'board.import-resources',
+    addText: 'board.add-text',
+    createCluster: 'board.create-cluster',
+    fitCluster: 'board.fit-cluster',
+    toggleClusterAutofit: 'board.toggle-cluster-autofit',
+    promoteClusterToSubboard: 'board.promote-cluster-to-subboard',
+    toggleTextAutoWidth: 'node.text.toggle-auto-width',
+    addFocusWriter: 'board.add-focus-writer',
+    addSchemaBloom: 'board.add-schema-bloom',
+    addEdge: 'board.add-edge',
+    inkAppendStroke: 'ink.append-stroke',
+    historyUndo: 'history.undo',
+    historyRedo: 'history.redo'
   },
   arrangements: {
     createBin: 'arrangements.bin.create',
@@ -353,11 +386,11 @@ function createUrlPageLabelStrategyStep(resource: string) {
         subtitle: 'Create the bud using the URL as its label',
         icon: Globe,
         onSelect: (context: CanvasCommandContext) => {
-          if (!context.insertionPoint) return { type: 'cancel' as const }
+          if (!context.subjectSnapshot.insertionPoint) return { type: 'cancel' as const }
           return {
             type: 'submit' as const,
             args: {
-              position: context.insertionPoint,
+              position: context.subjectSnapshot.insertionPoint,
               moduleType: webPageBloomModule.id,
               size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
               resource
@@ -371,14 +404,14 @@ function createUrlPageLabelStrategyStep(resource: string) {
         subtitle: 'Fetch the page title from the URL and use it as the label',
         icon: Download,
         onSelect: async (context: CanvasCommandContext, interaction) => {
-          if (!context.insertionPoint) return { type: 'cancel' as const }
+          if (!context.subjectSnapshot.insertionPoint) return { type: 'cancel' as const }
           interaction.setBusyState({ title: 'Fetching page title', label: resource })
           const title = await fetchPageTitle(resource, interaction.signal)
           if (interaction.signal.aborted) return { type: 'cancel' as const }
           return {
             type: 'submit' as const,
             args: {
-              position: context.insertionPoint,
+              position: context.subjectSnapshot.insertionPoint,
               moduleType: webPageBloomModule.id,
               size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
               resource,
@@ -418,11 +451,11 @@ function createUrlPageSetLabelInputStep(resource: string) {
           step: createUrlPageSetLabelInputStep(resource)
         }
       }
-      if (!context.insertionPoint) return { type: 'cancel' as const }
+      if (!context.subjectSnapshot.insertionPoint) return { type: 'cancel' as const }
       return {
         type: 'submit' as const,
         args: {
-          position: context.insertionPoint,
+          position: context.subjectSnapshot.insertionPoint,
           moduleType: webPageBloomModule.id,
           size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
           resource,
@@ -446,15 +479,15 @@ function createCanvasLinkBoardListStep(linkableBoards: CanvasLinkableBoard[]) {
       title: board.name,
       subtitle: board.subtitle,
       icon: PanelsTopLeft,
-      onSelect: (context: { insertionPoint?: { x: number; y: number } }) => {
-        if (!context.insertionPoint) {
+      onSelect: (context: CanvasCommandContext) => {
+        if (!context.subjectSnapshot.insertionPoint) {
           return { type: 'cancel' as const }
         }
 
         return {
           type: 'submit' as const,
           args: {
-            position: context.insertionPoint,
+            position: context.subjectSnapshot.insertionPoint,
             moduleType: boardBloomModule.id,
             size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
             label: board.name,
@@ -674,7 +707,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.addBud,
       modeScope: 'canvas-mode',
       aliases: ['board.create-bud'],
-      when: (context) => typeof context.actions.createBud === 'function',
+      enabledWhen: (context) => typeof context.actions.createBud === 'function',
       argsSchema: parseCanvasBudArgs,
       run: (args, context) => {
         if (!context.actions.createBud) {
@@ -682,6 +715,9 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
         }
 
         return context.actions.createBud(args)
+      },
+      undo: (_args, nodeId) => {
+        useBoardStore.getState().deleteNode(nodeId as string)
       }
     }
   },
@@ -690,17 +726,21 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       core: {
         id,
         modeScope: 'canvas-mode',
-        when: (context) =>
-          typeof context.actions.createShape === 'function' && context.insertionPoint !== undefined,
+        enabledWhen: (context) =>
+          typeof context.actions.createShape === 'function' &&
+          context.subjectSnapshot.insertionPoint !== undefined,
         run: async (_args, context) => {
-          if (!context.actions.createShape || !context.insertionPoint) {
+          if (!context.actions.createShape || !context.subjectSnapshot.insertionPoint) {
             throw new Error('Canvas context cannot create shapes.')
           }
 
-          context.actions.createShape({
-            position: context.insertionPoint,
+          return context.actions.createShape({
+            position: context.subjectSnapshot.insertionPoint,
             preset
           } satisfies CanvasCreateShapeCommandArgs)
+        },
+        undo: (_args, result) => {
+          useBoardStore.getState().deleteNode((result as { nodeId: string }).nodeId)
         }
       }
     })
@@ -710,8 +750,9 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.addUrlPage,
       modeScope: 'canvas-mode',
       aliases: ['board.create-url-page'],
-      when: (context) =>
-        typeof context.actions.createBud === 'function' && context.insertionPoint !== undefined,
+      enabledWhen: (context) =>
+        typeof context.actions.createBud === 'function' &&
+        context.subjectSnapshot.insertionPoint !== undefined,
       argsSchema: parseCanvasBudArgs,
       run: (args, context) => {
         if (!context.actions.createBud) {
@@ -723,7 +764,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
     },
     flow: {
       start: async (context) => {
-        if (!context.insertionPoint) {
+        if (!context.subjectSnapshot.insertionPoint) {
           return { type: 'cancel' as const }
         }
 
@@ -747,10 +788,10 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.linkBoard,
       modeScope: 'canvas-mode',
       aliases: ['board.link-subboard'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.createBud === 'function' &&
-        context.insertionPoint !== undefined &&
-        (context.linkableBoards?.length ?? 0) > 0,
+        context.subjectSnapshot.insertionPoint !== undefined &&
+        (context.subjectSnapshot.linkableBoards?.length ?? 0) > 0,
       argsSchema: parseCanvasBudArgs,
       run: (args, context) => {
         if (!context.actions.createBud) {
@@ -762,13 +803,13 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
     },
     flow: {
       start: async (context) => {
-        if (!context.insertionPoint) {
+        if (!context.subjectSnapshot.insertionPoint) {
           return { type: 'cancel' as const }
         }
 
         return {
           type: 'step' as const,
-          step: createCanvasLinkBoardListStep(context.linkableBoards ?? [])
+          step: createCanvasLinkBoardListStep(context.subjectSnapshot.linkableBoards ?? [])
         }
       }
     },
@@ -786,15 +827,27 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection,
       modeScope: 'canvas-mode',
       aliases: ['selection.remove'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.deleteSelection === 'function' &&
-        (context.selection.nodeIds.length > 0 || context.selection.edgeIds.length > 0),
+        context.subjectSnapshot.selectionShape !== 'none',
       run: (_args, context) => {
         if (!context.actions.deleteSelection) {
           throw new Error('Canvas context cannot delete the current selection.')
         }
 
-        context.actions.deleteSelection()
+        return context.actions.deleteSelection()
+      },
+      undo: (_args, result) => {
+        const { deletedNodes, deletedEdges } = result as import('./types').CanvasDeletedSelection
+        const store = useBoardStore.getState()
+        for (const node of deletedNodes) {
+          if (node.kind !== 'cluster') {
+            store.addNode(node)
+          }
+        }
+        for (const edge of deletedEdges) {
+          store.addEdge(edge)
+        }
       }
     },
     presentations: [
@@ -810,8 +863,8 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.bloomSelection,
       modeScope: 'canvas-mode',
       aliases: ['node.open'],
-      when: (context) =>
-        context.capabilities.canBloomSelection === true &&
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canBloomSelection === true &&
         typeof context.actions.bloomSelection === 'function',
       run: async (_args, context) => {
         if (!context.actions.bloomSelection) {
@@ -834,8 +887,8 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.openSelectionInNativeEditor,
       modeScope: 'canvas-mode',
       aliases: ['resource.open-file'],
-      when: (context) =>
-        context.capabilities.canOpenSelectionInNativeEditor === true &&
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canOpenSelectionInNativeEditor === true &&
         typeof context.actions.openSelectionInNativeEditor === 'function',
       run: async (_args, context) => {
         if (!context.actions.openSelectionInNativeEditor) {
@@ -858,7 +911,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       id: WHITEBLOOM_COMMAND_IDS.canvas.openMaterials,
       modeScope: 'canvas-mode',
       aliases: ['workspace.materials', 'materials'],
-      when: (context) => typeof context.actions.openMaterials === 'function',
+      enabledWhen: (context) => typeof context.actions.openMaterials === 'function',
       run: async (_args, context) => {
         if (!context.actions.openMaterials) {
           throw new Error('Canvas context cannot open materials.')
@@ -878,12 +931,343 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   }
 ]
 
+const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.linkResources,
+      modeScope: 'canvas-mode',
+      aliases: ['board.link', 'link-resources'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canLinkResources === true &&
+        typeof context.actions.linkResources === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.linkResources) {
+          throw new Error('Canvas context cannot link resources.')
+        }
+
+        await context.actions.linkResources()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Link Resources',
+        subtitle: 'Link external resources to the board',
+        icon: Link2
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.importResources,
+      modeScope: 'canvas-mode',
+      aliases: ['board.import', 'import-resources'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canImportResources === true &&
+        typeof context.actions.importResources === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.importResources) {
+          throw new Error('Canvas context cannot import resources.')
+        }
+
+        await context.actions.importResources()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Import Resources',
+        subtitle: 'Import files or resources onto the board',
+        icon: ArrowDownToLine
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.addText,
+      modeScope: 'canvas-mode',
+      aliases: ['board.text', 'add-text-node'],
+      enabledWhen: (context) => typeof context.actions.addTextNode === 'function',
+      run: (_args, context) => {
+        if (!context.actions.addTextNode) {
+          throw new Error('Canvas context cannot add text nodes.')
+        }
+
+        return context.actions.addTextNode()
+      },
+      undo: (_args, result) => {
+        useBoardStore.getState().deleteNode((result as { nodeId: string }).nodeId)
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Add Text',
+        subtitle: 'Add a text node to the board',
+        icon: Type
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.createCluster,
+      modeScope: 'canvas-mode',
+      aliases: ['board.cluster', 'cluster'],
+      enabledWhen: (context) => typeof context.actions.createCluster === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.createCluster) {
+          throw new Error('Canvas context cannot create clusters.')
+        }
+
+        await context.actions.createCluster()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Create Cluster',
+        subtitle: 'Group selected nodes into a cluster',
+        icon: Scan
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.fitCluster,
+      modeScope: 'canvas-mode',
+      aliases: ['cluster.fit'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canFitCluster === true &&
+        typeof context.actions.fitClusterToChildren === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.fitClusterToChildren) {
+          throw new Error('Canvas context cannot fit cluster to children.')
+        }
+
+        await context.actions.fitClusterToChildren()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Fit Cluster to Children',
+        subtitle: 'Resize the cluster to fit its child nodes'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.toggleClusterAutofit,
+      modeScope: 'canvas-mode',
+      aliases: ['cluster.autofit'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canToggleClusterAutofit === true &&
+        typeof context.actions.toggleClusterAutofit === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.toggleClusterAutofit) {
+          throw new Error('Canvas context cannot toggle cluster autofit.')
+        }
+
+        await context.actions.toggleClusterAutofit()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Toggle Cluster Autofit',
+        subtitle: 'Enable or disable automatic resizing of the cluster'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.promoteClusterToSubboard,
+      modeScope: 'canvas-mode',
+      aliases: ['cluster.promote', 'promote-subboard'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canPromoteClusterToSubboard === true &&
+        typeof context.actions.openPromoteSubboardModal === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.openPromoteSubboardModal) {
+          throw new Error('Canvas context cannot promote cluster to subboard.')
+        }
+
+        await context.actions.openPromoteSubboardModal()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Promote to Subboard',
+        subtitle: 'Convert the selected cluster into a subboard'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.toggleTextAutoWidth,
+      modeScope: 'canvas-mode',
+      aliases: ['node.text.autowidth'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canToggleTextAutoWidth === true &&
+        typeof context.actions.toggleTextAutoWidth === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.toggleTextAutoWidth) {
+          throw new Error('Canvas context cannot toggle text auto-width.')
+        }
+
+        await context.actions.toggleTextAutoWidth()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Toggle Text Auto-Width',
+        subtitle: 'Enable or disable automatic width for the selected text node',
+        icon: FileText
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.addFocusWriter,
+      modeScope: 'canvas-mode',
+      aliases: ['board.focus-writer', 'add-focus-writer'],
+      enabledWhen: (context) => typeof context.actions.addFocusWriterBud === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.addFocusWriterBud) {
+          throw new Error('Canvas context cannot add a Focus Writer bud.')
+        }
+
+        await context.actions.addFocusWriterBud()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Add Focus Writer',
+        subtitle: 'Add a Focus Writer bud node to the board'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.addSchemaBloom,
+      modeScope: 'canvas-mode',
+      aliases: ['board.schema-bloom', 'add-schema-bloom'],
+      enabledWhen: (context) => typeof context.actions.addSchemaBloomBud === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.addSchemaBloomBud) {
+          throw new Error('Canvas context cannot add a Schema Bloom bud.')
+        }
+
+        await context.actions.addSchemaBloomBud()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Add Schema Bloom',
+        subtitle: 'Add a Schema Bloom bud node to the board',
+        icon: Database
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.addEdge,
+      modeScope: 'canvas-mode',
+      enabledWhen: (context) => typeof context.actions.addEdge === 'function',
+      run: (args: CanvasAddEdgeCommandArgs, context) => {
+        if (!context.actions.addEdge) {
+          throw new Error('Canvas context cannot add edges.')
+        }
+
+        return context.actions.addEdge(args)
+      },
+      undo: (_args, result) => {
+        useBoardStore.getState().deleteEdge((result as { edgeId: string }).edgeId)
+      }
+    }
+  }
+]
+
+type InkAppendStrokeArgs = { binding: InkSurfaceBinding; stroke: InkStroke }
+
+const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke,
+      modeScope: 'canvas-mode',
+      enabledWhen: (context) => typeof context.actions.appendInkStroke === 'function',
+      run: async (args: InkAppendStrokeArgs, context) => {
+        if (!context.actions.appendInkStroke) {
+          throw new Error('Canvas context cannot append ink strokes.')
+        }
+
+        return context.actions.appendInkStroke(args.binding, args.stroke)
+      },
+      undo: async (args: InkAppendStrokeArgs, result, context) => {
+        const { strokeId } = result as { strokeId: string }
+        await context.actions.removeInkStroke?.(args.binding, strokeId)
+      }
+    }
+  }
+]
+
+const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.historyUndo,
+      modeScope: 'canvas-mode',
+      aliases: ['undo'],
+      enabledWhen: (context) => {
+        const { undoTop } = useHistoryStore.getState().peek(context.majorMode)
+        return undoTop !== undefined
+      },
+      run: (_, context) => {
+        const entry = useHistoryStore.getState().undo(context.majorMode)
+        if (entry) void entry.undoFn()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Undo',
+        subtitle: 'Reverse the last action'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.historyRedo,
+      modeScope: 'canvas-mode',
+      aliases: ['redo'],
+      enabledWhen: (context) => {
+        const { redoTop } = useHistoryStore.getState().peek(context.majorMode)
+        return redoTop !== undefined
+      },
+      run: (_, context) => {
+        const entry = useHistoryStore.getState().redo(context.majorMode)
+        if (entry) void entry.redoFn()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Redo',
+        subtitle: 'Re-apply the last undone action'
+      }
+    ]
+  }
+]
+
 const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createBin,
       aliases: ['arrangements.bin.new'],
-      when: (context) => typeof context.actions.createBin === 'function',
+      enabledWhen: (context) => typeof context.actions.createBin === 'function',
       argsSchema: parseArrangementsCreateBinArgs,
       run: async (args, context) => {
         if (!context.actions.createBin) {
@@ -892,20 +1276,13 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
 
         return context.actions.createBin(args)
       }
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'New Bin',
-        subtitle: 'Create a new bin on the arrangements desktop'
-      }
-    ]
+    }
   },
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createBinAtCenter,
       aliases: ['arrangements.bin.create-from-palette'],
-      when: (context) => typeof context.actions.createBinAtViewportCenter === 'function',
+      enabledWhen: (context) => typeof context.actions.createBinAtViewportCenter === 'function',
       argsSchema: {
         validate: (args: unknown): args is { name: string } =>
           isRecord(args) && typeof args.name === 'string'
@@ -923,22 +1300,15 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
         type: 'step' as const,
         step: createArrangeCreateBinInputStep()
       })
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'New Bin',
-        subtitle: 'Name a new bin, then create it at the desktop viewport center',
-        icon: Archive
-      }
-    ]
+    }
   },
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.renameBin,
       aliases: ['arrangements.bin.edit-name'],
-      when: (context) =>
-        typeof context.actions.renameBin === 'function' && (context.availableBins?.length ?? 0) > 0,
+      enabledWhen: (context) =>
+        typeof context.actions.renameBin === 'function' &&
+        (context.subjectSnapshot.availableBins?.length ?? 0) > 0,
       argsSchema: parseRenameBinArgs,
       run: async (args, context) => {
         if (!context.actions.renameBin) {
@@ -951,24 +1321,17 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     flow: {
       start: async (context) => ({
         type: 'step' as const,
-        step: createRenameBinListStep(context.availableBins ?? [])
+        step: createRenameBinListStep(context.subjectSnapshot.availableBins ?? [])
       })
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'Rename Bin',
-        subtitle: 'Choose a bin, then type its new name',
-        icon: Archive
-      }
-    ]
+    }
   },
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.deleteBin,
       aliases: ['arrangements.bin.remove'],
-      when: (context) =>
-        typeof context.actions.deleteBin === 'function' && (context.availableBins?.length ?? 0) > 0,
+      enabledWhen: (context) =>
+        typeof context.actions.deleteBin === 'function' &&
+        (context.subjectSnapshot.availableBins?.length ?? 0) > 0,
       argsSchema: parseDeleteBinArgs,
       run: async (args, context) => {
         if (!context.actions.deleteBin) {
@@ -981,32 +1344,24 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     flow: {
       start: async (context) => ({
         type: 'step' as const,
-        step: createDeleteBinListStep(context.availableBins ?? [])
+        step: createDeleteBinListStep(context.subjectSnapshot.availableBins ?? [])
       })
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'Remove Bin',
-        subtitle: 'Choose a bin to remove from Arrangements',
-        icon: Trash2
-      }
-    ]
+    }
   },
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.assignMaterialsToBin,
       aliases: ['arrangements.material.move-to-bin'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.assignMaterialsToBin === 'function' &&
-        context.selection.materialKeys.length > 0,
+        context.subjectSnapshot.selection.materialKeys.length > 0,
       argsSchema: parseAssignMaterialsToBinArgs,
       run: async (args, context) => {
         if (!context.actions.assignMaterialsToBin) {
           throw new Error('Arrangements context cannot assign materials to bins.')
         }
 
-        if (!context.availableBinIds.includes(args.binId)) {
+        if (!context.subjectSnapshot.availableBinIds.includes(args.binId)) {
           throw new Error(`Unknown arrangements bin: ${args.binId}`)
         }
 
@@ -1018,9 +1373,9 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.removeMaterialsFromBin,
       aliases: ['arrangements.material.unbin'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.removeMaterialsFromBin === 'function' &&
-        context.selection.materialKeys.length > 0,
+        context.subjectSnapshot.selection.materialKeys.length > 0,
       argsSchema: parseRemoveMaterialsFromBinArgs,
       run: async (args, context) => {
         if (!context.actions.removeMaterialsFromBin) {
@@ -1035,16 +1390,16 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.includeMaterialsInSet,
       aliases: ['arrangements.material.add-to-set'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.includeMaterialsInSet === 'function' &&
-        context.selection.materialKeys.length > 0,
+        context.subjectSnapshot.selection.materialKeys.length > 0,
       argsSchema: parseIncludeMaterialsInSetArgs,
       run: async (args, context) => {
         if (!context.actions.includeMaterialsInSet) {
           throw new Error('Arrangements context cannot include materials in sets.')
         }
 
-        if (!context.availableSetIds.includes(args.setId)) {
+        if (!context.subjectSnapshot.availableSetIds.includes(args.setId)) {
           throw new Error(`Unknown arrangements set: ${args.setId}`)
         }
 
@@ -1056,9 +1411,9 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.sendMaterialsToTrash,
       aliases: ['arrangements.material.trash'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.sendMaterialsToTrash === 'function' &&
-        context.selection.materialKeys.length > 0,
+        context.subjectSnapshot.selection.materialKeys.length > 0,
       argsSchema: parseSendMaterialsToTrashArgs,
       run: async (args, context) => {
         if (!context.actions.sendMaterialsToTrash) {
@@ -1073,9 +1428,9 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.moveMaterialsToDesktop,
       aliases: ['arrangements.material.move-to-desktop'],
-      when: (context) =>
+      enabledWhen: (context) =>
         typeof context.actions.moveMaterialsToDesktop === 'function' &&
-        context.selection.materialKeys.length > 0,
+        context.subjectSnapshot.selection.materialKeys.length > 0,
       argsSchema: parseMoveMaterialsToDesktopArgs,
       run: async (args, context) => {
         if (!context.actions.moveMaterialsToDesktop) {
@@ -1090,7 +1445,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createRootSet,
       aliases: ['arrangements.set.create'],
-      when: (context) => typeof context.actions.createRootSet === 'function',
+      enabledWhen: (context) => typeof context.actions.createRootSet === 'function',
       argsSchema: parseCreateRootSetArgs,
       run: async (args, context) => {
         if (!context.actions.createRootSet) {
@@ -1105,22 +1460,15 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
         type: 'step' as const,
         step: createRootSetInputStep()
       })
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'New Set',
-        subtitle: 'Name a new root set in the Sets Island',
-        icon: Layers
-      }
-    ]
+    }
   },
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.renameSet,
       aliases: ['arrangements.set.edit-name'],
-      when: (context) =>
-        typeof context.actions.renameSet === 'function' && (context.availableSets?.length ?? 0) > 0,
+      enabledWhen: (context) =>
+        typeof context.actions.renameSet === 'function' &&
+        (context.subjectSnapshot.availableSets?.length ?? 0) > 0,
       argsSchema: parseRenameSetArgs,
       run: async (args, context) => {
         if (!context.actions.renameSet) {
@@ -1133,24 +1481,17 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     flow: {
       start: async (context) => ({
         type: 'step' as const,
-        step: createRenameSetListStep(context.availableSets ?? [])
+        step: createRenameSetListStep(context.subjectSnapshot.availableSets ?? [])
       })
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'Rename Set',
-        subtitle: 'Choose a set, then type its new name',
-        icon: Layers
-      }
-    ]
+    }
   },
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.deleteSet,
       aliases: ['arrangements.set.remove'],
-      when: (context) =>
-        typeof context.actions.deleteSet === 'function' && (context.availableSets?.length ?? 0) > 0,
+      enabledWhen: (context) =>
+        typeof context.actions.deleteSet === 'function' &&
+        (context.subjectSnapshot.availableSets?.length ?? 0) > 0,
       argsSchema: parseDeleteSetArgs,
       run: async (args, context) => {
         if (!context.actions.deleteSet) {
@@ -1163,23 +1504,15 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
     flow: {
       start: async (context) => ({
         type: 'step' as const,
-        step: createDeleteSetListStep(context.availableSets ?? [])
+        step: createDeleteSetListStep(context.subjectSnapshot.availableSets ?? [])
       })
-    },
-    presentations: [
-      {
-        mode: 'canvas-mode',
-        title: 'Remove Set',
-        subtitle: 'Choose a set to remove from Arrangements',
-        icon: Trash2
-      }
-    ]
+    }
   }
 ]
 
 export const whitebloomBuiltinCommandProvider = createBuiltinCommandProvider(
   'builtin:whitebloom-mutations',
-  [...canvasCommands, ...arrangementsCommands]
+  [...canvasCommands, ...canvasContextualCommands, ...inkCommands, ...historyCommands, ...arrangementsCommands]
 )
 
 registerCommandProvider(whitebloomBuiltinCommandProvider)

@@ -19,6 +19,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useTranslation } from 'react-i18next'
 import { useBoardStore } from '@renderer/stores/board'
+import { useHistoryStore } from '../history/store'
 import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { TextNode } from './TextNode'
@@ -1285,6 +1286,8 @@ export function Canvas({
       if (options?.switchToPointer) {
         setActiveTool('pointer')
       }
+
+      return id
     },
     [addNode, addNodeToCluster]
   )
@@ -1690,6 +1693,9 @@ export function Canvas({
   )
 
   const deleteSelection = useCallback(() => {
+    const deletedNodes = boardNodes.filter((n) => selectedNodeIds.includes(n.id))
+    const deletedEdges = boardEdges.filter((e) => selectedEdgeIds.includes(e.id))
+
     if (selectedNodeIds.length > 0) {
       deleteNodes(selectedNodeIds)
     }
@@ -1697,7 +1703,9 @@ export function Canvas({
     for (const edgeId of selectedEdgeIds) {
       storeDeleteEdge(edgeId)
     }
-  }, [deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge])
+
+    return { deletedNodes, deletedEdges }
+  }, [boardEdges, boardNodes, deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge])
 
   const bloomSelection = useCallback(async () => {
     if (!selectedBudNode || !selectedBudModule) return
@@ -1722,7 +1730,7 @@ export function Canvas({
   }, [selectedBudNode])
 
   const createShapeAtPoint = useCallback(
-    (preset: ShapePreset, position: FlowPosition) => {
+    (preset: ShapePreset, position: FlowPosition): { nodeId: string } => {
       const definition = getShapePresetDefinition(preset)
       const id = crypto.randomUUID()
       addNode({
@@ -1733,9 +1741,19 @@ export function Canvas({
         size: definition.defaultSize,
         shape: { preset, style: DEFAULT_SHAPE_STYLE }
       } as BoardNodeDraft)
+      return { nodeId: id }
     },
     [addNode]
   )
+
+  // Refs for action callbacks defined later in this component. The useMemo
+  // for canvasCommandContext must come before those useCallbacks to keep hook
+  // order stable; refs bridge the gap without stale-closure risk.
+  const fitClusterToChildrenRef = useRef<(() => void) | undefined>(undefined)
+  const toggleClusterAutofitRef = useRef<(() => void) | undefined>(undefined)
+  const openPromoteSubboardModalRef = useRef<(() => void) | undefined>(undefined)
+  const linkResourcesRef = useRef<(() => Promise<void>) | undefined>(undefined)
+  const importResourcesRef = useRef<(() => Promise<void>) | undefined>(undefined)
 
   const canvasCommandContext = useMemo(() => {
     const boardMaterialNamesByResource = new Map(
@@ -1744,58 +1762,130 @@ export function Canvas({
         .map((material) => [material.key, material.displayName] as const)
     )
 
+    const hasNodes = selectedNodeIds.length > 0
+    const hasEdges = selectedEdgeIds.length > 0
+    const selectionShape = !hasNodes && !hasEdges
+      ? ('none' as const)
+      : hasNodes && !hasEdges
+        ? selectedNodeIds.length === 1
+          ? ('single-node' as const)
+          : ('multiple-nodes' as const)
+        : !hasNodes && hasEdges
+          ? selectedEdgeIds.length === 1
+            ? ('single-edge' as const)
+            : ('multiple-edges' as const)
+          : ('mixed' as const)
+
     return createCanvasCommandContext({
       majorMode: currentMajorMode.id,
-      selection: {
-        nodeIds: selectedNodeIds,
-        edgeIds: selectedEdgeIds
+      subjectSnapshot: {
+        selectionShape,
+        activeTool,
+        selection: {
+          nodeIds: selectedNodeIds,
+          edgeIds: selectedEdgeIds
+        },
+        capabilities: {
+          canBloomSelection: selectedBudNode !== null && selectedBudModule !== undefined,
+          canOpenSelectionInNativeEditor:
+            selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id,
+          canLinkResources: true,
+          canImportResources: workspaceRoot !== null,
+          canFitCluster: selectedCluster !== null && selectedCluster.children.length > 0,
+          canToggleClusterAutofit: selectedCluster !== null,
+          canPromoteClusterToSubboard: selectedCluster !== null && workspaceRoot !== null
+        },
+        insertionPoint: getDefaultCanvasInsertionPoint(),
+        linkableBoards:
+          workspaceRoot === null
+            ? []
+            : workspaceBoards
+                .filter((path) => path !== boardPath)
+                .map((path) => {
+                  const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
+                  return {
+                    resource,
+                    name:
+                      (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
+                      getBoardNameFromPath(path),
+                    subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
+                  }
+                })
+                .filter((board) => board.resource.length > 0)
       },
-      capabilities: {
-        canBloomSelection: selectedBudNode !== null && selectedBudModule !== undefined,
-        canOpenSelectionInNativeEditor:
-          selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id
-      },
-      insertionPoint: getDefaultCanvasInsertionPoint(),
-      linkableBoards:
-        workspaceRoot === null
-          ? []
-          : workspaceBoards
-              .filter((path) => path !== boardPath)
-              .map((path) => {
-                const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
-                return {
-                  resource,
-                  name:
-                    (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
-                    getBoardNameFromPath(path),
-                  subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
-                }
-              })
-              .filter((board) => board.resource.length > 0),
       actions: {
         createBud: createBudAtPoint,
         createShape: ({ preset, position }) => createShapeAtPoint(preset, position),
         deleteSelection,
         bloomSelection,
         openSelectionInNativeEditor,
-        openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined
+        openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined,
+        linkResources: async () => { await linkResourcesRef.current?.() },
+        importResources: workspaceRoot !== null ? async () => { await importResourcesRef.current?.() } : undefined,
+        addTextNode: () => {
+          const position = getDefaultCanvasInsertionPoint()
+          const nodeId = insertTextNodeAtPosition(position)
+          return { nodeId }
+        },
+        addEdge: ({ from, to, sourceHandle, targetHandle }) => {
+          const edgeId = crypto.randomUUID()
+          storeAddEdge({ id: edgeId, from, to, sourceHandle: sourceHandle ?? null, targetHandle: targetHandle ?? null })
+          return { edgeId }
+        },
+        createCluster: createClusterFromSelection,
+        fitClusterToChildren:
+          selectedCluster !== null && selectedCluster.children.length > 0
+            ? () => fitClusterToChildrenRef.current?.()
+            : undefined,
+        toggleClusterAutofit:
+          selectedCluster !== null ? () => toggleClusterAutofitRef.current?.() : undefined,
+        openPromoteSubboardModal:
+          selectedCluster !== null && workspaceRoot !== null
+            ? () => openPromoteSubboardModalRef.current?.()
+            : undefined,
+        addFocusWriterBud: workspaceRoot !== null ? createFocusWriterBud : undefined,
+        addSchemaBloomBud: workspaceRoot !== null ? createSchemaBloomBud : undefined,
+        appendInkStroke:
+          workspaceRoot !== null && boardInkBinding !== null
+            ? async (binding, stroke) => {
+                setBoardInkStrokes((existing) => [...existing, stroke as BoardInkStroke])
+                await window.api.appendInkStroke(workspaceRoot, binding, stroke)
+                return { strokeId: stroke.id }
+              }
+            : undefined,
+        removeInkStroke:
+          workspaceRoot !== null && boardInkBinding !== null
+            ? async (binding, strokeId) => {
+                setBoardInkStrokes((existing) => existing.filter((s) => s.id !== strokeId))
+                await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
+              }
+            : undefined
       }
     })
   }, [
     arrangementsMaterials,
     bloomSelection,
+    boardInkBinding,
     createBudAtPoint,
+    createClusterFromSelection,
+    createFocusWriterBud,
+    createSchemaBloomBud,
     createShapeAtPoint,
     deleteSelection,
+    storeAddEdge,
     getDefaultCanvasInsertionPoint,
+    activeTool,
     boardPath,
     handleOpenMaterials,
+    insertTextNodeAtPosition,
     openSelectionInNativeEditor,
     selectedBudModule,
     selectedBudNode,
+    selectedCluster,
     selectedEdgeIds,
     selectedNodeIds,
     currentMajorMode.id,
+    setBoardInkStrokes,
     workspaceBoards,
     workspaceRoot
   ])
@@ -1890,6 +1980,7 @@ export function Canvas({
       animationFromBounds: liveClusterBounds
     })
   }, [boardNodes, fitClusterToFrame, nodes, screenToFlowPosition, selectedCluster])
+  fitClusterToChildrenRef.current = fitSelectedClusterToChildren
 
   const toggleSelectedClusterAutofit = useCallback(() => {
     if (!selectedCluster) return
@@ -1901,6 +1992,7 @@ export function Canvas({
       fitSelectedClusterToChildren()
     }
   }, [fitSelectedClusterToChildren, selectedCluster, updateCluster])
+  toggleClusterAutofitRef.current = toggleSelectedClusterAutofit
 
   const clusterChildrenById = useMemo(() => {
     const mapping = new Map<string, string[]>()
@@ -2252,15 +2344,14 @@ export function Canvas({
         return
       }
 
-      storeAddEdge({
-        id: crypto.randomUUID(),
+      void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addEdge, {
         from: connection.source,
         to: connection.target,
-        sourceHandle: connection.sourceHandle ?? null,
-        targetHandle: connection.targetHandle ?? null
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle
       })
     },
-    [storeAddEdge]
+    [runCanvasCommand]
   )
 
   const onPaneClick = useCallback(
@@ -2302,6 +2393,12 @@ export function Canvas({
     },
     [version, boardName, boardBrief, boardNodes, boardEdges, boardViewport]
   )
+
+  // Clear undo/redo history whenever the active board changes so operations
+  // from a previous session cannot bleed into a new one.
+  useEffect(() => {
+    useHistoryStore.getState().clear('canvas-mode')
+  }, [boardPath])
 
   useEffect(() => {
     if (!boardTransient || !boardPath) {
@@ -2401,6 +2498,7 @@ export function Canvas({
     setPromoteSubboardName(selectedCluster.label?.trim() || 'Subboard')
     setPromoteSubboardModalOpen(true)
   }, [selectedCluster, workspaceRoot])
+  openPromoteSubboardModalRef.current = openPromoteSubboardModal
 
   const closePromoteSubboardModal = useCallback(() => {
     if (promoteSubboardInFlight) return
@@ -2596,6 +2694,28 @@ export function Canvas({
             wrapWidth: null
           })
         }
+        return
+      }
+
+      if (event.key.toLowerCase() === 'z' && (event.ctrlKey || event.metaKey) && !event.shiftKey) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.historyUndo, undefined, {
+          source: 'shortcut'
+        })
+        return
+      }
+
+      if (
+        event.key.toLowerCase() === 'z' &&
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.historyRedo, undefined, {
+          source: 'shortcut'
+        })
         return
       }
 
@@ -3081,6 +3201,7 @@ export function Canvas({
 
     await placePickedResources(result.filePaths, 'link')
   }, [placePickedResources])
+  linkResourcesRef.current = handleLinkResources
 
   const handleImportResources = useCallback(async () => {
     if (!workspaceRoot) return
@@ -3090,6 +3211,7 @@ export function Canvas({
 
     await placePickedResources(result.filePaths, 'import')
   }, [placePickedResources, workspaceRoot])
+  importResourcesRef.current = handleImportResources
 
   const canvasPaletteItems = useMemo((): PaletteItem[] => {
     const items: PaletteItem[] = [
@@ -3099,11 +3221,9 @@ export function Canvas({
         icon: <Type size={14} strokeWidth={1.8} />,
         hint: 'T',
         onActivate: () => {
-          const position = screenToFlowPosition({
-            x: window.innerWidth / 2,
-            y: window.innerHeight / 2
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addText, undefined, {
+            source: 'palette'
           })
-          insertTextNodeAtPosition(position)
         }
       },
       {
@@ -3111,7 +3231,9 @@ export function Canvas({
         label: t('canvas.paletteClusterLabel'),
         icon: <Boxes size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          createClusterFromSelection()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.createCluster, undefined, {
+            source: 'palette'
+          })
         }
       }
     ]
@@ -3122,7 +3244,9 @@ export function Canvas({
         label: t('canvas.palettePromoteSubboardLabel'),
         icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          openPromoteSubboardModal()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.promoteClusterToSubboard, undefined, {
+            source: 'palette'
+          })
         }
       })
     }
@@ -3141,7 +3265,9 @@ export function Canvas({
               : t('canvas.paletteEnableClusterAutofitSubtitle'),
           icon: <Scan size={14} strokeWidth={1.8} />,
           onActivate: () => {
-            toggleSelectedClusterAutofit()
+            void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.toggleClusterAutofit, undefined, {
+              source: 'palette'
+            })
           }
         }
       ]
@@ -3153,7 +3279,9 @@ export function Canvas({
           subtitle: t('canvas.paletteFitClusterSubtitle'),
           icon: <Scan size={14} strokeWidth={1.8} />,
           onActivate: () => {
-            fitSelectedClusterToChildren()
+            void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.fitCluster, undefined, {
+              source: 'palette'
+            })
           }
         })
       }
@@ -3167,7 +3295,9 @@ export function Canvas({
         label: t('canvas.paletteLinkFileLabel'),
         icon: <Link2 size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          void handleLinkResources()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.linkResources, undefined, {
+            source: 'palette'
+          })
         }
       })
       items.push({
@@ -3175,7 +3305,9 @@ export function Canvas({
         label: t('canvas.paletteImportFileLabel'),
         icon: <ArrowDownToLine size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          void handleImportResources()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.importResources, undefined, {
+            source: 'palette'
+          })
         }
       })
       items.push({
@@ -3183,7 +3315,9 @@ export function Canvas({
         label: t('canvas.paletteFocusWriterLabel'),
         icon: <FileText size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          void createFocusWriterBud()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addFocusWriter, undefined, {
+            source: 'palette'
+          })
         }
       })
       items.push({
@@ -3191,7 +3325,9 @@ export function Canvas({
         label: t('canvas.paletteSchemaBloomLabel'),
         icon: <Database size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          void createSchemaBloomBud()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addSchemaBloom, undefined, {
+            source: 'palette'
+          })
         }
       })
     } else {
@@ -3200,27 +3336,15 @@ export function Canvas({
         label: t('canvas.paletteLinkFileLabel'),
         icon: <Link2 size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          void handleLinkResources()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.linkResources, undefined, {
+            source: 'palette'
+          })
         }
       })
     }
 
     return items
-  }, [
-    fitSelectedClusterToChildren,
-    toggleSelectedClusterAutofit,
-    workspaceRoot,
-    createClusterFromSelection,
-    createFocusWriterBud,
-    handleImportResources,
-    handleLinkResources,
-    createSchemaBloomBud,
-    openPromoteSubboardModal,
-    selectedCluster,
-    t,
-    screenToFlowPosition,
-    addNode
-  ])
+  }, [runCanvasCommand, workspaceRoot, selectedCluster, t])
   const shellMetaPaletteItems = useMemo<PaletteItem[]>(() => {
     const items: PaletteItem[] = []
 
@@ -3282,13 +3406,17 @@ export function Canvas({
 
     return currentMajorMode.kind === 'canvas' ? canvasPaletteItems : []
   }, [canvasPaletteItems, currentMajorMode.kind, paletteState?.initialMode, shellMetaPaletteItems])
-  const activePaletteCommandSession = paletteState
-    ? {
-        context: canvasCommandContext,
-        initialMode: paletteState.initialMode,
-        source: 'palette'
-      }
-    : undefined
+  const activePaletteCommandSession = useMemo<PaletteCommandSession | undefined>(
+    () =>
+      paletteState
+        ? {
+            context: canvasCommandContext,
+            initialMode: paletteState.initialMode,
+            source: 'palette'
+          }
+        : undefined,
+    [canvasCommandContext, paletteState]
+  )
 
   const activateShapeCommand = useCallback(
     (id: string, source: WhitebloomCommandExecutionOptions['source']) => {
@@ -3389,7 +3517,9 @@ export function Canvas({
         label: 'Link',
         icon: <Link2 size={14} strokeWidth={1.8} />,
         onActivate: () => {
-          void handleLinkResources()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.linkResources, undefined, {
+            source: 'context-menu'
+          })
         }
       },
       {
@@ -3398,12 +3528,14 @@ export function Canvas({
         icon: <ArrowDownToLine size={14} strokeWidth={1.8} />,
         subtitle: workspaceRoot === null ? t('canvas.importRequiresWorkspace') : undefined,
         onActivate: () => {
-          void handleImportResources()
+          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.importResources, undefined, {
+            source: 'context-menu'
+          })
         },
         disabled: workspaceRoot === null
       }
     ],
-    [activateShapeCommand, handleImportResources, handleLinkResources, t, workspaceRoot]
+    [activateShapeCommand, runCanvasCommand, t, workspaceRoot]
   )
 
   const onMouseDown = useCallback(
@@ -3755,9 +3887,11 @@ export function Canvas({
                 acetateVisible={acetateVisible}
                 acetateStrokes={boardInkStrokes}
                 onTransfer={(stroke) => {
-                  setBoardInkStrokes((existing) => [...existing, stroke])
-                  if (!workspaceRoot || !boardInkBinding) return
-                  void window.api.appendInkStroke(workspaceRoot, boardInkBinding, stroke)
+                  if (!boardInkBinding) return
+                  void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
+                    binding: boardInkBinding,
+                    stroke
+                  })
                 }}
               />
               <div data-board-capture="exclude">

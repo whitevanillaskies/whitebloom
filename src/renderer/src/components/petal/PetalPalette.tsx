@@ -257,6 +257,10 @@ export default function PetalPalette({
   const operationTokenRef = useRef(0)
   const activeOperationRef = useRef<ActivePaletteOperation | null>(null)
   const abortTimerRef = useRef<number | null>(null)
+  // Always tracks the latest commandSession so that closures baked into stored
+  // flow-mode items read the current context rather than a stale snapshot.
+  const commandSessionRef = useRef(commandSession)
+  commandSessionRef.current = commandSession
   const commandAliases = useAppSettingsStore((state) => state.commands.aliases)
   const updateCommandAlias = useAppSettingsStore((state) => state.updateCommandAlias)
 
@@ -396,10 +400,14 @@ export default function PetalPalette({
 
   const executePaletteCommand = useCallback(
     async (commandId: string, args?: unknown) => {
-      if (!commandSession) return { type: 'keep-open' as const }
+      // Use the ref so that flow commands, whose final submission may arrive many
+      // async steps after the palette was opened, always execute against the context
+      // that is current at dispatch time rather than the one captured at flow-start.
+      const session = commandSessionRef.current
+      if (!session) return { type: 'keep-open' as const }
 
-      const result = await executeCommandById(commandId, args, commandSession.context, {
-        source: commandSession.source ?? 'palette',
+      const result = await executeCommandById(commandId, args, session.context, {
+        source: session.source ?? 'palette',
         interaction: getActiveInteractionController(),
         metadata: {
           browseMode: commandBrowseMode,
@@ -414,7 +422,7 @@ export default function PetalPalette({
 
       return { type: 'close' as const }
     },
-    [commandBrowseMode, commandNamespace, commandSession, getActiveInteractionController]
+    [commandBrowseMode, commandNamespace, getActiveInteractionController]
   )
 
   function createCommandFlowMode(
@@ -431,10 +439,11 @@ export default function PetalPalette({
         submitLabel: step.submitLabel,
         initialValue: step.initialValue,
         onSubmit: async (value) => {
-          if (!commandSession) return { type: 'keep-open' as const }
+          const session = commandSessionRef.current
+          if (!session) return { type: 'keep-open' as const }
           const transition = await step.onSubmit(
             value,
-            commandSession.context,
+            session.context,
             getActiveInteractionController()
           )
           return handleCommandFlowTransition(entry, transition)
@@ -458,9 +467,10 @@ export default function PetalPalette({
           icon: Icon ? <Icon size={14} /> : undefined,
           hint: choice.hotkey,
           onActivate: async () => {
-            if (!commandSession) return { type: 'keep-open' as const }
+            const session = commandSessionRef.current
+            if (!session) return { type: 'keep-open' as const }
             const transition = await choice.onSelect(
-              commandSession.context,
+              session.context,
               getActiveInteractionController()
             )
             return handleCommandFlowTransition(entry, transition)
@@ -490,9 +500,10 @@ export default function PetalPalette({
   const activateRegisteredCommand = useCallback(
     async (entry: WhitebloomRegisteredCommandForContext<any>) => {
       if (entry.command.flow) {
-        if (!commandSession) return { type: 'keep-open' as const }
+        const session = commandSessionRef.current
+        if (!session) return { type: 'keep-open' as const }
         const transition = await entry.command.flow.start(
-          commandSession.context,
+          session.context,
           getActiveInteractionController()
         )
         return handleCommandFlowTransition(entry, transition)
@@ -500,7 +511,7 @@ export default function PetalPalette({
 
       return executePaletteCommand(entry.command.core.id)
     },
-    [commandSession, executePaletteCommand, getActiveInteractionController]
+    [executePaletteCommand, getActiveInteractionController]
   )
 
   const filtered = useMemo<PaletteRenderedEntry[]>(() => {

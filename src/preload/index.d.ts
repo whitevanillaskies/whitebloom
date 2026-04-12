@@ -256,6 +256,11 @@ declare global {
         binding: InkSurfaceBinding,
         stroke: InkStroke
       ) => Promise<{ ok: boolean; acetate: InkAcetate | null }>
+      deleteInkStroke: (
+        workspaceRoot: string,
+        binding: InkSurfaceBinding,
+        strokeId: string
+      ) => Promise<{ ok: boolean; acetate: InkAcetate | null }>
       saveRecording: (
         workspaceRoot: string,
         requestedName: string | null,
