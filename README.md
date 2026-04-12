@@ -4,7 +4,6 @@ A whiteboard. Local only, plaintext first, modular.
 
 ![WHITEBLOOM screenshot](repo_assets/whiteboard_pic.jpg)
 
-
 ## Features
 
 Local whiteboard with typical features such as writing text, loading images, groups, etc. Unlike cloud or proprietary whiteboards it gives you absolute control over your resources.
@@ -47,7 +46,7 @@ This is not meant to be a replacement for specialized software like OBS. It's a 
 
 If you'd like to support the project, consider donating to my Ko-Fi. All money will go toward tokens.
 
-
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/your-ko-fi-username)
 
 ## Precompiled Binaries
 
