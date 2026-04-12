@@ -8,6 +8,8 @@ A whiteboard. Local only, plaintext first, modular.
 
 Local whiteboard with typical features such as writing text, loading images, groups, etc. Unlike cloud or proprietary whiteboards it gives you absolute control over your resources.
 
+Whitebloom is desktop only. No plans yet to have support for tablets or phones.
+
 ### Materials
 
 Whitebloom uses Materials as the primary resource. A material can be either a file (including whiteboards) or a link such as URL. Your materials can be managed via Arrangements (TAB to launch the palette, then start typing `materials` or find it in the actions). URLs, links, and raw files appear here. There are two ways to arrange your materials: via bins and sets.
