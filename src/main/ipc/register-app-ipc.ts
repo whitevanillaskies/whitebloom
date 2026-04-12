@@ -17,6 +17,7 @@ import {
   registerLinkedMaterials
 } from '../services/workspace-material'
 import { appendInkStroke, loadInkAcetate } from '../services/ink-store'
+import { saveWorkspaceRecording } from '../services/recordings-store'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import { probeNetwork } from '../services/network-probe'
 import { fetchPageTitle } from '../services/page-title-fetcher'
@@ -38,6 +39,13 @@ type ListRecentBoardsResult = {
 type ArrangementsReadResult = {
   ok: boolean
   state: GardenState | null
+}
+
+type RecordingSaveResult = {
+  ok: boolean
+  filePath: string | null
+  fileName: string | null
+  relativePath: string | null
 }
 
 type ArrangementsWriteResult = {
@@ -352,6 +360,33 @@ export function registerAppIpc(context: MainProcessContext): void {
         }
       } catch {
         return { ok: false, acetate: null }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'recording:save',
+    async (
+      _event,
+      workspaceRoot: string,
+      requestedName: string | null,
+      bytes: Uint8Array
+    ): Promise<RecordingSaveResult> => {
+      try {
+        const saved = await saveWorkspaceRecording(workspaceRoot, requestedName, bytes)
+        return {
+          ok: true,
+          filePath: saved.filePath,
+          fileName: saved.fileName,
+          relativePath: saved.relativePath
+        }
+      } catch {
+        return {
+          ok: false,
+          filePath: null,
+          fileName: null,
+          relativePath: null
+        }
       }
     }
   )

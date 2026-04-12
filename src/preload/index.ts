@@ -283,7 +283,13 @@ const api = {
     binding: InkSurfaceBinding,
     stroke: InkStroke
   ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
-    ipcRenderer.invoke('ink:append-stroke', workspaceRoot, binding, stroke)
+    ipcRenderer.invoke('ink:append-stroke', workspaceRoot, binding, stroke),
+  saveRecording: (
+    workspaceRoot: string,
+    requestedName: string | null,
+    bytes: Uint8Array
+  ): Promise<{ ok: boolean; filePath: string | null; fileName: string | null; relativePath: string | null }> =>
+    ipcRenderer.invoke('recording:save', workspaceRoot, requestedName, bytes)
 }
 
 if (process.contextIsolated) {

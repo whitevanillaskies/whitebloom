@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, desktopCapturer, session } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createMainWindow } from './create-window'
 import { initializeMainI18n } from './i18n'
@@ -23,6 +23,31 @@ app.whenReady().then(async () => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  session.defaultSession.setDisplayMediaRequestHandler(
+    async (_request, callback) => {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: {
+          width: 0,
+          height: 0
+        },
+        fetchWindowIcons: false
+      })
+
+      if (sources.length === 0) {
+        callback({})
+        return
+      }
+
+      callback({
+        video: sources[0]
+      })
+    },
+    {
+      useSystemPicker: true
+    }
+  )
 
   const context = createMainProcessContext()
   await ensureAppStorageDirectories()

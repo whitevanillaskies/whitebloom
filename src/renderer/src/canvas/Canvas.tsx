@@ -156,6 +156,14 @@ const DEFAULT_MATERIALS_GEOMETRY = {
   minWidth: 400,
   minHeight: 320
 } as const
+const SCREEN_RECORDING_STOP_SHORTCUT = 'F8'
+const SCREEN_RECORDING_DEFAULT_BASENAME = 'recording'
+const SCREEN_RECORDING_DIRECTORY = 'recordings'
+const SCREEN_RECORDING_MIME_CANDIDATES = [
+  'video/webm;codecs=vp9',
+  'video/webm;codecs=vp8',
+  'video/webm'
+]
 
 type NodeBounds = {
   left: number
@@ -181,6 +189,40 @@ type ExternalResourceInput = {
   fileName: string
   file?: File
   preferredBehavior?: 'link' | 'import'
+}
+type ScreenRecordingStatus = 'idle' | 'starting' | 'recording' | 'stopping' | 'saving'
+type ScreenRecordingState = {
+  status: ScreenRecordingStatus
+  fileName: string | null
+}
+
+function createRecordingTimestampLabel(now: Date = new Date()): string {
+  const date = [
+    now.getFullYear().toString().padStart(4, '0'),
+    (now.getMonth() + 1).toString().padStart(2, '0'),
+    now.getDate().toString().padStart(2, '0')
+  ].join('-')
+  const time = [
+    now.getHours().toString().padStart(2, '0'),
+    now.getMinutes().toString().padStart(2, '0'),
+    now.getSeconds().toString().padStart(2, '0')
+  ].join('-')
+  return `${SCREEN_RECORDING_DEFAULT_BASENAME}-${date}_${time}`
+}
+
+function sanitizeRecordingFileName(value: string): string {
+  return value
+    .trim()
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[. ]+$/g, '')
+    .slice(0, 96)
+}
+
+function pickSupportedScreenRecordingMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined
+  return SCREEN_RECORDING_MIME_CANDIDATES.find((candidate) => MediaRecorder.isTypeSupported(candidate))
 }
 
 function buildReactFlowMarker(
@@ -742,6 +784,10 @@ export function Canvas({
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [acetateVisible, setAcetateVisible] = useState(true)
   const [boardInkStrokes, setBoardInkStrokes] = useState<BoardInkStroke[]>([])
+  const [screenRecordingState, setScreenRecordingState] = useState<ScreenRecordingState>({
+    status: 'idle',
+    fileName: null
+  })
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
   const [paletteState, setPaletteState] = useState<{
     initialMode: PaletteCommandSession['initialMode']
@@ -764,6 +810,10 @@ export function Canvas({
   const [shapeMenuAnchor, setShapeMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [overflowAnchor, setOverflowAnchor] = useState<{ x: number; y: number } | null>(null)
   const autoEditSequenceRef = useRef(0)
+  const screenRecordingRecorderRef = useRef<MediaRecorder | null>(null)
+  const screenRecordingStreamRef = useRef<MediaStream | null>(null)
+  const screenRecordingChunksRef = useRef<Blob[]>([])
+  const screenRecordingFileNameRef = useRef<string | null>(null)
   const rightPointerStateRef = useRef<{ startX: number; startY: number; dragged: boolean } | null>(
     null
   )
@@ -818,6 +868,141 @@ export function Canvas({
     [activeBloom]
   )
 
+  const stopScreenRecordingTracks = useCallback(() => {
+    screenRecordingStreamRef.current?.getTracks().forEach((track) => track.stop())
+    screenRecordingStreamRef.current = null
+  }, [])
+
+  const clearScreenRecordingSession = useCallback(() => {
+    screenRecordingRecorderRef.current = null
+    screenRecordingChunksRef.current = []
+    screenRecordingFileNameRef.current = null
+    stopScreenRecordingTracks()
+  }, [stopScreenRecordingTracks])
+
+  const stopScreenRecording = useCallback(async () => {
+    const recorder = screenRecordingRecorderRef.current
+    if (!recorder || recorder.state !== 'recording') return false
+
+    setScreenRecordingState((current) => ({
+      status: 'stopping',
+      fileName: current.fileName
+    }))
+    recorder.stop()
+    return true
+  }, [])
+
+  const startScreenRecording = useCallback(
+    async (requestedName: string) => {
+      if (!workspaceRoot) return false
+      if (screenRecordingState.status !== 'idle') return false
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        console.warn('[screen] display capture is not available in this environment')
+        return false
+      }
+
+      const fileName = sanitizeRecordingFileName(requestedName) || createRecordingTimestampLabel()
+      setScreenRecordingState({
+        status: 'starting',
+        fileName
+      })
+
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: 30
+          },
+          audio: false
+        })
+        const mimeType = pickSupportedScreenRecordingMimeType()
+        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+
+        screenRecordingStreamRef.current = stream
+        screenRecordingRecorderRef.current = recorder
+        screenRecordingChunksRef.current = []
+        screenRecordingFileNameRef.current = fileName
+
+        recorder.addEventListener('dataavailable', (event) => {
+          if (event.data.size > 0) {
+            screenRecordingChunksRef.current.push(event.data)
+          }
+        })
+
+        recorder.addEventListener('stop', () => {
+          const chunks = [...screenRecordingChunksRef.current]
+          const recordedFileName = screenRecordingFileNameRef.current ?? fileName
+          void (async () => {
+            try {
+              setScreenRecordingState({
+                status: 'saving',
+                fileName: recordedFileName
+              })
+              const blob = new Blob(chunks, {
+                type: recorder.mimeType || mimeType || 'video/webm'
+              })
+              const bytes = new Uint8Array(await blob.arrayBuffer())
+              const result = await window.api.saveRecording(workspaceRoot, recordedFileName, bytes)
+              if (result.ok) {
+                console.info('[screen] saved recording', result.relativePath ?? result.fileName)
+              } else {
+                console.warn('[screen] failed to save recording')
+              }
+            } catch (error) {
+              console.warn('[screen] failed to finalize recording', error)
+            } finally {
+              clearScreenRecordingSession()
+              setScreenRecordingState({
+                status: 'idle',
+                fileName: null
+              })
+            }
+          })()
+        })
+
+        recorder.addEventListener('error', (event) => {
+          console.warn('[screen] recording error', event)
+          clearScreenRecordingSession()
+          setScreenRecordingState({
+            status: 'idle',
+            fileName: null
+          })
+        })
+
+        stream.getVideoTracks().forEach((track) => {
+          track.addEventListener('ended', () => {
+            const activeRecorder = screenRecordingRecorderRef.current
+            if (activeRecorder?.state === 'recording') {
+              activeRecorder.stop()
+            } else {
+              clearScreenRecordingSession()
+              setScreenRecordingState({
+                status: 'idle',
+                fileName: null
+              })
+            }
+          })
+        })
+
+        recorder.start(1000)
+        setScreenRecordingState({
+          status: 'recording',
+          fileName
+        })
+        console.info('[screen] start recording', `${SCREEN_RECORDING_DIRECTORY}/${fileName}.webm`)
+        return true
+      } catch (error) {
+        clearScreenRecordingSession()
+        setScreenRecordingState({
+          status: 'idle',
+          fileName: null
+        })
+        console.warn('[screen] start recording cancelled or failed', error)
+        return false
+      }
+    },
+    [clearScreenRecordingSession, screenRecordingState.status, stopScreenRecordingTracks, workspaceRoot]
+  )
+
   // ── Materials Mica host ──────────────────────────────────────────────────────
   const materialsMicaPolicy = useMemo(
     () => ({
@@ -837,6 +1022,17 @@ export function Canvas({
     []
   )
   const materialsMica = useMicaHost(materialsMicaPolicy)
+
+  useEffect(() => {
+    return () => {
+      const recorder = screenRecordingRecorderRef.current
+      if (recorder?.state === 'recording') {
+        recorder.stop()
+      } else {
+        clearScreenRecordingSession()
+      }
+    }
+  }, [clearScreenRecordingSession])
 
   const closeCanvasContextMenu = useCallback(() => {
     setCanvasContextMenu(null)
@@ -2451,6 +2647,20 @@ export function Canvas({
     }
   }, [])
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== SCREEN_RECORDING_STOP_SHORTCUT) return
+      if (screenRecordingState.status !== 'recording') return
+      event.preventDefault()
+      void stopScreenRecording()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [screenRecordingState.status, stopScreenRecording])
+
   const handleConfirmDocumentAction = useCallback(() => {
     if (pendingDocumentAction === 'exit') {
       window.api.confirmClose()
@@ -2972,29 +3182,55 @@ export function Canvas({
     addNode
   ])
   const shellMetaPaletteItems = useMemo<PaletteItem[]>(
-    () => [
-      {
-        id: 'screen.start-recording',
-        label: 'screen.start-recording',
-        subtitle: 'Start a stub session recording and log to the console',
-        icon: <Radio size={14} strokeWidth={1.8} />,
-        hint: 'rr',
-        onActivate: () => {
-          console.info('[screen] start recording (stub)')
-        }
-      },
-      {
-        id: 'screen.stop-recording',
-        label: 'screen.stop-recording',
-        subtitle: 'Stop a stub session recording and log to the console',
-        icon: <SquareDot size={14} strokeWidth={1.8} />,
-        hint: 'rs',
-        onActivate: () => {
-          console.info('[screen] stop recording (stub)')
-        }
+    () => {
+      const items: PaletteItem[] = []
+
+      if (workspaceRoot && screenRecordingState.status === 'idle') {
+        items.push({
+          id: 'screen.start-recording',
+          label: 'screen.start-recording',
+          subtitle: `Capture a quick session and save it to ${SCREEN_RECORDING_DIRECTORY}/`,
+          icon: <Radio size={14} strokeWidth={1.8} />,
+          hint: 'rr',
+          onActivate: () => ({
+            type: 'set-mode',
+            mode: {
+              id: 'screen:start-recording',
+              type: 'input',
+              title: 'Start Recording',
+              subtitle: `Save to ${SCREEN_RECORDING_DIRECTORY}/ in this workspace`,
+              placeholder: 'Type a file name or leave blank for a timestamp',
+              submitLabel: 'Start Recording',
+              initialValue: createRecordingTimestampLabel(),
+              onSubmit: async (value) => {
+                const started = await startScreenRecording(value)
+                return started ? { type: 'close' as const } : { type: 'keep-open' as const }
+              }
+            }
+          })
+        })
       }
-    ],
-    []
+
+      if (screenRecordingState.status === 'recording' || screenRecordingState.status === 'stopping') {
+        items.push({
+          id: 'screen.stop-recording',
+          label: 'screen.stop-recording',
+          subtitle:
+            screenRecordingState.fileName !== null
+              ? `Stop ${screenRecordingState.fileName}.webm and save it`
+              : 'Stop the active recording and save it',
+          icon: <SquareDot size={14} strokeWidth={1.8} />,
+          hint: 'rs',
+          onActivate: async () => {
+            await stopScreenRecording()
+            return { type: 'close' as const }
+          }
+        })
+      }
+
+      return items
+    },
+    [screenRecordingState.fileName, screenRecordingState.status, startScreenRecording, stopScreenRecording, workspaceRoot]
   )
   const activePaletteItems = useMemo(() => {
     if (paletteState?.initialMode === 'meta') {
@@ -3611,6 +3847,12 @@ export function Canvas({
             onClose={() => setActiveBloom(null)}
           />
         )}
+
+        {screenRecordingState.status === 'recording' ? (
+          <div className="canvas-recording-indicator" aria-live="polite" role="status">
+            <span className="canvas-recording-indicator__dot" aria-hidden="true" />
+          </div>
+        ) : null}
 
         {paletteState && (
           <PetalPalette

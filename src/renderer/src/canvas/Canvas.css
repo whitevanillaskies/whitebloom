@@ -179,3 +179,45 @@
 .shape-node--selected .shape-node__label {
   font-weight: 600;
 }
+
+.canvas-recording-indicator {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 5000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.82);
+  border: 1px solid rgb(255 255 255 / 0.74);
+  box-shadow:
+    0 12px 32px rgb(16 24 40 / 0.18),
+    inset 0 1px 0 rgb(255 255 255 / 0.75);
+  pointer-events: none;
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.canvas-recording-indicator__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #d63626;
+  box-shadow: 0 0 0 4px rgb(214 54 38 / 0.14);
+  animation: canvas-recording-pulse 1.25s ease-in-out infinite;
+}
+
+@keyframes canvas-recording-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(0.82);
+    opacity: 0.74;
+  }
+}
