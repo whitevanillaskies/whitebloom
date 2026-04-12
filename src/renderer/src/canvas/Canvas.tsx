@@ -34,6 +34,7 @@ import { ShapeToolbar } from './ShapeToolbar'
 import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import { InkOverlay } from './InkOverlay'
+import type { BoardInkStroke } from './InkOverlay'
 import '../modules/index'
 import { dispatchDirectory, dispatchModule, resolveModuleById } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
@@ -109,6 +110,7 @@ import type { ShapePreset } from '@renderer/shared/types'
 import { getShapePresetDefinition } from './shapePresets'
 import { resolveCanvasMarkerColor } from './vectorStyles'
 import type { Tool } from './tools'
+import { createInkTargetId, type InkBoardSurfaceBinding } from '../../../shared/ink'
 import { planClusterPromotion } from '@renderer/stores/board'
 import type { BoardNodeDraft } from '@renderer/stores/board'
 import {
@@ -725,6 +727,7 @@ export function Canvas({
   const canvasDropTargetRef = useRef<HTMLDivElement>(null)
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [acetateVisible, setAcetateVisible] = useState(true)
+  const [boardInkStrokes, setBoardInkStrokes] = useState<BoardInkStroke[]>([])
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
   const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
@@ -759,6 +762,40 @@ export function Canvas({
       }) as const,
     []
   )
+  const boardInkBinding = useMemo<InkBoardSurfaceBinding | null>(() => {
+    if (!workspaceRoot || !boardPath) return null
+    const resource = toWorkspaceBoardResource(boardPath, workspaceRoot)
+    if (!resource) return null
+
+    return {
+      surfaceType: 'board',
+      coordinateSpace: 'board-world',
+      resource,
+      targetId: createInkTargetId('board', resource)
+    }
+  }, [boardPath, workspaceRoot])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!workspaceRoot || !boardInkBinding) {
+      setBoardInkStrokes([])
+      return () => {
+        cancelled = true
+      }
+    }
+
+    void window.api.readInkAcetate(workspaceRoot, boardInkBinding).then((result) => {
+      if (cancelled) return
+      setBoardInkStrokes(
+        result.ok && result.acetate ? (result.acetate.strokes as BoardInkStroke[]) : []
+      )
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [boardInkBinding, workspaceRoot])
 
   // ── Materials Mica host ──────────────────────────────────────────────────────
   const materialsMicaPolicy = useMemo(
@@ -3396,7 +3433,16 @@ export function Canvas({
             >
               <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
               <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-              <InkOverlay active={activeTool === 'ink'} acetateVisible={acetateVisible} />
+              <InkOverlay
+                active={activeTool === 'ink'}
+                acetateVisible={acetateVisible}
+                acetateStrokes={boardInkStrokes}
+                onTransfer={(stroke) => {
+                  setBoardInkStrokes((existing) => [...existing, stroke])
+                  if (!workspaceRoot || !boardInkBinding) return
+                  void window.api.appendInkStroke(workspaceRoot, boardInkBinding, stroke)
+                }}
+              />
               <div data-board-capture="exclude">
                 <MiniMap nodeStrokeWidth={1} zoomable pannable />
               </div>

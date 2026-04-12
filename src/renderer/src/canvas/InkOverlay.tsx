@@ -11,9 +11,11 @@ import './InkOverlay.css'
 type InkOverlayProps = {
   active: boolean
   acetateVisible: boolean
+  acetateStrokes: BoardInkStroke[]
+  onTransfer: (stroke: BoardInkStroke) => void
 }
 
-type DrawStroke = InkStroke & {
+export type BoardInkStroke = InkStroke & {
   samples: InkBoardWorldSample[]
 }
 
@@ -84,7 +86,16 @@ function makeSample(event: PointerEvent, viewport: { x: number; y: number; zoom:
   }
 }
 
-export function InkOverlay({ active, acetateVisible }: InkOverlayProps) {
+function isValidPointerSample(event: PointerEvent): boolean {
+  return Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
+}
+
+export function InkOverlay({
+  active,
+  acetateVisible,
+  acetateStrokes,
+  onTransfer
+}: InkOverlayProps) {
   const viewport = useViewport()
   const rootRef = useRef<HTMLDivElement | null>(null)
   const glassCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -92,8 +103,6 @@ export function InkOverlay({ active, acetateVisible }: InkOverlayProps) {
   const activePointerIdRef = useRef<number | null>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<InkBoardWorldSample[]>([])
-  const [acetateStrokes, setAcetateStrokes] = useState<DrawStroke[]>([])
-
   const currentOutline = useMemo(
     () => (currentSamples.length > 1 ? buildStrokeOutline(currentSamples, viewport) : []),
     [currentSamples, viewport]
@@ -177,6 +186,7 @@ export function InkOverlay({ active, acetateVisible }: InkOverlayProps) {
     const handlePointerDown = (event: PointerEvent) => {
       if (!active) return
       if (event.button !== 0) return
+      if (!isValidPointerSample(event)) return
 
       const bounds = root.getBoundingClientRect()
       const sample = makeSample(event, viewport, bounds)
@@ -189,6 +199,7 @@ export function InkOverlay({ active, acetateVisible }: InkOverlayProps) {
     const handlePointerMove = (event: PointerEvent) => {
       if (!active) return
       if (activePointerIdRef.current !== event.pointerId) return
+      if (!isValidPointerSample(event)) return
 
       const bounds = root.getBoundingClientRect()
       const nextSample = makeSample(event, viewport, bounds)
@@ -208,31 +219,31 @@ export function InkOverlay({ active, acetateVisible }: InkOverlayProps) {
       event.preventDefault()
     }
 
-    const finishStroke = (event: PointerEvent) => {
+    const finalizeStroke = (event: PointerEvent, includeFinalSample: boolean) => {
       if (activePointerIdRef.current !== event.pointerId) return
-
-      const bounds = root.getBoundingClientRect()
-      const finalSample = makeSample(event, viewport, bounds)
+      const bounds = includeFinalSample ? root.getBoundingClientRect() : null
+      const finalSample =
+        includeFinalSample && bounds !== null && isValidPointerSample(event)
+          ? makeSample(event, viewport, bounds)
+          : null
 
       setCurrentSamples((previous) => {
         const samples =
+          finalSample !== null &&
           previous.length > 0 &&
           Math.hypot(finalSample.x - previous[previous.length - 1].x, finalSample.y - previous[previous.length - 1].y) > 0
             ? [...previous, finalSample]
             : previous
 
         if (samples.length > 1) {
-          setAcetateStrokes((existing) => [
-            ...existing,
-            {
-              id: crypto.randomUUID(),
-              tool: 'pen',
-              style: { ...DEFAULT_INK_STROKE_STYLE },
-              dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
-              samples,
-              createdAt: new Date().toISOString()
-            }
-          ])
+          onTransfer({
+            id: crypto.randomUUID(),
+            tool: 'pen',
+            style: { ...DEFAULT_INK_STROKE_STYLE },
+            dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
+            samples,
+            createdAt: new Date().toISOString()
+          })
         }
 
         return []
@@ -247,18 +258,26 @@ export function InkOverlay({ active, acetateVisible }: InkOverlayProps) {
       event.preventDefault()
     }
 
+    const handlePointerUp = (event: PointerEvent) => {
+      finalizeStroke(event, true)
+    }
+
+    const handlePointerCancel = (event: PointerEvent) => {
+      finalizeStroke(event, false)
+    }
+
     root.addEventListener('pointerdown', handlePointerDown)
     root.addEventListener('pointermove', handlePointerMove)
-    root.addEventListener('pointerup', finishStroke)
-    root.addEventListener('pointercancel', finishStroke)
+    root.addEventListener('pointerup', handlePointerUp)
+    root.addEventListener('pointercancel', handlePointerCancel)
 
     return () => {
       root.removeEventListener('pointerdown', handlePointerDown)
       root.removeEventListener('pointermove', handlePointerMove)
-      root.removeEventListener('pointerup', finishStroke)
-      root.removeEventListener('pointercancel', finishStroke)
+      root.removeEventListener('pointerup', handlePointerUp)
+      root.removeEventListener('pointercancel', handlePointerCancel)
     }
-  }, [active, viewport])
+  }, [active, onTransfer, viewport])
 
   return (
     <div

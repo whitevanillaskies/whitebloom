@@ -188,6 +188,13 @@ export type InkWorkspaceIndex = {
   targets: InkTargetIndexEntry[]
 }
 
+export function createInkTargetId(
+  surfaceType: InkSurfaceType,
+  resource: InkSurfaceResource
+): InkTargetId {
+  return `${surfaceType}:${resource.trim()}`
+}
+
 export const DEFAULT_INK_STROKE_STYLE: InkStrokeStyle = {
   color: '#111111',
   width: 2,

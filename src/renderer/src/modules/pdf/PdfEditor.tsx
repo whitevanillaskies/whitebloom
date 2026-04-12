@@ -17,8 +17,11 @@ import {
 } from 'lucide-react'
 import type { BudEditorProps } from '../types'
 import { resourceToMediaSrc } from '@renderer/shared/resource-url'
+import { createInkTargetId, type InkPdfSurfaceBinding } from '../../../../shared/ink'
 import { createLogger } from '../../../../shared/logger'
+import { PdfAcetateCanvas } from './PdfAcetateCanvas'
 import { PdfInkOverlay } from './PdfInkOverlay'
+import type { PdfInkStroke } from './pdfInkShared'
 import './PdfEditor.css'
 
 GlobalWorkerOptions.workerSrc = new URL(
@@ -57,9 +60,18 @@ type PageCanvasProps = {
   pageNumber: number
   scale: number
   layout: PageLayout | null
+  acetateVisible: boolean
+  acetateStrokes: PdfInkStroke[]
 }
 
-function PdfPageCanvas({ doc, pageNumber, scale, layout }: PageCanvasProps) {
+function PdfPageCanvas({
+  doc,
+  pageNumber,
+  scale,
+  layout,
+  acetateVisible,
+  acetateStrokes
+}: PageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [renderError, setRenderError] = useState<string | null>(null)
 
@@ -129,8 +141,25 @@ function PdfPageCanvas({ doc, pageNumber, scale, layout }: PageCanvasProps) {
 
   return (
     <div className="pdf-editor__page-shell" style={shellStyle} data-pdf-page-shell={pageNumber}>
-      {renderError ? <div className="pdf-editor__page-error">{renderError}</div> : null}
-      <canvas ref={canvasRef} className="pdf-editor__page-canvas" />
+      <div
+        className="pdf-editor__page-frame"
+        style={{
+          width: layout?.width ?? undefined,
+          height: layout?.height ?? undefined
+        }}
+        data-pdf-page-frame={pageNumber}
+      >
+        {renderError ? <div className="pdf-editor__page-error">{renderError}</div> : null}
+        <canvas ref={canvasRef} className="pdf-editor__page-canvas" />
+        {layout ? (
+          <PdfAcetateCanvas
+            pageWidth={layout.width}
+            pageHeight={layout.height}
+            visible={acetateVisible}
+            strokes={acetateStrokes}
+          />
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -142,6 +171,8 @@ type VirtualizedPdfPageProps = {
   pageNumber: number
   scale: number
   layout: PageLayout | null
+  acetateVisible: boolean
+  acetateStrokes: PdfInkStroke[]
   viewportRef: { current: HTMLDivElement | null }
 }
 
@@ -150,6 +181,8 @@ function VirtualizedPdfPage({
   pageNumber,
   scale,
   layout,
+  acetateVisible,
+  acetateStrokes,
   viewportRef
 }: VirtualizedPdfPageProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -193,7 +226,14 @@ function VirtualizedPdfPage({
   return (
     <div ref={containerRef} className="pdf-editor__virtual-page" style={shellStyle}>
       {shouldRender ? (
-        <MemoizedPdfPageCanvas doc={doc} pageNumber={pageNumber} scale={scale} layout={layout} />
+        <MemoizedPdfPageCanvas
+          doc={doc}
+          pageNumber={pageNumber}
+          scale={scale}
+          layout={layout}
+          acetateVisible={acetateVisible}
+          acetateStrokes={acetateStrokes}
+        />
       ) : (
         <div className="pdf-editor__page-shell pdf-editor__page-shell--placeholder" style={shellStyle}>
           <div className="pdf-editor__page-ghost" />
@@ -246,6 +286,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [activePage, setActivePage] = useState(1)
   const [activeTool, setActiveTool] = useState<'navigate' | 'ink'>('navigate')
   const [acetateVisible, setAcetateVisible] = useState(true)
+  const [acetateStrokes, setAcetateStrokes] = useState<PdfInkStroke[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('single-continuous')
   const [spreadLead, setSpreadLead] = useState<SpreadLead>('odd')
@@ -253,6 +294,15 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [basePageLayouts, setBasePageLayouts] = useState<Record<number, PageLayout>>({})
   const pageRefs = useRef<Record<number, HTMLElement | null>>({})
   const scrollViewportRef = useRef<HTMLDivElement | null>(null)
+  const inkBinding = useMemo<InkPdfSurfaceBinding>(
+    () => ({
+      surfaceType: 'pdf',
+      coordinateSpace: 'paged-uv',
+      resource,
+      targetId: createInkTargetId('pdf', resource)
+    }),
+    [resource]
+  )
 
   const pageLayouts = useMemo<Record<number, PageLayout>>(() => {
     const nextLayouts: Record<number, PageLayout> = {}
@@ -269,6 +319,38 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   }, [basePageLayouts, scale])
 
   const facingSpreads = useMemo(() => buildFacingSpreads(pageCount, spreadLead), [pageCount, spreadLead])
+  const acetateStrokesByPage = useMemo<Record<number, PdfInkStroke[]>>(() => {
+    const grouped: Record<number, PdfInkStroke[]> = {}
+
+    for (const stroke of acetateStrokes) {
+      let currentRun: typeof stroke.samples = []
+
+      const pushRun = () => {
+        if (currentRun.length === 0) return
+        const pageNumber = currentRun[0].pageIndex
+        grouped[pageNumber] ??= []
+        grouped[pageNumber].push({
+          ...stroke,
+          samples: currentRun
+        })
+      }
+
+      for (const sample of stroke.samples) {
+        const previousPage = currentRun[0]?.pageIndex ?? null
+        if (previousPage !== null && previousPage !== sample.pageIndex) {
+          pushRun()
+          currentRun = [sample]
+          continue
+        }
+
+        currentRun = [...currentRun, sample]
+      }
+
+      pushRun()
+    }
+
+    return grouped
+  }, [acetateStrokes])
   const activeSpreadIndex = Math.max(
     0,
     facingSpreads.findIndex((spread) => spread.pages.includes(activePage))
@@ -292,6 +374,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     setErrorMessage(null)
     setThumbnails([])
     setActivePage(1)
+    setAcetateStrokes([])
     setBasePageLayouts({})
 
     void task.promise
@@ -328,6 +411,21 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
       task.destroy()
     }
   }, [resource, workspaceRoot])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void window.api.readInkAcetate(workspaceRoot, inkBinding).then((result) => {
+      if (cancelled) return
+      setAcetateStrokes(
+        result.ok && result.acetate ? (result.acetate.strokes as PdfInkStroke[]) : []
+      )
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [inkBinding, workspaceRoot])
 
   useEffect(() => {
     if (!documentProxy || pageCount === 0) return
@@ -758,6 +856,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                           pageNumber={pageNumber}
                           scale={scale}
                           layout={pageLayouts[pageNumber] ?? null}
+                          acetateVisible={acetateVisible}
+                          acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
                           viewportRef={scrollViewportRef}
                         />
                       </section>
@@ -787,6 +887,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                                 pageNumber={pageNumber}
                                 scale={scale}
                                 layout={pageLayouts[pageNumber] ?? null}
+                                acetateVisible={acetateVisible}
+                                acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
                                 viewportRef={scrollViewportRef}
                               />
                             </div>
@@ -814,6 +916,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                         pageNumber={pageNumber}
                         scale={scale}
                         layout={pageLayouts[pageNumber] ?? null}
+                        acetateVisible={acetateVisible}
+                        acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
                       />
                     </section>
                   ))
@@ -831,6 +935,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                               pageNumber={pageNumber}
                               scale={scale}
                               layout={pageLayouts[pageNumber] ?? null}
+                              acetateVisible={acetateVisible}
+                              acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
                             />
                           </div>
                         ) : (
@@ -850,7 +956,10 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             <PdfInkOverlay
               viewportRef={scrollViewportRef}
               active={activeTool === 'ink'}
-              acetateVisible={acetateVisible}
+              onTransfer={(stroke) => {
+                setAcetateStrokes((existing) => [...existing, stroke])
+                void window.api.appendInkStroke(workspaceRoot, inkBinding, stroke)
+              }}
             />
           ) : null}
         </div>

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { AppSettings } from '../shared/app-settings'
 import type { ArrangementsMaterial, GardenState } from '../shared/arrangements'
+import type { InkAcetate, InkSurfaceBinding, InkStroke } from '../shared/ink'
 
 type WorkspaceConfig = {
   version: number
@@ -271,7 +272,18 @@ const api = {
   setLanguage: (lang: string): Promise<void> => ipcRenderer.invoke('app:set-language', lang),
   probeNetwork: (): Promise<{ reachable: boolean }> => ipcRenderer.invoke('network:probe'),
   fetchPageTitle: (url: string): Promise<{ ok: boolean; title: string | null }> =>
-    ipcRenderer.invoke('page:fetch-title', url)
+    ipcRenderer.invoke('page:fetch-title', url),
+  readInkAcetate: (
+    workspaceRoot: string,
+    binding: InkSurfaceBinding
+  ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
+    ipcRenderer.invoke('ink:read', workspaceRoot, binding),
+  appendInkStroke: (
+    workspaceRoot: string,
+    binding: InkSurfaceBinding,
+    stroke: InkStroke
+  ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
+    ipcRenderer.invoke('ink:append-stroke', workspaceRoot, binding, stroke)
 }
 
 if (process.contextIsolated) {

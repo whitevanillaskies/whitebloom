@@ -16,12 +16,14 @@ import {
   findBoardsReferencingMaterial,
   registerLinkedMaterials
 } from '../services/workspace-material'
+import { appendInkStroke, loadInkAcetate } from '../services/ink-store'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import { probeNetwork } from '../services/network-probe'
 import { fetchPageTitle } from '../services/page-title-fetcher'
 import type { MainProcessContext } from '../state/main-process-context'
 import type { GardenState } from '../../shared/arrangements'
 import type { ArrangementsMaterial } from '../../shared/arrangements'
+import type { InkAcetate, InkSurfaceBinding, InkStroke } from '../../shared/ink'
 
 type ListTransientBoardsResult = {
   ok: boolean
@@ -60,6 +62,16 @@ type ArrangementsReferenceIndexResult = {
 
 type ArrangementsRegisterLinkedMaterialsResult = {
   ok: boolean
+}
+
+type InkReadResult = {
+  ok: boolean
+  acetate: InkAcetate | null
+}
+
+type InkAppendResult = {
+  ok: boolean
+  acetate: InkAcetate | null
 }
 
 export function registerAppIpc(context: MainProcessContext): void {
@@ -310,6 +322,39 @@ export function registerAppIpc(context: MainProcessContext): void {
   ipcMain.handle('page:fetch-title', async (_event, url: string) => {
     return await fetchPageTitle(url)
   })
+
+  ipcMain.handle(
+    'ink:read',
+    async (_event, workspaceRoot: string, binding: InkSurfaceBinding): Promise<InkReadResult> => {
+      try {
+        return {
+          ok: true,
+          acetate: await loadInkAcetate(workspaceRoot, binding)
+        }
+      } catch {
+        return { ok: false, acetate: null }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'ink:append-stroke',
+    async (
+      _event,
+      workspaceRoot: string,
+      binding: InkSurfaceBinding,
+      stroke: InkStroke
+    ): Promise<InkAppendResult> => {
+      try {
+        return {
+          ok: true,
+          acetate: await appendInkStroke(workspaceRoot, binding, stroke)
+        }
+      } catch {
+        return { ok: false, acetate: null }
+      }
+    }
+  )
 
   ipcMain.handle('app:set-language', async (_event, lang: string) => {
     await changeMainLanguage(lang)

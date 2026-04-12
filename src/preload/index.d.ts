@@ -1,6 +1,7 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { AppSettings } from '../shared/app-settings'
 import type { ArrangementsMaterial, GardenState } from '../shared/arrangements'
+import type { InkAcetate, InkSurfaceBinding, InkStroke } from '../shared/ink'
 
 type WorkspaceConfig = {
   version: number
@@ -246,6 +247,15 @@ declare global {
       setLanguage: (lang: string) => Promise<void>
       probeNetwork: () => Promise<{ reachable: boolean }>
       fetchPageTitle: (url: string) => Promise<{ ok: boolean; title: string | null }>
+      readInkAcetate: (
+        workspaceRoot: string,
+        binding: InkSurfaceBinding
+      ) => Promise<{ ok: boolean; acetate: InkAcetate | null }>
+      appendInkStroke: (
+        workspaceRoot: string,
+        binding: InkSurfaceBinding,
+        stroke: InkStroke
+      ) => Promise<{ ok: boolean; acetate: InkAcetate | null }>
     }
   }
 }

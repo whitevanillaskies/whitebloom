@@ -364,6 +364,11 @@
   box-sizing: border-box;
 }
 
+.pdf-editor__page-frame {
+  position: relative;
+  display: block;
+}
+
 .pdf-editor__page-shell--placeholder {
   width: 100%;
 }
@@ -393,6 +398,7 @@
 }
 
 .pdf-editor__page-canvas {
+  position: relative;
   display: block;
   border-radius: 2px;
   background: #fff;
@@ -400,6 +406,13 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
     0 24px 40px rgba(15, 23, 42, 0.1),
     0 6px 14px rgba(15, 23, 42, 0.07);
+}
+
+.pdf-editor__page-acetate {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
 }
 
 .pdf-editor__page-error {
@@ -456,6 +469,7 @@
 
 .pdf-ink-overlay--active {
   pointer-events: auto;
+  touch-action: none;
 }
 
 .pdf-ink-overlay__canvas {
