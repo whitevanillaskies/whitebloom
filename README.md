@@ -43,12 +43,18 @@ You can record your session to a .webm (we may change that later) using the meta
 
 This is not meant to be a replacement for specialized software like OBS. It's a small tool that lets you do one thing without worrying about configuration or anything like that. If you need power user features use OBS. This tool also doesn't handle system sound because that's a different can of worms and at this point, unless users absolutely require that feature, is outside the scope of the tool.
 
+## Supporting the Project
+
+If you'd like to support the project, consider donating to my Ko-Fi. All money will go toward tokens.
+
+
+
 ## Precompiled Binaries
 
 There's binaries for both Windows and Linux on the Releases tab.
 
 ### Apple
-No Apple binaries unless somebody sponsors me $100 for the Apple Developer plan, and even then it's subject to Apple requirements (I don't know if I need an actual Mac, which I don't own). If you want precompile binaries for Apple contact me. You can still build it by cloning the repo and following the instructions below (I think).
+No Apple binaries unless somebody sponsors me $100 for the Apple Developer plan, and even then it's subject to Apple requirements (I don't know if I need an actual Mac, which I don't own). If you want precompiled binaries for Apple contact me. You can still build it by cloning the repo and following the instructions below (I think, I don't own a Mac to try).
 
 ## Project Setup
 
