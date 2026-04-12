@@ -1198,7 +1198,7 @@ const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke,
-      modeScope: 'canvas-mode',
+      modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       enabledWhen: (context) => typeof context.actions.appendInkStroke === 'function',
       run: async (args: InkAppendStrokeArgs, context) => {
         if (!context.actions.appendInkStroke) {
@@ -1219,7 +1219,7 @@ const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.historyUndo,
-      modeScope: 'canvas-mode',
+      modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       aliases: ['undo'],
       enabledWhen: (context) => {
         const { undoTop } = useHistoryStore.getState().peek(context.majorMode)
@@ -1241,7 +1241,7 @@ const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.historyRedo,
-      modeScope: 'canvas-mode',
+      modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       aliases: ['redo'],
       enabledWhen: (context) => {
         const { redoTop } = useHistoryStore.getState().peek(context.majorMode)

@@ -179,6 +179,8 @@ export type PdfSubjectSnapshot = {
 export type PdfCommandActions = {
   navigateToPage?: (page: number) => void
   extractPages?: (pages: number[]) => Promise<void>
+  appendInkStroke?: (binding: InkSurfaceBinding, stroke: InkStroke) => Promise<{ strokeId: string }>
+  removeInkStroke?: (binding: InkSurfaceBinding, strokeId: string) => Promise<void>
 }
 
 export type PdfCommandContext = CommandContextBase<'module:com.whitebloom.pdf'> & {

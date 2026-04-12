@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import {
@@ -19,6 +19,12 @@ import type { BudEditorProps } from '../types'
 import { resourceToMediaSrc } from '@renderer/shared/resource-url'
 import { createInkTargetId, type InkPdfSurfaceBinding } from '../../../../shared/ink'
 import { createLogger } from '../../../../shared/logger'
+import {
+  createPdfCommandContext,
+  executeCommandById,
+  WHITEBLOOM_COMMAND_IDS
+} from '../../commands'
+import { useHistoryStore } from '../../history/store'
 import { PdfAcetateCanvas } from './PdfAcetateCanvas'
 import { PdfInkOverlay } from './PdfInkOverlay'
 import type { PdfInkStroke } from './pdfInkShared'
@@ -303,6 +309,62 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     }),
     [resource]
   )
+
+  const pdfCommandContext = useMemo(
+    () =>
+      createPdfCommandContext({
+        subjectSnapshot: {
+          resource,
+          pageCount,
+          activePage
+        },
+        actions: {
+          appendInkStroke: async (binding, stroke) => {
+            setAcetateStrokes((existing) => [...existing, stroke as PdfInkStroke])
+            await window.api.appendInkStroke(workspaceRoot, binding, stroke)
+            return { strokeId: stroke.id }
+          },
+          removeInkStroke: async (binding, strokeId) => {
+            setAcetateStrokes((existing) => existing.filter((s) => s.id !== strokeId))
+            await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
+          }
+        }
+      }),
+    [activePage, pageCount, resource, workspaceRoot]
+  )
+
+  const runPdfCommand = useCallback(
+    async (id: string, args: unknown) => {
+      const result = await executeCommandById(id, args, pdfCommandContext)
+      if (!result.ok) {
+        console.warn(`[commands] ${result.commandId} failed`, result)
+      }
+      return result
+    },
+    [pdfCommandContext]
+  )
+
+  // Clear history when the PDF resource changes.
+  useEffect(() => {
+    useHistoryStore.getState().clear('module:com.whitebloom.pdf')
+  }, [resource])
+
+  // Ctrl+Z / Ctrl+Shift+Z for undo/redo.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.ctrlKey) return
+      if (event.key === 'z' && !event.shiftKey) {
+        event.preventDefault()
+        void runPdfCommand(WHITEBLOOM_COMMAND_IDS.canvas.historyUndo, undefined)
+      } else if ((event.key === 'z' && event.shiftKey) || event.key === 'y') {
+        event.preventDefault()
+        void runPdfCommand(WHITEBLOOM_COMMAND_IDS.canvas.historyRedo, undefined)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [runPdfCommand])
 
   const pageLayouts = useMemo<Record<number, PageLayout>>(() => {
     const nextLayouts: Record<number, PageLayout> = {}
@@ -957,8 +1019,10 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
               viewportRef={scrollViewportRef}
               active={activeTool === 'ink'}
               onTransfer={(stroke) => {
-                setAcetateStrokes((existing) => [...existing, stroke])
-                void window.api.appendInkStroke(workspaceRoot, inkBinding, stroke)
+                void runPdfCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
+                  binding: inkBinding,
+                  stroke
+                })
               }}
             />
           ) : null}

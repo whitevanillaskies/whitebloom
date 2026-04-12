@@ -21,6 +21,7 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
   const rootRef = useRef<HTMLDivElement | null>(null)
   const glassCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const activePointerIdRef = useRef<number | null>(null)
+  const currentSamplesRef = useRef<ScreenSample[]>([])
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<ScreenSample[]>([])
 
@@ -78,6 +79,7 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
   useEffect(() => {
     if (active) return
     activePointerIdRef.current = null
+    currentSamplesRef.current = []
     setCurrentSamples([])
   }, [active])
 
@@ -104,6 +106,7 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
       const sample = makeScreenSample(event, bounds)
       activePointerIdRef.current = event.pointerId
       root.setPointerCapture(event.pointerId)
+      currentSamplesRef.current = [sample]
       setCurrentSamples([sample])
       event.preventDefault()
     }
@@ -115,19 +118,25 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
 
       const bounds = root.getBoundingClientRect()
       const nextSample = makeScreenSample(event, bounds)
+      const previous = currentSamplesRef.current
+      const last = previous[previous.length - 1]
 
-      setCurrentSamples((previous) => {
-        const last = previous[previous.length - 1]
-        if (!last) return [nextSample]
+      if (!last) {
+        currentSamplesRef.current = [nextSample]
+        setCurrentSamples([nextSample])
+        event.preventDefault()
+        return
+      }
 
-        const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
-        if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing) {
-          return previous
-        }
+      const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
+      if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing) {
+        event.preventDefault()
+        return
+      }
 
-        return [...previous, nextSample]
-      })
-
+      const next = [...previous, nextSample]
+      currentSamplesRef.current = next
+      setCurrentSamples(next)
       event.preventDefault()
     }
 
@@ -140,43 +149,43 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
           : null
       const pageRects = bounds !== null ? collectVisiblePageRects(viewportRef.current) : null
 
-      setCurrentSamples((previous) => {
-        const completeSamples =
-          finalSample !== null &&
-          previous.length > 0 &&
-          Math.hypot(
-            finalSample.x - previous[previous.length - 1].x,
-            finalSample.y - previous[previous.length - 1].y
-          ) > 0
-            ? [...previous, finalSample]
-            : previous
+      const previous = currentSamplesRef.current
+      const completeSamples =
+        finalSample !== null &&
+        previous.length > 0 &&
+        Math.hypot(
+          finalSample.x - previous[previous.length - 1].x,
+          finalSample.y - previous[previous.length - 1].y
+        ) > 0
+          ? [...previous, finalSample]
+          : previous
 
-        const pagedSamples = completeSamples
-          .map((sample) =>
-            bounds !== null && pageRects !== null ? screenSampleToPagedUv(sample, bounds, pageRects) : null
-          )
-          .filter((sample): sample is InkPagedUvSample => sample !== null)
+      const pagedSamples = completeSamples
+        .map((sample) =>
+          bounds !== null && pageRects !== null ? screenSampleToPagedUv(sample, bounds, pageRects) : null
+        )
+        .filter((sample): sample is InkPagedUvSample => sample !== null)
 
-        if (pagedSamples.length > 1) {
-          onTransfer({
-            id: crypto.randomUUID(),
-            tool: 'pen',
-            style: { ...DEFAULT_INK_STROKE_STYLE },
-            dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
-            samples: pagedSamples,
-            createdAt: new Date().toISOString()
-          })
-        }
+      currentSamplesRef.current = []
+      setCurrentSamples([])
+      activePointerIdRef.current = null
 
-        return []
-      })
+      if (pagedSamples.length > 1) {
+        onTransfer({
+          id: crypto.randomUUID(),
+          tool: 'pen',
+          style: { ...DEFAULT_INK_STROKE_STYLE },
+          dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
+          samples: pagedSamples,
+          createdAt: new Date().toISOString()
+        })
+      }
 
       try {
         root.releasePointerCapture(event.pointerId)
       } catch {
         // ignore pointer capture release races
       }
-      activePointerIdRef.current = null
       event.preventDefault()
     }
 
