@@ -8,7 +8,7 @@ A whiteboard. Local only, plaintext first, modular.
 
 Local whiteboard with typical features such as writing text, loading images, groups, etc. Unlike cloud or proprietary whiteboards it gives you absolute control over your resources.
 
-Whitebloom is desktop only. No plans yet to have support for tablets or phones.
+Whitebloom is desktop only, it does not support tablets or phones.
 
 ### Materials
 
