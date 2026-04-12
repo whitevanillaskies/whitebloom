@@ -46,7 +46,7 @@ This is not meant to be a replacement for specialized software like OBS. It's a 
 
 If you'd like to support the project, consider donating to my Ko-Fi. All money will go toward tokens.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/your-ko-fi-username)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/whitebloom)
 
 ## Precompiled Binaries
 
