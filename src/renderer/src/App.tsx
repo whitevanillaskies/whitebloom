@@ -55,6 +55,17 @@ type PendingBoardOpen = {
 }
 
 type PendingNavigation = PendingViewTransition | PendingBoardOpen
+type ShellPaletteRequest = {
+  token: number
+  mode: 'visual' | 'meta'
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return (
+    target.isContentEditable || target.closest('input, textarea, [contenteditable="true"]') !== null
+  )
+}
 
 async function captureAndSaveThumbnail(boardPath: string, workspaceRoot: string): Promise<void> {
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -106,6 +117,7 @@ function App(): React.JSX.Element {
   const [pendingTrashBoard, setPendingTrashBoard] = useState<PendingTrashBoard | null>(null)
   const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null)
   const [projectFinderMode, setProjectFinderMode] = useState<ProjectFinderMode | null>(null)
+  const [shellPaletteRequest, setShellPaletteRequest] = useState<ShellPaletteRequest | null>(null)
 
   const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
 
@@ -270,6 +282,49 @@ function App(): React.JSX.Element {
       })()
     })
   }, [boardPath, captureCurrentBoardThumbnailOnClose, isDirty])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (view !== 'board' || boardPath === null) return
+      if (isEditableTarget(event.target)) return
+
+      // `Tab` and `Alt+X` are reserved shell entrypoints.
+      // Surfaces and modules may contribute commands, but they may not own these keys.
+      if (
+        event.key.toLowerCase() === 'x' &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault()
+        setShellPaletteRequest({
+          token: Date.now(),
+          mode: 'meta'
+        })
+        return
+      }
+
+      if (
+        event.key === 'Tab' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault()
+        setShellPaletteRequest({
+          token: Date.now(),
+          mode: 'visual'
+        })
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [boardPath, view])
 
   const openBoardByPath = useCallback(
     async (nextBoardPath: string) => {
@@ -650,6 +705,7 @@ function App(): React.JSX.Element {
               onGoToWorkspaceHome={handleGoToWorkspaceHome}
               onNewBoard={handleNewBoardFromCanvas}
               onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
+              shellPaletteRequest={shellPaletteRequest}
             />
           </div>
         </ReactFlowProvider>

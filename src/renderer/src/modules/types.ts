@@ -68,6 +68,10 @@ export interface WhitebloomModule {
    *
    * Commands stay in the shared command registry, but modules can declare their
    * own context-bound command surface directly as part of module registration.
+   *
+   * Reserved shell shortcuts such as `Tab` and `Alt+X` are not module-owned.
+   * Modules may contribute commands to the palette system, but they must not
+   * override the shell entrypoints themselves.
    */
   commands?: WhitebloomCommandsByContext
   /**

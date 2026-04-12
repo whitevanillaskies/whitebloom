@@ -651,13 +651,18 @@ type CanvasProps = {
   onGoToWorkspaceHome: () => void
   onNewBoard: () => void
   onOpenBoard: (boardPath: string) => void
+  shellPaletteRequest: {
+    token: number
+    mode: PaletteCommandSession['initialMode']
+  } | null
 }
 
 export function Canvas({
   onGoHome,
   onGoToWorkspaceHome,
   onNewBoard,
-  onOpenBoard
+  onOpenBoard,
+  shellPaletteRequest
 }: CanvasProps) {
   const { t } = useTranslation()
 
@@ -1558,6 +1563,11 @@ export function Canvas({
     setPaletteSession(null)
   }, [])
 
+  useEffect(() => {
+    if (!shellPaletteRequest) return
+    openPalette(shellPaletteRequest.mode)
+  }, [openPalette, shellPaletteRequest])
+
   const runCanvasCommand = useCallback(
     async (id: string, args: unknown, options?: WhitebloomCommandExecutionOptions) => {
       const result = await executeCommandById(id, args, canvasCommandContext, options)
@@ -2268,34 +2278,6 @@ export function Canvas({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key.toLowerCase() === 'x' &&
-        event.altKey &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        !event.shiftKey
-      ) {
-        if (isEditableTarget(event.target)) return
-        if (activeBloom !== null) return
-        event.preventDefault()
-        openPalette('meta')
-        return
-      }
-
-      if (
-        event.key === 'Tab' &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        !event.altKey &&
-        !event.shiftKey
-      ) {
-        if (isEditableTarget(event.target)) return
-        if (activeBloom !== null) return
-        event.preventDefault()
-        openPalette('visual')
-        return
-      }
-
       if (event.key === 'Escape') {
         if (isEditableTarget(event.target)) return
         if (activeBloom !== null) {
@@ -2398,7 +2380,6 @@ export function Canvas({
     handleSave,
     imageDropError,
     nodes,
-    openPalette,
     paletteSession,
     pendingDocumentAction,
     runCanvasCommand,
