@@ -188,8 +188,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
+  gap: 6px;
+  min-width: 18px;
   height: 18px;
+  padding: 0 6px;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.82);
   border: 1px solid rgb(255 255 255 / 0.74);
@@ -201,12 +203,21 @@
 }
 
 .canvas-recording-indicator__dot {
+  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 999px;
   background: #d63626;
   box-shadow: 0 0 0 4px rgb(214 54 38 / 0.14);
   animation: canvas-recording-pulse 1.25s ease-in-out infinite;
+}
+
+.canvas-recording-indicator__mic-off {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(68 76 91 / 0.92);
+  flex: 0 0 auto;
 }
 
 @keyframes canvas-recording-pulse {

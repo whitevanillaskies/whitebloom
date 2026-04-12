@@ -61,6 +61,7 @@ import {
   FileText,
   FolderPlus,
   Link2,
+  MicOff,
   PanelsTopLeft,
   Radio,
   SquareDot,
@@ -194,6 +195,7 @@ type ScreenRecordingStatus = 'idle' | 'starting' | 'recording' | 'stopping' | 's
 type ScreenRecordingState = {
   status: ScreenRecordingStatus
   fileName: string | null
+  microphoneAvailable: boolean
 }
 
 function createRecordingTimestampLabel(now: Date = new Date()): string {
@@ -786,7 +788,8 @@ export function Canvas({
   const [boardInkStrokes, setBoardInkStrokes] = useState<BoardInkStroke[]>([])
   const [screenRecordingState, setScreenRecordingState] = useState<ScreenRecordingState>({
     status: 'idle',
-    fileName: null
+    fileName: null,
+    microphoneAvailable: true
   })
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
   const [paletteState, setPaletteState] = useState<{
@@ -886,7 +889,8 @@ export function Canvas({
 
     setScreenRecordingState((current) => ({
       status: 'stopping',
-      fileName: current.fileName
+      fileName: current.fileName,
+      microphoneAvailable: current.microphoneAvailable
     }))
     recorder.stop()
     return true
@@ -904,16 +908,38 @@ export function Canvas({
       const fileName = sanitizeRecordingFileName(requestedName) || createRecordingTimestampLabel()
       setScreenRecordingState({
         status: 'starting',
-        fileName
+        fileName,
+        microphoneAvailable: true
       })
 
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
             frameRate: 30
           },
           audio: false
         })
+        let microphoneAvailable = true
+        let audioStream: MediaStream | null = null
+
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            },
+            video: false
+          })
+        } catch (error) {
+          microphoneAvailable = false
+          console.info('[screen] microphone unavailable, continuing with video only', error)
+        }
+
+        const stream = new MediaStream([
+          ...displayStream.getVideoTracks(),
+          ...(audioStream?.getAudioTracks() ?? [])
+        ])
         const mimeType = pickSupportedScreenRecordingMimeType()
         const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
 
@@ -935,7 +961,8 @@ export function Canvas({
             try {
               setScreenRecordingState({
                 status: 'saving',
-                fileName: recordedFileName
+                fileName: recordedFileName,
+                microphoneAvailable
               })
               const blob = new Blob(chunks, {
                 type: recorder.mimeType || mimeType || 'video/webm'
@@ -953,7 +980,8 @@ export function Canvas({
               clearScreenRecordingSession()
               setScreenRecordingState({
                 status: 'idle',
-                fileName: null
+                fileName: null,
+                microphoneAvailable: true
               })
             }
           })()
@@ -964,11 +992,12 @@ export function Canvas({
           clearScreenRecordingSession()
           setScreenRecordingState({
             status: 'idle',
-            fileName: null
+            fileName: null,
+            microphoneAvailable: true
           })
         })
 
-        stream.getVideoTracks().forEach((track) => {
+        displayStream.getVideoTracks().forEach((track) => {
           track.addEventListener('ended', () => {
             const activeRecorder = screenRecordingRecorderRef.current
             if (activeRecorder?.state === 'recording') {
@@ -977,7 +1006,8 @@ export function Canvas({
               clearScreenRecordingSession()
               setScreenRecordingState({
                 status: 'idle',
-                fileName: null
+                fileName: null,
+                microphoneAvailable: true
               })
             }
           })
@@ -986,7 +1016,8 @@ export function Canvas({
         recorder.start(1000)
         setScreenRecordingState({
           status: 'recording',
-          fileName
+          fileName,
+          microphoneAvailable
         })
         console.info('[screen] start recording', `${SCREEN_RECORDING_DIRECTORY}/${fileName}.webm`)
         return true
@@ -994,7 +1025,8 @@ export function Canvas({
         clearScreenRecordingSession()
         setScreenRecordingState({
           status: 'idle',
-          fileName: null
+          fileName: null,
+          microphoneAvailable: true
         })
         console.warn('[screen] start recording cancelled or failed', error)
         return false
@@ -3851,6 +3883,11 @@ export function Canvas({
         {screenRecordingState.status === 'recording' ? (
           <div className="canvas-recording-indicator" aria-live="polite" role="status">
             <span className="canvas-recording-indicator__dot" aria-hidden="true" />
+            {!screenRecordingState.microphoneAvailable ? (
+              <span className="canvas-recording-indicator__mic-off" aria-label="Microphone unavailable">
+                <MicOff size={12} strokeWidth={1.9} />
+              </span>
+            ) : null}
           </div>
         ) : null}
 
