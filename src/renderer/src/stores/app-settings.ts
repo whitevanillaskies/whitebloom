@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   DEFAULT_APP_SETTINGS,
+  normalizeCommandAlias,
   normalizeAppSettings,
   normalizeLanguage,
   normalizeUsername,
@@ -18,6 +19,7 @@ type AppSettingsState = AppSettings & {
   updateUnhandledDrop: (behavior: UnhandledDropBehavior) => Promise<void>
   updateWarnLargeImport: (warn: boolean) => Promise<void>
   updateLanguage: (lang: string) => Promise<void>
+  updateCommandAlias: (commandId: string, alias: string) => Promise<void>
 }
 
 const logger = createLogger('app-settings')
@@ -69,6 +71,38 @@ export const useAppSettingsStore = create<AppSettingsState>((set, get) => ({
     const result = await window.api.saveAppSettings(next)
     set({ ...normalizeAppSettings(result.settings) })
     await window.api.setLanguage(normalized)
+    if (!result.ok) logger.error('failed to persist app settings')
+  },
+
+  updateCommandAlias: async (commandId, alias) => {
+    const normalizedCommandId = commandId.trim()
+    if (!normalizedCommandId) return
+
+    const normalizedAlias = normalizeCommandAlias(alias)
+    const existingAliases = { ...get().commands.aliases }
+
+    for (const [existingCommandId, existingAlias] of Object.entries(existingAliases)) {
+      if (existingCommandId !== normalizedCommandId && existingAlias === normalizedAlias) {
+        delete existingAliases[existingCommandId]
+      }
+    }
+
+    if (normalizedAlias) {
+      existingAliases[normalizedCommandId] = normalizedAlias
+    } else {
+      delete existingAliases[normalizedCommandId]
+    }
+
+    const next: AppSettings = {
+      ...get(),
+      commands: {
+        aliases: existingAliases
+      }
+    }
+
+    set(next)
+    const result = await window.api.saveAppSettings(next)
+    set({ ...normalizeAppSettings(result.settings) })
     if (!result.ok) logger.error('failed to persist app settings')
   }
 }))

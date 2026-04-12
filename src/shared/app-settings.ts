@@ -12,6 +12,9 @@ export type AppSettings = {
     /** Show a warning dialog before importing files larger than the threshold. */
     warnLargeImport: boolean
   }
+  commands: {
+    aliases: Record<string, string>
+  }
   language: string
 }
 
@@ -22,6 +25,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   files: {
     unhandledDrop: 'link',
     warnLargeImport: true
+  },
+  commands: {
+    aliases: {}
   },
   language: 'en'
 }
@@ -43,11 +49,36 @@ export function normalizeLanguage(value: unknown): string {
   return value.split('-')[0].toLowerCase()
 }
 
+export function normalizeCommandAlias(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, '')
+  if (!normalized) return undefined
+  if (!/^[a-z0-9._-]+$/.test(normalized)) return undefined
+  return normalized
+}
+
+function normalizeCommandAliases(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object') return {}
+
+  const entries = Object.entries(value as Record<string, unknown>)
+  const normalized: Record<string, string> = {}
+
+  for (const [commandId, aliasValue] of entries) {
+    const trimmedCommandId = commandId.trim()
+    const alias = normalizeCommandAlias(aliasValue)
+    if (!trimmedCommandId || !alias) continue
+    normalized[trimmedCommandId] = alias
+  }
+
+  return normalized
+}
+
 export function normalizeAppSettings(value: unknown): AppSettings {
   if (!value || typeof value !== 'object') {
     return {
       user: { ...DEFAULT_APP_SETTINGS.user },
       files: { ...DEFAULT_APP_SETTINGS.files },
+      commands: { ...DEFAULT_APP_SETTINGS.commands },
       language: DEFAULT_APP_SETTINGS.language
     }
   }
@@ -55,6 +86,7 @@ export function normalizeAppSettings(value: unknown): AppSettings {
   const candidate = value as {
     user?: { username?: unknown }
     files?: { unhandledDrop?: unknown; warnLargeImport?: unknown }
+    commands?: { aliases?: unknown }
     language?: unknown
   }
   return {
@@ -67,6 +99,9 @@ export function normalizeAppSettings(value: unknown): AppSettings {
         candidate.files?.warnLargeImport === false
           ? false
           : DEFAULT_APP_SETTINGS.files.warnLargeImport
+    },
+    commands: {
+      aliases: normalizeCommandAliases(candidate.commands?.aliases)
     },
     language: normalizeLanguage(candidate.language)
   }

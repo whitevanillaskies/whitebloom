@@ -591,6 +591,10 @@ function App(): React.JSX.Element {
     setIsCreateBoardModalOpen(true)
   }, [])
 
+  const handleConsumeShellPaletteRequest = useCallback((token: number) => {
+    setShellPaletteRequest((current) => (current?.token === token ? null : current))
+  }, [])
+
   const handleCloseCreateBoardModal = useCallback(() => {
     if (busyAction === 'create-board') return
     setIsCreateBoardModalOpen(false)
@@ -706,6 +710,7 @@ function App(): React.JSX.Element {
               onNewBoard={handleNewBoardFromCanvas}
               onOpenBoard={(nextBoardPath) => void handleOpenWorkspaceBoard(nextBoardPath)}
               shellPaletteRequest={shellPaletteRequest}
+              onConsumeShellPaletteRequest={handleConsumeShellPaletteRequest}
             />
           </div>
         </ReactFlowProvider>

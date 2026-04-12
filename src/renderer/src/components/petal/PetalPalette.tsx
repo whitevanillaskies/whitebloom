@@ -2,8 +2,10 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import {
   executeCommandById,
+  getRegisteredCommandsForRuntimeContext,
   listVirtualCommandNamespaces,
   searchCoreCommands,
   searchPresentedCommands,
@@ -77,13 +79,22 @@ type PaletteRenderedEntry = {
   subtitle?: string
   icon?: ReactNode
   hint?: string
+  commandId?: string
   onActivate: () => PaletteActivation | void | Promise<PaletteActivation | void>
+}
+
+type PaletteLegacyNamespaceEntry = {
+  id: string
+  segment: string
+  hasChildren: boolean
+  hasDirectItem: boolean
 }
 
 type PetalPaletteProps = {
   items: PaletteItem[]
   onClose: () => void
   placeholder?: string
+  emptyLabel?: string
   commandSession?: PaletteCommandSession
 }
 
@@ -126,12 +137,70 @@ function isDirectCommandInNamespace(commandId: string, namespace: string | null)
   const namespaceSegments = splitCommandId(namespace ?? '')
   if (namespaceSegments.length > commandSegments.length) return false
 
-  const isWithinNamespace = namespaceSegments.every(
-    (segment, index) => commandSegments[index] === segment
-  )
+  const isWithinNamespace = namespaceSegments.every((segment, index) => commandSegments[index] === segment)
   if (!isWithinNamespace) return false
 
   return commandSegments.length === namespaceSegments.length + 1
+}
+
+function isCommandWithinNamespace(commandId: string, namespace: string | null): boolean {
+  const commandSegments = splitCommandId(commandId)
+  const namespaceSegments = splitCommandId(namespace ?? '')
+  if (namespaceSegments.length === 0) return true
+  if (namespaceSegments.length > commandSegments.length) return false
+  return namespaceSegments.every((segment, index) => commandSegments[index] === segment)
+}
+
+function getPaletteItemNamespaceKey(item: PaletteItem): string {
+  return item.id.trim() || item.label.trim()
+}
+
+function matchesNormalizedLegacyItemQuery(item: PaletteItem, normalizedQuery: string): boolean {
+  if (!normalizedQuery) return true
+  if (item.label.toLowerCase().includes(normalizedQuery)) return true
+  if (item.subtitle?.toLowerCase().includes(normalizedQuery)) return true
+  if (item.hint?.toLowerCase().includes(normalizedQuery)) return true
+  if (getPaletteItemNamespaceKey(item).toLowerCase().includes(normalizedQuery)) return true
+  return false
+}
+
+function isDirectLegacyItemInNamespace(item: PaletteItem, namespace: string | null): boolean {
+  return isDirectCommandInNamespace(getPaletteItemNamespaceKey(item), namespace)
+}
+
+function listLegacyNamespaces(
+  items: PaletteItem[],
+  namespace: string | null
+): PaletteLegacyNamespaceEntry[] {
+  const namespaceMap = new Map<string, PaletteLegacyNamespaceEntry>()
+  const namespaceSegments = splitCommandId(namespace ?? '')
+  const depth = namespaceSegments.length
+
+  for (const item of items) {
+    const namespaceKey = getPaletteItemNamespaceKey(item)
+    if (!isCommandWithinNamespace(namespaceKey, namespace)) continue
+
+    const segments = splitCommandId(namespaceKey)
+    const nextSegment = segments[depth]
+    if (!nextSegment) continue
+
+    const namespaceId = [...namespaceSegments, nextSegment].join('.')
+    const existing = namespaceMap.get(namespaceId)
+    if (existing) {
+      existing.hasDirectItem ||= segments.length === depth + 1
+      existing.hasChildren ||= segments.length > depth + 1
+      continue
+    }
+
+    namespaceMap.set(namespaceId, {
+      id: namespaceId,
+      segment: nextSegment,
+      hasChildren: segments.length > depth + 1,
+      hasDirectItem: segments.length === depth + 1
+    })
+  }
+
+  return Array.from(namespaceMap.values()).sort((left, right) => left.segment.localeCompare(right.segment))
 }
 
 function isAltXShortcut(event: KeyboardEvent): boolean {
@@ -152,6 +221,7 @@ export default function PetalPalette({
   items,
   onClose,
   placeholder,
+  emptyLabel,
   commandSession
 }: PetalPaletteProps) {
   const { t } = useTranslation()
@@ -180,6 +250,8 @@ export default function PetalPalette({
   const operationTokenRef = useRef(0)
   const activeOperationRef = useRef<ActivePaletteOperation | null>(null)
   const abortTimerRef = useRef<number | null>(null)
+  const commandAliases = useAppSettingsStore((state) => state.commands.aliases)
+  const updateCommandAlias = useAppSettingsStore((state) => state.updateCommandAlias)
 
   useEffect(() => {
     setMode(initialMode)
@@ -431,10 +503,13 @@ export default function PetalPalette({
 
     const normalizedQuery = normalizeSearchValue(query)
     const shouldRenderModeItems =
-      mode.id !== 'root' || commandSession === undefined || commandBrowseMode === 'visual'
+      mode.id !== 'root' ||
+      commandSession === undefined ||
+      commandBrowseMode === 'visual' ||
+      mode.items.length > 0
     const legacyEntries = shouldRenderModeItems
       ? mode.items
-          .filter((item) => !normalizedQuery || item.label.toLowerCase().includes(normalizedQuery))
+          .filter((item) => matchesNormalizedLegacyItemQuery(item, normalizedQuery))
           .map<PaletteRenderedEntry>((item) => ({
             id: item.id,
             label: item.label,
@@ -465,6 +540,7 @@ export default function PetalPalette({
             subtitle: result.presentation?.subtitle,
             icon: Icon ? <Icon size={14} /> : undefined,
             hint: result.presentation?.hotkey,
+            commandId: result.entry.command.core.id,
             onActivate: () => activateRegisteredCommand(result.entry)
           }
         })
@@ -473,6 +549,29 @@ export default function PetalPalette({
     }
 
     const showNamespaceEntries = commandNamespace !== null || normalizedQuery.length > 0
+    const runtimeCommandsById = new Map(
+      getRegisteredCommandsForRuntimeContext(commandSession.context).map((entry) => [
+        entry.command.core.id,
+        entry
+      ] as const)
+    )
+    const legacyNamespaceEntries = showNamespaceEntries
+      ? listLegacyNamespaces(mode.items, commandNamespace)
+          .filter((namespace) => namespace.hasChildren)
+          .filter(
+            (namespace) => !normalizedQuery || namespace.segment.toLowerCase().includes(normalizedQuery)
+          )
+          .map<PaletteRenderedEntry>((namespace) => ({
+            id: `legacy-namespace:${namespace.id}`,
+            label: namespace.segment,
+            hint: 'Enter',
+            onActivate: () => {
+              setCommandNamespace(namespace.id)
+              setQuery('')
+              return { type: 'keep-open' as const }
+            }
+          }))
+      : []
     const namespaceEntries = showNamespaceEntries
       ? listVirtualCommandNamespaces(commandSession.context, {
           namespace: commandNamespace ?? undefined
@@ -497,7 +596,29 @@ export default function PetalPalette({
           .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
       : []
 
-    const commandEntries = searchCoreCommands(query, commandSession.context, {
+    const legacyCommandEntries = mode.items
+      .filter((item) => {
+        const namespaceKey = getPaletteItemNamespaceKey(item)
+        if (!isCommandWithinNamespace(namespaceKey, commandNamespace)) {
+          return false
+        }
+
+        if (!normalizedQuery) {
+          return isDirectLegacyItemInNamespace(item, commandNamespace)
+        }
+
+        return matchesNormalizedLegacyItemQuery(item, normalizedQuery)
+      })
+      .map<PaletteRenderedEntry>((item) => ({
+        id: `legacy-command:${item.id}`,
+        label: item.label,
+        subtitle: item.subtitle,
+        icon: item.icon,
+        hint: item.hint,
+        onActivate: item.onActivate
+      }))
+
+    const commandEntries = searchCoreCommands('', commandSession.context, {
       namespace: commandNamespace ?? undefined
     })
       .filter((result) => canPaletteLaunchCommand(result.entry))
@@ -511,19 +632,35 @@ export default function PetalPalette({
         const presentation = result.entry.command.presentations?.find(
           (candidate) => candidate.context === commandSession.context.kind
         )
+        const customAlias = commandAliases[result.entry.command.core.id]
+        const primaryAlias = customAlias ?? result.entry.command.core.aliases?.[0]
         return {
           id: `command:${result.entry.command.core.id}`,
           label: result.entry.command.core.id,
           subtitle: presentation?.title,
-          hint: presentation?.hotkey,
+          hint: primaryAlias ?? presentation?.hotkey,
+          commandId: result.entry.command.core.id,
           onActivate: () => activateRegisteredCommand(result.entry)
         }
       })
+      .filter((entry) => {
+        if (!normalizedQuery) return true
+        if (entry.label.toLowerCase().includes(normalizedQuery)) return true
+        if (entry.subtitle?.toLowerCase().includes(normalizedQuery)) return true
+        if (entry.hint?.toLowerCase().includes(normalizedQuery)) return true
+        const builtInAliases =
+          runtimeCommandsById.get(entry.commandId ?? '')?.command.core.aliases ?? []
+        if (builtInAliases.some((alias) => alias.toLowerCase().includes(normalizedQuery))) {
+          return true
+        }
+        return false
+      })
 
-    return [...namespaceEntries, ...commandEntries]
+    return [...legacyNamespaceEntries, ...namespaceEntries, ...legacyCommandEntries, ...commandEntries]
   }, [
     activateRegisteredCommand,
     commandBrowseMode,
+    commandAliases,
     commandNamespace,
     commandSession,
     mode,
@@ -625,6 +762,46 @@ export default function PetalPalette({
     }
   }, [beginOperation, closePalette, finishOperation, mode, query])
 
+  const openAliasEditor = useCallback(() => {
+    if (mode.type === 'input') return
+    if (mode.id !== 'root') return
+    if (!commandSession) return
+    if (commandBrowseMode !== 'meta') return
+
+    const item = filtered[activeIndex]
+    if (!item?.commandId) return
+
+    const commandId = item.commandId
+    const currentAlias = commandAliases[commandId] ?? ''
+
+    setMode({
+      id: `alias:${commandId}`,
+      type: 'input',
+      title: 'Set Command Alias',
+      subtitle: commandId,
+      placeholder: 'Type a short alias or leave blank to clear',
+      submitLabel: 'Save Alias',
+      initialValue: currentAlias,
+      onSubmit: async (value) => {
+        await updateCommandAlias(commandId, value)
+        setCommandBrowseMode('meta')
+        setCommandNamespace(null)
+        setQuery('')
+        setActiveIndex(0)
+        return { type: 'set-mode', mode: initialMode }
+      }
+    })
+  }, [
+    activeIndex,
+    commandAliases,
+    commandBrowseMode,
+    commandSession,
+    filtered,
+    initialMode,
+    mode.type,
+    updateCommandAlias
+  ])
+
   // Keyboard — capture phase so it fires before Canvas bubble-phase listeners
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -651,6 +828,19 @@ export default function PetalPalette({
         event.preventDefault()
         event.stopImmediatePropagation()
         closePalette()
+        return
+      }
+
+      if (
+        event.key === 'F2' &&
+        commandSession &&
+        mode.type !== 'input' &&
+        mode.id === 'root' &&
+        commandBrowseMode === 'meta'
+      ) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        void openAliasEditor()
         return
       }
 
@@ -720,6 +910,7 @@ export default function PetalPalette({
     filtered,
     isBusy,
     mode,
+    openAliasEditor,
     query.length,
     requestAbortCurrentOperation,
     submitInputMode
@@ -758,6 +949,7 @@ export default function PetalPalette({
         ref={containerRef}
         className={[
           'petal-palette',
+          commandSession && commandBrowseMode === 'meta' ? 'petal-palette--meta' : '',
           isBusy ? 'petal-palette--busy' : '',
           abortPhase === 'stalled' ? 'petal-palette--stalled' : ''
         ]
@@ -837,7 +1029,9 @@ export default function PetalPalette({
             role="listbox"
           >
             {filtered.length === 0 ? (
-              <div className="petal-palette__empty">{mode.emptyLabel ?? t('petalPalette.noResults')}</div>
+              <div className="petal-palette__empty">
+                {mode.emptyLabel ?? emptyLabel ?? t('petalPalette.noResults')}
+              </div>
             ) : (
               filtered.map((item, i) => (
                 <button

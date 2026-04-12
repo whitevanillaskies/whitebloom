@@ -104,13 +104,13 @@ Work units:
   - recording
 - Make the start command no-op or warn if already recording.
 - Make the stop command no-op or warn if nothing is recording.
-- Add a single emergency stop shortcut candidate, likely `F12`, routed at the shell level.
+- Add a single emergency stop shortcut candidate, likely `F8`, routed at the shell level.
 - Keep the behavior console-only for now.
 
 Done when:
 
 - Command behavior reflects recording state rather than always logging blindly.
-- `F12` can stop the stub recording state from anywhere in the app.
+- `F8` can stop the stub recording state from anywhere in the app.
 
 ### Phase 6: Future Real Recorder Integration
 

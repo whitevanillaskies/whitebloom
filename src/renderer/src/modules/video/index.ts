@@ -4,6 +4,7 @@ import { VideoNodeComponent } from './VideoNodeComponent'
 
 export const videoModule: WhitebloomModule = {
   id: 'com.whitebloom.video',
+  majorModeLabel: 'Video',
   extensions: ['.mp4', '.m4v', '.mov', '.webm', '.ogv', '.ogg', '.webm'],
   defaultRenderer: 'external',
   IconComponent: VideoIcon,

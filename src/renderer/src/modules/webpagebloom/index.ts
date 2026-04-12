@@ -5,6 +5,7 @@ import { WebPageBloomNode } from './WebPageBloomNode'
 
 export const webPageBloomModule: WhitebloomModule = {
   id: 'com.whitebloom.webpagebloom',
+  majorModeLabel: 'Web Page',
   extensions: [],
   defaultRenderer: 'external',
   defaultSize: { w: BUD_ICON_NODE_W, h: BUD_ICON_NODE_W },

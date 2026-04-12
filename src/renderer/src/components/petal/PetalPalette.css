@@ -43,6 +43,16 @@
   transform: translateY(-1px);
 }
 
+.petal-palette--meta {
+  width: 500px;
+  border-color: rgba(15, 23, 42, 0.12);
+  background: linear-gradient(180deg, rgba(252, 252, 253, 0.98), rgba(242, 245, 249, 0.92));
+  box-shadow:
+    0 22px 52px rgba(15, 23, 42, 0.2),
+    0 4px 12px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
 .petal-palette--stalled {
   border-color: rgba(153, 27, 27, 0.22);
   box-shadow:
@@ -91,6 +101,12 @@
 
 .petal-palette__input::placeholder {
   color: var(--color-muted-fg);
+}
+
+.petal-palette--meta .petal-palette__input {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
 }
 
 .petal-palette__mode-copy {
@@ -202,6 +218,20 @@
 .petal-palette__item--active {
   background: rgba(var(--color-accent-blue-rgb), 0.09);
   color: var(--color-accent-blue);
+}
+
+.petal-palette--meta .petal-palette__item {
+  gap: 10px;
+}
+
+.petal-palette--meta .petal-palette__item-label {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.83rem;
+}
+
+.petal-palette--meta .petal-palette__item-subtitle {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.72rem;
 }
 
 .petal-palette__item-icon {

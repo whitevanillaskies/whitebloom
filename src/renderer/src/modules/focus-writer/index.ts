@@ -5,6 +5,7 @@ import { FocusWriterIcon } from './FocusWriterIcon'
 
 export const focusWriterModule: WhitebloomModule = {
   id: 'com.whitebloom.focus-writer',
+  majorModeLabel: 'Focus Writer',
   extensions: ['.blt'],
   defaultRenderer: 'internal',
 

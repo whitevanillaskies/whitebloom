@@ -5,6 +5,7 @@ import { PdfNodeComponent } from './PdfNodeComponent'
 
 export const pdfModule: WhitebloomModule = {
   id: 'com.whitebloom.pdf',
+  majorModeLabel: 'PDF',
   extensions: ['.pdf'],
   defaultRenderer: 'internal',
   defaultSize: { w: 180, h: 120 },

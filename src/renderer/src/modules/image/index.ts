@@ -4,6 +4,7 @@ import { ImageIcon } from './ImageIcon'
 
 export const imageModule: WhitebloomModule = {
   id: 'com.whitebloom.image',
+  majorModeLabel: 'Image',
   extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif', '.tiff', '.svg'],
   defaultRenderer: 'external',
   IconComponent: ImageIcon,

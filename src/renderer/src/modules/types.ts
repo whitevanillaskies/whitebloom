@@ -64,6 +64,12 @@ export interface WhitebloomModule {
    */
   accentColor: string
   /**
+   * Optional human-facing label for the module's major mode.
+   *
+   * When absent, Whitebloom derives a readable mode title from the module id.
+   */
+  majorModeLabel?: string
+  /**
    * Optional command families contributed by this module.
    *
    * Commands stay in the shared command registry, but modules can declare their

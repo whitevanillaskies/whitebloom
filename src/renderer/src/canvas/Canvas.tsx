@@ -62,6 +62,8 @@ import {
   FolderPlus,
   Link2,
   PanelsTopLeft,
+  Radio,
+  SquareDot,
   Scan,
   Settings2,
   Square,
@@ -70,6 +72,11 @@ import {
 } from 'lucide-react'
 import { PetalButton, PetalMenu, PetalPalette, PetalPanel } from '@renderer/components/petal'
 import type { PaletteCommandSession, PaletteItem, PetalMenuItem } from '@renderer/components/petal'
+import {
+  createCanvasMajorMode,
+  createModuleMajorMode,
+  type WhitebloomMajorMode
+} from '@renderer/major-modes'
 import { boardBloomModule } from '../modules/boardbloom'
 import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
@@ -655,6 +662,7 @@ type CanvasProps = {
     token: number
     mode: PaletteCommandSession['initialMode']
   } | null
+  onConsumeShellPaletteRequest: (token: number) => void
 }
 
 export function Canvas({
@@ -662,7 +670,8 @@ export function Canvas({
   onGoToWorkspaceHome,
   onNewBoard,
   onOpenBoard,
-  shellPaletteRequest
+  shellPaletteRequest,
+  onConsumeShellPaletteRequest
 }: CanvasProps) {
   const { t } = useTranslation()
 
@@ -734,7 +743,9 @@ export function Canvas({
   const [acetateVisible, setAcetateVisible] = useState(true)
   const [boardInkStrokes, setBoardInkStrokes] = useState<BoardInkStroke[]>([])
   const [activeBloom, setActiveBloom] = useState<ActiveBloom | null>(null)
-  const [paletteSession, setPaletteSession] = useState<PaletteCommandSession | null>(null)
+  const [paletteState, setPaletteState] = useState<{
+    initialMode: PaletteCommandSession['initialMode']
+  } | null>(null)
   const [autoEditRequest, setAutoEditRequest] = useState<{ id: string; token: number } | null>(null)
   const [pendingDocumentAction, setPendingDocumentAction] = useState<'exit' | 'newBoard' | null>(
     null
@@ -757,6 +768,7 @@ export function Canvas({
     null
   )
   const transientAutosaveRef = useRef<string | null>(null)
+  const consumedShellPaletteTokenRef = useRef<number | null>(null)
   const isMaterialsCanvasDropActive = useArrangementsDragTargetActive(
     MATERIALS_CANVAS_DROP_TARGET_ID
   )
@@ -801,6 +813,10 @@ export function Canvas({
       cancelled = true
     }
   }, [boardInkBinding, workspaceRoot])
+  const currentMajorMode = useMemo<WhitebloomMajorMode>(
+    () => (activeBloom ? createModuleMajorMode(activeBloom) : createCanvasMajorMode()),
+    [activeBloom]
+  )
 
   // ── Materials Mica host ──────────────────────────────────────────────────────
   const materialsMicaPolicy = useMemo(
@@ -1550,23 +1566,25 @@ export function Canvas({
 
   const openPalette = useCallback(
     (initialMode: PaletteCommandSession['initialMode'] = 'visual') => {
-      setPaletteSession({
-        context: canvasCommandContext,
-        initialMode,
-        source: 'palette'
+      setPaletteState({
+        initialMode
       })
     },
-    [canvasCommandContext]
+    []
   )
 
   const closePalette = useCallback(() => {
-    setPaletteSession(null)
+    setPaletteState(null)
   }, [])
 
   useEffect(() => {
     if (!shellPaletteRequest) return
+    if (consumedShellPaletteTokenRef.current === shellPaletteRequest.token) return
+
+    consumedShellPaletteTokenRef.current = shellPaletteRequest.token
     openPalette(shellPaletteRequest.mode)
-  }, [openPalette, shellPaletteRequest])
+    onConsumeShellPaletteRequest(shellPaletteRequest.token)
+  }, [onConsumeShellPaletteRequest, openPalette, shellPaletteRequest])
 
   const runCanvasCommand = useCallback(
     async (id: string, args: unknown, options?: WhitebloomCommandExecutionOptions) => {
@@ -2285,7 +2303,7 @@ export function Canvas({
           setActiveBloom(null)
           return
         }
-        if (paletteSession) {
+        if (paletteState) {
           event.preventDefault()
           closePalette()
           return
@@ -2380,7 +2398,7 @@ export function Canvas({
     handleSave,
     imageDropError,
     nodes,
-    paletteSession,
+    paletteState,
     pendingDocumentAction,
     runCanvasCommand,
     settingsOpen,
@@ -2823,7 +2841,7 @@ export function Canvas({
     await placePickedResources(result.filePaths, 'import')
   }, [placePickedResources, workspaceRoot])
 
-  const paletteItems = useMemo((): PaletteItem[] => {
+  const canvasPaletteItems = useMemo((): PaletteItem[] => {
     const items: PaletteItem[] = [
       {
         id: 'create-text',
@@ -2953,6 +2971,46 @@ export function Canvas({
     screenToFlowPosition,
     addNode
   ])
+  const shellMetaPaletteItems = useMemo<PaletteItem[]>(
+    () => [
+      {
+        id: 'screen.start-recording',
+        label: 'screen.start-recording',
+        subtitle: 'Start a stub session recording and log to the console',
+        icon: <Radio size={14} strokeWidth={1.8} />,
+        hint: 'rr',
+        onActivate: () => {
+          console.info('[screen] start recording (stub)')
+        }
+      },
+      {
+        id: 'screen.stop-recording',
+        label: 'screen.stop-recording',
+        subtitle: 'Stop a stub session recording and log to the console',
+        icon: <SquareDot size={14} strokeWidth={1.8} />,
+        hint: 'rs',
+        onActivate: () => {
+          console.info('[screen] stop recording (stub)')
+        }
+      }
+    ],
+    []
+  )
+  const activePaletteItems = useMemo(() => {
+    if (paletteState?.initialMode === 'meta') {
+      return shellMetaPaletteItems
+    }
+
+    return currentMajorMode.kind === 'canvas' ? canvasPaletteItems : []
+  }, [canvasPaletteItems, currentMajorMode.kind, paletteState?.initialMode, shellMetaPaletteItems])
+  const activePaletteCommandSession =
+    currentMajorMode.kind === 'canvas' && paletteState
+      ? {
+          context: canvasCommandContext,
+          initialMode: paletteState.initialMode,
+          source: 'palette'
+        }
+      : undefined
 
   const activateShapeCommand = useCallback(
     (id: string, source: WhitebloomCommandExecutionOptions['source']) => {
@@ -3554,12 +3612,13 @@ export function Canvas({
           />
         )}
 
-        {paletteSession && (
+        {paletteState && (
           <PetalPalette
-            items={paletteItems}
+            items={activePaletteItems}
             onClose={closePalette}
             placeholder={t('canvas.searchPalettePlaceholder')}
-            commandSession={paletteSession}
+            emptyLabel={currentMajorMode.emptyLabel}
+            commandSession={activePaletteCommandSession}
           />
         )}
 
