@@ -1,13 +1,13 @@
-import { getRegisteredCommandsForRuntimeContext } from './registry'
+import { getAllRegisteredCommands } from './registry'
 import {
   executeCommandById,
+  isCommandDiscoverableInMajorMode,
   isRegisteredCommandAvailable,
   resolveExecutableCommandById,
   resolveExecutableCommandByName
 } from './runtime'
 import type {
-  WhitebloomCommandContext,
-  WhitebloomCommandContextKey,
+  AnyWhitebloomCommandContext,
   WhitebloomCommandExecutionOptions,
   WhitebloomCommandSearchOptions,
   WhitebloomCommandSearchResult,
@@ -20,7 +20,10 @@ function normalizeSearchValue(value: string): string {
 }
 
 function splitCommandId(id: string): string[] {
-  return id.split('.').map((segment) => segment.trim()).filter(Boolean)
+  return id
+    .split('.')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
 }
 
 function matchesNamespace(id: string, namespace?: string): boolean {
@@ -35,9 +38,9 @@ function matchesNamespace(id: string, namespace?: string): boolean {
   return namespaceSegments.every((segment, index) => idSegments[index] === segment)
 }
 
-function sortByCoreId<TKind extends WhitebloomCommandContextKey>(
-  left: WhitebloomRegisteredCommandForContext<TKind>,
-  right: WhitebloomRegisteredCommandForContext<TKind>
+function sortByCoreId<TContext extends AnyWhitebloomCommandContext>(
+  left: WhitebloomRegisteredCommandForContext<TContext>,
+  right: WhitebloomRegisteredCommandForContext<TContext>
 ): number {
   return left.command.core.id.localeCompare(right.command.core.id)
 }
@@ -46,33 +49,34 @@ function applySearchLimit<T>(results: T[], limit?: number): T[] {
   return typeof limit === 'number' ? results.slice(0, Math.max(0, limit)) : results
 }
 
-export function resolveCommandById<TKind extends WhitebloomCommandContextKey>(
+export function resolveCommandById<TContext extends AnyWhitebloomCommandContext>(
   id: string,
-  context: WhitebloomCommandContext<TKind>
-): WhitebloomRegisteredCommandForContext<TKind> | undefined {
+  context: TContext
+): WhitebloomRegisteredCommandForContext<TContext> | undefined {
   const entry = resolveExecutableCommandById(id, context)
   if (!entry) return undefined
   return isRegisteredCommandAvailable(entry, context) ? entry : undefined
 }
 
-export function resolveCommandByName<TKind extends WhitebloomCommandContextKey>(
+export function resolveCommandByName<TContext extends AnyWhitebloomCommandContext>(
   name: string,
-  context: WhitebloomCommandContext<TKind>
-): WhitebloomRegisteredCommandForContext<TKind> | undefined {
+  context: TContext
+): WhitebloomRegisteredCommandForContext<TContext> | undefined {
   const entry = resolveExecutableCommandByName(name, context)
   if (!entry) return undefined
   return isRegisteredCommandAvailable(entry, context) ? entry : undefined
 }
 
-export function searchCoreCommands<TKind extends WhitebloomCommandContextKey>(
+export function searchCoreCommands<TContext extends AnyWhitebloomCommandContext>(
   query: string,
-  context: WhitebloomCommandContext<TKind>,
+  context: TContext,
   options: WhitebloomCommandSearchOptions = {}
-): WhitebloomCommandSearchResult<TKind>[] {
+): WhitebloomCommandSearchResult<TContext>[] {
   const normalizedQuery = normalizeSearchValue(query)
-  const results: WhitebloomCommandSearchResult<TKind>[] = []
+  const results: WhitebloomCommandSearchResult<TContext>[] = []
 
-  for (const entry of getRegisteredCommandsForRuntimeContext(context)) {
+  for (const entry of getAllRegisteredCommands() as WhitebloomRegisteredCommandForContext<TContext>[]) {
+    if (!isCommandDiscoverableInMajorMode(entry, context.majorMode)) continue
     if (!isRegisteredCommandAvailable(entry, context)) continue
     if (!matchesNamespace(entry.command.core.id, options.namespace)) continue
 
@@ -83,7 +87,9 @@ export function searchCoreCommands<TKind extends WhitebloomCommandContextKey>(
     }
 
     const matchesAlias =
-      entry.command.core.aliases?.some((alias) => normalizeSearchValue(alias).includes(normalizedQuery)) ?? false
+      entry.command.core.aliases?.some((alias) =>
+        normalizeSearchValue(alias).includes(normalizedQuery)
+      ) ?? false
 
     if (matchesAlias) {
       results.push({ entry, matchedBy: 'core-alias' })
@@ -94,21 +100,22 @@ export function searchCoreCommands<TKind extends WhitebloomCommandContextKey>(
   return applySearchLimit(results, options.limit)
 }
 
-export function searchPresentedCommands<TKind extends WhitebloomCommandContextKey>(
+export function searchPresentedCommands<TContext extends AnyWhitebloomCommandContext>(
   query: string,
-  context: WhitebloomCommandContext<TKind>,
+  context: TContext,
   options: WhitebloomCommandSearchOptions = {}
-): WhitebloomCommandSearchResult<TKind>[] {
+): WhitebloomCommandSearchResult<TContext>[] {
   const normalizedQuery = normalizeSearchValue(query)
-  const results: WhitebloomCommandSearchResult<TKind>[] = []
+  const results: WhitebloomCommandSearchResult<TContext>[] = []
 
-  for (const entry of getRegisteredCommandsForRuntimeContext(context)) {
+  for (const entry of getAllRegisteredCommands() as WhitebloomRegisteredCommandForContext<TContext>[]) {
+    if (!isCommandDiscoverableInMajorMode(entry, context.majorMode)) continue
     if (!isRegisteredCommandAvailable(entry, context)) continue
     if (!matchesNamespace(entry.command.core.id, options.namespace)) continue
 
     const presentation = entry.command.presentations?.find(
-      (candidate) => candidate.context === context.kind
-    ) as WhitebloomCommandSearchResult<TKind>['presentation']
+      (candidate) => candidate.mode === context.majorMode
+    )
     if (!presentation) continue
 
     const normalizedTitle = normalizeSearchValue(presentation.title)
@@ -132,15 +139,16 @@ export function searchPresentedCommands<TKind extends WhitebloomCommandContextKe
   return applySearchLimit(results, options.limit)
 }
 
-export function listVirtualCommandNamespaces<TKind extends WhitebloomCommandContextKey>(
-  context: WhitebloomCommandContext<TKind>,
+export function listVirtualCommandNamespaces<TContext extends AnyWhitebloomCommandContext>(
+  context: TContext,
   options: WhitebloomCommandSearchOptions = {}
-): WhitebloomVirtualCommandNamespace<TKind>[] {
-  const namespaceMap = new Map<string, WhitebloomVirtualCommandNamespace<TKind>>()
+): WhitebloomVirtualCommandNamespace<TContext>[] {
+  const namespaceMap = new Map<string, WhitebloomVirtualCommandNamespace<TContext>>()
   const namespaceSegments = splitCommandId(options.namespace ?? '')
   const depth = namespaceSegments.length
 
-  for (const entry of getRegisteredCommandsForRuntimeContext(context)) {
+  for (const entry of getAllRegisteredCommands() as WhitebloomRegisteredCommandForContext<TContext>[]) {
+    if (!isCommandDiscoverableInMajorMode(entry, context.majorMode)) continue
     if (!isRegisteredCommandAvailable(entry, context)) continue
     if (!matchesNamespace(entry.command.core.id, options.namespace)) continue
 
@@ -171,21 +179,23 @@ export function listVirtualCommandNamespaces<TKind extends WhitebloomCommandCont
     })
   }
 
-  const results = Array.from(namespaceMap.values()).sort((left, right) => left.segment.localeCompare(right.segment))
+  const results = Array.from(namespaceMap.values()).sort((left, right) =>
+    left.segment.localeCompare(right.segment)
+  )
   return applySearchLimit(results, options.limit)
 }
 
 export async function invokeCommandById<
-  TKind extends WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext,
   TArgs = unknown,
   TResult = unknown
 >(
   id: string,
   args: TArgs,
-  context: WhitebloomCommandContext<TKind>,
+  context: TContext,
   options: WhitebloomCommandExecutionOptions = {}
 ): Promise<TResult> {
-  const result = await executeCommandById<TKind, TArgs, TResult>(id, args, context, options)
+  const result = await executeCommandById<TContext, TArgs, TResult>(id, args, context, options)
   if (!result.ok) {
     throw result.error ?? new Error(result.message ?? `Command execution failed: ${id}`)
   }

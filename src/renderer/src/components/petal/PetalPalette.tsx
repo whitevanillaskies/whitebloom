@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAppSettingsStore } from '@renderer/stores/app-settings'
 import {
   executeCommandById,
-  getRegisteredCommandsForRuntimeContext,
+  getRegisteredCommandsForMajorMode,
   listVirtualCommandNamespaces,
   searchCoreCommands,
   searchPresentedCommands,
@@ -118,7 +118,10 @@ function normalizeSearchValue(value: string): string {
 }
 
 function splitCommandId(id: string): string[] {
-  return id.split('.').map((segment) => segment.trim()).filter(Boolean)
+  return id
+    .split('.')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
 }
 
 function getParentNamespace(namespace: string | null): string | null {
@@ -137,7 +140,9 @@ function isDirectCommandInNamespace(commandId: string, namespace: string | null)
   const namespaceSegments = splitCommandId(namespace ?? '')
   if (namespaceSegments.length > commandSegments.length) return false
 
-  const isWithinNamespace = namespaceSegments.every((segment, index) => commandSegments[index] === segment)
+  const isWithinNamespace = namespaceSegments.every(
+    (segment, index) => commandSegments[index] === segment
+  )
   if (!isWithinNamespace) return false
 
   return commandSegments.length === namespaceSegments.length + 1
@@ -200,7 +205,9 @@ function listLegacyNamespaces(
     })
   }
 
-  return Array.from(namespaceMap.values()).sort((left, right) => left.segment.localeCompare(right.segment))
+  return Array.from(namespaceMap.values()).sort((left, right) =>
+    left.segment.localeCompare(right.segment)
+  )
 }
 
 function isAltXShortcut(event: KeyboardEvent): boolean {
@@ -298,9 +305,7 @@ export default function PetalPalette({
 
         setBusyState({
           ...state,
-          ...(typeof state.progress === 'number'
-            ? { progress: clampProgress(state.progress) }
-            : {})
+          ...(typeof state.progress === 'number' ? { progress: clampProgress(state.progress) } : {})
         })
       }
     }
@@ -550,16 +555,16 @@ export default function PetalPalette({
 
     const showNamespaceEntries = commandNamespace !== null || normalizedQuery.length > 0
     const runtimeCommandsById = new Map(
-      getRegisteredCommandsForRuntimeContext(commandSession.context).map((entry) => [
-        entry.command.core.id,
-        entry
-      ] as const)
+      getRegisteredCommandsForMajorMode(commandSession.context.majorMode).map(
+        (entry) => [entry.command.core.id, entry] as const
+      )
     )
     const legacyNamespaceEntries = showNamespaceEntries
       ? listLegacyNamespaces(mode.items, commandNamespace)
           .filter((namespace) => namespace.hasChildren)
           .filter(
-            (namespace) => !normalizedQuery || namespace.segment.toLowerCase().includes(normalizedQuery)
+            (namespace) =>
+              !normalizedQuery || namespace.segment.toLowerCase().includes(normalizedQuery)
           )
           .map<PaletteRenderedEntry>((namespace) => ({
             id: `legacy-namespace:${namespace.id}`,
@@ -578,7 +583,9 @@ export default function PetalPalette({
         })
           .filter((namespace) => namespace.hasChildren)
           .map<PaletteRenderedEntry | null>((namespace) => {
-            const runnableEntries = namespace.entries.filter((entry) => canPaletteLaunchCommand(entry))
+            const runnableEntries = namespace.entries.filter((entry) =>
+              canPaletteLaunchCommand(entry)
+            )
             if (runnableEntries.length === 0) return null
 
             return {
@@ -593,7 +600,9 @@ export default function PetalPalette({
             } satisfies PaletteRenderedEntry
           })
           .filter((entry): entry is PaletteRenderedEntry => entry !== null)
-          .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
+          .filter(
+            (entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery)
+          )
       : []
 
     const legacyCommandEntries = mode.items
@@ -630,7 +639,7 @@ export default function PetalPalette({
       )
       .map<PaletteRenderedEntry>((result) => {
         const presentation = result.entry.command.presentations?.find(
-          (candidate) => candidate.context === commandSession.context.kind
+          (candidate) => candidate.mode === commandSession.context.majorMode
         )
         const customAlias = commandAliases[result.entry.command.core.id]
         const primaryAlias = customAlias ?? result.entry.command.core.aliases?.[0]
@@ -656,7 +665,12 @@ export default function PetalPalette({
         return false
       })
 
-    return [...legacyNamespaceEntries, ...namespaceEntries, ...legacyCommandEntries, ...commandEntries]
+    return [
+      ...legacyNamespaceEntries,
+      ...namespaceEntries,
+      ...legacyCommandEntries,
+      ...commandEntries
+    ]
   }, [
     activateRegisteredCommand,
     commandBrowseMode,
@@ -684,13 +698,13 @@ export default function PetalPalette({
       ? t('petalPalette.cancellingTitle')
       : abortPhase === 'stalled'
         ? t('petalPalette.stalledTitle')
-        : busyState?.title ?? t('petalPalette.busyTitle')
+        : (busyState?.title ?? t('petalPalette.busyTitle'))
   const busyLabel =
     abortPhase === 'requested'
       ? t('petalPalette.cancellingLabel')
       : abortPhase === 'stalled'
         ? t('petalPalette.stalledLabel')
-        : busyState?.label ?? t('petalPalette.busyLabel')
+        : (busyState?.label ?? t('petalPalette.busyLabel'))
   const busyProgress =
     abortPhase === 'idle' && typeof busyState?.progress === 'number'
       ? clampProgress(busyState.progress)
@@ -980,9 +994,7 @@ export default function PetalPalette({
 
         {mode.title || mode.subtitle ? (
           <div className="petal-palette__mode-copy">
-            {mode.title ? (
-              <div className="petal-palette__mode-title">{mode.title}</div>
-            ) : null}
+            {mode.title ? <div className="petal-palette__mode-title">{mode.title}</div> : null}
             {mode.subtitle ? (
               <div className="petal-palette__mode-subtitle">{mode.subtitle}</div>
             ) : null}
@@ -990,12 +1002,7 @@ export default function PetalPalette({
         ) : null}
 
         {isBusy ? (
-          <div
-            className="petal-palette__busy"
-            role="status"
-            aria-live="polite"
-            aria-busy="true"
-          >
+          <div className="petal-palette__busy" role="status" aria-live="polite" aria-busy="true">
             <div className="petal-palette__busy-spinner" aria-hidden="true" />
             <div className="petal-palette__busy-title">{busyTitle}</div>
             <div className="petal-palette__busy-label">{busyLabel}</div>
@@ -1050,18 +1057,14 @@ export default function PetalPalette({
                   onMouseEnter={() => setActiveIndex(i)}
                   tabIndex={-1}
                 >
-                  {item.icon && (
-                    <span className="petal-palette__item-icon">{item.icon}</span>
-                  )}
+                  {item.icon && <span className="petal-palette__item-icon">{item.icon}</span>}
                   <span className="petal-palette__item-copy">
                     <span className="petal-palette__item-label">{item.label}</span>
                     {item.subtitle ? (
                       <span className="petal-palette__item-subtitle">{item.subtitle}</span>
                     ) : null}
                   </span>
-                  {item.hint && (
-                    <span className="petal-palette__item-hint">{item.hint}</span>
-                  )}
+                  {item.hint && <span className="petal-palette__item-hint">{item.hint}</span>}
                 </button>
               ))
             )}

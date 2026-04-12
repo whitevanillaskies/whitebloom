@@ -25,9 +25,6 @@ export type {
   WhitebloomCommandSearchResult,
   WhitebloomCommandCore,
   WhitebloomCommandDisplayMetadata,
-  WhitebloomCommandContext,
-  WhitebloomCommandContextKey,
-  WhitebloomCommandContextMap,
   CanvasLinkableBoard,
   WhitebloomCanvasPoint,
   WhitebloomCanvasSize,
@@ -59,6 +56,8 @@ export type {
   WhitebloomCommandId,
   WhitebloomCommandInteractionController,
   WhitebloomCommandLatentState,
+  WhitebloomCommandModeKey,
+  WhitebloomCommandModeScope,
   WhitebloomCommandPresentation,
   WhitebloomRegisteredCommand,
   WhitebloomRegisteredCommandForContext,
@@ -68,19 +67,15 @@ export type {
   WhitebloomCommandWhen
 } from './types'
 export { createArrangementsCommandContext, createCanvasCommandContext } from './contexts'
-export {
-  WHITEBLOOM_COMMAND_IDS,
-  whitebloomBuiltinCommandProvider
-} from './builtins'
+export { WHITEBLOOM_COMMAND_IDS, whitebloomBuiltinCommandProvider } from './builtins'
 export {
   createBuiltinCommandProvider,
   createModuleCommandProvider,
   getAllCommandProviders,
-  getCommandProvidersForContext,
-  getCommandsForContext,
-  getCommandsForRuntimeContext,
-  getRegisteredCommandsForContext,
-  getRegisteredCommandsForRuntimeContext,
+  getAllCommands,
+  getAllRegisteredCommands,
+  getCommandsForMajorMode,
+  getRegisteredCommandsForMajorMode,
   registerCommandProvider,
   resolveCommandProvider
 } from './registry'
@@ -95,9 +90,11 @@ export {
 export {
   createCommandExecutionGroupId,
   createCommandExecutionId,
+  doesCommandApplyToMajorMode,
   executeCommandById,
   executeCommandByName,
   executeRegisteredCommand,
+  isCommandDiscoverableInMajorMode,
   isRegisteredCommandAvailable,
   normalizeCommandArgs,
   resolveExecutableCommandById,

@@ -1,22 +1,20 @@
 import type {
   ArrangementsCommandContext,
-  CanvasCommandContext
+  CanvasCommandContext,
+  WhitebloomCommandModeKey
 } from './types'
 
 export function createCanvasCommandContext(
-  input: Omit<CanvasCommandContext, 'kind'>
+  input: Omit<CanvasCommandContext, 'majorMode'> & { majorMode: WhitebloomCommandModeKey }
 ): CanvasCommandContext {
-  return {
-    kind: 'canvas',
-    ...input
-  }
+  return input
 }
 
 export function createArrangementsCommandContext(
-  input: Omit<ArrangementsCommandContext, 'kind'>
+  input: Omit<ArrangementsCommandContext, 'majorMode'> & { majorMode?: WhitebloomCommandModeKey }
 ): ArrangementsCommandContext {
   return {
-    kind: 'arrangements',
-    ...input
+    ...input,
+    majorMode: input.majorMode ?? 'canvas-mode'
   }
 }

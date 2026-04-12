@@ -2,17 +2,14 @@ import type React from 'react'
 import type { GardenPoint } from '../../../shared/arrangements'
 import type { ShapePreset } from '@renderer/shared/types'
 
-/**
- * Command contexts describe the surface a command is executing within.
- *
- * Commands should be registered against one or more of these context keys so
- * availability and runtime behavior can be resolved by surface, not by the
- * palette component itself.
- */
-export type WhitebloomCommandContextKey = 'canvas' | 'arrangements'
+export type WhitebloomCommandModeKey = 'canvas-mode' | `module:${string}`
 
-type CommandContextBase<TKind extends WhitebloomCommandContextKey> = {
-  kind: TKind
+export type WhitebloomCommandModeScope =
+  | WhitebloomCommandModeKey
+  | readonly WhitebloomCommandModeKey[]
+
+type CommandContextBase<TMajorMode extends WhitebloomCommandModeKey = WhitebloomCommandModeKey> = {
+  majorMode: TMajorMode
 }
 
 export type WhitebloomCanvasPoint = {
@@ -64,12 +61,13 @@ export type CanvasCommandActions = {
 }
 
 /**
- * Runtime context for commands invoked from the main board canvas.
+ * Command state for the main board surface.
  *
- * Concrete command systems can extend this later with the exact selection,
- * viewport, workspace, and action handles commands need.
+ * The current major mode rides alongside the semantic snapshot so command
+ * discovery can be driven by mode without reintroducing a separate runtime
+ * context registry axis.
  */
-export type CanvasCommandContext = CommandContextBase<'canvas'> & {
+export type CanvasCommandContext = CommandContextBase & {
   selection: CanvasCommandSelection
   capabilities: CanvasCommandCapabilities
   insertionPoint?: WhitebloomCanvasPoint
@@ -130,15 +128,9 @@ export type ArrangementsCommandActions = {
   createRootSet?: (name?: string) => Promise<string | null> | string | null
   renameSet?: (setId: string, name: string) => Promise<boolean> | boolean
   deleteSet?: (setId: string) => void | Promise<void>
-  assignMaterialsToBin?: (
-    materialKeys: string[],
-    binId: string
-  ) => void | Promise<void>
+  assignMaterialsToBin?: (materialKeys: string[], binId: string) => void | Promise<void>
   removeMaterialsFromBin?: (materialKeys: string[]) => void | Promise<void>
-  includeMaterialsInSet?: (
-    materialKeys: string[],
-    setId: string
-  ) => void | Promise<void>
+  includeMaterialsInSet?: (materialKeys: string[], setId: string) => void | Promise<void>
   sendMaterialsToTrash?: (materialKeys: string[]) => void | Promise<void>
   moveMaterialsToDesktop?: (
     items: ArrangementsMoveMaterialsToDesktopCommandArgs['items']
@@ -146,12 +138,13 @@ export type ArrangementsCommandActions = {
 }
 
 /**
- * Runtime context for commands invoked from the Arrangements surface.
+ * Programmatic command state for arrangements mutations.
  *
- * Concrete command systems can extend this later with arrangements-specific
- * data such as bins, sets, desktop viewport state, and action handles.
+ * These commands are intentionally not treated as a separate major mode. They
+ * execute under the caller's current major mode while keeping their own
+ * semantic payload for mutation operations.
  */
-export type ArrangementsCommandContext = CommandContextBase<'arrangements'> & {
+export type ArrangementsCommandContext = CommandContextBase & {
   selection: ArrangementsCommandSelection
   availableBinIds: string[]
   availableSetIds: string[]
@@ -160,16 +153,7 @@ export type ArrangementsCommandContext = CommandContextBase<'arrangements'> & {
   actions: ArrangementsCommandActions
 }
 
-export type WhitebloomCommandContextMap = {
-  canvas: CanvasCommandContext
-  arrangements: ArrangementsCommandContext
-}
-
-export type WhitebloomCommandContext<TKind extends WhitebloomCommandContextKey> =
-  WhitebloomCommandContextMap[TKind]
-
-export type AnyWhitebloomCommandContext =
-  WhitebloomCommandContextMap[WhitebloomCommandContextKey]
+export type AnyWhitebloomCommandContext = CanvasCommandContext | ArrangementsCommandContext
 
 /**
  * Stable naked/core command id.
@@ -239,6 +223,7 @@ export type WhitebloomCommandCore<
 > = {
   id: WhitebloomCommandId
   aliases?: string[]
+  modeScope?: WhitebloomCommandModeScope
   when?: WhitebloomCommandWhen<TContext>
   argsSchema?: WhitebloomCommandArgsSchema<TArgs>
   run: WhitebloomCommandRun<TContext, TArgs, TResult>
@@ -251,8 +236,8 @@ export type WhitebloomCommandCore<
  * identity; it only tells command-consuming surfaces how to render the core
  * command in a friendlier way.
  */
-export type WhitebloomCommandPresentation<TKind extends WhitebloomCommandContextKey> = {
-  context: TKind
+export type WhitebloomCommandPresentation = {
+  mode: WhitebloomCommandModeKey
 } & WhitebloomCommandDisplayMetadata
 
 export type WhitebloomCommandFlowStepId = string
@@ -271,7 +256,9 @@ export type WhitebloomCommandFlowHandler<
 > = (
   context: TContext,
   interaction: WhitebloomCommandInteractionController
-) => WhitebloomCommandFlowTransition<TContext, TArgs> | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
+) =>
+  | WhitebloomCommandFlowTransition<TContext, TArgs>
+  | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
 
 export type WhitebloomCommandFlowInputHandler<
   TContext extends AnyWhitebloomCommandContext,
@@ -280,7 +267,9 @@ export type WhitebloomCommandFlowInputHandler<
   value: string,
   context: TContext,
   interaction: WhitebloomCommandInteractionController
-) => WhitebloomCommandFlowTransition<TContext, TArgs> | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
+) =>
+  | WhitebloomCommandFlowTransition<TContext, TArgs>
+  | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
 
 export type WhitebloomCommandFlowChoice<
   TContext extends AnyWhitebloomCommandContext,
@@ -317,10 +306,7 @@ export type WhitebloomCommandFlowInputStep<
   onSubmit: WhitebloomCommandFlowInputHandler<TContext, TArgs>
 }
 
-export type WhitebloomCommandFlowStep<
-  TContext extends AnyWhitebloomCommandContext,
-  TArgs = void
-> =
+export type WhitebloomCommandFlowStep<TContext extends AnyWhitebloomCommandContext, TArgs = void> =
   | WhitebloomCommandFlowListStep<TContext, TArgs>
   | WhitebloomCommandFlowInputStep<TContext, TArgs>
 
@@ -349,29 +335,27 @@ export type WhitebloomCommand<
 > = {
   core: WhitebloomCommandCore<TContext, TArgs, TResult>
   flow?: WhitebloomCommandFlow<TContext, TArgs>
-  presentations?: WhitebloomCommandPresentation<TContext['kind']>[]
+  presentations?: WhitebloomCommandPresentation[]
 }
 
-export type WhitebloomAnyCommand = WhitebloomCommand<AnyWhitebloomCommandContext, any, any>
+export type WhitebloomAnyCommand = WhitebloomCommand<any, any, any>
 
-export type WhitebloomCommandForContext<TKind extends WhitebloomCommandContextKey> =
-  WhitebloomCommand<WhitebloomCommandContext<TKind>, any, any>
+export type WhitebloomCommandForContext<TContext extends AnyWhitebloomCommandContext> =
+  WhitebloomCommand<TContext, any, any>
 
-export type WhitebloomCommandsByContext = {
-  [TKind in WhitebloomCommandContextKey]?: WhitebloomCommandForContext<TKind>[]
-}
+/**
+ * Legacy export name preserved while commands move away from runtime-context
+ * buckets and toward a flat registry plus `modeScope`.
+ */
+export type WhitebloomCommandsByContext = WhitebloomCommand<any, any, any>[]
 
 export type WhitebloomCommandProviderSource =
   | { kind: 'builtin' }
   | { kind: 'module'; moduleId: string }
 
 /**
- * A registration unit that contributes commands into one or more command
- * contexts.
- *
- * Providers keep command contribution separate from the consuming surface. This
- * lets built-in app features and modules both participate in the same command
- * language without forcing command definitions to live inside the palette.
+ * A registration unit that contributes commands into the shared command
+ * language.
  */
 export type WhitebloomCommandProvider = {
   id: string
@@ -386,8 +370,9 @@ export type WhitebloomRegisteredCommand<
   command: WhitebloomCommand<TContext, any, any>
 }
 
-export type WhitebloomRegisteredCommandForContext<TKind extends WhitebloomCommandContextKey> =
-  WhitebloomRegisteredCommand<WhitebloomCommandContext<TKind>>
+export type WhitebloomRegisteredCommandForContext<
+  TContext extends AnyWhitebloomCommandContext = AnyWhitebloomCommandContext
+> = WhitebloomRegisteredCommand<TContext>
 
 export type WhitebloomCommandSearchOptions = {
   namespace?: string
@@ -400,10 +385,12 @@ export type WhitebloomCommandSearchMatchKind =
   | 'presentation-title'
   | 'presentation-subtitle'
 
-export type WhitebloomCommandSearchResult<TKind extends WhitebloomCommandContextKey> = {
-  entry: WhitebloomRegisteredCommandForContext<TKind>
+export type WhitebloomCommandSearchResult<
+  TContext extends AnyWhitebloomCommandContext = AnyWhitebloomCommandContext
+> = {
+  entry: WhitebloomRegisteredCommandForContext<TContext>
   matchedBy: WhitebloomCommandSearchMatchKind
-  presentation?: WhitebloomCommandPresentation<TKind>
+  presentation?: WhitebloomCommandPresentation
 }
 
 /**
@@ -412,7 +399,9 @@ export type WhitebloomCommandSearchResult<TKind extends WhitebloomCommandContext
  * These nodes are derived on demand from currently available commands; they
  * are not registered as first-class command objects.
  */
-export type WhitebloomVirtualCommandNamespace<TKind extends WhitebloomCommandContextKey> = {
+export type WhitebloomVirtualCommandNamespace<
+  TContext extends AnyWhitebloomCommandContext = AnyWhitebloomCommandContext
+> = {
   id: string
   segment: string
   parentId: string | null
@@ -420,7 +409,7 @@ export type WhitebloomVirtualCommandNamespace<TKind extends WhitebloomCommandCon
   hasDirectCommand: boolean
   hasChildren: boolean
   commandCount: number
-  entries: WhitebloomRegisteredCommandForContext<TKind>[]
+  entries: WhitebloomRegisteredCommandForContext<TContext>[]
 }
 
 export type WhitebloomCommandExecutionMetadata = Record<string, unknown>
@@ -433,11 +422,11 @@ export type WhitebloomCommandExecutionOptions = {
 }
 
 export type WhitebloomCommandExecutionEnvelope<
-  TKind extends WhitebloomCommandContextKey = WhitebloomCommandContextKey
+  TMajorMode extends WhitebloomCommandModeKey = WhitebloomCommandModeKey
 > = {
   executionId: string
   commandId: string
-  contextKind: TKind
+  majorMode: TMajorMode
   providerId?: string
   source?: string
   groupId?: string
@@ -454,58 +443,56 @@ export type WhitebloomCommandExecutionFailureReason =
   | 'error'
 
 export type WhitebloomCommandExecutionSuccess<
-  TKind extends WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext,
   TResult = unknown
 > = {
   ok: true
-  entry: WhitebloomRegisteredCommandForContext<TKind>
-  execution: WhitebloomCommandExecutionEnvelope<TKind>
+  entry: WhitebloomRegisteredCommandForContext<TContext>
+  execution: WhitebloomCommandExecutionEnvelope<TContext['majorMode']>
   args: unknown
   result: TResult
 }
 
-export type WhitebloomCommandExecutionFailure<TKind extends WhitebloomCommandContextKey> = {
+export type WhitebloomCommandExecutionFailure<TContext extends AnyWhitebloomCommandContext> = {
   ok: false
   commandId: string
   reason: WhitebloomCommandExecutionFailureReason
-  execution: WhitebloomCommandExecutionEnvelope<TKind>
-  entry?: WhitebloomRegisteredCommandForContext<TKind>
+  execution: WhitebloomCommandExecutionEnvelope<TContext['majorMode']>
+  entry?: WhitebloomRegisteredCommandForContext<TContext>
   message?: string
   error?: Error
 }
 
 export type WhitebloomCommandExecutionResult<
-  TKind extends WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext,
   TResult = unknown
 > =
-  | WhitebloomCommandExecutionSuccess<TKind, TResult>
-  | WhitebloomCommandExecutionFailure<TKind>
+  | WhitebloomCommandExecutionSuccess<TContext, TResult>
+  | WhitebloomCommandExecutionFailure<TContext>
 
 export type WhitebloomCommandExecutionStartedEvent<
-  TKind extends WhitebloomCommandContextKey = WhitebloomCommandContextKey
+  TMajorMode extends WhitebloomCommandModeKey = WhitebloomCommandModeKey
 > = {
   phase: 'started'
-  execution: WhitebloomCommandExecutionEnvelope<TKind>
+  execution: WhitebloomCommandExecutionEnvelope<TMajorMode>
 }
 
 export type WhitebloomCommandExecutionFinishedEvent<
-  TKind extends WhitebloomCommandContextKey = WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext = AnyWhitebloomCommandContext,
   TResult = unknown
 > = {
   phase: 'finished'
-  execution: WhitebloomCommandExecutionEnvelope<TKind>
-  outcome: WhitebloomCommandExecutionResult<TKind, TResult>
+  execution: WhitebloomCommandExecutionEnvelope<TContext['majorMode']>
+  outcome: WhitebloomCommandExecutionResult<TContext, TResult>
   finishedAt: string
   durationMs: number
 }
 
 export type WhitebloomCommandExecutionEvent<
-  TKind extends WhitebloomCommandContextKey = WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext = AnyWhitebloomCommandContext,
   TResult = unknown
 > =
-  | WhitebloomCommandExecutionStartedEvent<TKind>
-  | WhitebloomCommandExecutionFinishedEvent<TKind, TResult>
+  | WhitebloomCommandExecutionStartedEvent<TContext['majorMode']>
+  | WhitebloomCommandExecutionFinishedEvent<TContext, TResult>
 
-export type WhitebloomCommandExecutionListener = (
-  event: WhitebloomCommandExecutionEvent
-) => void
+export type WhitebloomCommandExecutionListener = (event: WhitebloomCommandExecutionEvent) => void

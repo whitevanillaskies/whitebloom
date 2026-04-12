@@ -1,10 +1,9 @@
 import type {
-  WhitebloomCommandContext,
-  WhitebloomCommandContextKey,
-  WhitebloomCommandForContext,
+  WhitebloomAnyCommand,
+  WhitebloomCommandModeKey,
   WhitebloomCommandProvider,
-  WhitebloomRegisteredCommandForContext,
-  WhitebloomCommandsByContext
+  WhitebloomCommandsByContext,
+  WhitebloomRegisteredCommand
 } from './types'
 
 const registry = new Map<string, WhitebloomCommandProvider>()
@@ -43,43 +42,22 @@ export function getAllCommandProviders(): WhitebloomCommandProvider[] {
   return Array.from(registry.values())
 }
 
-export function getCommandProvidersForContext<TKind extends WhitebloomCommandContextKey>(
-  context: TKind
-): WhitebloomCommandProvider[] {
-  return getAllCommandProviders().filter((provider) => provider.commands[context] !== undefined)
-}
-
-export function getCommandsForContext<TKind extends WhitebloomCommandContextKey>(
-  context: TKind
-): WhitebloomCommandForContext<TKind>[] {
-  const commands: WhitebloomCommandForContext<TKind>[] = []
+export function getAllCommands(): WhitebloomAnyCommand[] {
+  const commands: WhitebloomAnyCommand[] = []
 
   for (const provider of registry.values()) {
-    const contributed = provider.commands[context]
-    if (!contributed) continue
-    commands.push(...contributed)
+    commands.push(...provider.commands)
   }
 
   return commands
 }
 
-export function getCommandsForRuntimeContext<TKind extends WhitebloomCommandContextKey>(
-  context: WhitebloomCommandContext<TKind>
-): WhitebloomCommandForContext<TKind>[] {
-  return getCommandsForContext(context.kind) as unknown as WhitebloomCommandForContext<TKind>[]
-}
-
-export function getRegisteredCommandsForContext<TKind extends WhitebloomCommandContextKey>(
-  context: TKind
-): WhitebloomRegisteredCommandForContext<TKind>[] {
-  const commands: WhitebloomRegisteredCommandForContext<TKind>[] = []
+export function getAllRegisteredCommands(): WhitebloomRegisteredCommand[] {
+  const commands: WhitebloomRegisteredCommand[] = []
 
   for (const provider of registry.values()) {
-    const contributed = provider.commands[context]
-    if (!contributed) continue
-
     commands.push(
-      ...contributed.map((command) => ({
+      ...provider.commands.map((command) => ({
         provider,
         command
       }))
@@ -89,8 +67,22 @@ export function getRegisteredCommandsForContext<TKind extends WhitebloomCommandC
   return commands
 }
 
-export function getRegisteredCommandsForRuntimeContext<TKind extends WhitebloomCommandContextKey>(
-  context: WhitebloomCommandContext<TKind>
-): WhitebloomRegisteredCommandForContext<TKind>[] {
-  return getRegisteredCommandsForContext(context.kind) as unknown as WhitebloomRegisteredCommandForContext<TKind>[]
+export function getCommandsForMajorMode(
+  majorMode: WhitebloomCommandModeKey
+): WhitebloomAnyCommand[] {
+  return getAllCommands().filter((command) => {
+    const scope = command.core.modeScope
+    if (!scope) return true
+    return Array.isArray(scope) ? scope.includes(majorMode) : scope === majorMode
+  })
+}
+
+export function getRegisteredCommandsForMajorMode(
+  majorMode: WhitebloomCommandModeKey
+): WhitebloomRegisteredCommand[] {
+  return getAllRegisteredCommands().filter((entry) => {
+    const scope = entry.command.core.modeScope
+    if (!scope) return true
+    return Array.isArray(scope) ? scope.includes(majorMode) : scope === majorMode
+  })
 }

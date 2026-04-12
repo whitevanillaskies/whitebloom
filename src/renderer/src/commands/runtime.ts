@@ -1,19 +1,19 @@
-import { getRegisteredCommandsForRuntimeContext } from './registry'
+import { getAllRegisteredCommands } from './registry'
 import type {
+  AnyWhitebloomCommandContext,
   WhitebloomCommandArgsSchema,
-  WhitebloomCommandContext,
-  WhitebloomCommandContextKey,
   WhitebloomCommandExecutionEnvelope,
   WhitebloomCommandExecutionEvent,
   WhitebloomCommandExecutionListener,
   WhitebloomCommandExecutionOptions,
   WhitebloomCommandExecutionResult,
   WhitebloomCommandInteractionController,
+  WhitebloomCommandModeKey,
   WhitebloomRegisteredCommandForContext
 } from './types'
 
-type InFlightExecution<TKind extends WhitebloomCommandContextKey> = {
-  execution: WhitebloomCommandExecutionEnvelope<TKind>
+type InFlightExecution<TContext extends AnyWhitebloomCommandContext> = {
+  execution: WhitebloomCommandExecutionEnvelope<TContext['majorMode']>
   startedAtMs: number
 }
 
@@ -23,10 +23,32 @@ const NOOP_INTERACTION_CONTROLLER: WhitebloomCommandInteractionController = {
   setBusyState: () => {}
 }
 
-export function isRegisteredCommandAvailable<TKind extends WhitebloomCommandContextKey>(
-  entry: WhitebloomRegisteredCommandForContext<TKind>,
-  context: WhitebloomCommandContext<TKind>
+export function doesCommandApplyToMajorMode(
+  entry: WhitebloomRegisteredCommandForContext<any>,
+  majorMode: WhitebloomCommandModeKey
 ): boolean {
+  const scope = entry.command.core.modeScope
+  if (!scope) return true
+  return Array.isArray(scope) ? scope.includes(majorMode) : scope === majorMode
+}
+
+export function isCommandDiscoverableInMajorMode(
+  entry: WhitebloomRegisteredCommandForContext<any>,
+  majorMode: WhitebloomCommandModeKey
+): boolean {
+  const scope = entry.command.core.modeScope
+  if (!scope) return false
+  return Array.isArray(scope) ? scope.includes(majorMode) : scope === majorMode
+}
+
+export function isRegisteredCommandAvailable<TContext extends AnyWhitebloomCommandContext>(
+  entry: WhitebloomRegisteredCommandForContext<TContext>,
+  context: TContext
+): boolean {
+  if (!doesCommandApplyToMajorMode(entry, context.majorMode)) {
+    return false
+  }
+
   return entry.command.core.when?.(context) ?? true
 }
 
@@ -47,8 +69,8 @@ export function subscribeToCommandExecutions(
   }
 }
 
-function emitCommandExecutionEvent<TKind extends WhitebloomCommandContextKey, TResult = unknown>(
-  event: WhitebloomCommandExecutionEvent<TKind, TResult>
+function emitCommandExecutionEvent<TResult = unknown>(
+  event: WhitebloomCommandExecutionEvent<any, TResult>
 ): void {
   for (const listener of executionListeners) {
     try {
@@ -59,18 +81,18 @@ function emitCommandExecutionEvent<TKind extends WhitebloomCommandContextKey, TR
   }
 }
 
-function beginExecution<TKind extends WhitebloomCommandContextKey>(input: {
+function beginExecution<TContext extends AnyWhitebloomCommandContext>(input: {
   commandId: string
-  context: WhitebloomCommandContext<TKind>
+  context: TContext
   args: unknown
   options?: WhitebloomCommandExecutionOptions
   providerId?: string
-}): InFlightExecution<TKind> {
+}): InFlightExecution<TContext> {
   const startedAtMs = Date.now()
-  const execution: WhitebloomCommandExecutionEnvelope<TKind> = {
+  const execution: WhitebloomCommandExecutionEnvelope<TContext['majorMode']> = {
     executionId: createCommandExecutionId(),
     commandId: input.commandId,
-    contextKind: input.context.kind as TKind,
+    majorMode: input.context.majorMode,
     startedAt: new Date(startedAtMs).toISOString(),
     args: input.args,
     ...(input.providerId ? { providerId: input.providerId } : {}),
@@ -90,20 +112,20 @@ function beginExecution<TKind extends WhitebloomCommandContextKey>(input: {
   }
 }
 
-function withNormalizedArgs<TKind extends WhitebloomCommandContextKey>(
-  execution: WhitebloomCommandExecutionEnvelope<TKind>,
+function withNormalizedArgs<TMajorMode extends WhitebloomCommandModeKey>(
+  execution: WhitebloomCommandExecutionEnvelope<TMajorMode>,
   normalizedArgs: unknown
-): WhitebloomCommandExecutionEnvelope<TKind> {
+): WhitebloomCommandExecutionEnvelope<TMajorMode> {
   return {
     ...execution,
     normalizedArgs
   }
 }
 
-function finishExecution<TKind extends WhitebloomCommandContextKey, TResult = unknown>(
-  inFlight: InFlightExecution<TKind>,
-  outcome: WhitebloomCommandExecutionResult<TKind, TResult>
-): WhitebloomCommandExecutionResult<TKind, TResult> {
+function finishExecution<TContext extends AnyWhitebloomCommandContext, TResult = unknown>(
+  inFlight: InFlightExecution<TContext>,
+  outcome: WhitebloomCommandExecutionResult<TContext, TResult>
+): WhitebloomCommandExecutionResult<TContext, TResult> {
   const finishedAtMs = Date.now()
   emitCommandExecutionEvent({
     phase: 'finished',
@@ -111,7 +133,7 @@ function finishExecution<TKind extends WhitebloomCommandContextKey, TResult = un
     outcome,
     finishedAt: new Date(finishedAtMs).toISOString(),
     durationMs: finishedAtMs - inFlight.startedAtMs
-  })
+  } as WhitebloomCommandExecutionEvent<any, TResult>)
 
   return outcome
 }
@@ -119,7 +141,10 @@ function finishExecution<TKind extends WhitebloomCommandContextKey, TResult = un
 function isParserSchema<TArgs>(
   schema: WhitebloomCommandArgsSchema<TArgs>
 ): schema is ((args: unknown) => TArgs) | { parse: (args: unknown) => TArgs } {
-  return typeof schema === 'function' || (typeof schema === 'object' && schema !== null && 'parse' in schema)
+  return (
+    typeof schema === 'function' ||
+    (typeof schema === 'object' && schema !== null && 'parse' in schema)
+  )
 }
 
 function isValidatorSchema<TArgs>(
@@ -128,7 +153,10 @@ function isValidatorSchema<TArgs>(
   return typeof schema === 'object' && schema !== null && 'validate' in schema
 }
 
-export function normalizeCommandArgs<TArgs>(schema: WhitebloomCommandArgsSchema<TArgs> | undefined, args: unknown): TArgs {
+export function normalizeCommandArgs<TArgs>(
+  schema: WhitebloomCommandArgsSchema<TArgs> | undefined,
+  args: unknown
+): TArgs {
   if (!schema) return args as TArgs
 
   if (isParserSchema(schema)) {
@@ -146,39 +174,44 @@ export function normalizeCommandArgs<TArgs>(schema: WhitebloomCommandArgsSchema<
   return args as TArgs
 }
 
-export function resolveExecutableCommandById<TKind extends WhitebloomCommandContextKey>(
+export function resolveExecutableCommandById<TContext extends AnyWhitebloomCommandContext>(
   id: string,
-  context: WhitebloomCommandContext<TKind>
-): WhitebloomRegisteredCommandForContext<TKind> | undefined {
+  _context: TContext
+): WhitebloomRegisteredCommandForContext<TContext> | undefined {
   const normalizedId = id.trim()
   if (!normalizedId) return undefined
 
-  return getRegisteredCommandsForRuntimeContext(context).find((entry) => entry.command.core.id === normalizedId)
+  return getAllRegisteredCommands().find((entry) => entry.command.core.id === normalizedId) as
+    | WhitebloomRegisteredCommandForContext<TContext>
+    | undefined
 }
 
-export function resolveExecutableCommandByName<TKind extends WhitebloomCommandContextKey>(
+export function resolveExecutableCommandByName<TContext extends AnyWhitebloomCommandContext>(
   name: string,
-  context: WhitebloomCommandContext<TKind>
-): WhitebloomRegisteredCommandForContext<TKind> | undefined {
+  _context: TContext
+): WhitebloomRegisteredCommandForContext<TContext> | undefined {
   const normalizedName = name.trim().toLowerCase()
   if (!normalizedName) return undefined
 
-  return getRegisteredCommandsForRuntimeContext(context).find((entry) => {
+  return getAllRegisteredCommands().find((entry) => {
     if (entry.command.core.id.toLowerCase() === normalizedName) return true
-    return entry.command.core.aliases?.some((alias) => alias.trim().toLowerCase() === normalizedName) ?? false
-  })
+    return (
+      entry.command.core.aliases?.some((alias) => alias.trim().toLowerCase() === normalizedName) ??
+      false
+    )
+  }) as WhitebloomRegisteredCommandForContext<TContext> | undefined
 }
 
 export async function executeRegisteredCommand<
-  TKind extends WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext,
   TArgs = unknown,
   TResult = unknown
 >(
-  entry: WhitebloomRegisteredCommandForContext<TKind>,
+  entry: WhitebloomRegisteredCommandForContext<TContext>,
   args: TArgs,
-  context: WhitebloomCommandContext<TKind>,
+  context: TContext,
   options: WhitebloomCommandExecutionOptions = {}
-): Promise<WhitebloomCommandExecutionResult<TKind, TResult>> {
+): Promise<WhitebloomCommandExecutionResult<TContext, TResult>> {
   const inFlight = beginExecution({
     commandId: entry.command.core.id,
     context,
@@ -194,7 +227,7 @@ export async function executeRegisteredCommand<
       execution: inFlight.execution,
       reason: 'unavailable',
       entry,
-      message: 'Command is not available in the current context.'
+      message: 'Command is not available in the current major mode or subject state.'
     })
   }
 
@@ -216,15 +249,13 @@ export async function executeRegisteredCommand<
   const normalizedExecution = withNormalizedArgs(inFlight.execution, normalizedArgs)
 
   try {
-    const result = await (entry.command.core.run as (
-      args: TArgs,
-      context: WhitebloomCommandContext<TKind>,
-      interaction: WhitebloomCommandInteractionController
-    ) => TResult | Promise<TResult>)(
-      normalizedArgs as TArgs,
-      context,
-      options.interaction ?? NOOP_INTERACTION_CONTROLLER
-    )
+    const result = await (
+      entry.command.core.run as (
+        args: TArgs,
+        context: TContext,
+        interaction: WhitebloomCommandInteractionController
+      ) => TResult | Promise<TResult>
+    )(normalizedArgs as TArgs, context, options.interaction ?? NOOP_INTERACTION_CONTROLLER)
 
     return finishExecution(inFlight, {
       ok: true,
@@ -247,19 +278,19 @@ export async function executeRegisteredCommand<
 }
 
 export async function executeCommandById<
-  TKind extends WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext,
   TArgs = unknown,
   TResult = unknown
 >(
   id: string,
   args: TArgs,
-  context: WhitebloomCommandContext<TKind>,
+  context: TContext,
   options: WhitebloomCommandExecutionOptions = {}
-): Promise<WhitebloomCommandExecutionResult<TKind, TResult>> {
+): Promise<WhitebloomCommandExecutionResult<TContext, TResult>> {
   const entry = resolveExecutableCommandById(id, context)
   if (!entry) {
     const inFlight = beginExecution({
-      commandId: id.trim(),
+      commandId: id,
       context,
       args,
       options
@@ -267,30 +298,30 @@ export async function executeCommandById<
 
     return finishExecution(inFlight, {
       ok: false,
-      commandId: id.trim(),
+      commandId: id,
       execution: inFlight.execution,
       reason: 'not-found',
       message: `Command not found: ${id}`
     })
   }
 
-  return executeRegisteredCommand<TKind, TArgs, TResult>(entry, args, context, options)
+  return executeRegisteredCommand<TContext, TArgs, TResult>(entry, args, context, options)
 }
 
 export async function executeCommandByName<
-  TKind extends WhitebloomCommandContextKey,
+  TContext extends AnyWhitebloomCommandContext,
   TArgs = unknown,
   TResult = unknown
 >(
   name: string,
   args: TArgs,
-  context: WhitebloomCommandContext<TKind>,
+  context: TContext,
   options: WhitebloomCommandExecutionOptions = {}
-): Promise<WhitebloomCommandExecutionResult<TKind, TResult>> {
+): Promise<WhitebloomCommandExecutionResult<TContext, TResult>> {
   const entry = resolveExecutableCommandByName(name, context)
   if (!entry) {
     const inFlight = beginExecution({
-      commandId: name.trim(),
+      commandId: name,
       context,
       args,
       options
@@ -298,12 +329,12 @@ export async function executeCommandByName<
 
     return finishExecution(inFlight, {
       ok: false,
-      commandId: name.trim(),
+      commandId: name,
       execution: inFlight.execution,
       reason: 'not-found',
       message: `Command not found: ${name}`
     })
   }
 
-  return executeRegisteredCommand<TKind, TArgs, TResult>(entry, args, context, options)
+  return executeRegisteredCommand<TContext, TArgs, TResult>(entry, args, context, options)
 }

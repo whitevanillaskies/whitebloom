@@ -224,7 +224,9 @@ function sanitizeRecordingFileName(value: string): string {
 
 function pickSupportedScreenRecordingMimeType(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined
-  return SCREEN_RECORDING_MIME_CANDIDATES.find((candidate) => MediaRecorder.isTypeSupported(candidate))
+  return SCREEN_RECORDING_MIME_CANDIDATES.find((candidate) =>
+    MediaRecorder.isTypeSupported(candidate)
+  )
 }
 
 function buildReactFlowMarker(
@@ -941,7 +943,9 @@ export function Canvas({
           ...(audioStream?.getAudioTracks() ?? [])
         ])
         const mimeType = pickSupportedScreenRecordingMimeType()
-        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+        const recorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream)
 
         screenRecordingStreamRef.current = stream
         screenRecordingRecorderRef.current = recorder
@@ -1032,7 +1036,12 @@ export function Canvas({
         return false
       }
     },
-    [clearScreenRecordingSession, screenRecordingState.status, stopScreenRecordingTracks, workspaceRoot]
+    [
+      clearScreenRecordingSession,
+      screenRecordingState.status,
+      stopScreenRecordingTracks,
+      workspaceRoot
+    ]
   )
 
   // ── Materials Mica host ──────────────────────────────────────────────────────
@@ -1728,69 +1737,68 @@ export function Canvas({
     [addNode]
   )
 
-  const canvasCommandContext = useMemo(
-    () => {
-      const boardMaterialNamesByResource = new Map(
-        arrangementsMaterials
-          .filter((material) => material.kind === 'board')
-          .map((material) => [material.key, material.displayName] as const)
-      )
+  const canvasCommandContext = useMemo(() => {
+    const boardMaterialNamesByResource = new Map(
+      arrangementsMaterials
+        .filter((material) => material.kind === 'board')
+        .map((material) => [material.key, material.displayName] as const)
+    )
 
-      return createCanvasCommandContext({
-        selection: {
-          nodeIds: selectedNodeIds,
-          edgeIds: selectedEdgeIds
-        },
-        capabilities: {
-          canBloomSelection: selectedBudNode !== null && selectedBudModule !== undefined,
-          canOpenSelectionInNativeEditor:
-            selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id
-        },
-        insertionPoint: getDefaultCanvasInsertionPoint(),
-        linkableBoards:
-          workspaceRoot === null
-            ? []
-            : workspaceBoards
-                .filter((path) => path !== boardPath)
-                .map((path) => {
-                  const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
-                  return {
-                    resource,
-                    name:
-                      (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
-                      getBoardNameFromPath(path),
-                    subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
-                  }
-                })
-                .filter((board) => board.resource.length > 0),
-        actions: {
-          createBud: createBudAtPoint,
-          createShape: ({ preset, position }) => createShapeAtPoint(preset, position),
-          deleteSelection,
-          bloomSelection,
-          openSelectionInNativeEditor,
-          openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined
-        }
-      })
-    },
-    [
-      arrangementsMaterials,
-      bloomSelection,
-      createBudAtPoint,
-      createShapeAtPoint,
-      deleteSelection,
-      getDefaultCanvasInsertionPoint,
-      boardPath,
-      handleOpenMaterials,
-      openSelectionInNativeEditor,
-      selectedBudModule,
-      selectedBudNode,
-      selectedEdgeIds,
-      selectedNodeIds,
-      workspaceBoards,
-      workspaceRoot
-    ]
-  )
+    return createCanvasCommandContext({
+      majorMode: currentMajorMode.id,
+      selection: {
+        nodeIds: selectedNodeIds,
+        edgeIds: selectedEdgeIds
+      },
+      capabilities: {
+        canBloomSelection: selectedBudNode !== null && selectedBudModule !== undefined,
+        canOpenSelectionInNativeEditor:
+          selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id
+      },
+      insertionPoint: getDefaultCanvasInsertionPoint(),
+      linkableBoards:
+        workspaceRoot === null
+          ? []
+          : workspaceBoards
+              .filter((path) => path !== boardPath)
+              .map((path) => {
+                const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
+                return {
+                  resource,
+                  name:
+                    (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
+                    getBoardNameFromPath(path),
+                  subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
+                }
+              })
+              .filter((board) => board.resource.length > 0),
+      actions: {
+        createBud: createBudAtPoint,
+        createShape: ({ preset, position }) => createShapeAtPoint(preset, position),
+        deleteSelection,
+        bloomSelection,
+        openSelectionInNativeEditor,
+        openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined
+      }
+    })
+  }, [
+    arrangementsMaterials,
+    bloomSelection,
+    createBudAtPoint,
+    createShapeAtPoint,
+    deleteSelection,
+    getDefaultCanvasInsertionPoint,
+    boardPath,
+    handleOpenMaterials,
+    openSelectionInNativeEditor,
+    selectedBudModule,
+    selectedBudNode,
+    selectedEdgeIds,
+    selectedNodeIds,
+    currentMajorMode.id,
+    workspaceBoards,
+    workspaceRoot
+  ])
 
   const openPalette = useCallback(
     (initialMode: PaletteCommandSession['initialMode'] = 'visual') => {
@@ -2725,11 +2733,11 @@ export function Canvas({
   const confirmDialogConfirmLabel =
     pendingDocumentAction === 'newBoard' ? t('canvas.discardButton') : t('canvas.exitButton')
 
-    const panOnDragButtons = useMemo(() => {
-      if (activeTool === 'hand') return [0, 1, 2]
-      if (activeTool === 'pointer') return [1, 2]
-      return false
-    }, [activeTool])
+  const panOnDragButtons = useMemo(() => {
+    if (activeTool === 'hand') return [0, 1, 2]
+    if (activeTool === 'pointer') return [1, 2]
+    return false
+  }, [activeTool])
 
   useEffect(() => {
     if (activeTool !== 'pointer' && canvasContextMenu !== null) {
@@ -3213,57 +3221,60 @@ export function Canvas({
     screenToFlowPosition,
     addNode
   ])
-  const shellMetaPaletteItems = useMemo<PaletteItem[]>(
-    () => {
-      const items: PaletteItem[] = []
+  const shellMetaPaletteItems = useMemo<PaletteItem[]>(() => {
+    const items: PaletteItem[] = []
 
-      if (workspaceRoot && screenRecordingState.status === 'idle') {
-        items.push({
-          id: 'screen.start-recording',
-          label: 'screen.start-recording',
-          subtitle: `Capture a quick session and save it to ${SCREEN_RECORDING_DIRECTORY}/`,
-          icon: <Radio size={14} strokeWidth={1.8} />,
-          hint: 'rr',
-          onActivate: () => ({
-            type: 'set-mode',
-            mode: {
-              id: 'screen:start-recording',
-              type: 'input',
-              title: 'Start Recording',
-              subtitle: `Save to ${SCREEN_RECORDING_DIRECTORY}/ in this workspace`,
-              placeholder: 'Type a file name or leave blank for a timestamp',
-              submitLabel: 'Start Recording',
-              initialValue: createRecordingTimestampLabel(),
-              onSubmit: async (value) => {
-                const started = await startScreenRecording(value)
-                return started ? { type: 'close' as const } : { type: 'keep-open' as const }
-              }
+    if (workspaceRoot && screenRecordingState.status === 'idle') {
+      items.push({
+        id: 'screen.start-recording',
+        label: 'screen.start-recording',
+        subtitle: `Capture a quick session and save it to ${SCREEN_RECORDING_DIRECTORY}/`,
+        icon: <Radio size={14} strokeWidth={1.8} />,
+        hint: 'rr',
+        onActivate: () => ({
+          type: 'set-mode',
+          mode: {
+            id: 'screen:start-recording',
+            type: 'input',
+            title: 'Start Recording',
+            subtitle: `Save to ${SCREEN_RECORDING_DIRECTORY}/ in this workspace`,
+            placeholder: 'Type a file name or leave blank for a timestamp',
+            submitLabel: 'Start Recording',
+            initialValue: createRecordingTimestampLabel(),
+            onSubmit: async (value) => {
+              const started = await startScreenRecording(value)
+              return started ? { type: 'close' as const } : { type: 'keep-open' as const }
             }
-          })
-        })
-      }
-
-      if (screenRecordingState.status === 'recording' || screenRecordingState.status === 'stopping') {
-        items.push({
-          id: 'screen.stop-recording',
-          label: 'screen.stop-recording',
-          subtitle:
-            screenRecordingState.fileName !== null
-              ? `Stop ${screenRecordingState.fileName}.webm and save it`
-              : 'Stop the active recording and save it',
-          icon: <SquareDot size={14} strokeWidth={1.8} />,
-          hint: 'rs',
-          onActivate: async () => {
-            await stopScreenRecording()
-            return { type: 'close' as const }
           }
         })
-      }
+      })
+    }
 
-      return items
-    },
-    [screenRecordingState.fileName, screenRecordingState.status, startScreenRecording, stopScreenRecording, workspaceRoot]
-  )
+    if (screenRecordingState.status === 'recording' || screenRecordingState.status === 'stopping') {
+      items.push({
+        id: 'screen.stop-recording',
+        label: 'screen.stop-recording',
+        subtitle:
+          screenRecordingState.fileName !== null
+            ? `Stop ${screenRecordingState.fileName}.webm and save it`
+            : 'Stop the active recording and save it',
+        icon: <SquareDot size={14} strokeWidth={1.8} />,
+        hint: 'rs',
+        onActivate: async () => {
+          await stopScreenRecording()
+          return { type: 'close' as const }
+        }
+      })
+    }
+
+    return items
+  }, [
+    screenRecordingState.fileName,
+    screenRecordingState.status,
+    startScreenRecording,
+    stopScreenRecording,
+    workspaceRoot
+  ])
   const activePaletteItems = useMemo(() => {
     if (paletteState?.initialMode === 'meta') {
       return shellMetaPaletteItems
@@ -3271,14 +3282,13 @@ export function Canvas({
 
     return currentMajorMode.kind === 'canvas' ? canvasPaletteItems : []
   }, [canvasPaletteItems, currentMajorMode.kind, paletteState?.initialMode, shellMetaPaletteItems])
-  const activePaletteCommandSession =
-    currentMajorMode.kind === 'canvas' && paletteState
-      ? {
-          context: canvasCommandContext,
-          initialMode: paletteState.initialMode,
-          source: 'palette'
-        }
-      : undefined
+  const activePaletteCommandSession = paletteState
+    ? {
+        context: canvasCommandContext,
+        initialMode: paletteState.initialMode,
+        source: 'palette'
+      }
+    : undefined
 
   const activateShapeCommand = useCallback(
     (id: string, source: WhitebloomCommandExecutionOptions['source']) => {
@@ -3884,7 +3894,10 @@ export function Canvas({
           <div className="canvas-recording-indicator" aria-live="polite" role="status">
             <span className="canvas-recording-indicator__dot" aria-hidden="true" />
             {!screenRecordingState.microphoneAvailable ? (
-              <span className="canvas-recording-indicator__mic-off" aria-label="Microphone unavailable">
+              <span
+                className="canvas-recording-indicator__mic-off"
+                aria-label="Microphone unavailable"
+              >
                 <MicOff size={12} strokeWidth={1.9} />
               </span>
             ) : null}

@@ -1,7 +1,4 @@
-import {
-  createBuiltinCommandProvider,
-  registerCommandProvider
-} from './registry'
+import { createBuiltinCommandProvider, registerCommandProvider } from './registry'
 import { Archive, Boxes, Download, Globe, Layers, PanelsTopLeft, Tag, Trash2 } from 'lucide-react'
 import { boardBloomModule } from '../modules/boardbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
@@ -9,6 +6,7 @@ import { normalizeWebPageUrl } from '../shared/web-page-url'
 import { fetchPageTitle } from '../shared/page-title'
 import type {
   ArrangementsAssignMaterialsToBinCommandArgs,
+  ArrangementsCommandContext,
   ArrangementsCommandBin,
   ArrangementsCreateBinCommandArgs,
   ArrangementsCommandSet,
@@ -200,9 +198,7 @@ function parseIncludeMaterialsInSetArgs(
   }
 }
 
-function parseSendMaterialsToTrashArgs(
-  args: unknown
-): ArrangementsSendMaterialsToTrashCommandArgs {
+function parseSendMaterialsToTrashArgs(args: unknown): ArrangementsSendMaterialsToTrashCommandArgs {
   if (!isRecord(args)) {
     throw new Error('Send-to-trash arguments must be an object.')
   }
@@ -659,7 +655,8 @@ function createDeleteSetListStep(sets: ArrangementsCommandSet[]) {
     items: sets.map((setNode) => ({
       id: setNode.id,
       title: setNode.name,
-      subtitle: setNode.depth > 0 ? `Remove nested set at depth ${setNode.depth}` : 'Remove root set',
+      subtitle:
+        setNode.depth > 0 ? `Remove nested set at depth ${setNode.depth}` : 'Remove root set',
       icon: Trash2,
       onSelect: () => ({
         type: 'submit' as const,
@@ -671,10 +668,11 @@ function createDeleteSetListStep(sets: ArrangementsCommandSet[]) {
   }
 }
 
-const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
+const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addBud,
+      modeScope: 'canvas-mode',
       aliases: ['board.create-bud'],
       when: (context) => typeof context.actions.createBud === 'function',
       argsSchema: parseCanvasBudArgs,
@@ -687,26 +685,30 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
       }
     }
   },
-  ...CANVAS_SHAPE_COMMANDS.map<WhitebloomCommandForContext<'canvas'>>(({ id, preset }) => ({
-    core: {
-      id,
-      when: (context) =>
-        typeof context.actions.createShape === 'function' && context.insertionPoint !== undefined,
-      run: async (_args, context) => {
-        if (!context.actions.createShape || !context.insertionPoint) {
-          throw new Error('Canvas context cannot create shapes.')
-        }
+  ...CANVAS_SHAPE_COMMANDS.map<WhitebloomCommandForContext<CanvasCommandContext>>(
+    ({ id, preset }) => ({
+      core: {
+        id,
+        modeScope: 'canvas-mode',
+        when: (context) =>
+          typeof context.actions.createShape === 'function' && context.insertionPoint !== undefined,
+        run: async (_args, context) => {
+          if (!context.actions.createShape || !context.insertionPoint) {
+            throw new Error('Canvas context cannot create shapes.')
+          }
 
-        context.actions.createShape({
-          position: context.insertionPoint,
-          preset
-        } satisfies CanvasCreateShapeCommandArgs)
+          context.actions.createShape({
+            position: context.insertionPoint,
+            preset
+          } satisfies CanvasCreateShapeCommandArgs)
+        }
       }
-    }
-  })),
+    })
+  ),
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addUrlPage,
+      modeScope: 'canvas-mode',
       aliases: ['board.create-url-page'],
       when: (context) =>
         typeof context.actions.createBud === 'function' && context.insertionPoint !== undefined,
@@ -733,7 +735,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
     },
     presentations: [
       {
-        context: 'canvas',
+        mode: 'canvas-mode',
         title: 'Add URL Page',
         subtitle: 'Paste a URL and create a web page bud',
         icon: Globe
@@ -743,6 +745,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.linkBoard,
+      modeScope: 'canvas-mode',
       aliases: ['board.link-subboard'],
       when: (context) =>
         typeof context.actions.createBud === 'function' &&
@@ -771,7 +774,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
     },
     presentations: [
       {
-        context: 'canvas',
+        mode: 'canvas-mode',
         title: 'Link Board',
         subtitle: 'Link another workspace board as a bud',
         icon: PanelsTopLeft
@@ -781,6 +784,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection,
+      modeScope: 'canvas-mode',
       aliases: ['selection.remove'],
       when: (context) =>
         typeof context.actions.deleteSelection === 'function' &&
@@ -795,7 +799,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
     },
     presentations: [
       {
-        context: 'canvas',
+        mode: 'canvas-mode',
         title: 'Delete Selection',
         subtitle: 'Remove the currently selected nodes or edges'
       }
@@ -804,6 +808,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.bloomSelection,
+      modeScope: 'canvas-mode',
       aliases: ['node.open'],
       when: (context) =>
         context.capabilities.canBloomSelection === true &&
@@ -818,7 +823,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
     },
     presentations: [
       {
-        context: 'canvas',
+        mode: 'canvas-mode',
         title: 'Bloom Selection',
         subtitle: 'Open the selected bloom in its primary renderer'
       }
@@ -827,6 +832,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.openSelectionInNativeEditor,
+      modeScope: 'canvas-mode',
       aliases: ['resource.open-file'],
       when: (context) =>
         context.capabilities.canOpenSelectionInNativeEditor === true &&
@@ -841,7 +847,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
     },
     presentations: [
       {
-        context: 'canvas',
+        mode: 'canvas-mode',
         title: 'Open Natively',
         subtitle: 'Open the selected resource in the native editor or host app'
       }
@@ -850,6 +856,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.openMaterials,
+      modeScope: 'canvas-mode',
       aliases: ['workspace.materials', 'materials'],
       when: (context) => typeof context.actions.openMaterials === 'function',
       run: async (_args, context) => {
@@ -862,7 +869,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
     },
     presentations: [
       {
-        context: 'canvas',
+        mode: 'canvas-mode',
         title: 'Materials',
         subtitle: 'Open the materials window',
         icon: Boxes
@@ -871,7 +878,7 @@ const canvasCommands: WhitebloomCommandForContext<'canvas'>[] = [
   }
 ]
 
-const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
+const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createBin,
@@ -888,7 +895,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'New Bin',
         subtitle: 'Create a new bin on the arrangements desktop'
       }
@@ -900,7 +907,8 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
       aliases: ['arrangements.bin.create-from-palette'],
       when: (context) => typeof context.actions.createBinAtViewportCenter === 'function',
       argsSchema: {
-        validate: (args: unknown): args is { name: string } => isRecord(args) && typeof args.name === 'string'
+        validate: (args: unknown): args is { name: string } =>
+          isRecord(args) && typeof args.name === 'string'
       },
       run: async (args, context) => {
         if (!context.actions.createBinAtViewportCenter) {
@@ -918,7 +926,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'New Bin',
         subtitle: 'Name a new bin, then create it at the desktop viewport center',
         icon: Archive
@@ -948,7 +956,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'Rename Bin',
         subtitle: 'Choose a bin, then type its new name',
         icon: Archive
@@ -978,7 +986,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'Remove Bin',
         subtitle: 'Choose a bin to remove from Arrangements',
         icon: Trash2
@@ -1100,7 +1108,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'New Set',
         subtitle: 'Name a new root set in the Sets Island',
         icon: Layers
@@ -1130,7 +1138,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'Rename Set',
         subtitle: 'Choose a set, then type its new name',
         icon: Layers
@@ -1160,7 +1168,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
     },
     presentations: [
       {
-        context: 'arrangements',
+        mode: 'canvas-mode',
         title: 'Remove Set',
         subtitle: 'Choose a set to remove from Arrangements',
         icon: Trash2
@@ -1171,10 +1179,7 @@ const arrangementsCommands: WhitebloomCommandForContext<'arrangements'>[] = [
 
 export const whitebloomBuiltinCommandProvider = createBuiltinCommandProvider(
   'builtin:whitebloom-mutations',
-  {
-    canvas: canvasCommands,
-    arrangements: arrangementsCommands
-  }
+  [...canvasCommands, ...arrangementsCommands]
 )
 
 registerCommandProvider(whitebloomBuiltinCommandProvider)

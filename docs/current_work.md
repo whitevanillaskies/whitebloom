@@ -1,4 +1,4 @@
-﻿# Current Work
+# Current Work
 
 Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only. Keep `design_language.md` in mind when implementing new user-facing features.
 
@@ -6,72 +6,148 @@ Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `defe
 
 ## Commands Refactoring
 
-### GPT Review
+### Problem
 
-I need you to perform a code review of this codebase. I don't need you to code anything, just to look at the code. Right now we have a palette with two primary modes (visual and meta) and commands, inspired by both macOS Spotlight and emacs. The app screens have major-mode which determines the kinds of commands available. The comands are also namespaced for ease of browsing. I need you to review whether the current architecture supports the following: contextual (not modal) commands. For example, screen.start-recording should only be allowed when we're not recording, and likewise screen.stop-recording should only be allowed when we are recording. Now, this is the behavior that we have, but I need you to review if this behavior is added on as a hack, or if the architecture properly supports contextual availability in a clean way.
+The current command architecture is close to supporting contextual commands, but the organizing concept is wrong.
 
-For example, I want to add the following: pdf.extract-pages a command that, when you either have one PDF selected on the canvas, or are in pdf major mode, it prompts you with a menu of pages to select and extract as images. I need you to determine this: can we (relatively easily) make a command that understands the context "if we're on canvas a PDF is selected or we're in pdf-mode"? Furthermore, can commands properly live in more than one major mode?
+`runtime context` should not be the primary axis anymore. It is effectively a weaker, less meaningful stand-in for major mode, and some of its values are vestigial. `arrangements` in particular should not drive the future design.
 
-Please do a nice review of the architecture so that we can orient our effort
+What we actually need is a command system that answers three separate questions:
 
+1. Does this command belong in the current mode's vocabulary?
+2. Is this command enabled for the current semantic subject?
+3. Can the command still safely run when invoked right now?
 
+Today those ideas are muddled together. The result is that commands can only be contextual if the current context object happens to expose the right facts, and major mode participation is not truly first-class.
 
-**Findings**
-- High: Module major mode is not wired into the command system. Canvas switches major mode based on active bloom at Canvas.tsx, but the palette returns an empty item list outside canvas mode at Canvas.tsx and only creates a command session for canvas mode at Canvas.tsx. The empty-state text in major-modes.ts matches that reality. Result: a command does not currently appear just because the user is in PDF major mode.
-- High: Contextual availability is first-class only for data that exists in the runtime command context, and the current canvas context does not expose enough PDF-related state. The registry itself is clean here: availability is modeled by a when predicate at runtime.ts, enforced again at execution time at runtime.ts, and filtered during search at api.ts and api.ts. But Canvas only passes selection ids and coarse capabilities into the command context at Canvas.tsx, Canvas.tsx, and Canvas.tsx. Canvas already computes the richer facts you would want, namely selectedBudNode and selectedBudModule at Canvas.tsx and Canvas.tsx, but it does not expose them to commands. Result: “one selected PDF on canvas” is not currently a clean declarative predicate.
-- Medium: The recording commands are outside the command architecture. They are manually assembled into shellMetaPaletteItems at Canvas.tsx, Canvas.tsx, and Canvas.tsx, not registered as normal commands with when predicates. This is not unsafe, because execution is still guarded in Canvas.tsx and Canvas.tsx, but architecturally it is an add-on path rather than the canonical one.
-- Medium: Major mode is not a first-class dimension in the command model. The registry only knows canvas and arrangements contexts at types.ts. Module participation is only modeled as provider provenance at types.ts and types.ts. Modules can declare commands through types.ts and are registered through registry.ts, but I did not find any module that actually populates that field today. Result: “this command lives in more than one major mode” is not something the current architecture models explicitly.
+### Target Model
 
-**Assessment**
-The underlying registry is good. The palette already consumes registered commands in both visual and meta browsing at PetalPalette.tsx and PetalPalette.tsx, and command-owned flows are a good fit for something like pdf.extract-pages because the model already supports list and input steps at types.ts and types.ts, rendered by the palette at PetalPalette.tsx.
+Commands should be organized around these concepts:
 
-So the short answer is:
+- `modeScope`: the major mode or set of major modes where a command belongs.
+- `subjectSnapshot`: a semantic snapshot published by the active surface/editor.
+- `enabledWhen`: an optional predicate over the snapshot. If omitted, the command is always enabled within its `modeScope`.
+- `run`: the command implementation, which must revalidate before acting.
 
-You do have a clean architectural basis for contextual commands, but it is only partially adopted. The recording example is not a pure hack in the unsafe sense, yet it is outside the clean path. For your PDF example, the current architecture is close but not quite there. “Selected PDF on canvas” is relatively easy to support by extending the canvas command context with selected bud metadata. “Or we are in PDF major mode” is not currently supported cleanly, because module major mode is disconnected from the command session.
+This is intentionally more precise than the current runtime-context model.
 
-Commands also do not properly live in more than one major mode today. What they really live in is a command context, and right now major mode is separate from that. After a small architectural pass, one canvas-context command could effectively appear in multiple major modes through when predicates, but that would be an emergent behavior of a richer canvas context, not a first-class feature of the present design.
+`modeScope` controls discoverability. It answers whether a command should be surfaced at all in the current mode.
 
-One extra caveat: if pdf.extract-pages needs true multi-select page picking with thumbnail-like affordances, the current flow system is more list/input oriented than checklist oriented. That is a UI limitation, not a contextual-availability limitation.
+`subjectSnapshot` controls contextuality. It answers whether there is a meaningful subject right now. Commands should inspect semantic facts, not raw editor internals.
 
-1. Extend the canvas command context so commands can see selected bud module/resource and active bloom/module state.
-2. Remove the current canvas-only gate for commandSession so module major modes still browse the registry.
-3. Then add pdf.extract-pages as a normal registered command with a when predicate and a flow, instead of following the shellMetaPaletteItems pattern.
+`enabledWhen` controls present-time availability. Some commands are only valid in certain snapshots. Others are always available. For example, a `tool.select-text` command can always be available in canvas-related modes because invoking it simply switches the active tool to text.
 
-Alright, let's think. Suppose we have a pdf.extract-pages command. In the canvas, it does the following: from the canvas, with a PDF node selected, show the user a paginated view of the pages, allow the user to select which pages to extract, then when user hits extract it extracts them and presents them on the canvas; from a PDFEditor, the same except that it does not present them to the user because there's no canvas. The extraction process in both ways writes a local copy of the extracted files to the workspace files, and creates a set like Extracted > PDF > PDFNAME so that the user can quickly find the extracted pages in the Materials view. The only difference thus is that on the canvas it lays out the extracted pages.
-Do we want:
+`run` revalidates because the snapshot may have changed between browse time and execution time.
 
-- One multimodal command that is accessible to both the pdf-mode and the canvas mode when a PDF node is selected
-- Two commands, one which is noncontextual and is simply always available from pdf mode, one contextual command available from the canvas mode when a pdf is selected ?
+### Subject Snapshot
 
-And think how this aligns with your assessment.
+The snapshot should be semantic and read-only. It should not be a giant bag of optional fields.
 
-Also discuss the idea that, eventually, a contextual command may require a major mode and context. For example, org-mode and having the cursor over a block with a TODO heading (for example to change the TODO state, or clock in). This "context payload" seems both tricky and extremely critical to the app.
+Each host should publish a normalized snapshot appropriate to its mode:
 
+- Canvas:
+  - current selection shape: none, single node, multiple nodes, edge selection, etc.
+  - focused or primary node summary
+  - selected module identity
+  - active bloom if relevant
+  - active tool
+- PDF:
+  - active PDF document
+  - file/resource identity
+  - page count
+  - current page or current page selection if relevant
+- Org:
+  - element at point
+  - enclosing entry at point
+  - TODO state if present
+  - clockability or other task-related semantic facts
+- Other modules:
+  - the equivalent semantic subject for that mode, not raw widget state
 
-**Recommendation**
-I would treat this as one semantic command, pdf.extract-pages, not two distinct user-facing commands. The intent is the same in both places: extract pages from the active PDF into workspace materials. The canvas case just has one extra host effect: lay the results out on the board. So the clean model is one command identity, one shared extraction use case, and two thin surface bindings that resolve the target PDF from context and then optionally place results on the canvas. In other words: one command concept, not one giant branchy implementation.
+Commands should never have to reconstruct meaning from low-level editor state if the active mode can publish it once.
 
-That aligns with the earlier assessment. The command registry already has the right availability hook in runtime.ts, but the active command session is only wired for canvas right now at Canvas.tsx, and the command context model still only knows canvas and arrangements at types.ts. So today I would not force this into one cross-surface command object inside the current shapes. I would keep one semantic command id and back it with shared extraction logic plus surface-specific adapters until module/editor context becomes first-class.
+### Discoverability Rule
 
-**Why Not Two Commands**
-Calling the PDF editor version noncontextual is slightly misleading. It is contextual too; its context is simply stronger because the active PDF document is implicit. On canvas, the context is “exactly one selected PDF bud,” which Canvas is already close to exposing through the selected bud data at Canvas.tsx and Canvas.tsx.
+Only surface commands that are relevant to the current mode and currently available from context.
 
-Two separate public commands only make sense if the user intent diverges. For example, if later you want both “extract pages into Materials only” and “extract and immediately lay out on canvas” as explicit choices, then those are two commands. In the scenario you described, the semantic operation is the same and the host just has different follow-up behavior.
+We are explicitly not following the Emacs model of surfacing a broad swamp of commands and then erroring late for many of them. Whitebloom should be more contextual than Emacs here. If a command is not meaningfully available from the current snapshot, it should not clutter the palette.
 
-**Context Payload**
-Yes, this is the critical part of the app. Major mode alone is not enough. Major mode tells you which vocabulary is plausible. Context payload tells you whether there is a valid subject right now.
+That means:
 
-The model I would aim for is:
-- Surface or host: canvas, arrangements, module editor, shell.
-- Major mode: canvas, PDF, org, and so on.
-- Subject payload: selected PDF bud, active PDF document, current org heading, current TODO state, current block type.
-- Host actions: place extracted pages on canvas, reveal set in Materials, change TODO state, clock in.
+- `modeScope` gates whether the command belongs in the current mode at all.
+- `enabledWhen` gates whether it appears as available for the current subject snapshot.
+- `run` still revalidates for safety.
 
-Availability should be the conjunction of those things, not just mode. An org command like clock in should be available only when the surface is an org editor, the major mode is org, and the subject payload says the caret is on a heading with a TODO state. That is not a special case; it is the general rule.
+### Example: `pdf.extract-pages`
 
-The risky version of this architecture is a giant loose context object full of optional fields. The cleaner version is that each surface or editor publishes a semantic snapshot of its active subject. Commands read that snapshot; they do not reach into raw editor internals and reconstruct meaning for themselves. That matters once you have org, PDF, code, schemas, and other rich modules.
+This should be one semantic command, not two unrelated public commands.
 
-1. Treat pdf.extract-pages as one command identity with one shared extraction service.
-2. Add a first-class module or editor command context so PDF mode can participate in the same command system as canvas.
-3. Extend canvas context from selection ids to semantic selection payload, so “one selected PDF bud” becomes a declarative predicate rather than a special case.
-4. Let host-specific post-actions differ by context, but keep the extracted-files and materials-set behavior in the shared core so it cannot drift.
+The user intent is the same in both places: extract pages from the active PDF into workspace materials. The only difference is host-specific follow-up behavior.
+
+Shared behavior:
+
+- identify the target PDF
+- prompt for page selection
+- extract selected pages as images into workspace files
+- create or update a materials set such as `Extracted > PDF > <PDF Name>`
+
+Host-specific behavior:
+
+- In canvas mode with a selected PDF node, lay out the extracted pages on the canvas.
+- In PDF mode, do not lay them out because there is no canvas host effect.
+
+The command should therefore have:
+
+- a shared semantic identity
+- shared extraction logic
+- host-specific post-actions that depend on the current subject (in this case, only canvas iff a pdf node is selected, or also PDF mode)
+
+### Architectural Direction
+
+We should move away from the old idea that commands are keyed primarily by runtime context like `canvas` or `arrangements`.
+
+Instead:
+
+- Make major mode the first-class discovery axis via `modeScope`.
+- Make contextuality depend on a published `subjectSnapshot`.
+- Treat host capabilities and post-actions as separate from command identity.
+- Let commands belong to more than one mode when that reflects one coherent user intent.
+
+This solves the important cases cleanly:
+
+- A command can exist in both PDF mode and canvas mode without being duplicated.
+- A command can be always available in a mode when its job is to change host state.
+- A command can be narrowly contextual when it needs a specific semantic subject.
+
+### Implementation Goals
+
+1. Remove or retire the current `runtime context` abstraction as the primary command-model axis.
+2. Replace it with a mode-scoped command model built around `modeScope`, `subjectSnapshot`, optional `enabledWhen`, and `run`.
+3. Remove vestigial support that assumes `arrangements` is still a meaningful future command context.
+4. Introduce a normalized snapshot contract that each major mode provides.
+5. Ensure the palette only surfaces commands that pass both mode-scope and contextual availability.
+6. Keep execution-time revalidation so commands remain safe under changing state.
+7. Migrate ad hoc contextual commands into the canonical command path once the new model exists.
+
+### Design Notes
+
+- `enabledWhen` should be optional. Omitted means effectively "always enabled in this mode scope".
+- The snapshot contract should be semantic, stable, and intentionally small.
+- Host capabilities should remain available to command execution, but should not replace the snapshot.
+- Avoid a giant untyped context object full of unrelated optionals.
+- Prefer one command identity per user intent. Only split into separate public commands when the user intent itself diverges.
+
+### Org-Mode Analogy
+
+Org remains a useful contrast, but not a template.
+
+In Emacs/Org, many commands are broadly exposed at the mode level and validate late against the current item or heading. Our goal is stricter and better contextual surfacing: commands should appear when they are actually meaningful for the current semantic subject, not merely because the user is somewhere inside a broad mode family.
+
+For Org-like modes in Whitebloom, the important snapshot idea is:
+
+- the current element at point
+- the enclosing entry at point
+- the TODO state
+- any other semantic task facts needed for command enablement
+
+That is the level at which commands such as TODO-state changes or clock actions should make availability decisions.
