@@ -230,3 +230,23 @@ Allow the module system to target leaf nodes, not just buds. A leaf module is a 
 **Unknown/error semantics.** Unknown leaf module types fall under the existing "unknown is not broken" rule — they render as a generic placeholder. Same as unknown bud types.
 
 **What does not change.** CoreData schema, HEP, the board file format (aside from widening the `type` field description), and all existing bud module behavior.
+
+
+## Files Window
+Goal: introduce the second independent Mica window for workspace file import.
+
+**Work Unit 7.1: Add `Files` command to canvas palette**
+- Open an independent Mica window, not coupled to Materials.
+
+**Work Unit 7.2: Build workspace-scoped filesystem browser**
+- Scope to workspace root or the chosen root policy.
+- Keep it intentionally lightweight.
+
+**Work Unit 7.3: Drag file to canvas**
+- Create node plus material record.
+
+**Work Unit 7.4: Drag file to Materials**
+- Import as material without placing on a board.
+
+**Work Unit 7.5: Align imported file behavior with URL import behavior**
+- Ensure both imported files and imported URLs become material records governed by the same arrangements model.
