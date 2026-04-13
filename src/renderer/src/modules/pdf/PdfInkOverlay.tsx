@@ -140,6 +140,28 @@ export function PdfInkOverlay({
       t: event.timeStamp
     })
 
+    const eraseHitStrokes = (event: PointerEvent) => {
+      const bounds = root.getBoundingClientRect()
+      const eraserX = event.clientX - bounds.left
+      const eraserY = event.clientY - bounds.top
+      const pageRects = collectVisiblePageRects(viewportRef.current)
+      const newlyErased: PdfInkStroke[] = []
+
+      for (const stroke of strokesRef.current) {
+        if (erasedIdsRef.current.has(stroke.id)) continue
+        if (!pdfStrokeHitsEraserPoint(stroke, eraserX, eraserY, ERASER_SCREEN_RADIUS, bounds, pageRects)) {
+          continue
+        }
+
+        erasedIdsRef.current.add(stroke.id)
+        newlyErased.push(stroke)
+      }
+
+      if (newlyErased.length > 0) {
+        onEraseCompleteRef.current(newlyErased)
+      }
+    }
+
     const handlePointerDown = (event: PointerEvent) => {
       if (!active) return
       if (event.button !== 0) return
@@ -156,6 +178,7 @@ export function PdfInkOverlay({
         setCurrentSamples([sample])
       } else if (tool === 'eraser') {
         erasedIdsRef.current = new Set()
+        eraseHitStrokes(event)
       }
 
       event.preventDefault()
@@ -191,17 +214,7 @@ export function PdfInkOverlay({
         currentSamplesRef.current = next
         setCurrentSamples(next)
       } else if (tool === 'eraser') {
-        const bounds = root.getBoundingClientRect()
-        const eraserX = event.clientX - bounds.left
-        const eraserY = event.clientY - bounds.top
-        const pageRects = collectVisiblePageRects(viewportRef.current)
-
-        for (const stroke of strokesRef.current) {
-          if (erasedIdsRef.current.has(stroke.id)) continue
-          if (pdfStrokeHitsEraserPoint(stroke, eraserX, eraserY, ERASER_SCREEN_RADIUS, bounds, pageRects)) {
-            erasedIdsRef.current.add(stroke.id)
-          }
-        }
+        eraseHitStrokes(event)
       }
 
       event.preventDefault()
@@ -253,15 +266,6 @@ export function PdfInkOverlay({
         }
       } else if (tool === 'eraser') {
         activePointerIdRef.current = null
-        const hitIds = erasedIdsRef.current
-        if (hitIds.size > 0) {
-          const erasedStrokes = strokesRef.current.filter((s) => hitIds.has(s.id))
-          if (erasedStrokes.length > 0) {
-            onEraseCompleteRef.current(erasedStrokes)
-          }
-        }
-        // Leave erasedIdsRef populated to avoid a flash before parent updates strokes prop.
-        // It will be cleared at the start of the next gesture.
       }
 
       try {
