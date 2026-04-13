@@ -14,6 +14,8 @@ Local whiteboard with typical features such as writing text, loading images, gro
 
 Whitebloom is desktop only, it does not support tablets or phones.
 
+You can explore a workspace with Whitebloom's features and philosophies in the [whitebloom_ws](https://github.com/whitevanillaskies/whitebloom_ws) repo. If you clone it you can then `git pull` when there's changes to keep it up to date. I'll be updating this workspace with tutorials, guides, etc.
+
 ### Materials
 
 Whitebloom uses Materials as the primary resource. A material can be either a file (including whiteboards) or a link such as URL. Your materials can be managed via Arrangements (TAB to launch the palette, then start typing `materials` or find it in the actions). URLs, links, and raw files appear here. There are two ways to arrange your materials: via bins and sets.
