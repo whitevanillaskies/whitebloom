@@ -383,6 +383,14 @@
   box-sizing: border-box;
 }
 
+.pdf-editor--spread-gap-flush .pdf-editor__spread-pages > :nth-child(odd) .pdf-editor__page-shell {
+  padding-right: 0;
+}
+
+.pdf-editor--spread-gap-flush .pdf-editor__spread-pages > :nth-child(even) .pdf-editor__page-shell {
+  padding-left: 0;
+}
+
 .pdf-editor__page-frame {
   position: relative;
   display: block;
