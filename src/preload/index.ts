@@ -290,6 +290,17 @@ const api = {
     strokeId: string
   ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
     ipcRenderer.invoke('ink:delete-stroke', workspaceRoot, binding, strokeId),
+  clearInkLayer: (
+    workspaceRoot: string,
+    binding: InkSurfaceBinding
+  ): Promise<{ ok: boolean; clearedStrokes: InkStroke[] }> =>
+    ipcRenderer.invoke('ink:clear-layer', workspaceRoot, binding),
+  setInkStrokes: (
+    workspaceRoot: string,
+    binding: InkSurfaceBinding,
+    strokes: InkStroke[]
+  ): Promise<{ ok: boolean; acetate: InkAcetate | null }> =>
+    ipcRenderer.invoke('ink:set-strokes', workspaceRoot, binding, strokes),
   saveRecording: (
     workspaceRoot: string,
     requestedName: string | null,

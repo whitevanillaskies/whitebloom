@@ -67,6 +67,8 @@ export const WHITEBLOOM_COMMAND_IDS = {
     addSchemaBloom: 'board.add-schema-bloom',
     addEdge: 'board.add-edge',
     inkAppendStroke: 'ink.append-stroke',
+    inkClearLayer: 'ink.clear-layer',
+    inkEraseStrokes: 'ink.erase-strokes',
     historyUndo: 'history.undo',
     historyRedo: 'history.redo'
   },
@@ -1193,6 +1195,8 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
 ]
 
 type InkAppendStrokeArgs = { binding: InkSurfaceBinding; stroke: InkStroke }
+type InkClearLayerArgs = { binding: InkSurfaceBinding }
+type InkEraseStrokesArgs = { binding: InkSurfaceBinding; erasedStrokes: InkStroke[] }
 
 const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
@@ -1210,6 +1214,43 @@ const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       undo: async (args: InkAppendStrokeArgs, result, context) => {
         const { strokeId } = result as { strokeId: string }
         await context.actions.removeInkStroke?.(args.binding, strokeId)
+      }
+    }
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.inkClearLayer,
+      modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
+      enabledWhen: (context) => typeof context.actions.clearInkLayer === 'function',
+      run: async (args: InkClearLayerArgs, context) => {
+        if (!context.actions.clearInkLayer) {
+          throw new Error('Canvas context cannot clear ink layer.')
+        }
+
+        return context.actions.clearInkLayer(args.binding)
+      },
+      undo: async (args: InkClearLayerArgs, result, context) => {
+        const { clearedStrokes } = result as { clearedStrokes: InkStroke[] }
+        await context.actions.restoreInkStrokes?.(args.binding, clearedStrokes)
+      }
+    }
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes,
+      modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
+      enabledWhen: (context) => typeof context.actions.eraseInkStrokes === 'function',
+      run: async (args: InkEraseStrokesArgs, context) => {
+        if (!context.actions.eraseInkStrokes) {
+          throw new Error('Canvas context cannot erase ink strokes.')
+        }
+
+        await context.actions.eraseInkStrokes(args.binding, args.erasedStrokes)
+      },
+      undo: async (args: InkEraseStrokesArgs, _, context) => {
+        for (const stroke of args.erasedStrokes) {
+          await context.actions.appendInkStroke?.(args.binding, stroke)
+        }
       }
     }
   }

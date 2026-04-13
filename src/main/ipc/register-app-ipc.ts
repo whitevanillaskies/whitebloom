@@ -16,7 +16,7 @@ import {
   findBoardsReferencingMaterial,
   registerLinkedMaterials
 } from '../services/workspace-material'
-import { appendInkStroke, deleteInkStroke, loadInkAcetate } from '../services/ink-store'
+import { appendInkStroke, clearInkLayer, deleteInkStroke, loadInkAcetate, setInkStrokes } from '../services/ink-store'
 import { saveWorkspaceRecording } from '../services/recordings-store'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import { probeNetwork } from '../services/network-probe'
@@ -377,6 +377,37 @@ export function registerAppIpc(context: MainProcessContext): void {
           ok: true,
           acetate: await deleteInkStroke(workspaceRoot, binding, strokeId)
         }
+      } catch {
+        return { ok: false, acetate: null }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'ink:clear-layer',
+    async (
+      _event,
+      workspaceRoot: string,
+      binding: InkSurfaceBinding
+    ): Promise<{ ok: boolean; clearedStrokes: InkStroke[] }> => {
+      try {
+        return { ok: true, clearedStrokes: await clearInkLayer(workspaceRoot, binding) }
+      } catch {
+        return { ok: false, clearedStrokes: [] }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'ink:set-strokes',
+    async (
+      _event,
+      workspaceRoot: string,
+      binding: InkSurfaceBinding,
+      strokes: InkStroke[]
+    ): Promise<InkAppendResult> => {
+      try {
+        return { ok: true, acetate: await setInkStrokes(workspaceRoot, binding, strokes) }
       } catch {
         return { ok: false, acetate: null }
       }

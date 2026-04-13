@@ -125,3 +125,42 @@ export function buildPagedOutlineOnPage(
     last: true
   })
 }
+
+/**
+ * Convert a paged UV sample back to overlay-local screen coordinates.
+ * Returns null if the sample's page is not currently visible.
+ */
+export function pagedUvToOverlay(
+  sample: InkPagedUvSample,
+  overlayBounds: DOMRect,
+  pageRects: PageRectMap
+): { x: number; y: number } | null {
+  const rect = pageRects.get(sample.pageIndex)
+  if (!rect) return null
+  const clientX = rect.left + sample.u * rect.width
+  const clientY = rect.top + sample.v * rect.height
+  return {
+    x: clientX - overlayBounds.left,
+    y: clientY - overlayBounds.top
+  }
+}
+
+/**
+ * Check whether any sample of a PDF stroke falls within the eraser radius
+ * at the given overlay-local pointer position.
+ */
+export function pdfStrokeHitsEraserPoint(
+  stroke: PdfInkStroke,
+  eraserX: number,
+  eraserY: number,
+  radius: number,
+  overlayBounds: DOMRect,
+  pageRects: PageRectMap
+): boolean {
+  for (const sample of stroke.samples) {
+    const screen = pagedUvToOverlay(sample, overlayBounds, pageRects)
+    if (!screen) continue
+    if (Math.hypot(screen.x - eraserX, screen.y - eraserY) <= radius) return true
+  }
+  return false
+}

@@ -140,6 +140,12 @@ export type CanvasCommandActions = {
   appendInkStroke?: (binding: InkSurfaceBinding, stroke: InkStroke) => Promise<{ strokeId: string }>
   /** Remove an ink stroke from the acetate. */
   removeInkStroke?: (binding: InkSurfaceBinding, strokeId: string) => Promise<void>
+  /** Clear all strokes from the acetate. Returns the strokes that were removed (for undo). */
+  clearInkLayer?: (binding: InkSurfaceBinding) => Promise<{ clearedStrokes: InkStroke[] }>
+  /** Restore a set of strokes to the acetate (used by undo of clear). */
+  restoreInkStrokes?: (binding: InkSurfaceBinding, strokes: InkStroke[]) => Promise<void>
+  /** Erase a specific set of strokes from the acetate (used for eraser gesture). */
+  eraseInkStrokes?: (binding: InkSurfaceBinding, strokes: InkStroke[]) => Promise<void>
 }
 
 export type CanvasSubjectSnapshot = {
@@ -181,6 +187,10 @@ export type PdfCommandActions = {
   extractPages?: (pages: number[]) => Promise<void>
   appendInkStroke?: (binding: InkSurfaceBinding, stroke: InkStroke) => Promise<{ strokeId: string }>
   removeInkStroke?: (binding: InkSurfaceBinding, strokeId: string) => Promise<void>
+  clearInkLayer?: (binding: InkSurfaceBinding) => Promise<{ clearedStrokes: InkStroke[] }>
+  restoreInkStrokes?: (binding: InkSurfaceBinding, strokes: InkStroke[]) => Promise<void>
+  /** Erase a specific set of strokes from the acetate (used for eraser gesture). */
+  eraseInkStrokes?: (binding: InkSurfaceBinding, strokes: InkStroke[]) => Promise<void>
 }
 
 export type PdfCommandContext = CommandContextBase<'module:com.whitebloom.pdf'> & {

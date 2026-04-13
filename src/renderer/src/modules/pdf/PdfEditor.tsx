@@ -25,6 +25,8 @@ import {
   WHITEBLOOM_COMMAND_IDS
 } from '../../commands'
 import { useHistoryStore } from '../../history/store'
+import { InkToolbar } from '../../canvas/InkToolbar'
+import type { InkTool } from '../../canvas/InkToolbar'
 import { PdfAcetateCanvas } from './PdfAcetateCanvas'
 import { PdfInkOverlay } from './PdfInkOverlay'
 import type { PdfInkStroke } from './pdfInkShared'
@@ -293,6 +295,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [activeTool, setActiveTool] = useState<'navigate' | 'ink'>('navigate')
   const [acetateVisible, setAcetateVisible] = useState(true)
   const [acetateStrokes, setAcetateStrokes] = useState<PdfInkStroke[]>([])
+  const [activeInkTool, setActiveInkTool] = useState<InkTool>('pen')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('single-continuous')
   const [spreadLead, setSpreadLead] = useState<SpreadLead>('odd')
@@ -327,6 +330,22 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
           removeInkStroke: async (binding, strokeId) => {
             setAcetateStrokes((existing) => existing.filter((s) => s.id !== strokeId))
             await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
+          },
+          clearInkLayer: async (binding) => {
+            const result = await window.api.clearInkLayer(workspaceRoot, binding)
+            if (result.ok) setAcetateStrokes([])
+            return { clearedStrokes: result.clearedStrokes }
+          },
+          restoreInkStrokes: async (binding, strokes) => {
+            await window.api.setInkStrokes(workspaceRoot, binding, strokes)
+            setAcetateStrokes(strokes as PdfInkStroke[])
+          },
+          eraseInkStrokes: async (binding, strokes) => {
+            const ids = new Set(strokes.map((s) => s.id))
+            setAcetateStrokes((existing) => existing.filter((s) => !ids.has(s.id)))
+            for (const stroke of strokes) {
+              await window.api.deleteInkStroke(workspaceRoot, binding, stroke.id)
+            }
           }
         }
       }),
@@ -1018,13 +1037,34 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             <PdfInkOverlay
               viewportRef={scrollViewportRef}
               active={activeTool === 'ink'}
+              activeTool={activeInkTool}
+              strokes={acetateStrokes}
               onTransfer={(stroke) => {
                 void runPdfCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
                   binding: inkBinding,
                   stroke
                 })
               }}
+              onEraseComplete={(erasedStrokes) => {
+                void runPdfCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes, {
+                  binding: inkBinding,
+                  erasedStrokes
+                })
+              }}
             />
+          ) : null}
+          {activeTool === 'ink' ? (
+            <div className="pdf-editor__ink-toolbar">
+              <InkToolbar
+                activeTool={activeInkTool}
+                onToolChange={setActiveInkTool}
+                onClearLayer={() => {
+                  void runPdfCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkClearLayer, {
+                    binding: inkBinding
+                  })
+                }}
+              />
+            </div>
           ) : null}
         </div>
       </div>

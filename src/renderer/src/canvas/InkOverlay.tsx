@@ -6,13 +6,18 @@ import {
   DEFAULT_INK_STROKE_DYNAMICS,
   DEFAULT_INK_STROKE_STYLE
 } from '../../../shared/ink'
+import type { InkTool } from './InkToolbar'
 import './InkOverlay.css'
+
+const ERASER_SCREEN_RADIUS = 20
 
 type InkOverlayProps = {
   active: boolean
+  activeTool: InkTool
   acetateVisible: boolean
   acetateStrokes: BoardInkStroke[]
   onTransfer: (stroke: BoardInkStroke) => void
+  onEraseComplete: (erasedStrokes: BoardInkStroke[]) => void
 }
 
 export type BoardInkStroke = InkStroke & {
@@ -92,9 +97,11 @@ function isValidPointerSample(event: PointerEvent): boolean {
 
 export function InkOverlay({
   active,
+  activeTool,
   acetateVisible,
   acetateStrokes,
-  onTransfer
+  onTransfer,
+  onEraseComplete
 }: InkOverlayProps) {
   const viewport = useViewport()
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -102,12 +109,21 @@ export function InkOverlay({
   const acetateCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const activePointerIdRef = useRef<number | null>(null)
   const currentSamplesRef = useRef<InkBoardWorldSample[]>([])
+  const erasedIdsRef = useRef<Set<string>>(new Set())
+  const acetateStrokesRef = useRef<BoardInkStroke[]>(acetateStrokes)
+  const activeToolRef = useRef<InkTool>(activeTool)
+  const onEraseCompleteRef = useRef(onEraseComplete)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<InkBoardWorldSample[]>([])
+  const [erasedIds, setErasedIds] = useState<ReadonlySet<string>>(new Set())
   const currentOutline = useMemo(
     () => (currentSamples.length > 1 ? buildStrokeOutline(currentSamples, viewport) : []),
     [currentSamples, viewport]
   )
+
+  useEffect(() => { acetateStrokesRef.current = acetateStrokes }, [acetateStrokes])
+  useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
+  useEffect(() => { onEraseCompleteRef.current = onEraseComplete }, [onEraseComplete])
 
   useEffect(() => {
     const root = rootRef.current
@@ -169,16 +185,19 @@ export function InkOverlay({
     if (!acetateVisible) return
 
     for (const stroke of acetateStrokes) {
+      if (erasedIds.has(stroke.id)) continue
       const outline = buildStrokeOutline(stroke.samples, viewport)
       drawStrokePolygon(context, outline, stroke.style.color, stroke.style.opacity)
     }
-  }, [acetateStrokes, acetateVisible, canvasSize.height, canvasSize.width, viewport])
+  }, [acetateStrokes, acetateVisible, canvasSize.height, canvasSize.width, viewport, erasedIds])
 
   useEffect(() => {
     if (active) return
     activePointerIdRef.current = null
     currentSamplesRef.current = []
     setCurrentSamples([])
+    erasedIdsRef.current = new Set()
+    setErasedIds(new Set())
   }, [active])
 
   useEffect(() => {
@@ -190,12 +209,20 @@ export function InkOverlay({
       if (event.button !== 0) return
       if (!isValidPointerSample(event)) return
 
-      const bounds = root.getBoundingClientRect()
-      const sample = makeSample(event, viewport, bounds)
+      const tool = activeToolRef.current
       activePointerIdRef.current = event.pointerId
       root.setPointerCapture(event.pointerId)
-      currentSamplesRef.current = [sample]
-      setCurrentSamples([sample])
+
+      if (tool === 'pen') {
+        const bounds = root.getBoundingClientRect()
+        const sample = makeSample(event, viewport, bounds)
+        currentSamplesRef.current = [sample]
+        setCurrentSamples([sample])
+      } else if (tool === 'eraser') {
+        erasedIdsRef.current = new Set()
+        setErasedIds(new Set())
+      }
+
       event.preventDefault()
     }
 
@@ -204,59 +231,101 @@ export function InkOverlay({
       if (activePointerIdRef.current !== event.pointerId) return
       if (!isValidPointerSample(event)) return
 
-      const bounds = root.getBoundingClientRect()
-      const nextSample = makeSample(event, viewport, bounds)
-      const previous = currentSamplesRef.current
-      const last = previous[previous.length - 1]
+      const tool = activeToolRef.current
 
-      if (!last) {
-        currentSamplesRef.current = [nextSample]
-        setCurrentSamples([nextSample])
-        event.preventDefault()
-        return
+      if (tool === 'pen') {
+        const bounds = root.getBoundingClientRect()
+        const nextSample = makeSample(event, viewport, bounds)
+        const previous = currentSamplesRef.current
+        const last = previous[previous.length - 1]
+
+        if (!last) {
+          currentSamplesRef.current = [nextSample]
+          setCurrentSamples([nextSample])
+          event.preventDefault()
+          return
+        }
+
+        const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
+        if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing / Math.max(1, viewport.zoom)) {
+          event.preventDefault()
+          return
+        }
+
+        const next = [...previous, nextSample]
+        currentSamplesRef.current = next
+        setCurrentSamples(next)
+      } else if (tool === 'eraser') {
+        const bounds = root.getBoundingClientRect()
+        const worldX = (event.clientX - bounds.left - viewport.x) / viewport.zoom
+        const worldY = (event.clientY - bounds.top - viewport.y) / viewport.zoom
+        const eraserWorldRadius = ERASER_SCREEN_RADIUS / viewport.zoom
+
+        const strokes = acetateStrokesRef.current
+        let changed = false
+        for (const stroke of strokes) {
+          if (erasedIdsRef.current.has(stroke.id)) continue
+          for (const sample of stroke.samples) {
+            if (Math.hypot(sample.x - worldX, sample.y - worldY) <= eraserWorldRadius) {
+              erasedIdsRef.current.add(stroke.id)
+              changed = true
+              break
+            }
+          }
+        }
+        if (changed) setErasedIds(new Set(erasedIdsRef.current))
       }
 
-      const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
-      if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing / Math.max(1, viewport.zoom)) {
-        event.preventDefault()
-        return
-      }
-
-      const next = [...previous, nextSample]
-      currentSamplesRef.current = next
-      setCurrentSamples(next)
       event.preventDefault()
     }
 
     const finalizeStroke = (event: PointerEvent, includeFinalSample: boolean) => {
       if (activePointerIdRef.current !== event.pointerId) return
-      const bounds = includeFinalSample ? root.getBoundingClientRect() : null
-      const finalSample =
-        includeFinalSample && bounds !== null && isValidPointerSample(event)
-          ? makeSample(event, viewport, bounds)
-          : null
 
-      const previous = currentSamplesRef.current
-      const samples =
-        finalSample !== null &&
-        previous.length > 0 &&
-        Math.hypot(finalSample.x - previous[previous.length - 1].x, finalSample.y - previous[previous.length - 1].y) > 0
-          ? [...previous, finalSample]
-          : previous
+      const tool = activeToolRef.current
 
-      currentSamplesRef.current = []
-      setCurrentSamples([])
-      activePointerIdRef.current = null
+      if (tool === 'pen') {
+        const bounds = includeFinalSample ? root.getBoundingClientRect() : null
+        const finalSample =
+          includeFinalSample && bounds !== null && isValidPointerSample(event)
+            ? makeSample(event, viewport, bounds)
+            : null
 
-      if (samples.length > 1) {
-        onTransfer({
-          id: crypto.randomUUID(),
-          tool: 'pen',
-          style: { ...DEFAULT_INK_STROKE_STYLE },
-          dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
-          samples,
-          createdAt: new Date().toISOString()
-        })
+        const previous = currentSamplesRef.current
+        const samples =
+          finalSample !== null &&
+          previous.length > 0 &&
+          Math.hypot(finalSample.x - previous[previous.length - 1].x, finalSample.y - previous[previous.length - 1].y) > 0
+            ? [...previous, finalSample]
+            : previous
+
+        currentSamplesRef.current = []
+        setCurrentSamples([])
+        activePointerIdRef.current = null
+
+        if (samples.length > 1) {
+          onTransfer({
+            id: crypto.randomUUID(),
+            tool: 'pen',
+            style: { ...DEFAULT_INK_STROKE_STYLE },
+            dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
+            samples,
+            createdAt: new Date().toISOString()
+          })
+        }
+      } else if (tool === 'eraser') {
+        activePointerIdRef.current = null
+        const hitIds = erasedIdsRef.current
+        if (hitIds.size > 0) {
+          const strokes = acetateStrokesRef.current
+          const erasedStrokes = strokes.filter((s) => hitIds.has(s.id))
+          if (erasedStrokes.length > 0) {
+            onEraseCompleteRef.current(erasedStrokes)
+          }
+        }
+        // erasedIdsRef is intentionally left populated so the acetate doesn't flash
+        // the strokes back before the parent removes them from acetateStrokes.
+        // It will be cleared at the start of the next gesture.
       }
 
       try {

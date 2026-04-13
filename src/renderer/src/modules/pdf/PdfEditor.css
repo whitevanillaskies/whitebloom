@@ -161,6 +161,15 @@
   cursor: crosshair;
 }
 
+.pdf-editor__ink-toolbar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: all;
+}
+
 .pdf-editor__sidebar {
   position: absolute;
   top: 14px;

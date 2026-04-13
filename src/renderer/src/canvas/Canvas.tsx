@@ -36,6 +36,8 @@ import { BloomContext, type ActiveBloom } from './BloomContext'
 import { BloomModal } from './BloomModal'
 import { InkOverlay } from './InkOverlay'
 import type { BoardInkStroke } from './InkOverlay'
+import { InkToolbar } from './InkToolbar'
+import type { InkTool } from './InkToolbar'
 import '../modules/index'
 import { dispatchDirectory, dispatchModule, resolveModuleById } from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
@@ -789,6 +791,7 @@ export function Canvas({
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [acetateVisible, setAcetateVisible] = useState(true)
   const [boardInkStrokes, setBoardInkStrokes] = useState<BoardInkStroke[]>([])
+  const [activeInkTool, setActiveInkTool] = useState<InkTool>('pen')
   const [screenRecordingState, setScreenRecordingState] = useState<ScreenRecordingState>({
     status: 'idle',
     fileName: null,
@@ -1858,6 +1861,31 @@ export function Canvas({
             ? async (binding, strokeId) => {
                 setBoardInkStrokes((existing) => existing.filter((s) => s.id !== strokeId))
                 await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
+              }
+            : undefined,
+        clearInkLayer:
+          workspaceRoot !== null && boardInkBinding !== null
+            ? async (binding) => {
+                const result = await window.api.clearInkLayer(workspaceRoot, binding)
+                if (result.ok) setBoardInkStrokes([])
+                return { clearedStrokes: result.clearedStrokes }
+              }
+            : undefined,
+        restoreInkStrokes:
+          workspaceRoot !== null && boardInkBinding !== null
+            ? async (binding, strokes) => {
+                await window.api.setInkStrokes(workspaceRoot, binding, strokes)
+                setBoardInkStrokes(strokes as BoardInkStroke[])
+              }
+            : undefined,
+        eraseInkStrokes:
+          workspaceRoot !== null && boardInkBinding !== null
+            ? async (binding, strokes) => {
+                const ids = new Set(strokes.map((s) => s.id))
+                setBoardInkStrokes((existing) => existing.filter((s) => !ids.has(s.id)))
+                for (const stroke of strokes) {
+                  await window.api.deleteInkStroke(workspaceRoot, binding, stroke.id)
+                }
               }
             : undefined
       }
@@ -3884,6 +3912,7 @@ export function Canvas({
               <Background gap={25} size={1} color="var(--color-secondary-fg)" />
               <InkOverlay
                 active={activeTool === 'ink'}
+                activeTool={activeInkTool}
                 acetateVisible={acetateVisible}
                 acetateStrokes={boardInkStrokes}
                 onTransfer={(stroke) => {
@@ -3891,6 +3920,13 @@ export function Canvas({
                   void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
                     binding: boardInkBinding,
                     stroke
+                  })
+                }}
+                onEraseComplete={(erasedStrokes) => {
+                  if (!boardInkBinding) return
+                  void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes, {
+                    binding: boardInkBinding,
+                    erasedStrokes
                   })
                 }}
               />
@@ -3914,6 +3950,23 @@ export function Canvas({
                 </div>
               </Panel>
 
+              {activeTool === 'ink' && (
+                <Panel position="bottom-center" style={{ marginBottom: '62px' }}>
+                  <div data-board-capture="exclude">
+                    <InkToolbar
+                      activeTool={activeInkTool}
+                      onToolChange={setActiveInkTool}
+                      onClearLayer={() => {
+                        if (!boardInkBinding) return
+                        void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkClearLayer, {
+                          binding: boardInkBinding
+                        })
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </Panel>
+              )}
               <Panel position="bottom-center">
                 <div data-board-capture="exclude">
                   <CanvasToolbar

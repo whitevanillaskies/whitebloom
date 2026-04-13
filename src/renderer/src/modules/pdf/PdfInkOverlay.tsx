@@ -1,27 +1,45 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { InkPagedUvSample } from '../../../../shared/ink'
 import { DEFAULT_INK_STROKE_DYNAMICS, DEFAULT_INK_STROKE_STYLE } from '../../../../shared/ink'
+import type { InkTool } from '../../canvas/InkToolbar'
 import {
   buildOutlineFromScreenSamples,
   clampPressure,
   collectVisiblePageRects,
   drawStrokePolygon,
+  pdfStrokeHitsEraserPoint,
   screenSampleToPagedUv,
   type PdfInkStroke,
   type ScreenSample
 } from './pdfInkShared'
 
+const ERASER_SCREEN_RADIUS = 20
+
 type PdfInkOverlayProps = {
   viewportRef: { current: HTMLDivElement | null }
   active: boolean
+  activeTool: InkTool
+  strokes: PdfInkStroke[]
   onTransfer: (stroke: PdfInkStroke) => void
+  onEraseComplete: (erasedStrokes: PdfInkStroke[]) => void
 }
 
-export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlayProps) {
+export function PdfInkOverlay({
+  viewportRef,
+  active,
+  activeTool,
+  strokes,
+  onTransfer,
+  onEraseComplete
+}: PdfInkOverlayProps) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const glassCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const activePointerIdRef = useRef<number | null>(null)
   const currentSamplesRef = useRef<ScreenSample[]>([])
+  const erasedIdsRef = useRef<Set<string>>(new Set())
+  const strokesRef = useRef<PdfInkStroke[]>(strokes)
+  const activeToolRef = useRef<InkTool>(activeTool)
+  const onEraseCompleteRef = useRef(onEraseComplete)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<ScreenSample[]>([])
 
@@ -29,6 +47,10 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
     () => (currentSamples.length > 1 ? buildOutlineFromScreenSamples(currentSamples) : []),
     [currentSamples]
   )
+
+  useEffect(() => { strokesRef.current = strokes }, [strokes])
+  useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
+  useEffect(() => { onEraseCompleteRef.current = onEraseComplete }, [onEraseComplete])
 
   useEffect(() => {
     const root = rootRef.current
@@ -81,6 +103,7 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
     activePointerIdRef.current = null
     currentSamplesRef.current = []
     setCurrentSamples([])
+    erasedIdsRef.current = new Set()
   }, [active])
 
   useEffect(() => {
@@ -102,12 +125,19 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
       if (event.button !== 0) return
       if (!isValidPointerSample(event)) return
 
-      const bounds = root.getBoundingClientRect()
-      const sample = makeScreenSample(event, bounds)
+      const tool = activeToolRef.current
       activePointerIdRef.current = event.pointerId
       root.setPointerCapture(event.pointerId)
-      currentSamplesRef.current = [sample]
-      setCurrentSamples([sample])
+
+      if (tool === 'pen') {
+        const bounds = root.getBoundingClientRect()
+        const sample = makeScreenSample(event, bounds)
+        currentSamplesRef.current = [sample]
+        setCurrentSamples([sample])
+      } else if (tool === 'eraser') {
+        erasedIdsRef.current = new Set()
+      }
+
       event.preventDefault()
     }
 
@@ -116,69 +146,102 @@ export function PdfInkOverlay({ viewportRef, active, onTransfer }: PdfInkOverlay
       if (activePointerIdRef.current !== event.pointerId) return
       if (!isValidPointerSample(event)) return
 
-      const bounds = root.getBoundingClientRect()
-      const nextSample = makeScreenSample(event, bounds)
-      const previous = currentSamplesRef.current
-      const last = previous[previous.length - 1]
+      const tool = activeToolRef.current
 
-      if (!last) {
-        currentSamplesRef.current = [nextSample]
-        setCurrentSamples([nextSample])
-        event.preventDefault()
-        return
+      if (tool === 'pen') {
+        const bounds = root.getBoundingClientRect()
+        const nextSample = makeScreenSample(event, bounds)
+        const previous = currentSamplesRef.current
+        const last = previous[previous.length - 1]
+
+        if (!last) {
+          currentSamplesRef.current = [nextSample]
+          setCurrentSamples([nextSample])
+          event.preventDefault()
+          return
+        }
+
+        const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
+        if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing) {
+          event.preventDefault()
+          return
+        }
+
+        const next = [...previous, nextSample]
+        currentSamplesRef.current = next
+        setCurrentSamples(next)
+      } else if (tool === 'eraser') {
+        const bounds = root.getBoundingClientRect()
+        const eraserX = event.clientX - bounds.left
+        const eraserY = event.clientY - bounds.top
+        const pageRects = collectVisiblePageRects(viewportRef.current)
+
+        for (const stroke of strokesRef.current) {
+          if (erasedIdsRef.current.has(stroke.id)) continue
+          if (pdfStrokeHitsEraserPoint(stroke, eraserX, eraserY, ERASER_SCREEN_RADIUS, bounds, pageRects)) {
+            erasedIdsRef.current.add(stroke.id)
+          }
+        }
       }
 
-      const distance = Math.hypot(nextSample.x - last.x, nextSample.y - last.y)
-      if (distance < DEFAULT_INK_STROKE_DYNAMICS.sampleSpacing) {
-        event.preventDefault()
-        return
-      }
-
-      const next = [...previous, nextSample]
-      currentSamplesRef.current = next
-      setCurrentSamples(next)
       event.preventDefault()
     }
 
     const finalizeStroke = (event: PointerEvent, includeFinalSample: boolean) => {
       if (activePointerIdRef.current !== event.pointerId) return
-      const bounds = includeFinalSample ? root.getBoundingClientRect() : null
-      const finalSample =
-        includeFinalSample && bounds !== null && isValidPointerSample(event)
-          ? makeScreenSample(event, bounds)
-          : null
-      const pageRects = bounds !== null ? collectVisiblePageRects(viewportRef.current) : null
 
-      const previous = currentSamplesRef.current
-      const completeSamples =
-        finalSample !== null &&
-        previous.length > 0 &&
-        Math.hypot(
-          finalSample.x - previous[previous.length - 1].x,
-          finalSample.y - previous[previous.length - 1].y
-        ) > 0
-          ? [...previous, finalSample]
-          : previous
+      const tool = activeToolRef.current
 
-      const pagedSamples = completeSamples
-        .map((sample) =>
-          bounds !== null && pageRects !== null ? screenSampleToPagedUv(sample, bounds, pageRects) : null
-        )
-        .filter((sample): sample is InkPagedUvSample => sample !== null)
+      if (tool === 'pen') {
+        const bounds = includeFinalSample ? root.getBoundingClientRect() : null
+        const finalSample =
+          includeFinalSample && bounds !== null && isValidPointerSample(event)
+            ? makeScreenSample(event, bounds)
+            : null
+        const pageRects = bounds !== null ? collectVisiblePageRects(viewportRef.current) : null
 
-      currentSamplesRef.current = []
-      setCurrentSamples([])
-      activePointerIdRef.current = null
+        const previous = currentSamplesRef.current
+        const completeSamples =
+          finalSample !== null &&
+          previous.length > 0 &&
+          Math.hypot(
+            finalSample.x - previous[previous.length - 1].x,
+            finalSample.y - previous[previous.length - 1].y
+          ) > 0
+            ? [...previous, finalSample]
+            : previous
 
-      if (pagedSamples.length > 1) {
-        onTransfer({
-          id: crypto.randomUUID(),
-          tool: 'pen',
-          style: { ...DEFAULT_INK_STROKE_STYLE },
-          dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
-          samples: pagedSamples,
-          createdAt: new Date().toISOString()
-        })
+        const pagedSamples = completeSamples
+          .map((sample) =>
+            bounds !== null && pageRects !== null ? screenSampleToPagedUv(sample, bounds, pageRects) : null
+          )
+          .filter((sample): sample is InkPagedUvSample => sample !== null)
+
+        currentSamplesRef.current = []
+        setCurrentSamples([])
+        activePointerIdRef.current = null
+
+        if (pagedSamples.length > 1) {
+          onTransfer({
+            id: crypto.randomUUID(),
+            tool: 'pen',
+            style: { ...DEFAULT_INK_STROKE_STYLE },
+            dynamics: { ...DEFAULT_INK_STROKE_DYNAMICS },
+            samples: pagedSamples,
+            createdAt: new Date().toISOString()
+          })
+        }
+      } else if (tool === 'eraser') {
+        activePointerIdRef.current = null
+        const hitIds = erasedIdsRef.current
+        if (hitIds.size > 0) {
+          const erasedStrokes = strokesRef.current.filter((s) => hitIds.has(s.id))
+          if (erasedStrokes.length > 0) {
+            onEraseCompleteRef.current(erasedStrokes)
+          }
+        }
+        // Leave erasedIdsRef populated to avoid a flash before parent updates strokes prop.
+        // It will be cleared at the start of the next gesture.
       }
 
       try {

@@ -134,6 +134,116 @@ function ensureTargetEntry(
   return next
 }
 
+async function clearInkLayerImmediate(
+  workspaceRoot: string,
+  binding: InkSurfaceBinding
+): Promise<InkStroke[]> {
+  const targetId = createInkTargetId(binding.surfaceType, binding.resource)
+  const index = await readInkIndex(workspaceRoot)
+  const targetEntry = index.targets.find((entry) => entry.id === targetId)
+  const acetateId = targetEntry?.acetateIds[0]
+  if (!acetateId) return []
+
+  const acetateEntry = index.acetates.find((entry) => entry.id === acetateId)
+  if (!acetateEntry) return []
+
+  const acetatePath = resolveAcetatePath(workspaceRoot, acetateEntry.relativePath)
+  const current = await readAcetateAtPath(acetatePath)
+  if (!current || current.strokes.length === 0) return []
+
+  const clearedStrokes = current.strokes
+  const nowIso = new Date().toISOString()
+  const nextAcetate: InkAcetate = { ...current, strokes: [], updatedAt: nowIso }
+  await writeAcetateAtPath(acetatePath, nextAcetate)
+  acetateEntry.updatedAt = nowIso
+  await writeInkIndex(workspaceRoot, index)
+  return clearedStrokes
+}
+
+export async function clearInkLayer(
+  workspaceRoot: string,
+  binding: InkSurfaceBinding
+): Promise<InkStroke[]> {
+  const queueKey = buildQueueKey(workspaceRoot, createInkTargetId(binding.surfaceType, binding.resource))
+  const previous = writeQueues.get(queueKey) ?? Promise.resolve(null)
+  const next = previous
+    .catch(() => null)
+    .then(async () => await clearInkLayerImmediate(workspaceRoot, binding))
+
+  writeQueues.set(queueKey, next)
+
+  try {
+    return await next
+  } finally {
+    if (writeQueues.get(queueKey) === next) writeQueues.delete(queueKey)
+  }
+}
+
+async function setInkStrokesImmediate(
+  workspaceRoot: string,
+  binding: InkSurfaceBinding,
+  strokes: InkStroke[]
+): Promise<InkAcetate> {
+  await mkdir(join(workspaceRoot, INK_ACETATE_DIRECTORY), { recursive: true })
+
+  const targetId = createInkTargetId(binding.surfaceType, binding.resource)
+  const index = await readInkIndex(workspaceRoot)
+  const existingTarget = index.targets.find((entry) => entry.id === targetId)
+  const acetateId = existingTarget?.acetateIds[0] ?? createHash('sha1').update(targetId).digest('hex')
+  const relativePath =
+    index.acetates.find((entry) => entry.id === acetateId)?.relativePath ??
+    buildAcetateRelativePath(targetId)
+  const acetatePath = resolveAcetatePath(workspaceRoot, relativePath)
+  const nowIso = new Date().toISOString()
+
+  const current =
+    (await readAcetateAtPath(acetatePath)) ??
+    createEmptyInkAcetate(acetateId, { ...binding, targetId }, nowIso)
+
+  const nextAcetate: InkAcetate = { ...current, target: { ...binding, targetId }, strokes, updatedAt: nowIso }
+  await writeAcetateAtPath(acetatePath, nextAcetate)
+
+  const acetateEntry = index.acetates.find((entry) => entry.id === acetateId)
+  if (acetateEntry) {
+    acetateEntry.updatedAt = nowIso
+  } else {
+    index.acetates.push({
+      id: acetateId,
+      name: nextAcetate.name,
+      targetId,
+      surfaceType: binding.surfaceType,
+      coordinateSpace: binding.coordinateSpace,
+      relativePath,
+      createdAt: nextAcetate.createdAt,
+      updatedAt: nowIso
+    })
+  }
+
+  ensureTargetEntry(index, binding, acetateId)
+  await writeInkIndex(workspaceRoot, index)
+  return nextAcetate
+}
+
+export async function setInkStrokes(
+  workspaceRoot: string,
+  binding: InkSurfaceBinding,
+  strokes: InkStroke[]
+): Promise<InkAcetate> {
+  const queueKey = buildQueueKey(workspaceRoot, createInkTargetId(binding.surfaceType, binding.resource))
+  const previous = writeQueues.get(queueKey) ?? Promise.resolve(null)
+  const next = previous
+    .catch(() => null)
+    .then(async () => await setInkStrokesImmediate(workspaceRoot, binding, strokes))
+
+  writeQueues.set(queueKey, next)
+
+  try {
+    return await next
+  } finally {
+    if (writeQueues.get(queueKey) === next) writeQueues.delete(queueKey)
+  }
+}
+
 async function deleteInkStrokeImmediate(
   workspaceRoot: string,
   binding: InkSurfaceBinding,
