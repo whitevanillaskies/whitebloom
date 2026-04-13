@@ -4,13 +4,11 @@ import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mj
 import {
   ChevronLeft,
   ChevronRight,
-  Columns2,
   GalleryVertical,
   Layers3,
   Minus,
   PanelLeft,
   Pen,
-  RectangleHorizontal,
   Plus,
   Rows3,
   X
@@ -303,6 +301,11 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const [basePageLayouts, setBasePageLayouts] = useState<Record<number, PageLayout>>({})
   const pageRefs = useRef<Record<number, HTMLElement | null>>({})
   const scrollViewportRef = useRef<HTMLDivElement | null>(null)
+  const pendingZoomAnchorRef = useRef<{
+    previousScale: number
+    centerX: number
+    centerY: number
+  } | null>(null)
   const inkBinding = useMemo<InkPdfSurfaceBinding>(
     () => ({
       surfaceType: 'pdf',
@@ -654,6 +657,26 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     return () => observer.disconnect()
   }, [isContinuousMode, pageCount, documentProxy, scale, viewMode])
 
+  useEffect(() => {
+    const viewport = scrollViewportRef.current
+    const pendingZoomAnchor = pendingZoomAnchorRef.current
+    if (!viewport || !pendingZoomAnchor || pendingZoomAnchor.previousScale === scale) return
+
+    pendingZoomAnchorRef.current = null
+
+    const scaleRatio = scale / pendingZoomAnchor.previousScale
+    const nextScrollLeft = pendingZoomAnchor.centerX * scaleRatio - viewport.clientWidth / 2
+    const nextScrollTop = pendingZoomAnchor.centerY * scaleRatio - viewport.clientHeight / 2
+    const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+    const maxScrollTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
+
+    viewport.scrollTo({
+      left: Math.min(Math.max(0, nextScrollLeft), maxScrollLeft),
+      top: Math.min(Math.max(0, nextScrollTop), maxScrollTop),
+      behavior: 'instant' as ScrollBehavior
+    })
+  }, [scale])
+
   function scrollToPage(pageNumber: number): void {
     pageRefs.current[pageNumber]?.scrollIntoView({
       block: 'start',
@@ -663,12 +686,27 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     setActivePage(pageNumber)
   }
 
+  function queueZoom(nextScale: number): void {
+    if (nextScale === scale) return
+
+    const viewport = scrollViewportRef.current
+    if (viewport) {
+      pendingZoomAnchorRef.current = {
+        previousScale: scale,
+        centerX: viewport.scrollLeft + viewport.clientWidth / 2,
+        centerY: viewport.scrollTop + viewport.clientHeight / 2
+      }
+    }
+
+    setScale(nextScale)
+  }
+
   function handleZoomIn(): void {
-    setScale((current) => Math.min(MAX_SCALE, Math.round((current + SCALE_STEP) * 10) / 10))
+    queueZoom(Math.min(MAX_SCALE, Math.round((scale + SCALE_STEP) * 10) / 10))
   }
 
   function handleZoomOut(): void {
-    setScale((current) => Math.max(MIN_SCALE, Math.round((current - SCALE_STEP) * 10) / 10))
+    queueZoom(Math.max(MIN_SCALE, Math.round((scale - SCALE_STEP) * 10) / 10))
   }
 
   function handlePreviousPage(): void {
@@ -716,15 +754,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
               <PanelLeft size={15} strokeWidth={1.7} />
             </button>
             <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className={`pdf-editor__icon-button${viewMode === 'single' ? ' pdf-editor__icon-button--active' : ''}`}
-              onClick={() => setViewMode('single')}
-              aria-label="Single page"
-              title="Single page"
-            >
-              <RectangleHorizontal size={15} strokeWidth={1.7} />
-            </button>
+
             <button
               type="button"
               className={`pdf-editor__icon-button${viewMode === 'single-continuous' ? ' pdf-editor__icon-button--active' : ''}`}
@@ -734,15 +764,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             >
               <Rows3 size={15} strokeWidth={1.7} />
             </button>
-            <button
-              type="button"
-              className={`pdf-editor__icon-button${viewMode === 'facing' ? ' pdf-editor__icon-button--active' : ''}`}
-              onClick={() => setViewMode('facing')}
-              aria-label="Facing pages"
-              title="Facing pages"
-            >
-              <Columns2 size={15} strokeWidth={1.7} />
-            </button>
+
             <button
               type="button"
               className={`pdf-editor__icon-button${viewMode === 'facing-continuous' ? ' pdf-editor__icon-button--active' : ''}`}

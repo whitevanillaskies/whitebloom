@@ -346,15 +346,25 @@
 
 .pdf-editor__spread-pages {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, max-content);
   gap: var(--pdf-spread-gap);
   align-items: start;
   justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .pdf-editor__spread-page {
   display: flex;
-  justify-content: center;
+}
+
+.pdf-editor__spread-pages > :nth-child(odd) {
+  justify-self: end;
+}
+
+.pdf-editor__spread-pages > :nth-child(even) {
+  justify-self: start;
 }
 
 .pdf-editor__spread-placeholder {
