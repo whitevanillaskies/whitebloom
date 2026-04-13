@@ -42,6 +42,7 @@ export function PdfInkOverlay({
   const onEraseCompleteRef = useRef(onEraseComplete)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<ScreenSample[]>([])
+  const [scrollbarInsets, setScrollbarInsets] = useState({ right: 0, bottom: 0 })
 
   const currentOutline = useMemo(
     () => (currentSamples.length > 1 ? buildOutlineFromScreenSamples(currentSamples) : []),
@@ -67,6 +68,25 @@ export function PdfInkOverlay({
     observer.observe(root)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+
+    const updateScrollbarInsets = () => {
+      setScrollbarInsets({
+        right: Math.max(0, viewport.offsetWidth - viewport.clientWidth),
+        bottom: Math.max(0, viewport.offsetHeight - viewport.clientHeight)
+      })
+    }
+
+    updateScrollbarInsets()
+
+    const observer = new ResizeObserver(() => updateScrollbarInsets())
+    observer.observe(viewport)
+
+    return () => observer.disconnect()
+  }, [viewportRef])
 
   useEffect(() => {
     const canvas = glassCanvasRef.current
@@ -291,6 +311,10 @@ export function PdfInkOverlay({
     <div
       ref={rootRef}
       className={`pdf-ink-overlay${active ? ' pdf-ink-overlay--active' : ''}`}
+      style={{
+        right: `${scrollbarInsets.right}px`,
+        bottom: `${scrollbarInsets.bottom}px`
+      }}
       aria-hidden="true"
     >
       <canvas ref={glassCanvasRef} className="pdf-ink-overlay__canvas pdf-ink-overlay__canvas--glass" />
