@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useViewport } from '@xyflow/react'
+import { useViewport, useReactFlow } from '@xyflow/react'
 import { getStroke } from 'perfect-freehand'
 import type { InkBoardWorldSample, InkStroke } from '../../../shared/ink'
 import {
@@ -95,6 +95,9 @@ function isValidPointerSample(event: PointerEvent): boolean {
   return Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
 }
 
+const MIN_ZOOM = 0.1
+const MAX_ZOOM = 4
+
 export function InkOverlay({
   active,
   activeTool,
@@ -104,15 +107,23 @@ export function InkOverlay({
   onEraseComplete
 }: InkOverlayProps) {
   const viewport = useViewport()
+  const { setViewport, getViewport } = useReactFlow()
   const rootRef = useRef<HTMLDivElement | null>(null)
   const glassCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const acetateCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const activePointerIdRef = useRef<number | null>(null)
+  const panPointerIdRef = useRef<number | null>(null)
+  const panLastXRef = useRef<number>(0)
+  const panLastYRef = useRef<number>(0)
   const currentSamplesRef = useRef<InkBoardWorldSample[]>([])
   const erasedIdsRef = useRef<Set<string>>(new Set())
   const acetateStrokesRef = useRef<BoardInkStroke[]>(acetateStrokes)
   const activeToolRef = useRef<InkTool>(activeTool)
   const onEraseCompleteRef = useRef(onEraseComplete)
+  const setViewportRef = useRef(setViewport)
+  const getViewportRef = useRef(getViewport)
+  useEffect(() => { setViewportRef.current = setViewport }, [setViewport])
+  useEffect(() => { getViewportRef.current = getViewport }, [getViewport])
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 })
   const [currentSamples, setCurrentSamples] = useState<InkBoardWorldSample[]>([])
   const [erasedIds, setErasedIds] = useState<ReadonlySet<string>>(new Set())
@@ -194,6 +205,7 @@ export function InkOverlay({
   useEffect(() => {
     if (active) return
     activePointerIdRef.current = null
+    panPointerIdRef.current = null
     currentSamplesRef.current = []
     setCurrentSamples([])
     erasedIdsRef.current = new Set()
@@ -206,6 +218,17 @@ export function InkOverlay({
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!active) return
+
+      // Middle mouse button — pan the canvas
+      if (event.button === 1) {
+        panPointerIdRef.current = event.pointerId
+        panLastXRef.current = event.clientX
+        panLastYRef.current = event.clientY
+        root.setPointerCapture(event.pointerId)
+        event.preventDefault()
+        return
+      }
+
       if (event.button !== 0) return
       if (!isValidPointerSample(event)) return
 
@@ -228,6 +251,19 @@ export function InkOverlay({
 
     const handlePointerMove = (event: PointerEvent) => {
       if (!active) return
+
+      // Middle mouse button pan
+      if (panPointerIdRef.current === event.pointerId) {
+        const dx = event.clientX - panLastXRef.current
+        const dy = event.clientY - panLastYRef.current
+        panLastXRef.current = event.clientX
+        panLastYRef.current = event.clientY
+        const vp = getViewportRef.current()
+        setViewportRef.current({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom })
+        event.preventDefault()
+        return
+      }
+
       if (activePointerIdRef.current !== event.pointerId) return
       if (!isValidPointerSample(event)) return
 
@@ -280,6 +316,14 @@ export function InkOverlay({
     }
 
     const finalizeStroke = (event: PointerEvent, includeFinalSample: boolean) => {
+      // Release MMB pan
+      if (panPointerIdRef.current === event.pointerId) {
+        panPointerIdRef.current = null
+        try { root.releasePointerCapture(event.pointerId) } catch { /* ignore */ }
+        event.preventDefault()
+        return
+      }
+
       if (activePointerIdRef.current !== event.pointerId) return
 
       const tool = activeToolRef.current
@@ -356,6 +400,36 @@ export function InkOverlay({
       root.removeEventListener('pointercancel', handlePointerCancel)
     }
   }, [active, onTransfer, viewport])
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!active) return
+      event.preventDefault()
+
+      const vp = getViewportRef.current()
+      const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1
+      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, vp.zoom * zoomFactor))
+
+      // Keep the point under the cursor fixed while zooming
+      const bounds = root.getBoundingClientRect()
+      const mouseX = event.clientX - bounds.left
+      const mouseY = event.clientY - bounds.top
+      const worldX = (mouseX - vp.x) / vp.zoom
+      const worldY = (mouseY - vp.y) / vp.zoom
+
+      setViewportRef.current({
+        x: mouseX - worldX * newZoom,
+        y: mouseY - worldY * newZoom,
+        zoom: newZoom
+      })
+    }
+
+    root.addEventListener('wheel', handleWheel, { passive: false })
+    return () => root.removeEventListener('wheel', handleWheel)
+  }, [active])
 
   return (
     <div

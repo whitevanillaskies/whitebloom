@@ -273,6 +273,20 @@ export function PdfInkOverlay({
     }
   }, [active, onTransfer, viewportRef])
 
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!active) return
+      event.preventDefault()
+      viewportRef.current?.scrollBy({ left: event.deltaX, top: event.deltaY, behavior: 'instant' as ScrollBehavior })
+    }
+
+    root.addEventListener('wheel', handleWheel, { passive: false })
+    return () => root.removeEventListener('wheel', handleWheel)
+  }, [active, viewportRef])
+
   return (
     <div
       ref={rootRef}
