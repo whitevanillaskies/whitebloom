@@ -243,6 +243,7 @@ export function ShapeNode({ id, data, selected, dragging }: NodeProps) {
               commitEditing()
             }}
             onKeyDown={(event) => {
+              event.stopPropagation()
               if (event.key === 'Enter') {
                 event.preventDefault()
                 finishEditing('commit')

@@ -213,6 +213,13 @@ export function InkOverlay({
   }, [active])
 
   useEffect(() => {
+    if (activePointerIdRef.current === null && erasedIds.size > 0) {
+      erasedIdsRef.current = new Set()
+      setErasedIds(new Set())
+    }
+  }, [acetateStrokes, erasedIds.size])
+
+  useEffect(() => {
     const root = rootRef.current
     if (!root) return
 
@@ -241,6 +248,8 @@ export function InkOverlay({
         const sample = makeSample(event, viewport, bounds)
         currentSamplesRef.current = [sample]
         setCurrentSamples([sample])
+        erasedIdsRef.current = new Set()
+        setErasedIds(new Set())
       } else if (tool === 'eraser') {
         erasedIdsRef.current = new Set()
         setErasedIds(new Set())

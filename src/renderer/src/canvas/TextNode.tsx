@@ -614,7 +614,7 @@ export function TextNode({ id, data, selected, dragging, positionAbsoluteX, posi
             <NodeToolbar isVisible position={Position.Top} offset={8}>
               <FormatToolbar />
             </NodeToolbar>
-            <div className="text-node__editor nodrag nopan nowheel" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+            <div className="text-node__editor nodrag nopan nowheel" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
               <RichTextPlugin
                 contentEditable={
                   <ContentEditable

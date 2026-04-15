@@ -1802,18 +1802,18 @@ export function Canvas({
           workspaceRoot === null
             ? []
             : workspaceBoards
-                .filter((path) => path !== boardPath)
-                .map((path) => {
-                  const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
-                  return {
-                    resource,
-                    name:
-                      (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
-                      getBoardNameFromPath(path),
-                    subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
-                  }
-                })
-                .filter((board) => board.resource.length > 0)
+              .filter((path) => path !== boardPath)
+              .map((path) => {
+                const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
+                return {
+                  resource,
+                  name:
+                    (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
+                    getBoardNameFromPath(path),
+                  subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
+                }
+              })
+              .filter((board) => board.resource.length > 0)
       },
       actions: {
         createBud: createBudAtPoint,
@@ -1850,42 +1850,48 @@ export function Canvas({
         appendInkStroke:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, stroke) => {
-                setBoardInkStrokes((existing) => [...existing, stroke as BoardInkStroke])
-                await window.api.appendInkStroke(workspaceRoot, binding, stroke)
-                return { strokeId: stroke.id }
-              }
+              setBoardInkStrokes((existing) => {
+                const next = [...existing, stroke as BoardInkStroke]
+                next.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                return next
+              })
+              await window.api.appendInkStroke(workspaceRoot, binding, stroke)
+              return { strokeId: stroke.id }
+            }
             : undefined,
         removeInkStroke:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, strokeId) => {
-                setBoardInkStrokes((existing) => existing.filter((s) => s.id !== strokeId))
-                await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
-              }
+              setBoardInkStrokes((existing) => existing.filter((s) => s.id !== strokeId))
+              await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
+            }
             : undefined,
         clearInkLayer:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding) => {
-                const result = await window.api.clearInkLayer(workspaceRoot, binding)
-                if (result.ok) setBoardInkStrokes([])
-                return { clearedStrokes: result.clearedStrokes }
-              }
+              const result = await window.api.clearInkLayer(workspaceRoot, binding)
+              if (result.ok) setBoardInkStrokes([])
+              return { clearedStrokes: result.clearedStrokes }
+            }
             : undefined,
         restoreInkStrokes:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, strokes) => {
-                await window.api.setInkStrokes(workspaceRoot, binding, strokes)
-                setBoardInkStrokes(strokes as BoardInkStroke[])
-              }
+              await window.api.setInkStrokes(workspaceRoot, binding, strokes)
+              const next = [...(strokes as BoardInkStroke[])]
+              next.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+              setBoardInkStrokes(next)
+            }
             : undefined,
         eraseInkStrokes:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, strokes) => {
-                const ids = new Set(strokes.map((s) => s.id))
-                setBoardInkStrokes((existing) => existing.filter((s) => !ids.has(s.id)))
-                for (const stroke of strokes) {
-                  await window.api.deleteInkStroke(workspaceRoot, binding, stroke.id)
-                }
+              const ids = new Set(strokes.map((s) => s.id))
+              setBoardInkStrokes((existing) => existing.filter((s) => !ids.has(s.id)))
+              for (const stroke of strokes) {
+                await window.api.deleteInkStroke(workspaceRoot, binding, stroke.id)
               }
+            }
             : undefined
       }
     })
@@ -1992,15 +1998,15 @@ export function Canvas({
       getRenderedNodeBounds(selectedCluster.id, screenToFlowPosition) ??
       (liveClusterNode
         ? getNodeBounds(
-            {
-              position: liveClusterNode.position,
-              width: liveClusterNode.width,
-              height: liveClusterNode.height
-            },
-            liveClusterNode.type === 'cluster'
-              ? (liveClusterNode.data as ClusterData).size
-              : undefined
-          )
+          {
+            position: liveClusterNode.position,
+            width: liveClusterNode.width,
+            height: liveClusterNode.height
+          },
+          liveClusterNode.type === 'cluster'
+            ? (liveClusterNode.data as ClusterData).size
+            : undefined
+        )
         : null)
 
     fitClusterToFrame(selectedCluster, nextFrame, {
@@ -2499,10 +2505,10 @@ export function Canvas({
 
       const saveResult = boardTransient
         ? await window.api.promoteBoard(
-            boardPath,
-            createBoardResult.boardPath,
-            JSON.stringify(snapshot, null, 2)
-          )
+          boardPath,
+          createBoardResult.boardPath,
+          JSON.stringify(snapshot, null, 2)
+        )
         : await window.api.saveBoard(createBoardResult.boardPath, JSON.stringify(snapshot, null, 2))
 
       if (!saveResult.ok) {
@@ -3032,10 +3038,10 @@ export function Canvas({
       const resource =
         behavior === 'import'
           ? await importWorkspaceResource({
-              filePath: input.filePath,
-              fileName: input.fileName,
-              fileSize: input.file?.size ?? 0
-            })
+            filePath: input.filePath,
+            fileName: input.fileName,
+            fileSize: input.file?.size ?? 0
+          })
           : absolutePathToFileUri(input.filePath)
 
       if (resource === null) return null
@@ -3107,9 +3113,9 @@ export function Canvas({
                 size: isDirectory
                   ? (module?.defaultSize ?? { w: 88, h: 88 })
                   : await computeDroppedBudSize({
-                      filePath: absolutePath,
-                      module
-                    })
+                    filePath: absolutePath,
+                    module
+                  })
               }
             }
 
@@ -3437,10 +3443,10 @@ export function Canvas({
     () =>
       paletteState
         ? {
-            context: canvasCommandContext,
-            initialMode: paletteState.initialMode,
-            source: 'palette'
-          }
+          context: canvasCommandContext,
+          initialMode: paletteState.initialMode,
+          source: 'palette'
+        }
         : undefined,
     [canvasCommandContext, paletteState]
   )
@@ -4102,41 +4108,41 @@ export function Canvas({
 
         {overflowAnchor
           ? (() => {
-              const items: PetalMenuItem[] = [
-                {
-                  id: 'settings',
-                  label: t('canvas.boardSettingsMenuItem'),
-                  icon: <Settings2 size={14} strokeWidth={1.8} />,
-                  onActivate: () => setSettingsOpen(true)
-                },
-                ...(workspaceRoot === null
-                  ? [
-                      {
-                        id: 'promote',
-                        label: t('canvas.promoteToWorkspaceMenuItem'),
-                        icon: <FolderPlus size={14} strokeWidth={1.8} />,
-                        onActivate: () => void handlePromoteToWorkspace(),
-                        disabled: promoteInFlight
-                      }
-                    ]
-                  : []),
-                {
-                  id: 'trash',
-                  label: t('canvas.moveToTrashMenuItem'),
-                  icon: <Trash2 size={14} strokeWidth={1.8} />,
-                  intent: 'destructive' as const,
-                  onActivate: () => setTrashBoardConfirmOpen(true),
-                  disabled: trashBoardInFlight
-                }
-              ]
-              return (
-                <PetalMenu
-                  items={items}
-                  anchor={overflowAnchor}
-                  onClose={() => setOverflowAnchor(null)}
-                />
-              )
-            })()
+            const items: PetalMenuItem[] = [
+              {
+                id: 'settings',
+                label: t('canvas.boardSettingsMenuItem'),
+                icon: <Settings2 size={14} strokeWidth={1.8} />,
+                onActivate: () => setSettingsOpen(true)
+              },
+              ...(workspaceRoot === null
+                ? [
+                  {
+                    id: 'promote',
+                    label: t('canvas.promoteToWorkspaceMenuItem'),
+                    icon: <FolderPlus size={14} strokeWidth={1.8} />,
+                    onActivate: () => void handlePromoteToWorkspace(),
+                    disabled: promoteInFlight
+                  }
+                ]
+                : []),
+              {
+                id: 'trash',
+                label: t('canvas.moveToTrashMenuItem'),
+                icon: <Trash2 size={14} strokeWidth={1.8} />,
+                intent: 'destructive' as const,
+                onActivate: () => setTrashBoardConfirmOpen(true),
+                disabled: trashBoardInFlight
+              }
+            ]
+            return (
+              <PetalMenu
+                items={items}
+                anchor={overflowAnchor}
+                onClose={() => setOverflowAnchor(null)}
+              />
+            )
+          })()
           : null}
 
         {canvasContextMenu ? (
