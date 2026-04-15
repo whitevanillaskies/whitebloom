@@ -1,6 +1,6 @@
 {
   "name": "whitebloom",
-  "version": "0.2.0-alpha.2",
+  "version": "0.2.3",
   "description": "A local whiteboard that blooms.",
   "main": "./out/main/index.js",
   "author": {
