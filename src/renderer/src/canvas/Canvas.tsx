@@ -1478,8 +1478,7 @@ export function Canvas({
             indicators: clusterIndicatorsById.get(n.id) ?? [],
             springResize: springResizeById.get(n.id) ?? null
           } satisfies ClusterData,
-          zIndex: 2,
-          draggable: true
+          zIndex: 2
         }
       }
 

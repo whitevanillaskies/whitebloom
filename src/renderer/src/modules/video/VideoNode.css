@@ -13,9 +13,9 @@
   height: 100%;
   overflow: hidden;
   border-radius: 4px;
-  background:
+  /* background:
     radial-gradient(circle at top, color-mix(in srgb, var(--color-accent, #c085ff) 18%, transparent), transparent 55%),
-    color-mix(in srgb, var(--color-bg-elevated, #121212) 92%, black);
+    color-mix(in srgb, var(--color-bg-elevated, #121212) 92%, black); */
 }
 
 .video-node__player {
