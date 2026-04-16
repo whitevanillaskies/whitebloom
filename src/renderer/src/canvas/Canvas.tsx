@@ -2742,6 +2742,63 @@ export function Canvas({
         return
       }
 
+      if (
+        (event.key.toLowerCase() === 'p' || event.key.toLowerCase() === 'b') &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setActiveTool('ink')
+        setActiveInkTool('pen')
+        setAcetateVisible((current) => {
+          if (current) return current
+          if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
+          return true
+        })
+        blurToolbarButtonIfFocused()
+        return
+      }
+
+      if (
+        event.key.toLowerCase() === 'e' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setActiveTool('ink')
+        setActiveInkTool('eraser')
+        setAcetateVisible((current) => {
+          if (current) return current
+          if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
+          return true
+        })
+        blurToolbarButtonIfFocused()
+        return
+      }
+
+      if (
+        event.key.toLowerCase() === 'l' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        if (isEditableTarget(event.target)) return
+        event.preventDefault()
+        setAcetateVisible((current) => {
+          const next = !current
+          if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, String(next))
+          return next
+        })
+        return
+      }
+
       if (event.key === 't' && (event.ctrlKey || event.metaKey)) {
         if (isEditableTarget(event.target)) return
         const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id))
@@ -2812,6 +2869,7 @@ export function Canvas({
   }, [
     activeBloom,
     boardNodes,
+    boardPath,
     closePalette,
     edges,
     handleSave,
@@ -2820,6 +2878,8 @@ export function Canvas({
     paletteState,
     pendingDocumentAction,
     runCanvasCommand,
+    setActiveInkTool,
+    setAcetateVisible,
     settingsOpen,
     setActiveTool,
     setNodes,
@@ -3953,6 +4013,11 @@ export function Canvas({
                 acetateStrokes={boardInkStrokes}
                 onTransfer={(stroke) => {
                   if (!boardInkBinding) return
+                  setAcetateVisible((current) => {
+                    if (current) return current
+                    if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
+                    return true
+                  })
                   void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
                     binding: boardInkBinding,
                     stroke
@@ -3960,6 +4025,11 @@ export function Canvas({
                 }}
                 onEraseComplete={(erasedStrokes) => {
                   if (!boardInkBinding) return
+                  setAcetateVisible((current) => {
+                    if (current) return current
+                    if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
+                    return true
+                  })
                   void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes, {
                     binding: boardInkBinding,
                     erasedStrokes
