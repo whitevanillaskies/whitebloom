@@ -2486,6 +2486,20 @@ export function Canvas({
     }
   }, [boardName, boardPath, boardTransient, buildBoardSnapshot, markSaved, setBoardPersistence])
 
+  // Save button (not Ctrl+S) — saves then captures a fresh thumbnail.
+  const handleSaveWithCapture = useCallback(async () => {
+    await handleSave()
+    if (!boardPath || !workspaceRoot || boardTransient) return
+    try {
+      const { captureBoardThumbnail } = await import('./captureBoardThumbnail')
+      const dataUrl = await captureBoardThumbnail()
+      if (!dataUrl) return
+      await window.api.saveThumbnail(boardPath, workspaceRoot, dataUrl)
+    } catch (error) {
+      console.error('[thumbnail] button-save capture failed:', error)
+    }
+  }, [boardPath, boardTransient, handleSave, workspaceRoot])
+
   const handlePromoteToWorkspace = useCallback(async () => {
     if (!boardPath || workspaceRoot !== null) return
 
@@ -3950,7 +3964,7 @@ export function Canvas({
                     workspaceName={workspaceConfig?.name}
                     isDirty={isDirty}
                     onNameChange={(name) => updateBoardMeta({ name })}
-                    onSave={() => void handleSave()}
+                    onSave={() => void handleSaveWithCapture()}
                     onGoHome={onGoHome}
                     onGoToWorkspaceHome={onGoToWorkspaceHome}
                     onNewBoard={handleNewBoard}
