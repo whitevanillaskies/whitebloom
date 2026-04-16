@@ -65,7 +65,7 @@ If you'd like to support the project, consider donating to my Ko-Fi. All money w
 There's binaries for both Windows and Linux on the Releases tab.
 
 ### Apple
-No Apple binaries unless somebody sponsors me $100 for the Apple Developer plan, and even then it's subject to Apple requirements (I don't know if I need an actual Mac, which I don't own). If you want precompiled binaries for Apple contact me. You can still build it by cloning the repo and following the instructions below (I think, I don't own a Mac to try).
+No Apple binaries. You can still build it by cloning the repo and following the instructions below (I think, I don't own a Mac to try).
 
 ## Project Setup
 
