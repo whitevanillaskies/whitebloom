@@ -300,7 +300,14 @@ export function registerBoardIpc(context: MainProcessContext): void {
     'blossom:read',
     async (_event, workspaceRoot: string, resource: string): Promise<string> => {
       const absolutePath = resolveResource(resource, workspaceRoot)
-      return await readFile(absolutePath, 'utf-8')
+      try {
+        return await readFile(absolutePath, 'utf-8')
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          return ''
+        }
+        throw error
+      }
     }
   )
 

@@ -22,11 +22,7 @@ import type { BudEditorProps } from '../types'
 import { resourceToMediaSrc } from '@renderer/shared/resource-url'
 import { createInkTargetId, type InkPdfSurfaceBinding } from '../../../../shared/ink'
 import { createLogger } from '../../../../shared/logger'
-import {
-  createPdfCommandContext,
-  executeCommandById,
-  WHITEBLOOM_COMMAND_IDS
-} from '../../commands'
+import { createPdfCommandContext, executeCommandById, WHITEBLOOM_COMMAND_IDS } from '../../commands'
 import { useHistoryStore } from '../../history/store'
 import { InkToolbar } from '../../canvas/InkToolbar'
 import type { InkTool } from '../../canvas/InkToolbar'
@@ -60,6 +56,76 @@ type PageLayout = {
 type ViewMode = 'single' | 'single-continuous' | 'facing' | 'facing-continuous'
 type SpreadLead = 'odd' | 'even'
 type SpreadGapMode = 'open' | 'flush'
+
+type PdfViewState = {
+  activePage: number
+  scale: number
+  viewMode: ViewMode
+  spreadLead: SpreadLead
+  spreadGapMode: SpreadGapMode
+}
+
+const PDF_VIEW_MODES: ViewMode[] = ['single', 'single-continuous', 'facing', 'facing-continuous']
+const PDF_SPREAD_LEADS: SpreadLead[] = ['odd', 'even']
+const PDF_SPREAD_GAP_MODES: SpreadGapMode[] = ['open', 'flush']
+
+function getPdfStateResource(resource: string): string {
+  const stem = resource
+    .replace(/^[a-z]+:/, '')
+    .replace(/\//g, '__')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+
+  return `wloc:.wbstates/pdf/${stem}.json`
+}
+
+function parsePersistedPdfViewState(data: string): Partial<PdfViewState> | null {
+  if (!data.trim()) return null
+
+  try {
+    const parsed = JSON.parse(data) as Partial<PdfViewState>
+    const nextState: Partial<PdfViewState> = {}
+
+    if (
+      typeof parsed.activePage === 'number' &&
+      Number.isInteger(parsed.activePage) &&
+      parsed.activePage > 0
+    ) {
+      nextState.activePage = parsed.activePage
+    }
+
+    if (typeof parsed.scale === 'number' && Number.isFinite(parsed.scale)) {
+      nextState.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, parsed.scale))
+    }
+
+    if (
+      typeof parsed.viewMode === 'string' &&
+      PDF_VIEW_MODES.includes(parsed.viewMode as ViewMode)
+    ) {
+      nextState.viewMode = parsed.viewMode as ViewMode
+    }
+
+    if (
+      typeof parsed.spreadLead === 'string' &&
+      PDF_SPREAD_LEADS.includes(parsed.spreadLead as SpreadLead)
+    ) {
+      nextState.spreadLead = parsed.spreadLead as SpreadLead
+    }
+
+    if (
+      typeof parsed.spreadGapMode === 'string' &&
+      PDF_SPREAD_GAP_MODES.includes(parsed.spreadGapMode as SpreadGapMode)
+    ) {
+      nextState.spreadGapMode = parsed.spreadGapMode as SpreadGapMode
+    }
+
+    return nextState
+  } catch (error) {
+    logger.warn('failed to parse persisted pdf view state', {
+      message: error instanceof Error ? error.message : String(error)
+    })
+    return null
+  }
+}
 
 type Spread = {
   key: string
@@ -246,7 +312,10 @@ function VirtualizedPdfPage({
           acetateStrokes={acetateStrokes}
         />
       ) : (
-        <div className="pdf-editor__page-shell pdf-editor__page-shell--placeholder" style={shellStyle}>
+        <div
+          className="pdf-editor__page-shell pdf-editor__page-shell--placeholder"
+          style={shellStyle}
+        >
           <div className="pdf-editor__page-ghost" />
         </div>
       )}
@@ -259,7 +328,8 @@ function buildFacingSpreads(pageCount: number, lead: SpreadLead): Spread[] {
   let current: [number | null, number | null] = [null, null]
 
   for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
-    const goesLeft = (lead === 'odd' && pageNumber % 2 === 1) || (lead === 'even' && pageNumber % 2 === 0)
+    const goesLeft =
+      (lead === 'odd' && pageNumber % 2 === 1) || (lead === 'even' && pageNumber % 2 === 0)
     if (goesLeft) {
       if (current[0] !== null || current[1] !== null) {
         spreads.push({
@@ -311,6 +381,21 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     centerX: number
     centerY: number
   } | null>(null)
+  const pendingInitialPageRef = useRef<number | null>(null)
+  const hasLoadedViewStateRef = useRef(false)
+  const activePageRef = useRef(activePage)
+  const prevViewModeRef = useRef(viewMode)
+  const viewStateRef = useRef<PdfViewState>({
+    activePage,
+    scale,
+    viewMode,
+    spreadLead,
+    spreadGapMode
+  })
+  // Keep viewStateRef current on every render so the unmount-save cleanup always
+  // reads the latest values without needing to be a dep of that effect.
+  viewStateRef.current = { activePage, scale, viewMode, spreadLead, spreadGapMode }
+
   const inkBinding = useMemo<InkPdfSurfaceBinding>(
     () => ({
       surfaceType: 'pdf',
@@ -376,6 +461,45 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     useHistoryStore.getState().clear('module:com.whitebloom.pdf')
   }, [resource])
 
+  // Load persisted view state for this resource.
+  useEffect(() => {
+    if (!workspaceRoot) return
+    let cancelled = false
+    hasLoadedViewStateRef.current = false
+    pendingInitialPageRef.current = null
+    window.api
+      .readBlossom(workspaceRoot, getPdfStateResource(resource))
+      .then((data) => {
+        if (cancelled) return
+        const saved = parsePersistedPdfViewState(data)
+        if (!saved) return
+        if (saved.scale !== undefined) setScale(saved.scale)
+        if (saved.viewMode !== undefined) setViewMode(saved.viewMode)
+        if (saved.spreadLead !== undefined) setSpreadLead(saved.spreadLead)
+        if (saved.spreadGapMode !== undefined) setSpreadGapMode(saved.spreadGapMode)
+        if (saved.activePage !== undefined) {
+          setActivePage(saved.activePage)
+          pendingInitialPageRef.current = saved.activePage
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return
+        logger.warn('failed to load persisted pdf view state', {
+          message: error instanceof Error ? error.message : String(error),
+          resource
+        })
+      })
+      .finally(() => {
+        if (!cancelled) {
+          hasLoadedViewStateRef.current = true
+        }
+        // No saved state — use defaults.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [resource, workspaceRoot])
+
   // Ctrl+Z / Ctrl+Shift+Z for undo/redo.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -407,7 +531,10 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     return nextLayouts
   }, [basePageLayouts, scale])
 
-  const facingSpreads = useMemo(() => buildFacingSpreads(pageCount, spreadLead), [pageCount, spreadLead])
+  const facingSpreads = useMemo(
+    () => buildFacingSpreads(pageCount, spreadLead),
+    [pageCount, spreadLead]
+  )
   const acetateStrokesByPage = useMemo<Record<number, PdfInkStroke[]>>(() => {
     const grouped: Record<number, PdfInkStroke[]> = {}
 
@@ -555,6 +682,19 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   }, [documentProxy, pageCount])
 
   useEffect(() => {
+    if (pageCount === 0) return
+
+    setActivePage((currentPage) => Math.min(Math.max(currentPage, 1), pageCount))
+
+    if (pendingInitialPageRef.current !== null) {
+      pendingInitialPageRef.current = Math.min(
+        Math.max(pendingInitialPageRef.current, 1),
+        pageCount
+      )
+    }
+  }, [pageCount])
+
+  useEffect(() => {
     if (!documentProxy || pageCount === 0) return
     const doc = documentProxy
 
@@ -682,6 +822,68 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     })
   }, [scale])
 
+  // Keep activePageRef current so viewMode-switch scroll can read it without
+  // becoming a dep of that effect.
+  useEffect(() => {
+    activePageRef.current = activePage
+  }, [activePage])
+
+  // After switching between continuous view modes, restore scroll position.
+  // Only fires on viewMode / isContinuousMode changes — not on every page tick.
+  useEffect(() => {
+    if (prevViewModeRef.current === viewMode) return
+    prevViewModeRef.current = viewMode
+    if (!isContinuousMode) return
+    const target = activePageRef.current
+    const frame = requestAnimationFrame(() => {
+      pageRefs.current[target]?.scrollIntoView({ block: 'start', behavior: 'instant' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [viewMode, isContinuousMode])
+
+  // Once all page layouts are ready, scroll to the page saved from a previous
+  // session (pendingInitialPageRef is set by the state-load effect).
+  useEffect(() => {
+    const target = pendingInitialPageRef.current
+    if (target === null || !isContinuousMode || !documentProxy) return
+    if (Object.keys(basePageLayouts).length < pageCount || pageCount === 0) return
+    pendingInitialPageRef.current = null
+    requestAnimationFrame(() => {
+      pageRefs.current[target]?.scrollIntoView({ block: 'start', behavior: 'instant' })
+    })
+  }, [basePageLayouts, documentProxy, isContinuousMode, pageCount])
+
+  // Debounced save while the document is open — avoids writing on every
+  // IntersectionObserver tick during scrolling.
+  useEffect(() => {
+    if (!workspaceRoot || !hasLoadedViewStateRef.current) return
+    const stateResource = getPdfStateResource(resource)
+    const timer = setTimeout(() => {
+      void window.api.writeBlossom(
+        workspaceRoot,
+        stateResource,
+        JSON.stringify(viewStateRef.current)
+      )
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [resource, workspaceRoot, activePage, scale, viewMode, spreadLead, spreadGapMode])
+
+  // Immediate save on close or resource change. The debounced effect's cleanup
+  // only cancels the timer — this one guarantees the last position is written
+  // before the component unmounts.
+  useEffect(() => {
+    if (!workspaceRoot) return
+    const stateResource = getPdfStateResource(resource)
+    return () => {
+      if (!hasLoadedViewStateRef.current) return
+      void window.api.writeBlossom(
+        workspaceRoot,
+        stateResource,
+        JSON.stringify(viewStateRef.current)
+      )
+    }
+  }, [resource, workspaceRoot])
+
   function scrollToPage(pageNumber: number): void {
     pageRefs.current[pageNumber]?.scrollIntoView({
       block: 'start',
@@ -741,7 +943,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
   const discretePages =
     viewMode === 'single'
       ? [activePage]
-      : activeSpread?.pages.filter((page): page is number => page !== null) ?? []
+      : (activeSpread?.pages.filter((page): page is number => page !== null) ?? [])
 
   return (
     <div
@@ -749,7 +951,10 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     >
       <div className="pdf-editor__title-bar">
         <span className="pdf-editor__title">
-          {resource.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') ?? resource}
+          {resource
+            .split(/[\\/]/)
+            .pop()
+            ?.replace(/\.[^.]+$/, '') ?? resource}
         </span>
       </div>
 
@@ -893,94 +1098,99 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
 
         <div className="pdf-editor__viewport-frame">
           <div ref={scrollViewportRef} className="pdf-editor__viewport">
-          {errorMessage ? (
-            <div className="pdf-editor__empty-state">
-              <p className="pdf-editor__empty-title">Unable to open PDF</p>
-              <p className="pdf-editor__empty-body">{errorMessage}</p>
-            </div>
-          ) : null}
+            {errorMessage ? (
+              <div className="pdf-editor__empty-state">
+                <p className="pdf-editor__empty-title">Unable to open PDF</p>
+                <p className="pdf-editor__empty-body">{errorMessage}</p>
+              </div>
+            ) : null}
 
-          {!errorMessage && !documentProxy ? (
-            <div className="pdf-editor__empty-state">
-              <p className="pdf-editor__empty-title">Opening PDF</p>
-              <p className="pdf-editor__empty-body">Preparing pages for a focused reading view.</p>
-            </div>
-          ) : null}
+            {!errorMessage && !documentProxy ? (
+              <div className="pdf-editor__empty-state">
+                <p className="pdf-editor__empty-title">Opening PDF</p>
+                <p className="pdf-editor__empty-body">
+                  Preparing pages for a focused reading view.
+                </p>
+              </div>
+            ) : null}
 
-          {!errorMessage && documentProxy && isContinuousMode ? (
-            <div className="pdf-editor__page-stack">
-              {viewMode === 'single-continuous'
-                ? Array.from({ length: pageCount }, (_, index) => {
-                    const pageNumber = index + 1
-                    return (
+            {!errorMessage && documentProxy && isContinuousMode ? (
+              <div className="pdf-editor__page-stack">
+                {viewMode === 'single-continuous'
+                  ? Array.from({ length: pageCount }, (_, index) => {
+                      const pageNumber = index + 1
+                      return (
+                        <section
+                          key={pageNumber}
+                          ref={(element) => {
+                            pageRefs.current[pageNumber] = element
+                          }}
+                          className="pdf-editor__page"
+                          data-page-number={pageNumber}
+                        >
+                          <div className="pdf-editor__page-meta">{pageNumber}</div>
+                          <VirtualizedPdfPage
+                            doc={documentProxy}
+                            pageNumber={pageNumber}
+                            scale={scale}
+                            layout={pageLayouts[pageNumber] ?? null}
+                            acetateVisible={acetateVisible}
+                            acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
+                            viewportRef={scrollViewportRef}
+                          />
+                        </section>
+                      )
+                    })
+                  : facingSpreads.map((spread) => (
                       <section
-                        key={pageNumber}
+                        key={spread.key}
                         ref={(element) => {
-                          pageRefs.current[pageNumber] = element
+                          const primaryPage = spread.pages.find((page) => page !== null)
+                          if (primaryPage !== undefined) {
+                            pageRefs.current[primaryPage] = element
+                          }
                         }}
-                        className="pdf-editor__page"
-                        data-page-number={pageNumber}
+                        className="pdf-editor__spread"
+                        data-page-number={spread.pages.find((page) => page !== null) ?? undefined}
                       >
-                        <div className="pdf-editor__page-meta">{pageNumber}</div>
-                        <VirtualizedPdfPage
-                          doc={documentProxy}
-                          pageNumber={pageNumber}
-                          scale={scale}
-                          layout={pageLayouts[pageNumber] ?? null}
-                          acetateVisible={acetateVisible}
-                          acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
-                          viewportRef={scrollViewportRef}
-                        />
-                      </section>
-                    )
-                  })
-                : facingSpreads.map((spread) => (
-                    <section
-                      key={spread.key}
-                      ref={(element) => {
-                        const primaryPage = spread.pages.find((page) => page !== null)
-                        if (primaryPage !== undefined) {
-                          pageRefs.current[primaryPage] = element
-                        }
-                      }}
-                      className="pdf-editor__spread"
-                      data-page-number={spread.pages.find((page) => page !== null) ?? undefined}
-                    >
-                      <div className="pdf-editor__spread-meta">
-                        {spread.pages[0] ?? '—'} · {spread.pages[1] ?? '—'}
-                      </div>
-                      <div className="pdf-editor__spread-pages">
-                        {spread.pages.map((pageNumber, slotIndex) =>
-                          pageNumber !== null ? (
-                            <div key={pageNumber} className="pdf-editor__spread-page">
-                              <VirtualizedPdfPage
-                                doc={documentProxy}
-                                pageNumber={pageNumber}
-                                scale={scale}
-                                layout={pageLayouts[pageNumber] ?? null}
-                                acetateVisible={acetateVisible}
-                                acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
-                                viewportRef={scrollViewportRef}
+                        <div className="pdf-editor__spread-meta">
+                          {spread.pages[0] ?? '—'} · {spread.pages[1] ?? '—'}
+                        </div>
+                        <div className="pdf-editor__spread-pages">
+                          {spread.pages.map((pageNumber, slotIndex) =>
+                            pageNumber !== null ? (
+                              <div key={pageNumber} className="pdf-editor__spread-page">
+                                <VirtualizedPdfPage
+                                  doc={documentProxy}
+                                  pageNumber={pageNumber}
+                                  scale={scale}
+                                  layout={pageLayouts[pageNumber] ?? null}
+                                  acetateVisible={acetateVisible}
+                                  acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
+                                  viewportRef={scrollViewportRef}
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                key={`blank-${spread.key}-${slotIndex}`}
+                                className="pdf-editor__spread-placeholder"
                               />
-                            </div>
-                          ) : (
-                            <div
-                              key={`blank-${spread.key}-${slotIndex}`}
-                              className="pdf-editor__spread-placeholder"
-                            />
-                          )
-                        )}
-                      </div>
-                    </section>
-                  ))}
-            </div>
-          ) : null}
+                            )
+                          )}
+                        </div>
+                      </section>
+                    ))}
+              </div>
+            ) : null}
 
-          {!errorMessage && documentProxy && !isContinuousMode ? (
-            <div className="pdf-editor__discrete-stage">
-              {viewMode === 'single'
-                ? discretePages.map((pageNumber) => (
-                    <section key={pageNumber} className="pdf-editor__page pdf-editor__page--discrete">
+            {!errorMessage && documentProxy && !isContinuousMode ? (
+              <div className="pdf-editor__discrete-stage">
+                {viewMode === 'single' ? (
+                  discretePages.map((pageNumber) => (
+                    <section
+                      key={pageNumber}
+                      className="pdf-editor__page pdf-editor__page--discrete"
+                    >
                       <div className="pdf-editor__page-meta">{pageNumber}</div>
                       <MemoizedPdfPageCanvas
                         doc={documentProxy}
@@ -992,7 +1202,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                       />
                     </section>
                   ))
-                : (
+                ) : (
                   <section className="pdf-editor__spread pdf-editor__spread--discrete">
                     <div className="pdf-editor__spread-meta">
                       {activeSpread?.pages[0] ?? '—'} · {activeSpread?.pages[1] ?? '—'}
@@ -1019,9 +1229,9 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                       )}
                     </div>
                   </section>
-                  )}
-            </div>
-          ) : null}
+                )}
+              </div>
+            ) : null}
           </div>
           {documentProxy ? (
             <PdfInkOverlay
