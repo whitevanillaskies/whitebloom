@@ -805,6 +805,11 @@ export default function MaterialsWindow({
     (setId: string, anchor: { x: number; y: number }) => {
       if (anchor.x < 0 || anchor.y < 0) {
         void createChildSet(setId)
+        setSetExpandedIds((prev) => {
+          const next = new Set(prev)
+          next.add(setId)
+          return next
+        })
         return
       }
       setContextMenuState({ kind: 'child', setId, anchor })
@@ -840,6 +845,11 @@ export default function MaterialsWindow({
         icon: <FolderTree size={14} strokeWidth={1.7} />,
         onActivate: () => {
           void createChildSet(contextMenuState.setId)
+          setSetExpandedIds((prev) => {
+            const next = new Set(prev)
+            next.add(contextMenuState.setId)
+            return next
+          })
         }
       },
       {
