@@ -658,7 +658,7 @@ export default function PetalPalette({
           id: `command:${result.entry.command.core.id}`,
           label: result.entry.command.core.id,
           subtitle: presentation?.title,
-          hint: primaryAlias ?? presentation?.hotkey,
+          hint: (primaryAlias ?? presentation?.hotkey)?.toLowerCase(),
           commandId: result.entry.command.core.id,
           onActivate: () => activateRegisteredCommand(result.entry)
         }
@@ -676,12 +676,17 @@ export default function PetalPalette({
         return false
       })
 
-    return [
+    const combined = [
       ...legacyNamespaceEntries,
       ...namespaceEntries,
       ...legacyCommandEntries,
       ...commandEntries
     ]
+
+    if (!normalizedQuery) return combined
+
+    const strictHintMatches = combined.filter((e) => e.hint?.toLowerCase() === normalizedQuery)
+    return strictHintMatches.length > 0 ? strictHintMatches : combined
   }, [
     activateRegisteredCommand,
     commandBrowseMode,
