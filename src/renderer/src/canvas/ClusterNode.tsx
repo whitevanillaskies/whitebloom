@@ -4,6 +4,7 @@ import { useBoardStore } from '@renderer/stores/board'
 import type { ClusterColor, Size } from '@renderer/shared/types'
 import { NodeResizeHandles } from './NodeResizeHandles'
 import { useFixedCornerResize } from './useFixedCornerResize'
+import { CardinalHandles } from './CardinalHandles'
 import './ClusterNode.css'
 
 export type ClusterIndicatorTone = ClusterColor | 'neutral'
@@ -218,6 +219,7 @@ export function ClusterNode({
           </div>
         )}
       </div>
+      <CardinalHandles hidden={dragging || editing || isResizing} />
       <NodeResizeHandles
         visible={selected || isResizing}
         activeCorner={activeCorner}

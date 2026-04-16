@@ -310,7 +310,7 @@ export function isValidEdgeHandlePair(edge: Pick<BoardEdge, 'sourceHandle' | 'ta
 }
 
 export type BoardSanitizationIssue = {
-  kind: 'dangling-edge-node' | 'cluster-edge-endpoint' | 'invalid-edge-handle' | 'duplicate-edge'
+  kind: 'dangling-edge-node' | 'invalid-edge-handle' | 'duplicate-edge'
   edgeId: string
 }
 
@@ -335,11 +335,6 @@ export function sanitizeBoardEdges(
 
     if (!sourceNode || !targetNode) {
       issues.push({ kind: 'dangling-edge-node', edgeId: edge.id })
-      continue
-    }
-
-    if (isClusterNode(sourceNode) || isClusterNode(targetNode)) {
-      issues.push({ kind: 'cluster-edge-endpoint', edgeId: edge.id })
       continue
     }
 
