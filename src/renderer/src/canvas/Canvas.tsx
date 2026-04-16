@@ -2247,9 +2247,12 @@ export function Canvas({
             })
             .sort((left, right) => left.size.w * left.size.h - right.size.w * right.size.h)
 
-          if (!owningClusterId && containingClusters.length > 0) {
-            nextCues[containingClusters[0].id] = 'accept'
-            pendingAcceptNodeIds.add(change.id)
+          const targetCluster = containingClusters.find((c) => c.id !== owningClusterId)
+          if (targetCluster) {
+            nextCues[targetCluster.id] = 'accept'
+            if (!owningClusterId) {
+              pendingAcceptNodeIds.add(change.id)
+            }
           }
 
           if (owningClusterId) {
