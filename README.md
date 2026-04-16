@@ -6,8 +6,6 @@ A whiteboard. Local only, plaintext first, modular.
 
 [Latest Release](https://github.com/whitevanillaskies/whitebloom/releases/latest)
 
-Socials: Follow me on [X](https://x.com/__whitebloom__)
-
 ## Features
 
 Local whiteboard with typical features such as writing text, loading images, groups, etc. Unlike cloud or proprietary whiteboards it gives you absolute control over your resources.
@@ -93,6 +91,11 @@ $ npm run build:mac
 # For Linux
 $ npm run build:linux
 ```
+
+# Socials
+
+Follow me on [X](https://x.com/__whitebloom__)
+
 
 # License
 
