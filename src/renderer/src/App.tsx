@@ -121,6 +121,23 @@ function App(): React.JSX.Element {
 
   const currentBoardName = boardName?.trim() || (boardPath ? 'Untitled' : null)
 
+  useEffect(() => {
+    if (view === 'start') {
+      document.title = 'WHITEBLOOM'
+    } else if (view === 'workspace-home') {
+      const wsName = workspaceConfig?.name?.trim()
+      document.title = wsName ? `${wsName} - WHITEBLOOM` : 'WHITEBLOOM'
+    } else if (view === 'board' && boardPath !== null) {
+      if (boardTransient) {
+        document.title = 'Quickboard - WHITEBLOOM'
+      } else {
+        const bName = currentBoardName ?? 'Untitled'
+        const wsName = workspaceConfig?.name?.trim()
+        document.title = wsName ? `${bName} - ${wsName} - WHITEBLOOM` : `${bName} - WHITEBLOOM`
+      }
+    }
+  }, [view, boardPath, boardTransient, currentBoardName, workspaceConfig])
+
   const buildBoardSnapshot = useCallback(
     (options?: { transient?: boolean }): Board => {
       const nodes = boardNodes.map((node) => {
