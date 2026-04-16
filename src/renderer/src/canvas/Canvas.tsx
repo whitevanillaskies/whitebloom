@@ -153,13 +153,17 @@ const WEB_RESOURCE_DROP_ERROR =
 const CANVAS_MATERIALS_MICA_HOST_ID = 'canvas-materials'
 const MATERIALS_CANVAS_DROP_TARGET_ID = createArrangementsDropTargetId('canvas', 'materials-window')
 const DEFAULT_MATERIALS_GEOMETRY = {
-  x: 60,
-  y: 60,
   width: 560,
   height: 440,
   minWidth: 400,
   minHeight: 320
 } as const
+
+function getCenteredMaterialsGeometry(): typeof DEFAULT_MATERIALS_GEOMETRY & { x: number; y: number } {
+  const x = Math.round((window.innerWidth - DEFAULT_MATERIALS_GEOMETRY.width) / 2)
+  const y = Math.round((window.innerHeight - DEFAULT_MATERIALS_GEOMETRY.height) / 2)
+  return { ...DEFAULT_MATERIALS_GEOMETRY, x, y }
+}
 const SCREEN_RECORDING_STOP_SHORTCUT = 'F8'
 const SCREEN_RECORDING_DEFAULT_BASENAME = 'recording'
 const SCREEN_RECORDING_DIRECTORY = 'recordings'
@@ -1106,7 +1110,7 @@ export function Canvas({
     materialsMica.open({
       kind: 'materials',
       payload: {},
-      geometry: { ...DEFAULT_MATERIALS_GEOMETRY },
+      geometry: getCenteredMaterialsGeometry(),
       uiState: {}
     })
     syncMaterials()
