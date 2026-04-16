@@ -1,0 +1,17 @@
+.petal-shelf-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 10px;
+  min-width: 0;
+}
+
+.petal-shelf-group:first-child {
+  justify-content: flex-start;
+}
+
+.petal-shelf-group:last-child {
+  justify-content: flex-end;
+}

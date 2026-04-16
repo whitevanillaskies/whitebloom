@@ -2,8 +2,11 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import {
+  AlignLeft,
+  AlignRight,
   ChevronLeft,
   ChevronRight,
+  Columns2,
   GalleryVertical,
   Layers3,
   Minus,
@@ -11,8 +14,10 @@ import {
   Pen,
   Plus,
   Rows3,
+  SeparatorVertical,
   X
 } from 'lucide-react'
+import { PetalShelf, PetalShelfGroup, PetalShelfItem } from '../../components/petal/shelf'
 import type { BudEditorProps } from '../types'
 import { resourceToMediaSrc } from '@renderer/shared/resource-url'
 import { createInkTargetId, type InkPdfSurfaceBinding } from '../../../../shared/ink'
@@ -742,155 +747,118 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     <div
       className={`pdf-editor pdf-editor--${viewMode} pdf-editor--spread-gap-${spreadGapMode}${activeTool === 'ink' ? ' pdf-editor--tool-ink' : ''}`}
     >
-      <div className="pdf-editor__chrome">
-        <div className="pdf-editor__toolbar">
-          <div className="pdf-editor__toolbar-group">
-            <button
-              type="button"
-              className="pdf-editor__icon-button"
-              onClick={() => setSidebarOpen((current) => !current)}
-              aria-label={sidebarOpen ? 'Hide page sidebar' : 'Show page sidebar'}
-            >
-              <PanelLeft size={15} strokeWidth={1.7} />
-            </button>
-            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
-
-            <button
-              type="button"
-              className={`pdf-editor__icon-button${viewMode === 'single-continuous' ? ' pdf-editor__icon-button--active' : ''}`}
-              onClick={() => setViewMode('single-continuous')}
-              aria-label="Continuous page"
-              title="Continuous page"
-            >
-              <Rows3 size={15} strokeWidth={1.7} />
-            </button>
-
-            <button
-              type="button"
-              className={`pdf-editor__icon-button${viewMode === 'facing-continuous' ? ' pdf-editor__icon-button--active' : ''}`}
-              onClick={() => setViewMode('facing-continuous')}
-              aria-label="Continuous facing pages"
-              title="Continuous facing pages"
-            >
-              <GalleryVertical size={15} strokeWidth={1.7} />
-            </button>
-            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className={`pdf-editor__toggle-chip${spreadLead === 'odd' ? ' pdf-editor__toggle-chip--active' : ''}`}
-              onClick={() => setSpreadLead('odd')}
-              aria-label="Odd pages first"
-              title="Odd pages first"
-            >
-              Odd First
-            </button>
-            <button
-              type="button"
-              className={`pdf-editor__toggle-chip${spreadLead === 'even' ? ' pdf-editor__toggle-chip--active' : ''}`}
-              onClick={() => setSpreadLead('even')}
-              aria-label="Even pages first"
-              title="Even pages first"
-            >
-              Even First
-            </button>
-            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className={`pdf-editor__toggle-chip${spreadGapMode === 'flush' ? ' pdf-editor__toggle-chip--active' : ''}`}
-              onClick={() => setSpreadGapMode('flush')}
-              aria-label="Center gap flush"
-              title="Center gap flush"
-            >
-              Gap Flush
-            </button>
-            <button
-              type="button"
-              className={`pdf-editor__toggle-chip${spreadGapMode === 'open' ? ' pdf-editor__toggle-chip--active' : ''}`}
-              onClick={() => setSpreadGapMode('open')}
-              aria-label="Center gap open"
-              title="Center gap open"
-            >
-              Gap Open
-            </button>
-          </div>
-
-          <div className="pdf-editor__toolbar-group pdf-editor__toolbar-group--center">
-            <button
-              type="button"
-              className="pdf-editor__icon-button"
-              onClick={handlePreviousPage}
-              disabled={activePage <= 1}
-              aria-label="Previous page"
-            >
-              <ChevronLeft size={15} strokeWidth={1.7} />
-            </button>
-            <div className="pdf-editor__status-pill">
-              <span className="pdf-editor__status-value">{activePage}</span>
-              <span className="pdf-editor__status-separator">/</span>
-              <span>{pageCount || '—'}</span>
-            </div>
-            <button
-              type="button"
-              className="pdf-editor__icon-button"
-              onClick={handleNextPage}
-              disabled={pageCount === 0 || activePage >= pageCount}
-              aria-label="Next page"
-            >
-              <ChevronRight size={15} strokeWidth={1.7} />
-            </button>
-          </div>
-
-          <div className="pdf-editor__toolbar-group">
-            <button
-              type="button"
-              className="pdf-editor__icon-button"
-              onClick={handleZoomOut}
-              disabled={scale <= MIN_SCALE}
-              aria-label="Zoom out"
-            >
-              <Minus size={15} strokeWidth={1.7} />
-            </button>
-            <div className="pdf-editor__zoom-readout">{Math.round(scale * 100)}%</div>
-            <button
-              type="button"
-              className="pdf-editor__icon-button"
-              onClick={handleZoomIn}
-              disabled={scale >= MAX_SCALE}
-              aria-label="Zoom in"
-            >
-              <Plus size={15} strokeWidth={1.7} />
-            </button>
-            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className={`pdf-editor__icon-button${activeTool === 'ink' ? ' pdf-editor__icon-button--active' : ''}`}
-              onClick={() => setActiveTool((current) => (current === 'ink' ? 'navigate' : 'ink'))}
-              aria-label="Ink tool"
-              title="Ink tool"
-            >
-              <Pen size={15} strokeWidth={1.7} />
-            </button>
-            <button
-              type="button"
-              className={`pdf-editor__icon-button${acetateVisible ? ' pdf-editor__icon-button--toggle-active' : ''}`}
-              onClick={() => setAcetateVisible((current) => !current)}
-              aria-label="Show ink layers"
-              title="Show ink layers"
-            >
-              <Layers3 size={15} strokeWidth={1.7} />
-            </button>
-            <div className="pdf-editor__toolbar-divider" aria-hidden="true" />
-            <button
-              type="button"
-              className="pdf-editor__icon-button"
-              onClick={onClose}
-              aria-label="Close PDF viewer"
-            >
-              <X size={15} strokeWidth={1.7} />
-            </button>
-          </div>
-        </div>
+      <div className="pdf-editor__title-bar">
+        <span className="pdf-editor__title">
+          {resource.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') ?? resource}
+        </span>
       </div>
+
+      <PetalShelf>
+        <PetalShelfGroup>
+          <PetalShelfItem
+            label="Sidebar"
+            icon={<PanelLeft size={16} strokeWidth={1.6} />}
+            active={sidebarOpen}
+            accent="var(--color-accent-blue)"
+            onClick={() => setSidebarOpen((c) => !c)}
+          />
+          <PetalShelfItem
+            label="Continuous"
+            icon={<Rows3 size={16} strokeWidth={1.6} />}
+            active={viewMode === 'single-continuous'}
+            accent="var(--color-accent-blue)"
+            onClick={() => setViewMode('single-continuous')}
+          />
+          <PetalShelfItem
+            label="Facing"
+            icon={<GalleryVertical size={16} strokeWidth={1.6} />}
+            active={viewMode === 'facing-continuous'}
+            accent="var(--color-accent-blue)"
+            onClick={() => setViewMode('facing-continuous')}
+          />
+          <PetalShelfItem
+            label="Odd First"
+            icon={<AlignLeft size={16} strokeWidth={1.6} />}
+            active={spreadLead === 'odd'}
+            accent="var(--color-accent-blue)"
+            onClick={() => setSpreadLead('odd')}
+          />
+          <PetalShelfItem
+            label="Even First"
+            icon={<AlignRight size={16} strokeWidth={1.6} />}
+            active={spreadLead === 'even'}
+            accent="var(--color-accent-blue)"
+            onClick={() => setSpreadLead('even')}
+          />
+          <PetalShelfItem
+            label="Gap Flush"
+            icon={<Columns2 size={16} strokeWidth={1.6} />}
+            active={spreadGapMode === 'flush'}
+            accent="var(--color-accent-blue)"
+            onClick={() => setSpreadGapMode('flush')}
+          />
+          <PetalShelfItem
+            label="Gap Open"
+            icon={<SeparatorVertical size={16} strokeWidth={1.6} />}
+            active={spreadGapMode === 'open'}
+            accent="var(--color-accent-blue)"
+            onClick={() => setSpreadGapMode('open')}
+          />
+        </PetalShelfGroup>
+
+        <PetalShelfGroup>
+          <PetalShelfItem
+            label="Previous page"
+            icon={<ChevronLeft size={16} strokeWidth={1.6} />}
+            onClick={handlePreviousPage}
+            disabled={activePage <= 1}
+          />
+          <span className="petal-shelf-readout">
+            {activePage} / {pageCount || '—'}
+          </span>
+          <PetalShelfItem
+            label="Next page"
+            icon={<ChevronRight size={16} strokeWidth={1.6} />}
+            onClick={handleNextPage}
+            disabled={pageCount === 0 || activePage >= pageCount}
+          />
+        </PetalShelfGroup>
+
+        <PetalShelfGroup>
+          <PetalShelfItem
+            label="Zoom out"
+            icon={<Minus size={16} strokeWidth={1.6} />}
+            onClick={handleZoomOut}
+            disabled={scale <= MIN_SCALE}
+          />
+          <span className="petal-shelf-readout">{Math.round(scale * 100)}%</span>
+          <PetalShelfItem
+            label="Zoom in"
+            icon={<Plus size={16} strokeWidth={1.6} />}
+            onClick={handleZoomIn}
+            disabled={scale >= MAX_SCALE}
+          />
+          <PetalShelfItem
+            label="Ink"
+            icon={<Pen size={16} strokeWidth={1.6} />}
+            active={activeTool === 'ink'}
+            accent="var(--color-accent-pink)"
+            onClick={() => setActiveTool((c) => (c === 'ink' ? 'navigate' : 'ink'))}
+          />
+          <PetalShelfItem
+            label="Layers"
+            icon={<Layers3 size={16} strokeWidth={1.6} />}
+            active={acetateVisible}
+            accent="var(--color-accent-green)"
+            onClick={() => setAcetateVisible((c) => !c)}
+          />
+          <PetalShelfItem
+            label="Close"
+            icon={<X size={16} strokeWidth={1.6} />}
+            onClick={onClose}
+          />
+        </PetalShelfGroup>
+      </PetalShelf>
 
       <div className="pdf-editor__body">
         {sidebarOpen && (

@@ -1,0 +1,22 @@
+.petal-shelf-readout {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 450;
+  color: var(--color-secondary-fg);
+  white-space: nowrap;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+.petal-shelf {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 75px;
+  background: var(--color-primary-bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 4px rgba(15, 23, 42, 0.06);
+  flex-shrink: 0;
+}

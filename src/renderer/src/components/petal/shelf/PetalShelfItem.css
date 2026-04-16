@@ -1,0 +1,74 @@
+.petal-shelf-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 52px;
+  padding: 7px 10px 11px;
+  border: none;
+  background: transparent;
+  color: var(--color-secondary-fg);
+  border-radius: var(--radius-border-inner);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 60ms ease;
+  user-select: none;
+}
+
+.petal-shelf-item:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.petal-shelf-item:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.petal-shelf-item--active {
+  color: var(--color-primary-fg);
+}
+
+.petal-shelf-item--active::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--petal-shelf-item-accent, var(--color-accent-blue));
+}
+
+.petal-shelf-item:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.petal-shelf-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--color-accent-blue-rgb), 0.35);
+}
+
+.petal-shelf-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.petal-shelf-item__label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9.5px;
+  font-weight: 450;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--color-muted-fg);
+  white-space: nowrap;
+}
+
+.petal-shelf-item--active .petal-shelf-item__label {
+  color: var(--color-secondary-fg);
+}
