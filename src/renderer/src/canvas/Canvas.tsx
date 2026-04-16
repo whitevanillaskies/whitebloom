@@ -3933,6 +3933,7 @@ export function Canvas({
               nodesConnectable={activeTool === 'pointer'}
               selectNodesOnDrag={false}
               selectionOnDrag={activeTool === 'pointer'}
+              selectionKeyCode={activeTool === 'pointer' ? 'Alt' : null}
               elevateNodesOnSelect={false}
               panOnDrag={panOnDragButtons}
               connectionMode={ConnectionMode.Loose}
