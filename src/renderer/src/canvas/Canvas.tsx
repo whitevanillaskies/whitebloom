@@ -794,6 +794,15 @@ export function Canvas({
   const canvasDropTargetRef = useRef<HTMLDivElement>(null)
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
   const [acetateVisible, setAcetateVisible] = useState(true)
+
+  useEffect(() => {
+    if (!boardPath) {
+      setAcetateVisible(true)
+      return
+    }
+    const stored = localStorage.getItem(`wb:acetate:${boardPath}`)
+    setAcetateVisible(stored === null ? true : stored === 'true')
+  }, [boardPath])
   const [boardInkStrokes, setBoardInkStrokes] = useState<BoardInkStroke[]>([])
   const [activeInkTool, setActiveInkTool] = useState<InkTool>('pen')
   const [screenRecordingState, setScreenRecordingState] = useState<ScreenRecordingState>({
@@ -3999,7 +4008,11 @@ export function Canvas({
                     activeTool={activeTool}
                     onToolChange={setActiveTool}
                     acetateVisible={acetateVisible}
-                    onAcetateToggle={() => setAcetateVisible((current) => !current)}
+                    onAcetateToggle={() => setAcetateVisible((current) => {
+                      const next = !current
+                      if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, String(next))
+                      return next
+                    })}
                     onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
                   />
                 </div>
