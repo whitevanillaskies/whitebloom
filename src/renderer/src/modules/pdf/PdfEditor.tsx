@@ -9,15 +9,18 @@ import {
   Columns2,
   GalleryVertical,
   Layers3,
-  Minus,
   PanelLeft,
   Pen,
-  Plus,
   Rows3,
   SeparatorVertical,
   X
 } from 'lucide-react'
-import { PetalShelf, PetalShelfGroup, PetalShelfItem } from '../../components/petal/shelf'
+import {
+  PetalShelf,
+  PetalShelfGroup,
+  PetalShelfItem,
+  PetalShelfZoomItem
+} from '../../components/petal/shelf'
 import type { BudEditorProps } from '../types'
 import { resourceToMediaSrc } from '@renderer/shared/resource-url'
 import { createInkTargetId, type InkPdfSurfaceBinding } from '../../../../shared/ink'
@@ -733,14 +736,16 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
         })
 
         if (pageNumber % 6 === 0) {
-          setThumbnails([...nextThumbnails])
+          const rendered = new Map(nextThumbnails.map((t) => [t.pageNumber, t]))
+          setThumbnails((prev) => prev.map((t) => rendered.get(t.pageNumber) ?? t))
           await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
           if (cancelled) return
         }
       }
 
       if (!cancelled) {
-        setThumbnails(nextThumbnails)
+        const rendered = new Map(nextThumbnails.map((t) => [t.pageNumber, t]))
+        setThumbnails((prev) => prev.map((t) => rendered.get(t.pageNumber) ?? t))
       }
     }
 
@@ -908,12 +913,18 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     setScale(nextScale)
   }
 
-  function handleZoomIn(): void {
-    queueZoom(Math.min(MAX_SCALE, Math.round((scale + SCALE_STEP) * 10) / 10))
+  function handleSetScale(nextScale: number): void {
+    queueZoom(Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale)))
   }
 
-  function handleZoomOut(): void {
-    queueZoom(Math.max(MIN_SCALE, Math.round((scale - SCALE_STEP) * 10) / 10))
+  function handleFitPage(): void {
+    const viewport = scrollViewportRef.current
+    const baseLayout = basePageLayouts[activePage]
+    if (!viewport || !baseLayout) return
+    const available = viewport.clientHeight - 24
+    if (available <= 0) return
+    const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, available / baseLayout.height))
+    queueZoom(Math.round(nextScale * 100) / 100)
   }
 
   function handlePreviousPage(): void {
@@ -1030,18 +1041,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
         </PetalShelfGroup>
 
         <PetalShelfGroup>
-          <PetalShelfItem
-            label="Zoom out"
-            icon={<Minus size={16} strokeWidth={1.6} />}
-            onClick={handleZoomOut}
-            disabled={scale <= MIN_SCALE}
-          />
-          <span className="petal-shelf-readout">{Math.round(scale * 100)}%</span>
-          <PetalShelfItem
-            label="Zoom in"
-            icon={<Plus size={16} strokeWidth={1.6} />}
-            onClick={handleZoomIn}
-            disabled={scale >= MAX_SCALE}
+          <PetalShelfZoomItem
+            scale={scale}
+            minScale={MIN_SCALE}
+            maxScale={MAX_SCALE}
+            onScaleChange={handleSetScale}
+            onFitPage={handleFitPage}
           />
           <PetalShelfItem
             label="Ink"
@@ -1070,14 +1075,22 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
           <aside className="pdf-editor__sidebar" aria-label="Page thumbnails">
             <div className="pdf-editor__sidebar-header">Pages</div>
             <div className="pdf-editor__thumbnail-list">
-              {thumbnails.map((thumbnail) => (
+              {thumbnails.map((thumbnail) => {
+                const baseLayout = basePageLayouts[thumbnail.pageNumber]
+                const frameHeight = baseLayout
+                  ? Math.round(76 * (baseLayout.height / baseLayout.width))
+                  : undefined
+                return (
                 <button
                   key={thumbnail.pageNumber}
                   type="button"
                   className={`pdf-editor__thumbnail${thumbnail.pageNumber === activePage ? ' pdf-editor__thumbnail--active' : ''}`}
                   onClick={() => scrollToPage(thumbnail.pageNumber)}
                 >
-                  <div className="pdf-editor__thumbnail-frame">
+                  <div
+                    className="pdf-editor__thumbnail-frame"
+                    style={frameHeight !== undefined ? { height: frameHeight, minHeight: frameHeight } : undefined}
+                  >
                     {thumbnail.dataUrl ? (
                       <img
                         src={thumbnail.dataUrl}
@@ -1091,7 +1104,8 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
                   </div>
                   <span className="pdf-editor__thumbnail-label">{thumbnail.pageNumber}</span>
                 </button>
-              ))}
+                )
+              })}
             </div>
           </aside>
         )}

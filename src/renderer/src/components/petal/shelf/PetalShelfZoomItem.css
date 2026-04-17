@@ -1,0 +1,168 @@
+.petal-shelf-zoom {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.petal-shelf-zoom__trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 66px;
+  padding: 6px 10px 9px;
+  border: none;
+  background: transparent;
+  color: var(--color-secondary-fg);
+  border-radius: var(--radius-border-inner);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 60ms ease;
+  user-select: none;
+}
+
+.petal-shelf-zoom__trigger:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.petal-shelf-zoom__trigger:active,
+.petal-shelf-zoom__trigger--open {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.petal-shelf-zoom__trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--color-accent-blue-rgb), 0.35);
+}
+
+.petal-shelf-zoom__label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9.5px;
+  font-weight: 450;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--color-muted-fg);
+  white-space: nowrap;
+}
+
+.petal-shelf-zoom__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-primary-fg);
+  line-height: 1;
+}
+
+.petal-shelf-zoom__value-number {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.petal-shelf-zoom__value svg {
+  color: var(--color-muted-fg);
+  margin-top: 1px;
+}
+
+.petal-shelf-zoom__popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 240px;
+  padding: 12px 14px;
+  background: var(--color-primary-bg);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-border-outer, 10px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 10px 28px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.petal-shelf-zoom__slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.petal-shelf-zoom__slider-readout {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-secondary-fg);
+  min-width: 36px;
+}
+
+.petal-shelf-zoom__slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.petal-shelf-zoom__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+}
+
+.petal-shelf-zoom__slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+}
+
+.petal-shelf-zoom__presets {
+  display: flex;
+  gap: 6px;
+}
+
+.petal-shelf-zoom__preset {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-secondary-fg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background 60ms ease,
+    border-color 60ms ease;
+}
+
+.petal-shelf-zoom__preset:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.petal-shelf-zoom__preset:active {
+  background: rgba(0, 0, 0, 0.07);
+}
