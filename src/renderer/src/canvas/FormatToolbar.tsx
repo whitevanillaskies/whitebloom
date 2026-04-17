@@ -158,7 +158,7 @@ export function FormatToolbar() {
       const element = anchorNode.getKey() === 'root'
         ? anchorNode
         : anchorNode.getTopLevelElementOrThrow()
-      const format = (element.getFormatType?.() ?? '') as ElementFormatType
+      const format = (element.getFormat?.() ?? '') as ElementFormatType
       setElementAlign(format)
     })
   }, [editor])

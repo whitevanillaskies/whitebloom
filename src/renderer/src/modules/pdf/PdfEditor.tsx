@@ -41,7 +41,6 @@ const THUMBNAIL_SCALE = 0.18
 const DEFAULT_SCALE = 1.1
 const MIN_SCALE = 0.5
 const MAX_SCALE = 2.4
-const SCALE_STEP = 0.1
 
 type ThumbnailState = {
   pageNumber: number
@@ -358,7 +357,7 @@ function buildFacingSpreads(pageCount: number, lead: SpreadLead): Spread[] {
   return spreads
 }
 
-export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) {
+export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEditorProps) {
   const [documentProxy, setDocumentProxy] = useState<PDFDocumentProxy | null>(null)
   const [pageCount, setPageCount] = useState(0)
   const [scale, setScale] = useState(DEFAULT_SCALE)
@@ -924,7 +923,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     queueZoom(Math.round(nextScale * 100) / 100)
   }
 
-  function handlePreviousPage(): void {
+  function _handlePreviousPage(): void {
     if (viewMode === 'facing') {
       const nextSpread = Math.max(0, activeSpreadIndex - 1)
       const candidate = facingSpreads[nextSpread]?.pages.find((page) => page !== null) ?? 1
@@ -936,7 +935,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
     scrollToPage(nextPage)
   }
 
-  function handleNextPage(): void {
+  function _handleNextPage(): void {
     if (viewMode === 'facing') {
       const nextSpread = Math.min(facingSpreads.length - 1, activeSpreadIndex + 1)
       const candidate = facingSpreads[nextSpread]?.pages.find((page) => page !== null) ?? pageCount
