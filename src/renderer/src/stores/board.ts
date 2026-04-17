@@ -58,7 +58,7 @@ type BoardState = Board & {
   updateEdge: (
     id: string,
     patch: Partial<
-      Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'label' | 'labelLayout'>
+      Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'sourceHandle' | 'targetHandle' | 'label' | 'labelLayout'>
     >
   ) => void
   updateEdgeStyle: (id: string, edgeStyle: EdgeStyle) => void
@@ -502,6 +502,8 @@ export const useBoardStore = create<BoardState>((set) => ({
           next.edgeStyle === e.edgeStyle &&
           next.from === e.from &&
           next.to === e.to &&
+          next.sourceHandle === e.sourceHandle &&
+          next.targetHandle === e.targetHandle &&
           next.label === e.label &&
           next.labelLayout === e.labelLayout
         )

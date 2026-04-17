@@ -11,6 +11,7 @@ import {
   type Viewport,
   applyNodeChanges,
   applyEdgeChanges,
+  reconnectEdge,
   Panel,
   useReactFlow,
   MiniMap,
@@ -751,6 +752,7 @@ export function Canvas({
   const deleteNodes = useBoardStore((s) => s.deleteNodes)
   const storeAddEdge = useBoardStore((s) => s.addEdge)
   const storeDeleteEdge = useBoardStore((s) => s.deleteEdge)
+  const storeUpdateEdge = useBoardStore((s) => s.updateEdge)
   const clearBoard = useBoardStore((s) => s.clearBoard)
   const markSaved = useBoardStore((s) => s.markSaved)
   const loadBoard = useBoardStore((s) => s.loadBoard)
@@ -828,6 +830,7 @@ export function Canvas({
   const [promoteSubboardInFlight, setPromoteSubboardInFlight] = useState(false)
   const [trashBoardInFlight, setTrashBoardInFlight] = useState(false)
   const [trashBoardConfirmOpen, setTrashBoardConfirmOpen] = useState(false)
+  const [isReconnecting, setIsReconnecting] = useState(false)
   const [canvasContextMenu, setCanvasContextMenu] = useState<CanvasContextMenuState | null>(null)
   const [shapeMenuAnchor, setShapeMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [overflowAnchor, setOverflowAnchor] = useState<{ x: number; y: number } | null>(null)
@@ -1413,6 +1416,14 @@ export function Canvas({
       }
       springResizeTimeoutsRef.current.clear()
     }
+  }, [])
+
+  useEffect(() => {
+    const el = canvasDropTargetRef.current
+    if (!el) return
+    const handler = (e: Event) => e.preventDefault()
+    el.addEventListener('selectstart', handler)
+    return () => el.removeEventListener('selectstart', handler)
   }, [])
 
   const fitClusterToFrame = useCallback(
@@ -2402,6 +2413,38 @@ export function Canvas({
     },
     [runCanvasCommand]
   )
+
+  const onReconnect = useCallback(
+    (oldEdge: RFEdge, newConnection: Connection) => {
+      if (
+        !newConnection.source ||
+        !newConnection.target ||
+        !isValidEdgeHandlePair({
+          sourceHandle: newConnection.sourceHandle,
+          targetHandle: newConnection.targetHandle
+        })
+      ) {
+        return
+      }
+
+      setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds))
+      storeUpdateEdge(oldEdge.id, {
+        from: newConnection.source,
+        to: newConnection.target,
+        sourceHandle: newConnection.sourceHandle,
+        targetHandle: newConnection.targetHandle
+      })
+    },
+    [storeUpdateEdge]
+  )
+
+  const onReconnectStart = useCallback(() => {
+    setIsReconnecting(true)
+  }, [])
+
+  const onReconnectEnd = useCallback(() => {
+    setIsReconnecting(false)
+  }, [])
 
   const onPaneClick = useCallback(
     (e: React.MouseEvent) => {
@@ -3977,6 +4020,9 @@ export function Canvas({
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onReconnect={onReconnect}
+              onReconnectStart={onReconnectStart}
+              onReconnectEnd={onReconnectEnd}
               isValidConnection={isValidEdgeHandlePair}
               onPaneClick={onPaneClick}
               onNodeClick={onNodeClick}
@@ -4004,7 +4050,7 @@ export function Canvas({
               proOptions={{ hideAttribution: true }}
               data-board-capture="root"
             >
-              <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} />
+              <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} isReconnecting={isReconnecting} />
               <Background gap={25} size={1} color="var(--color-secondary-fg)" />
               <InkOverlay
                 active={activeTool === 'ink'}

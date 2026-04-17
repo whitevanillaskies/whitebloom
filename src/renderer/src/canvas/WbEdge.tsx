@@ -220,6 +220,7 @@ export function WbEdge({
         stroke="transparent"
         strokeWidth={hitWidth}
         onDoubleClick={startEditing}
+        onMouseDown={(e) => e.preventDefault()}
       />
       <EdgeLabelRenderer>
         {isEditing ? (
