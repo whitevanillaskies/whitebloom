@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Type } from 'lucide-react'
 import { useBoardStore } from '@renderer/stores/board'
 import { normalizeEdgeStyle } from '@renderer/shared/types'
 import { ColorControl } from './ColorControl'
@@ -90,6 +90,7 @@ export function EdgeToolbar() {
         color={activeEdgeStyle.labelColor}
         onChange={(labelColor) => patchEdgeStyle({ labelColor })}
         aria-label={t('edgeToolbar.labelColorLabel')}
+        coloredIcon={<Type size={13} strokeWidth={2.1} />}
       />
 
       <CanvasToolbarSep />

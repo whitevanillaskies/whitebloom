@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import type { ColorValue } from '@renderer/shared/types'
 import { CanvasToolbarBtn, CanvasToolbarSwatch, useCanvasToolbarPopover } from './CanvasToolbar'
 import { CanvasPopover } from './CanvasPopover'
@@ -36,6 +36,8 @@ type ColorControlProps = {
   color: ColorValue
   onChange: (color: ColorValue) => void
   'aria-label': string
+  /** When set, renders this icon tinted with the current color instead of a color swatch. */
+  coloredIcon?: ReactNode
   allowTransparent?: boolean
   transparentLabel?: string
 }
@@ -50,6 +52,7 @@ export function ColorControl({
   color,
   onChange,
   'aria-label': ariaLabel,
+  coloredIcon,
   allowTransparent = false,
   transparentLabel = 'Transparent'
 }: ColorControlProps) {
@@ -101,7 +104,10 @@ export function ColorControl({
         popoverId={popoverId}
         active={open}
       >
-        <CanvasToolbarSwatch color={resolvedColor} />
+        {coloredIcon
+          ? <span style={{ color: resolvedColor, display: 'flex', alignItems: 'center' }}>{coloredIcon}</span>
+          : <CanvasToolbarSwatch color={resolvedColor} />
+        }
       </CanvasToolbarBtn>
 
       {open && (
