@@ -923,30 +923,6 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
     queueZoom(Math.round(nextScale * 100) / 100)
   }
 
-  function _handlePreviousPage(): void {
-    if (viewMode === 'facing') {
-      const nextSpread = Math.max(0, activeSpreadIndex - 1)
-      const candidate = facingSpreads[nextSpread]?.pages.find((page) => page !== null) ?? 1
-      scrollToPage(candidate)
-      return
-    }
-
-    const nextPage = Math.max(1, activePage - 1)
-    scrollToPage(nextPage)
-  }
-
-  function _handleNextPage(): void {
-    if (viewMode === 'facing') {
-      const nextSpread = Math.min(facingSpreads.length - 1, activeSpreadIndex + 1)
-      const candidate = facingSpreads[nextSpread]?.pages.find((page) => page !== null) ?? pageCount
-      scrollToPage(candidate)
-      return
-    }
-
-    const nextPage = Math.min(pageCount, activePage + 1)
-    scrollToPage(nextPage)
-  }
-
   const discretePages =
     viewMode === 'single'
       ? [activePage]

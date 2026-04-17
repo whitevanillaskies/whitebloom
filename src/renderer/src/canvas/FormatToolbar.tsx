@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   COMMAND_PRIORITY_LOW,
   FORMAT_ELEMENT_COMMAND,
@@ -158,7 +159,7 @@ export function FormatToolbar() {
       const element = anchorNode.getKey() === 'root'
         ? anchorNode
         : anchorNode.getTopLevelElementOrThrow()
-      const format = (element.getFormat?.() ?? '') as ElementFormatType
+      const format = $isElementNode(element) ? element.getFormatType() : ''
       setElementAlign(format)
     })
   }, [editor])
