@@ -5,11 +5,13 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_LOW,
+  FORMAT_ELEMENT_COMMAND,
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND,
+  type ElementFormatType,
 } from 'lexical'
 import { $getSelectionStyleValueForProperty } from '@lexical/selection'
-import { Bold, Italic } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Italic } from 'lucide-react'
 import { CanvasToolbar, CanvasToolbarBtn, CanvasToolbarSep, CanvasToolbarSwatch, useCanvasToolbarPopover } from './CanvasToolbar'
 import { CanvasPopover } from './CanvasPopover'
 import { WHITEBLOOM_DEFAULT_PALETTE, type PaletteSwatch } from './palette'
@@ -137,6 +139,7 @@ export function FormatToolbar() {
   const [isBold, setIsBold] = useState(false)
   const [isItalic, setIsItalic] = useState(false)
   const [selectionColor, setSelectionColor] = useState('')
+  const [elementAlign, setElementAlign] = useState<ElementFormatType>('')
 
   const syncFormats = useCallback(() => {
     editor.getEditorState().read(() => {
@@ -145,11 +148,18 @@ export function FormatToolbar() {
         setIsBold(false)
         setIsItalic(false)
         setSelectionColor('')
+        setElementAlign('')
         return
       }
       setIsBold(selection.hasFormat('bold'))
       setIsItalic(selection.hasFormat('italic'))
       setSelectionColor($getSelectionStyleValueForProperty(selection, 'color', ''))
+      const anchorNode = selection.anchor.getNode()
+      const element = anchorNode.getKey() === 'root'
+        ? anchorNode
+        : anchorNode.getTopLevelElementOrThrow()
+      const format = (element.getFormatType?.() ?? '') as ElementFormatType
+      setElementAlign(format)
     })
   }, [editor])
 
@@ -179,6 +189,28 @@ export function FormatToolbar() {
         aria-label={t('formatToolbar.italicLabel')}
       >
         <Italic size={13} strokeWidth={2.5} />
+      </CanvasToolbarBtn>
+      <CanvasToolbarSep />
+      <CanvasToolbarBtn
+        active={elementAlign === 'left' || elementAlign === ''}
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'left')}
+        aria-label={t('formatToolbar.alignLeftLabel')}
+      >
+        <AlignLeft size={13} strokeWidth={2.5} />
+      </CanvasToolbarBtn>
+      <CanvasToolbarBtn
+        active={elementAlign === 'center'}
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'center')}
+        aria-label={t('formatToolbar.alignCenterLabel')}
+      >
+        <AlignCenter size={13} strokeWidth={2.5} />
+      </CanvasToolbarBtn>
+      <CanvasToolbarBtn
+        active={elementAlign === 'right'}
+        onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'right')}
+        aria-label={t('formatToolbar.alignRightLabel')}
+      >
+        <AlignRight size={13} strokeWidth={2.5} />
       </CanvasToolbarBtn>
       <CanvasToolbarSep />
       <TextColorControl selectionColor={selectionColor} />

@@ -4,16 +4,13 @@ import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mj
 import {
   AlignLeft,
   AlignRight,
-  ChevronLeft,
-  ChevronRight,
   Columns2,
   GalleryVertical,
   Layers3,
   PanelLeft,
   Pen,
   Rows3,
-  SeparatorVertical,
-  X
+  SeparatorVertical
 } from 'lucide-react'
 import {
   PetalShelf,
@@ -1023,24 +1020,9 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
         </PetalShelfGroup>
 
         <PetalShelfGroup>
-          <PetalShelfItem
-            label="Previous page"
-            icon={<ChevronLeft size={16} strokeWidth={1.6} />}
-            onClick={handlePreviousPage}
-            disabled={activePage <= 1}
-          />
-          <span className="petal-shelf-readout">
+          {/* <span className="petal-shelf-readout">
             {activePage} / {pageCount || '—'}
-          </span>
-          <PetalShelfItem
-            label="Next page"
-            icon={<ChevronRight size={16} strokeWidth={1.6} />}
-            onClick={handleNextPage}
-            disabled={pageCount === 0 || activePage >= pageCount}
-          />
-        </PetalShelfGroup>
-
-        <PetalShelfGroup>
+          </span> */}
           <PetalShelfZoomItem
             scale={scale}
             minScale={MIN_SCALE}
@@ -1048,6 +1030,9 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             onScaleChange={handleSetScale}
             onFitPage={handleFitPage}
           />
+        </PetalShelfGroup>
+
+        <PetalShelfGroup>
           <PetalShelfItem
             label="Ink"
             icon={<Pen size={16} strokeWidth={1.6} />}
@@ -1061,11 +1046,6 @@ export function PdfEditor({ resource, workspaceRoot, onClose }: BudEditorProps) 
             active={acetateVisible}
             accent="var(--color-accent-green)"
             onClick={() => setAcetateVisible((c) => !c)}
-          />
-          <PetalShelfItem
-            label="Close"
-            icon={<X size={16} strokeWidth={1.6} />}
-            onClick={onClose}
           />
         </PetalShelfGroup>
       </PetalShelf>

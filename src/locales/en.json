@@ -206,7 +206,10 @@
     "boldLabel": "Bold",
     "italicLabel": "Italic",
     "textColorLabel": "Text color",
-    "textColorDefault": "Default"
+    "textColorDefault": "Default",
+    "alignLeftLabel": "Align left",
+    "alignCenterLabel": "Align center",
+    "alignRightLabel": "Align right"
   },
   "edgeToolbar": {
     "styleLabel": "Edge style",

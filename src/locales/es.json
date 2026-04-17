@@ -206,7 +206,10 @@
     "boldLabel": "Negrita",
     "italicLabel": "Cursiva",
     "textColorLabel": "Color de texto",
-    "textColorDefault": "Por defecto"
+    "textColorDefault": "Por defecto",
+    "alignLeftLabel": "Alinear a la izquierda",
+    "alignCenterLabel": "Centrar",
+    "alignRightLabel": "Alinear a la derecha"
   },
   "edgeToolbar": {
     "styleLabel": "Estilo de conexión",

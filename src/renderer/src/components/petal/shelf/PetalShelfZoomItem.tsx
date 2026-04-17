@@ -55,11 +55,11 @@ export function PetalShelfZoomItem({
         title={label}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="petal-shelf-zoom__label">{label}</span>
         <span className="petal-shelf-zoom__value">
           <span className="petal-shelf-zoom__value-number">{currentPct}%</span>
           <ChevronDown size={10} strokeWidth={1.8} />
         </span>
+        <span className="petal-shelf-zoom__label">{label}</span>
       </button>
 
       {open ? (

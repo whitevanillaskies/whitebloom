@@ -10,9 +10,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   min-width: 66px;
-  padding: 6px 10px 9px;
+  padding: 7px 10px 11px;
   border: none;
   background: transparent;
   color: var(--color-secondary-fg);
@@ -50,9 +50,12 @@
 .petal-shelf-zoom__value {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 3px;
+  height: 16px;
   color: var(--color-primary-fg);
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .petal-shelf-zoom__value-number {
