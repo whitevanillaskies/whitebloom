@@ -56,6 +56,18 @@ export default function CanvasToolbar({
             <button
                 type="button"
                 onMouseDown={preventMouseFocus}
+                onClick={(e) => {
+                    if (!onShapesClick) return
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    onShapesClick({ x: rect.left, y: rect.top })
+                }}
+                className={'canvas-toolbar__button'}
+                aria-label={t('canvasToolbar.shapesLabel')}>
+                    <Shapes size={16} strokeWidth={2} />
+            </button>
+            <button
+                type="button"
+                onMouseDown={preventMouseFocus}
                 onClick={() => onToolChange('ink')}
                 className={`canvas-toolbar__button${activeTool === 'ink' ? ' canvas-toolbar__button--active' : ''}`}
                 aria-label={t('canvasToolbar.inkLabel')}
@@ -70,18 +82,6 @@ export default function CanvasToolbar({
                 aria-label={t('canvasToolbar.acetateLabel')}
             >
                 <Layers3 size={16} strokeWidth={2} />
-            </button>
-            <button
-                type="button"
-                onMouseDown={preventMouseFocus}
-                onClick={(e) => {
-                    if (!onShapesClick) return
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    onShapesClick({ x: rect.left, y: rect.top })
-                }}
-                className={'canvas-toolbar__button'}
-                aria-label={t('canvasToolbar.shapesLabel')}>
-                    <Shapes size={16} strokeWidth={2} />
             </button>
         </div>
     )

@@ -1419,12 +1419,17 @@ export function Canvas({
   }, [])
 
   useEffect(() => {
-    const el = canvasDropTargetRef.current
-    if (!el) return
-    const handler = (e: Event) => e.preventDefault()
-    el.addEventListener('selectstart', handler)
-    return () => el.removeEventListener('selectstart', handler)
-  }, [])
+    if (!isReconnecting) return
+
+    const { userSelect, webkitUserSelect } = document.body.style
+    document.body.style.userSelect = 'none'
+    document.body.style.webkitUserSelect = 'none'
+
+    return () => {
+      document.body.style.userSelect = userSelect
+      document.body.style.webkitUserSelect = webkitUserSelect
+    }
+  }, [isReconnecting])
 
   const fitClusterToFrame = useCallback(
     (
