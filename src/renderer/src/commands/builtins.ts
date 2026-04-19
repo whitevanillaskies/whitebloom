@@ -873,6 +873,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
           mode: 'canvas-mode',
           title,
           subtitle,
+          category: 'Shapes',
           icon: Icon
         }
       ]
@@ -907,6 +908,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
         mode: 'canvas-mode',
         title: 'Add URL Page',
         subtitle: 'Paste a URL, then place the page link on the canvas',
+        category: 'Canvas',
         icon: Globe
       }
     ]
@@ -942,6 +944,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
         mode: 'canvas-mode',
         title: 'Link Board',
         subtitle: 'Pick a board, then place its link on the canvas',
+        category: 'Canvas',
         icon: PanelsTopLeft
       }
     ]
@@ -979,6 +982,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Delete Selection',
+        category: 'Selection',
         subtitle: 'Remove the currently selected nodes or edges'
       }
     ]
@@ -1004,6 +1008,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Bloom Selection',
+        category: 'Canvas',
         subtitle: 'Open the selected bloom in its primary renderer'
       }
     ]
@@ -1029,6 +1034,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Open Natively',
+        category: 'Canvas',
         subtitle: 'Open the selected resource in the native editor or host app'
       }
     ]
@@ -1052,6 +1058,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Materials',
+        category: 'Canvas',
         subtitle: 'Open the materials window',
         icon: Boxes
       }
@@ -1081,6 +1088,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Link Resources',
+        category: 'Canvas',
         subtitle: 'Link external resources to the board',
         icon: Link2
       }
@@ -1107,6 +1115,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Import Resources',
+        category: 'Canvas',
         subtitle: 'Import files or resources onto the board',
         icon: ArrowDownToLine
       }
@@ -1131,6 +1140,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Text',
+        category: 'Canvas',
         subtitle: 'Activate the text tool',
         icon: Type
       }
@@ -1150,6 +1160,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Script',
+        category: 'Canvas',
         subtitle: 'Future script command entrypoint (stub)',
         icon: Tag
       }
@@ -1174,6 +1185,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Create Cluster',
+        category: 'Canvas',
         subtitle: 'Group selected nodes into a cluster',
         icon: Scan
       }
@@ -1200,6 +1212,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Fit Cluster to Children',
+        category: 'Canvas',
         subtitle: 'Resize the cluster to fit its child nodes'
       }
     ]
@@ -1225,6 +1238,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Toggle Cluster Autofit',
+        category: 'Canvas',
         subtitle: 'Enable or disable automatic resizing of the cluster'
       }
     ]
@@ -1250,6 +1264,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Promote to Subboard',
+        category: 'Canvas',
         subtitle: 'Convert the selected cluster into a subboard'
       }
     ]
@@ -1275,6 +1290,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Toggle Text Auto-Width',
+        category: 'Selection',
         subtitle: 'Enable or disable automatic width for the selected text node',
         icon: FileText
       }
@@ -1299,6 +1315,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Add Focus Writer',
+        category: 'Focus Writer',
         subtitle: 'Add a Focus Writer bud node to the board'
       }
     ]
@@ -1322,6 +1339,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
       {
         mode: 'canvas-mode',
         title: 'Add Schema Bloom',
+        category: 'Schema Bloom',
         subtitle: 'Add a Schema Bloom bud node to the board',
         icon: Database
       }
@@ -1432,6 +1450,7 @@ const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Undo',
+        category: 'History',
         subtitle: 'Reverse the last action'
       }
     ]
@@ -1455,6 +1474,7 @@ const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Redo',
+        category: 'History',
         subtitle: 'Re-apply the last undone action'
       }
     ]

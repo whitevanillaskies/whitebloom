@@ -439,6 +439,7 @@ export type WhitebloomCommandUndo<
 export type WhitebloomCommandDisplayMetadata = {
   title: string
   subtitle?: string
+  category?: string
   hotkey?: string
   icon?: React.ComponentType<{ size?: number }>
 }

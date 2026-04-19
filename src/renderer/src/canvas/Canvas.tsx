@@ -60,9 +60,7 @@ import {
   ArrowDownToLine,
   Boxes,
   Circle,
-  Database,
   Diamond,
-  FileText,
   FolderPlus,
   Link2,
   MicOff,
@@ -3508,6 +3506,7 @@ export function Canvas({
       {
         id: 'create-text',
         label: t('canvas.paletteTextLabel'),
+        category: 'Canvas',
         icon: <Type size={14} strokeWidth={1.8} />,
         hint: 'T',
         onActivate: () => {
@@ -3519,6 +3518,7 @@ export function Canvas({
       {
         id: 'create-cluster',
         label: t('canvas.paletteClusterLabel'),
+        category: 'Canvas',
         icon: <Boxes size={14} strokeWidth={1.8} />,
         onActivate: () => {
           void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.createCluster, undefined, {
@@ -3532,6 +3532,7 @@ export function Canvas({
       items.unshift({
         id: 'promote-cluster-to-subboard',
         label: t('canvas.palettePromoteSubboardLabel'),
+        category: 'Canvas',
         icon: <PanelsTopLeft size={14} strokeWidth={1.8} />,
         onActivate: () => {
           void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.promoteClusterToSubboard, undefined, {
@@ -3553,6 +3554,7 @@ export function Canvas({
             selectedCluster.autofitToContents === true
               ? t('canvas.paletteDisableClusterAutofitSubtitle')
               : t('canvas.paletteEnableClusterAutofitSubtitle'),
+          category: 'Canvas',
           icon: <Scan size={14} strokeWidth={1.8} />,
           onActivate: () => {
             void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.toggleClusterAutofit, undefined, {
@@ -3567,6 +3569,7 @@ export function Canvas({
           id: 'fit-cluster-to-nodes',
           label: t('canvas.paletteFitClusterLabel'),
           subtitle: t('canvas.paletteFitClusterSubtitle'),
+          category: 'Canvas',
           icon: <Scan size={14} strokeWidth={1.8} />,
           onActivate: () => {
             void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.fitCluster, undefined, {
@@ -3583,6 +3586,7 @@ export function Canvas({
       items.push({
         id: 'link-file',
         label: t('canvas.paletteLinkFileLabel'),
+        category: 'Canvas',
         icon: <Link2 size={14} strokeWidth={1.8} />,
         onActivate: () => {
           void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.linkResources, undefined, {
@@ -3593,29 +3597,10 @@ export function Canvas({
       items.push({
         id: 'import-file',
         label: t('canvas.paletteImportFileLabel'),
+        category: 'Canvas',
         icon: <ArrowDownToLine size={14} strokeWidth={1.8} />,
         onActivate: () => {
           void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.importResources, undefined, {
-            source: 'palette'
-          })
-        }
-      })
-      items.push({
-        id: 'create-focus-writer',
-        label: t('canvas.paletteFocusWriterLabel'),
-        icon: <FileText size={14} strokeWidth={1.8} />,
-        onActivate: () => {
-          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addFocusWriter, undefined, {
-            source: 'palette'
-          })
-        }
-      })
-      items.push({
-        id: 'create-schema-bloom',
-        label: t('canvas.paletteSchemaBloomLabel'),
-        icon: <Database size={14} strokeWidth={1.8} />,
-        onActivate: () => {
-          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.addSchemaBloom, undefined, {
             source: 'palette'
           })
         }
@@ -3624,6 +3609,7 @@ export function Canvas({
       items.push({
         id: 'link-file',
         label: t('canvas.paletteLinkFileLabel'),
+        category: 'Canvas',
         icon: <Link2 size={14} strokeWidth={1.8} />,
         onActivate: () => {
           void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.linkResources, undefined, {
@@ -3642,6 +3628,7 @@ export function Canvas({
       items.push({
         id: 'screen.start-recording',
         label: 'screen.start-recording',
+        category: 'Spotlight Actions',
         subtitle: `Capture a quick session and save it to ${SCREEN_RECORDING_DIRECTORY}/`,
         icon: <Radio size={14} strokeWidth={1.8} />,
         hint: 'rr',
@@ -3668,6 +3655,7 @@ export function Canvas({
       items.push({
         id: 'screen.stop-recording',
         label: 'screen.stop-recording',
+        category: 'Spotlight Actions',
         subtitle:
           screenRecordingState.fileName !== null
             ? `Stop ${screenRecordingState.fileName}.webm and save it`

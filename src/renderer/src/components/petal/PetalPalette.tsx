@@ -16,6 +16,7 @@ import {
   type WhitebloomCommandLatentState,
   type WhitebloomRegisteredCommandForContext
 } from '@renderer/commands'
+import { resolveModuleById } from '@renderer/modules/registry'
 import './PetalPalette.css'
 
 export type PaletteMode = {
@@ -59,6 +60,7 @@ export type PaletteItem = {
   id: string
   label: string
   subtitle?: string
+  category?: string
   icon?: ReactNode
   /** Keyboard shortcut badge shown on the right, e.g. "T" or "⌘S" */
   hint?: string
@@ -77,6 +79,7 @@ type PaletteRenderedEntry = {
   id: string
   label: string
   subtitle?: string
+  category?: string
   icon?: ReactNode
   hint?: string
   commandId?: string
@@ -133,6 +136,34 @@ function getParentNamespace(namespace: string | null): string | null {
 
 function canPaletteLaunchCommand(entry: WhitebloomRegisteredCommandForContext<any>): boolean {
   return entry.command.flow !== undefined || entry.command.core.argsSchema === undefined
+}
+
+function prettifyModuleCategory(moduleId: string): string {
+  const module = resolveModuleById(moduleId)
+  if (module?.majorModeLabel?.trim()) {
+    return module.majorModeLabel.trim()
+  }
+
+  const leaf = moduleId.split('.').filter(Boolean).at(-1) ?? moduleId
+  return leaf
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ')
+}
+
+function resolveCommandCategory(
+  entry: WhitebloomRegisteredCommandForContext<any>,
+  presentation?: { category?: string }
+): string {
+  const explicitCategory = presentation?.category?.trim()
+  if (explicitCategory) return explicitCategory
+
+  if (entry.provider.source.kind === 'module') {
+    return prettifyModuleCategory(entry.provider.source.moduleId)
+  }
+
+  return 'Commands'
 }
 
 function isDirectCommandInNamespace(commandId: string, namespace: string | null): boolean {
@@ -530,6 +561,7 @@ export default function PetalPalette({
             id: item.id,
             label: item.label,
             subtitle: item.subtitle,
+            category: item.category,
             icon: item.icon,
             hint: item.hint,
             onActivate: item.onActivate
@@ -554,6 +586,7 @@ export default function PetalPalette({
             id: `command:${result.entry.command.core.id}`,
             label: result.presentation?.title ?? result.entry.command.core.id,
             subtitle: result.presentation?.subtitle,
+            category: resolveCommandCategory(result.entry, result.presentation),
             icon: Icon ? <Icon size={14} /> : undefined,
             hint: result.presentation?.hotkey,
             commandId: result.entry.command.core.id,
@@ -633,6 +666,7 @@ export default function PetalPalette({
         id: `legacy-command:${item.id}`,
         label: item.label,
         subtitle: item.subtitle,
+        category: item.category,
         icon: item.icon,
         hint: item.hint,
         onActivate: item.onActivate
@@ -658,6 +692,7 @@ export default function PetalPalette({
           id: `command:${result.entry.command.core.id}`,
           label: result.entry.command.core.id,
           subtitle: presentation?.title,
+          category: resolveCommandCategory(result.entry, presentation),
           hint: (primaryAlias ?? presentation?.hotkey)?.toLowerCase(),
           commandId: result.entry.command.core.id,
           onActivate: () => activateRegisteredCommand(result.entry)
@@ -740,9 +775,31 @@ export default function PetalPalette({
   useEffect(() => {
     const list = listRef.current
     if (!list) return
-    const activeEl = list.children[activeIndex] as HTMLElement | undefined
+    const activeEl = list.querySelector<HTMLElement>(`[data-palette-index="${activeIndex}"]`)
     activeEl?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex])
+
+  const groupedFiltered = useMemo(() => {
+    const groups = new Map<string, { category: string | null; entries: PaletteRenderedEntry[] }>()
+    const orderedKeys: string[] = []
+
+    for (const entry of filtered) {
+      const category = entry.category?.trim() || null
+      const key = category ?? '__uncategorized__'
+      const existing = groups.get(key)
+      if (existing) {
+        existing.entries.push(entry)
+      } else {
+        orderedKeys.push(key)
+        groups.set(key, {
+          category,
+          entries: [entry]
+        })
+      }
+    }
+
+    return orderedKeys.map((key) => groups.get(key)!)
+  }, [filtered])
 
   const activate = useCallback(
     async (item: PaletteRenderedEntry) => {
@@ -1056,33 +1113,49 @@ export default function PetalPalette({
                 {mode.emptyLabel ?? emptyLabel ?? t('petalPalette.noResults')}
               </div>
             ) : (
-              filtered.map((item, i) => (
-                <button
-                  key={item.id}
-                  className={[
-                    'petal-palette__item',
-                    i === activeIndex ? 'petal-palette__item--active' : ''
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  role="option"
-                  aria-selected={i === activeIndex}
-                  onClick={() => {
-                    void activate(item)
-                  }}
-                  onMouseEnter={() => setActiveIndex(i)}
-                  tabIndex={-1}
-                >
-                  {item.icon && <span className="petal-palette__item-icon">{item.icon}</span>}
-                  <span className="petal-palette__item-copy">
-                    <span className="petal-palette__item-label">{item.label}</span>
-                    {item.subtitle ? (
-                      <span className="petal-palette__item-subtitle">{item.subtitle}</span>
+              groupedFiltered.map((group) => {
+                return (
+                  <div
+                    key={`group:${group.category ?? 'uncategorized'}:${group.entries[0]?.id ?? 'empty'}`}
+                    className="petal-palette__group"
+                  >
+                    {group.category ? (
+                      <div className="petal-palette__group-label">{group.category}</div>
                     ) : null}
-                  </span>
-                  {item.hint && <span className="petal-palette__item-hint">{item.hint}</span>}
-                </button>
-              ))
+                    {group.entries.map((item) => {
+                      const itemIndex = filtered.findIndex((entry) => entry.id === item.id)
+                      return (
+                        <button
+                          key={item.id}
+                          data-palette-index={itemIndex}
+                          className={[
+                            'petal-palette__item',
+                            itemIndex === activeIndex ? 'petal-palette__item--active' : ''
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          role="option"
+                          aria-selected={itemIndex === activeIndex}
+                          onClick={() => {
+                            void activate(item)
+                          }}
+                          onMouseEnter={() => setActiveIndex(itemIndex)}
+                          tabIndex={-1}
+                        >
+                          {item.icon && <span className="petal-palette__item-icon">{item.icon}</span>}
+                          <span className="petal-palette__item-copy">
+                            <span className="petal-palette__item-label">{item.label}</span>
+                            {item.subtitle ? (
+                              <span className="petal-palette__item-subtitle">{item.subtitle}</span>
+                            ) : null}
+                          </span>
+                          {item.hint && <span className="petal-palette__item-hint">{item.hint}</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })
             )}
           </div>
         )}

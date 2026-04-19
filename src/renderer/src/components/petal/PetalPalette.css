@@ -197,6 +197,21 @@
   padding: 4px;
 }
 
+.petal-palette__group + .petal-palette__group {
+  margin-top: 6px;
+}
+
+.petal-palette__group-label {
+  padding: 7px 10px 4px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-muted-fg);
+  user-select: none;
+}
+
 .petal-palette__item {
   display: flex;
   align-items: center;
