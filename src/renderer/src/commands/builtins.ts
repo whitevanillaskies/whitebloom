@@ -5,7 +5,9 @@ import {
   Archive,
   ArrowDownToLine,
   Boxes,
+  Circle,
   Database,
+  Diamond,
   Download,
   FileText,
   Globe,
@@ -13,6 +15,7 @@ import {
   Link2,
   PanelsTopLeft,
   Scan,
+  Square,
   Tag,
   Trash2,
   Type
@@ -32,9 +35,10 @@ import type {
   ArrangementsRemoveMaterialsFromBinCommandArgs,
   ArrangementsSendMaterialsToTrashCommandArgs,
   CanvasAddEdgeCommandArgs,
+  CanvasActivatePayloadPlacementArgs,
   CanvasCommandContext,
+  CanvasBudPayload,
   CanvasCreateBudCommandArgs,
-  CanvasCreateShapeCommandArgs,
   CanvasLinkableBoard,
   WhitebloomCommandForContext
 } from './types'
@@ -58,6 +62,7 @@ export const WHITEBLOOM_COMMAND_IDS = {
     linkResources: 'board.link-resources',
     importResources: 'board.import-resources',
     addText: 'board.add-text',
+    scriptRun: 'script.run',
     createCluster: 'board.create-cluster',
     fitCluster: 'board.fit-cluster',
     toggleClusterAutofit: 'board.toggle-cluster-autofit',
@@ -88,12 +93,48 @@ export const WHITEBLOOM_COMMAND_IDS = {
   }
 } as const
 
-const CANVAS_SHAPE_COMMANDS: Array<{ id: string; preset: ShapePreset }> = [
-  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawRectangle, preset: 'rectangle' },
-  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawSlantedRectangle, preset: 'slanted-rectangle' },
-  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond, preset: 'diamond' },
-  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse, preset: 'ellipse' },
-  { id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawTerminator, preset: 'terminator' }
+const CANVAS_SHAPE_COMMANDS: Array<{
+  id: string
+  preset: ShapePreset
+  title: string
+  subtitle: string
+  icon: typeof Square
+}> = [
+  {
+    id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawRectangle,
+    preset: 'rectangle',
+    title: 'Rectangle',
+    subtitle: 'Activate the rectangle tool',
+    icon: Square
+  },
+  {
+    id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawSlantedRectangle,
+    preset: 'slanted-rectangle',
+    title: 'Slanted Rectangle',
+    subtitle: 'Activate the slanted rectangle tool',
+    icon: Square
+  },
+  {
+    id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawDiamond,
+    preset: 'diamond',
+    title: 'Diamond',
+    subtitle: 'Activate the diamond tool',
+    icon: Diamond
+  },
+  {
+    id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawEllipse,
+    preset: 'ellipse',
+    title: 'Ellipse',
+    subtitle: 'Activate the ellipse tool',
+    icon: Circle
+  },
+  {
+    id: WHITEBLOOM_COMMAND_IDS.canvas.shapeDrawTerminator,
+    preset: 'terminator',
+    title: 'Terminator',
+    subtitle: 'Activate the terminator tool',
+    icon: Circle
+  }
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -276,8 +317,7 @@ function parseMoveMaterialsToDesktopArgs(
   }
 }
 
-type CanvasAddUrlPageCommandArgs = CanvasCreateBudCommandArgs
-type CanvasLinkBoardCommandArgs = CanvasCreateBudCommandArgs
+type CanvasActivatePayloadPlacementCommandArgs = CanvasActivatePayloadPlacementArgs
 type ArrangementsRenameBinCommandArgs = {
   binId: string
   name: string
@@ -348,6 +388,70 @@ function parseDeleteSetArgs(args: unknown): ArrangementsDeleteSetCommandArgs {
   }
 }
 
+function parseCanvasBudPayload(args: unknown): CanvasBudPayload {
+  if (!isRecord(args)) {
+    throw new Error('Canvas bud payload arguments must be an object.')
+  }
+
+  const moduleType =
+    args.moduleType === null
+      ? null
+      : typeof args.moduleType === 'string'
+        ? args.moduleType.trim() || null
+        : undefined
+
+  if (moduleType === undefined) throw new Error('moduleType must be a string or null.')
+
+  const size = isRecord(args.size) ? args.size : null
+  if (!size) throw new Error('size is required.')
+
+  return {
+    resource: parseString(args.resource, 'resource'),
+    moduleType,
+    size: {
+      w: parseNumber(size.w, 'size.w'),
+      h: parseNumber(size.h, 'size.h')
+    },
+    label: parseOptionalString(args.label)
+  }
+}
+
+function parseCanvasActivatePayloadPlacementArgs(
+  args: unknown
+): CanvasActivatePayloadPlacementCommandArgs {
+  if (!isRecord(args)) {
+    throw new Error('Payload placement arguments must be an object.')
+  }
+
+  const payload = parseCanvasBudPayload(args.payload)
+  const preview = isRecord(args.preview) ? args.preview : undefined
+  const icon = isRecord(preview?.icon) ? preview.icon : undefined
+
+  return {
+    payload,
+    ...(preview
+      ? {
+          preview: {
+            ...(typeof preview.label === 'string' && preview.label.trim().length > 0
+              ? { label: preview.label.trim() }
+              : {}),
+            ...(icon &&
+            (icon.kind === 'icon-key' || icon.kind === 'resource' || icon.kind === 'data-url') &&
+            typeof icon.value === 'string' &&
+            icon.value.trim().length > 0
+              ? {
+                  icon: {
+                    kind: icon.kind,
+                    value: icon.value.trim()
+                  }
+                }
+              : {})
+          }
+        }
+      : {})
+  }
+}
+
 function createCanvasUrlPageInputStep(initialValue = '') {
   return {
     kind: 'input' as const,
@@ -387,16 +491,23 @@ function createUrlPageLabelStrategyStep(resource: string) {
         title: 'Use URL Name',
         subtitle: 'Create the bud using the URL as its label',
         icon: Globe,
-        onSelect: (context: CanvasCommandContext) => {
-          if (!context.subjectSnapshot.insertionPoint) return { type: 'cancel' as const }
+        onSelect: () => {
           return {
             type: 'submit' as const,
             args: {
-              position: context.subjectSnapshot.insertionPoint,
-              moduleType: webPageBloomModule.id,
-              size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
-              resource
-            } satisfies CanvasAddUrlPageCommandArgs
+              payload: {
+                moduleType: webPageBloomModule.id,
+                size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+                resource
+              },
+              preview: {
+                label: resource,
+                icon: {
+                  kind: 'icon-key',
+                  value: 'globe'
+                }
+              }
+            } satisfies CanvasActivatePayloadPlacementCommandArgs
           }
         }
       },
@@ -405,20 +516,27 @@ function createUrlPageLabelStrategyStep(resource: string) {
         title: 'Try Request Page Title',
         subtitle: 'Fetch the page title from the URL and use it as the label',
         icon: Download,
-        onSelect: async (context: CanvasCommandContext, interaction) => {
-          if (!context.subjectSnapshot.insertionPoint) return { type: 'cancel' as const }
+        onSelect: async (_context: CanvasCommandContext, interaction) => {
           interaction.setBusyState({ title: 'Fetching page title', label: resource })
           const title = await fetchPageTitle(resource, interaction.signal)
           if (interaction.signal.aborted) return { type: 'cancel' as const }
           return {
             type: 'submit' as const,
             args: {
-              position: context.subjectSnapshot.insertionPoint,
-              moduleType: webPageBloomModule.id,
-              size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
-              resource,
-              ...(title ? { label: title } : {})
-            } satisfies CanvasAddUrlPageCommandArgs
+              payload: {
+                moduleType: webPageBloomModule.id,
+                size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+                resource,
+                ...(title ? { label: title } : {})
+              },
+              preview: {
+                label: title ?? resource,
+                icon: {
+                  kind: 'icon-key',
+                  value: 'globe'
+                }
+              }
+            } satisfies CanvasActivatePayloadPlacementCommandArgs
           }
         }
       },
@@ -445,7 +563,7 @@ function createUrlPageSetLabelInputStep(resource: string) {
     placeholder: 'Type a label for this page',
     submitLabel: 'Add Page',
     initialValue: '',
-    onSubmit: (value: string, context: CanvasCommandContext) => {
+    onSubmit: (value: string) => {
       const label = value.trim()
       if (!label) {
         return {
@@ -453,16 +571,23 @@ function createUrlPageSetLabelInputStep(resource: string) {
           step: createUrlPageSetLabelInputStep(resource)
         }
       }
-      if (!context.subjectSnapshot.insertionPoint) return { type: 'cancel' as const }
       return {
         type: 'submit' as const,
         args: {
-          position: context.subjectSnapshot.insertionPoint,
-          moduleType: webPageBloomModule.id,
-          size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
-          resource,
-          label
-        } satisfies CanvasAddUrlPageCommandArgs
+          payload: {
+            moduleType: webPageBloomModule.id,
+            size: webPageBloomModule.defaultSize ?? { w: 88, h: 88 },
+            resource,
+            label
+          },
+          preview: {
+            label,
+            icon: {
+              kind: 'icon-key',
+              value: 'globe'
+            }
+          }
+        } satisfies CanvasActivatePayloadPlacementCommandArgs
       }
     }
   }
@@ -481,20 +606,24 @@ function createCanvasLinkBoardListStep(linkableBoards: CanvasLinkableBoard[]) {
       title: board.name,
       subtitle: board.subtitle,
       icon: PanelsTopLeft,
-      onSelect: (context: CanvasCommandContext) => {
-        if (!context.subjectSnapshot.insertionPoint) {
-          return { type: 'cancel' as const }
-        }
-
+      onSelect: () => {
         return {
           type: 'submit' as const,
           args: {
-            position: context.subjectSnapshot.insertionPoint,
-            moduleType: boardBloomModule.id,
-            size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
-            label: board.name,
-            resource: board.resource
-          } satisfies CanvasLinkBoardCommandArgs
+            payload: {
+              moduleType: boardBloomModule.id,
+              size: boardBloomModule.defaultSize ?? { w: 196, h: 128 },
+              label: board.name,
+              resource: board.resource
+            },
+            preview: {
+              label: board.name,
+              icon: {
+                kind: 'icon-key',
+                value: 'board'
+              }
+            }
+          } satisfies CanvasActivatePayloadPlacementCommandArgs
         }
       }
     }))
@@ -707,6 +836,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addBud,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['board.create-bud'],
       enabledWhen: (context) => typeof context.actions.createBud === 'function',
@@ -724,52 +854,48 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
     }
   },
   ...CANVAS_SHAPE_COMMANDS.map<WhitebloomCommandForContext<CanvasCommandContext>>(
-    ({ id, preset }) => ({
+    ({ icon: Icon, id, preset, subtitle, title }) => ({
       core: {
         id,
+        kind: 'tool',
         modeScope: 'canvas-mode',
-        enabledWhen: (context) =>
-          typeof context.actions.createShape === 'function' &&
-          context.subjectSnapshot.insertionPoint !== undefined,
-        run: async (_args, context) => {
-          if (!context.actions.createShape || !context.subjectSnapshot.insertionPoint) {
-            throw new Error('Canvas context cannot create shapes.')
+        enabledWhen: (context) => typeof context.actions.activateShapeTool === 'function',
+        run: (_args, context) => {
+          if (!context.actions.activateShapeTool) {
+            throw new Error('Canvas context cannot activate shape tools.')
           }
 
-          return context.actions.createShape({
-            position: context.subjectSnapshot.insertionPoint,
-            preset
-          } satisfies CanvasCreateShapeCommandArgs)
-        },
-        undo: (_args, result) => {
-          useBoardStore.getState().deleteNode((result as { nodeId: string }).nodeId)
+          context.actions.activateShapeTool(preset)
         }
-      }
+      },
+      presentations: [
+        {
+          mode: 'canvas-mode',
+          title,
+          subtitle,
+          icon: Icon
+        }
+      ]
     })
   ),
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addUrlPage,
+      kind: 'tool',
       modeScope: 'canvas-mode',
       aliases: ['board.create-url-page'],
-      enabledWhen: (context) =>
-        typeof context.actions.createBud === 'function' &&
-        context.subjectSnapshot.insertionPoint !== undefined,
-      argsSchema: parseCanvasBudArgs,
+      enabledWhen: (context) => typeof context.actions.activatePayloadPlacement === 'function',
+      argsSchema: parseCanvasActivatePayloadPlacementArgs,
       run: (args, context) => {
-        if (!context.actions.createBud) {
-          throw new Error('Canvas context cannot create buds.')
+        if (!context.actions.activatePayloadPlacement) {
+          throw new Error('Canvas context cannot activate payload placement.')
         }
 
-        return context.actions.createBud(args)
+        context.actions.activatePayloadPlacement(args)
       }
     },
     flow: {
-      start: async (context) => {
-        if (!context.subjectSnapshot.insertionPoint) {
-          return { type: 'cancel' as const }
-        }
-
+      start: async () => {
         return {
           type: 'step' as const,
           step: createCanvasUrlPageInputStep()
@@ -780,7 +906,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Add URL Page',
-        subtitle: 'Paste a URL and create a web page bud',
+        subtitle: 'Paste a URL, then place the page link on the canvas',
         icon: Globe
       }
     ]
@@ -788,27 +914,23 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.linkBoard,
+      kind: 'tool',
       modeScope: 'canvas-mode',
       aliases: ['board.link-subboard'],
+      argsSchema: parseCanvasActivatePayloadPlacementArgs,
       enabledWhen: (context) =>
-        typeof context.actions.createBud === 'function' &&
-        context.subjectSnapshot.insertionPoint !== undefined &&
+        typeof context.actions.activatePayloadPlacement === 'function' &&
         (context.subjectSnapshot.linkableBoards?.length ?? 0) > 0,
-      argsSchema: parseCanvasBudArgs,
       run: (args, context) => {
-        if (!context.actions.createBud) {
-          throw new Error('Canvas context cannot create buds.')
+        if (!context.actions.activatePayloadPlacement) {
+          throw new Error('Canvas context cannot activate payload placement.')
         }
 
-        return context.actions.createBud(args)
+        context.actions.activatePayloadPlacement(args)
       }
     },
     flow: {
       start: async (context) => {
-        if (!context.subjectSnapshot.insertionPoint) {
-          return { type: 'cancel' as const }
-        }
-
         return {
           type: 'step' as const,
           step: createCanvasLinkBoardListStep(context.subjectSnapshot.linkableBoards ?? [])
@@ -819,7 +941,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       {
         mode: 'canvas-mode',
         title: 'Link Board',
-        subtitle: 'Link another workspace board as a bud',
+        subtitle: 'Pick a board, then place its link on the canvas',
         icon: PanelsTopLeft
       }
     ]
@@ -827,6 +949,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['selection.remove'],
       enabledWhen: (context) =>
@@ -863,6 +986,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.bloomSelection,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['node.open'],
       enabledWhen: (context) =>
@@ -887,6 +1011,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.openSelectionInNativeEditor,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['resource.open-file'],
       enabledWhen: (context) =>
@@ -911,6 +1036,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.openMaterials,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['workspace.materials', 'materials'],
       enabledWhen: (context) => typeof context.actions.openMaterials === 'function',
@@ -937,6 +1063,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.linkResources,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['board.link', 'link-resources'],
       enabledWhen: (context) =>
@@ -962,6 +1089,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.importResources,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['board.import', 'import-resources'],
       enabledWhen: (context) =>
@@ -987,32 +1115,50 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addText,
+      kind: 'tool',
       modeScope: 'canvas-mode',
       aliases: ['board.text', 'add-text-node'],
-      enabledWhen: (context) => typeof context.actions.addTextNode === 'function',
+      enabledWhen: (context) => typeof context.actions.activateTool === 'function',
       run: (_args, context) => {
-        if (!context.actions.addTextNode) {
-          throw new Error('Canvas context cannot add text nodes.')
+        if (!context.actions.activateTool) {
+          throw new Error('Canvas context cannot activate the text tool.')
         }
 
-        return context.actions.addTextNode()
-      },
-      undo: (_args, result) => {
-        useBoardStore.getState().deleteNode((result as { nodeId: string }).nodeId)
+        context.actions.activateTool('text')
       }
     },
     presentations: [
       {
         mode: 'canvas-mode',
-        title: 'Add Text',
-        subtitle: 'Add a text node to the board',
+        title: 'Text',
+        subtitle: 'Activate the text tool',
         icon: Type
       }
     ]
   },
   {
     core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.scriptRun,
+      kind: 'script',
+      modeScope: 'canvas-mode',
+      aliases: ['script'],
+      run: () => {
+        throw new Error('Script commands are not implemented yet.')
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Script',
+        subtitle: 'Future script command entrypoint (stub)',
+        icon: Tag
+      }
+    ]
+  },
+  {
+    core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.createCluster,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['board.cluster', 'cluster'],
       enabledWhen: (context) => typeof context.actions.createCluster === 'function',
@@ -1036,6 +1182,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.fitCluster,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['cluster.fit'],
       enabledWhen: (context) =>
@@ -1060,6 +1207,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.toggleClusterAutofit,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['cluster.autofit'],
       enabledWhen: (context) =>
@@ -1084,6 +1232,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.promoteClusterToSubboard,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['cluster.promote', 'promote-subboard'],
       enabledWhen: (context) =>
@@ -1108,6 +1257,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.toggleTextAutoWidth,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['node.text.autowidth'],
       enabledWhen: (context) =>
@@ -1133,6 +1283,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addFocusWriter,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['board.focus-writer', 'add-focus-writer'],
       enabledWhen: (context) => typeof context.actions.addFocusWriterBud === 'function',
@@ -1155,6 +1306,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addSchemaBloom,
+      kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['board.schema-bloom', 'add-schema-bloom'],
       enabledWhen: (context) => typeof context.actions.addSchemaBloomBud === 'function',
@@ -1178,6 +1330,7 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addEdge,
+      kind: 'action',
       modeScope: 'canvas-mode',
       enabledWhen: (context) => typeof context.actions.addEdge === 'function',
       run: (args: CanvasAddEdgeCommandArgs, context) => {
@@ -1202,6 +1355,7 @@ const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke,
+      kind: 'action',
       modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       enabledWhen: (context) => typeof context.actions.appendInkStroke === 'function',
       run: async (args: InkAppendStrokeArgs, context) => {
@@ -1220,6 +1374,7 @@ const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.inkClearLayer,
+      kind: 'action',
       modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       enabledWhen: (context) => typeof context.actions.clearInkLayer === 'function',
       run: async (args: InkClearLayerArgs, context) => {
@@ -1238,6 +1393,7 @@ const inkCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes,
+      kind: 'action',
       modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       enabledWhen: (context) => typeof context.actions.eraseInkStrokes === 'function',
       run: async (args: InkEraseStrokesArgs, context) => {
@@ -1260,6 +1416,7 @@ const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.historyUndo,
+      kind: 'action',
       modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       aliases: ['undo'],
       enabledWhen: (context) => {
@@ -1282,6 +1439,7 @@ const historyCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.historyRedo,
+      kind: 'action',
       modeScope: ['canvas-mode', 'module:com.whitebloom.pdf'] as const,
       aliases: ['redo'],
       enabledWhen: (context) => {
@@ -1307,6 +1465,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createBin,
+      kind: 'action',
       aliases: ['arrangements.bin.new'],
       enabledWhen: (context) => typeof context.actions.createBin === 'function',
       argsSchema: parseArrangementsCreateBinArgs,
@@ -1322,6 +1481,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createBinAtCenter,
+      kind: 'action',
       aliases: ['arrangements.bin.create-from-palette'],
       enabledWhen: (context) => typeof context.actions.createBinAtViewportCenter === 'function',
       argsSchema: {
@@ -1346,6 +1506,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.renameBin,
+      kind: 'action',
       aliases: ['arrangements.bin.edit-name'],
       enabledWhen: (context) =>
         typeof context.actions.renameBin === 'function' &&
@@ -1369,6 +1530,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.deleteBin,
+      kind: 'action',
       aliases: ['arrangements.bin.remove'],
       enabledWhen: (context) =>
         typeof context.actions.deleteBin === 'function' &&
@@ -1392,6 +1554,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.assignMaterialsToBin,
+      kind: 'action',
       aliases: ['arrangements.material.move-to-bin'],
       enabledWhen: (context) =>
         typeof context.actions.assignMaterialsToBin === 'function' &&
@@ -1413,6 +1576,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.removeMaterialsFromBin,
+      kind: 'action',
       aliases: ['arrangements.material.unbin'],
       enabledWhen: (context) =>
         typeof context.actions.removeMaterialsFromBin === 'function' &&
@@ -1430,6 +1594,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.includeMaterialsInSet,
+      kind: 'action',
       aliases: ['arrangements.material.add-to-set'],
       enabledWhen: (context) =>
         typeof context.actions.includeMaterialsInSet === 'function' &&
@@ -1451,6 +1616,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.sendMaterialsToTrash,
+      kind: 'action',
       aliases: ['arrangements.material.trash'],
       enabledWhen: (context) =>
         typeof context.actions.sendMaterialsToTrash === 'function' &&
@@ -1468,6 +1634,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.moveMaterialsToDesktop,
+      kind: 'action',
       aliases: ['arrangements.material.move-to-desktop'],
       enabledWhen: (context) =>
         typeof context.actions.moveMaterialsToDesktop === 'function' &&
@@ -1485,6 +1652,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.createRootSet,
+      kind: 'action',
       aliases: ['arrangements.set.create'],
       enabledWhen: (context) => typeof context.actions.createRootSet === 'function',
       argsSchema: parseCreateRootSetArgs,
@@ -1506,6 +1674,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.renameSet,
+      kind: 'action',
       aliases: ['arrangements.set.edit-name'],
       enabledWhen: (context) =>
         typeof context.actions.renameSet === 'function' &&
@@ -1529,6 +1698,7 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
   {
     core: {
       id: WHITEBLOOM_COMMAND_IDS.arrangements.deleteSet,
+      kind: 'action',
       aliases: ['arrangements.set.remove'],
       enabledWhen: (context) =>
         typeof context.actions.deleteSet === 'function' &&

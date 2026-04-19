@@ -31,6 +31,21 @@ export type CanvasCreateBudCommandArgs = {
   label?: string
 }
 
+export type CanvasBudPayload = Omit<CanvasCreateBudCommandArgs, 'position'>
+
+export type CanvasPayloadPlacementPreviewIcon =
+  | { kind: 'icon-key'; value: string }
+  | { kind: 'resource'; value: string }
+  | { kind: 'data-url'; value: string }
+
+export type CanvasActivatePayloadPlacementArgs = {
+  payload: CanvasBudPayload
+  preview?: {
+    label?: string
+    icon?: CanvasPayloadPlacementPreviewIcon
+  }
+}
+
 export type CanvasCreateShapeCommandArgs = {
   position: WhitebloomCanvasPoint
   preset: ShapePreset
@@ -76,7 +91,7 @@ export type CanvasCommandCapabilities = {
   canToggleTextAutoWidth?: boolean
 }
 
-export type CanvasToolKind = 'pointer' | 'hand' | 'text' | 'ink'
+export type CanvasToolKind = 'pointer' | 'hand' | 'text' | 'shape' | 'payload' | 'ink'
 
 export type CanvasSelectionShape =
   | 'none'
@@ -89,6 +104,9 @@ export type CanvasSelectionShape =
 export type CanvasCommandActions = {
   createBud?: (input: CanvasCreateBudCommandArgs) => string
   createShape?: (input: CanvasCreateShapeCommandArgs) => { nodeId: string }
+  activateTool?: (tool: CanvasToolKind) => void
+  activateShapeTool?: (preset: ShapePreset) => void
+  activatePayloadPlacement?: (input: CanvasActivatePayloadPlacementArgs) => void
   deleteSelection?: () => CanvasDeletedSelection
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
@@ -153,6 +171,8 @@ export type CanvasSubjectSnapshot = {
   selection: CanvasCommandSelection
   capabilities: CanvasCommandCapabilities
   activeTool: CanvasToolKind
+  activeShapePreset?: ShapePreset
+  activePayloadPlacement?: CanvasActivatePayloadPlacementArgs | null
   insertionPoint?: WhitebloomCanvasPoint
   linkableBoards?: CanvasLinkableBoard[]
 }
@@ -423,6 +443,8 @@ export type WhitebloomCommandDisplayMetadata = {
   icon?: React.ComponentType<{ size?: number }>
 }
 
+export type WhitebloomCommandKind = 'action' | 'tool' | 'script'
+
 /**
  * The real command.
  *
@@ -444,6 +466,7 @@ export type WhitebloomCommandCore<
   TResult = void
 > = {
   id: WhitebloomCommandId
+  kind: WhitebloomCommandKind
   aliases?: string[]
   modeScope?: WhitebloomCommandModeScope
   enabledWhen?: WhitebloomCommandEnabledWhen<TContext>

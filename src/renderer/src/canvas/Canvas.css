@@ -25,6 +25,16 @@
   cursor: crosshair !important;
 }
 
+.canvas--tool-shape,
+.canvas--tool-shape * {
+  cursor: crosshair !important;
+}
+
+.canvas--tool-payload,
+.canvas--tool-payload * {
+  cursor: crosshair !important;
+}
+
 .canvas--tool-ink,
 .canvas--tool-ink * {
   cursor: crosshair !important;
@@ -43,6 +53,18 @@
 .canvas--tool-text .selection-toolbar *,
 .canvas--tool-text .board-context-bar,
 .canvas--tool-text .board-context-bar *,
+.canvas--tool-shape .canvas-toolbar,
+.canvas--tool-shape .canvas-toolbar *,
+.canvas--tool-shape .selection-toolbar,
+.canvas--tool-shape .selection-toolbar *,
+.canvas--tool-shape .board-context-bar,
+.canvas--tool-shape .board-context-bar *,
+.canvas--tool-payload .canvas-toolbar,
+.canvas--tool-payload .canvas-toolbar *,
+.canvas--tool-payload .selection-toolbar,
+.canvas--tool-payload .selection-toolbar *,
+.canvas--tool-payload .board-context-bar,
+.canvas--tool-payload .board-context-bar *,
 .canvas--tool-ink .canvas-toolbar,
 .canvas--tool-ink .canvas-toolbar *,
 .canvas--tool-ink .selection-toolbar,
@@ -55,21 +77,31 @@
 /* Keep explicit button affordance on toolbar controls. */
 .canvas--tool-hand .canvas-toolbar__button,
 .canvas--tool-text .canvas-toolbar__button,
+.canvas--tool-shape .canvas-toolbar__button,
+.canvas--tool-payload .canvas-toolbar__button,
 .canvas--tool-ink .canvas-toolbar__button,
 .canvas--tool-hand .petal-toolbar-button,
 .canvas--tool-text .petal-toolbar-button,
+.canvas--tool-shape .petal-toolbar-button,
+.canvas--tool-payload .petal-toolbar-button,
 .canvas--tool-ink .petal-toolbar-button,
 .canvas--tool-hand .board-context-bar__identity--workspace,
 .canvas--tool-text .board-context-bar__identity--workspace,
+.canvas--tool-shape .board-context-bar__identity--workspace,
+.canvas--tool-payload .board-context-bar__identity--workspace,
 .canvas--tool-ink .board-context-bar__identity--workspace,
 .canvas--tool-hand .board-context-bar__name,
 .canvas--tool-text .board-context-bar__name,
+.canvas--tool-shape .board-context-bar__name,
+.canvas--tool-payload .board-context-bar__name,
 .canvas--tool-ink .board-context-bar__name {
   cursor: pointer !important;
 }
 
 .canvas--tool-hand .board-context-bar__name,
 .canvas--tool-text .board-context-bar__name,
+.canvas--tool-shape .board-context-bar__name,
+.canvas--tool-payload .board-context-bar__name,
 .canvas--tool-ink .board-context-bar__name {
   cursor: text !important;
 }

@@ -61,7 +61,7 @@ export default function CanvasToolbar({
                     const rect = e.currentTarget.getBoundingClientRect()
                     onShapesClick({ x: rect.left, y: rect.top })
                 }}
-                className={'canvas-toolbar__button'}
+                className={`canvas-toolbar__button${activeTool === 'shape' ? ' canvas-toolbar__button--active' : ''}`}
                 aria-label={t('canvasToolbar.shapesLabel')}>
                     <Shapes size={16} strokeWidth={2} />
             </button>

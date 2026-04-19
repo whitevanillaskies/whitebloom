@@ -130,6 +130,7 @@ import {
   createCommandExecutionGroupId,
   createCanvasCommandContext,
   executeCommandById,
+  type CanvasActivatePayloadPlacementArgs,
   type WhitebloomCommandExecutionOptions
 } from '@renderer/commands'
 import './Canvas.css'
@@ -795,6 +796,9 @@ export function Canvas({
 
   const canvasDropTargetRef = useRef<HTMLDivElement>(null)
   const [activeTool, setActiveTool] = useState<Tool>('pointer')
+  const [activeShapePreset, setActiveShapePreset] = useState<ShapePreset>('rectangle')
+  const [activePayloadPlacement, setActivePayloadPlacement] =
+    useState<CanvasActivatePayloadPlacementArgs | null>(null)
   const [acetateVisible, setAcetateVisible] = useState(true)
 
   useEffect(() => {
@@ -1585,6 +1589,11 @@ export function Canvas({
     })
   }, [activeTool])
 
+  useEffect(() => {
+    if (activeTool === 'payload') return
+    setActivePayloadPlacement(null)
+  }, [activeTool])
+
   const selectedClusterableNodes = useMemo(() => {
     const selectedIds = new Set(nodes.filter((node) => node.selected).map((node) => node.id))
     return boardNodes.filter((node) => selectedIds.has(node.id) && node.kind !== 'cluster')
@@ -1777,6 +1786,45 @@ export function Canvas({
     [addNode]
   )
 
+  const placeShapeAtPosition = useCallback(
+    (preset: ShapePreset, position: FlowPosition, options?: { switchToPointer?: boolean }) => {
+      const { nodeId } = createShapeAtPoint(preset, position)
+      setNodes((prev) => prev.map((node) => ({ ...node, selected: node.id === nodeId })))
+
+      if (options?.switchToPointer) {
+        setActiveTool('pointer')
+      }
+
+      return { nodeId }
+    },
+    [createShapeAtPoint]
+  )
+
+  const placePayloadAtPosition = useCallback(
+    (
+      placement: CanvasActivatePayloadPlacementArgs,
+      position: FlowPosition,
+      options?: { switchToPointer?: boolean }
+    ) => {
+      const nodeId = createBudAtPoint({
+        position,
+        resource: placement.payload.resource,
+        moduleType: placement.payload.moduleType,
+        size: placement.payload.size,
+        ...(placement.payload.label ? { label: placement.payload.label } : {})
+      })
+      setNodes((prev) => prev.map((node) => ({ ...node, selected: node.id === nodeId })))
+
+      if (options?.switchToPointer) {
+        setActivePayloadPlacement(null)
+        setActiveTool('pointer')
+      }
+
+      return { nodeId }
+    },
+    [createBudAtPoint]
+  )
+
   // Refs for action callbacks defined later in this component. The useMemo
   // for canvasCommandContext must come before those useCallbacks to keep hook
   // order stable; refs bridge the gap without stale-closure risk.
@@ -1812,6 +1860,8 @@ export function Canvas({
       subjectSnapshot: {
         selectionShape,
         activeTool,
+        activeShapePreset,
+        activePayloadPlacement,
         selection: {
           nodeIds: selectedNodeIds,
           edgeIds: selectedEdgeIds
@@ -1847,6 +1897,17 @@ export function Canvas({
       actions: {
         createBud: createBudAtPoint,
         createShape: ({ preset, position }) => createShapeAtPoint(preset, position),
+        activateTool: (tool) => {
+          setActiveTool(tool)
+        },
+        activateShapeTool: (preset) => {
+          setActiveShapePreset(preset)
+          setActiveTool('shape')
+        },
+        activatePayloadPlacement: (input) => {
+          setActivePayloadPlacement(input)
+          setActiveTool('payload')
+        },
         deleteSelection,
         bloomSelection,
         openSelectionInNativeEditor,
@@ -1937,6 +1998,8 @@ export function Canvas({
     storeAddEdge,
     getDefaultCanvasInsertionPoint,
     activeTool,
+    activeShapePreset,
+    activePayloadPlacement,
     boardPath,
     handleOpenMaterials,
     insertTextNodeAtPosition,
@@ -2453,27 +2516,83 @@ export function Canvas({
 
   const onPaneClick = useCallback(
     (e: React.MouseEvent) => {
-      if (activeTool !== 'text') return
-      insertTextNodeAtPosition(screenToFlowPosition({ x: e.clientX, y: e.clientY }), {
-        select: true,
-        switchToPointer: true
-      })
+      const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+
+      if (activeTool === 'text') {
+        insertTextNodeAtPosition(position, {
+          select: true,
+          switchToPointer: true
+        })
+        return
+      }
+
+      if (activeTool === 'shape') {
+        placeShapeAtPosition(activeShapePreset, position, {
+          switchToPointer: true
+        })
+        return
+      }
+
+      if (activeTool === 'payload' && activePayloadPlacement) {
+        placePayloadAtPosition(activePayloadPlacement, position, {
+          switchToPointer: true
+        })
+      }
     },
-    [activeTool, insertTextNodeAtPosition, screenToFlowPosition]
+    [
+      activePayloadPlacement,
+      activeShapePreset,
+      activeTool,
+      insertTextNodeAtPosition,
+      placePayloadAtPosition,
+      placeShapeAtPosition,
+      screenToFlowPosition
+    ]
   )
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: RFNode) => {
-      if (activeTool !== 'text' || node.type !== 'cluster') return
+      if (
+        (activeTool !== 'text' && activeTool !== 'shape' && activeTool !== 'payload') ||
+        node.type !== 'cluster'
+      ) {
+        return
+      }
       event.preventDefault()
       event.stopPropagation()
-      insertTextNodeAtPosition(screenToFlowPosition({ x: event.clientX, y: event.clientY }), {
-        clusterId: node.id,
-        select: true,
-        switchToPointer: true
-      })
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+
+      if (activeTool === 'text') {
+        insertTextNodeAtPosition(position, {
+          clusterId: node.id,
+          select: true,
+          switchToPointer: true
+        })
+        return
+      }
+
+      if (activeTool === 'shape') {
+        placeShapeAtPosition(activeShapePreset, position, {
+          switchToPointer: true
+        })
+        return
+      }
+
+      if (activePayloadPlacement) {
+        placePayloadAtPosition(activePayloadPlacement, position, {
+          switchToPointer: true
+        })
+      }
     },
-    [activeTool, insertTextNodeAtPosition, screenToFlowPosition]
+    [
+      activePayloadPlacement,
+      activeShapePreset,
+      activeTool,
+      insertTextNodeAtPosition,
+      placePayloadAtPosition,
+      placeShapeAtPosition,
+      screenToFlowPosition
+    ]
   )
 
   const buildBoardSnapshot = useCallback(
