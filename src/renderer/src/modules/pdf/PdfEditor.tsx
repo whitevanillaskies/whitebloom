@@ -59,6 +59,7 @@ type SpreadGapMode = 'open' | 'flush'
 type PdfViewState = {
   activePage: number
   scale: number
+  sidebarOpen: boolean
   viewMode: ViewMode
   spreadLead: SpreadLead
   spreadGapMode: SpreadGapMode
@@ -96,6 +97,10 @@ function parsePersistedPdfViewState(data: string): Partial<PdfViewState> | null 
 
     if (typeof parsed.scale === 'number' && Number.isFinite(parsed.scale)) {
       nextState.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, parsed.scale))
+    }
+
+    if (typeof parsed.sidebarOpen === 'boolean') {
+      nextState.sidebarOpen = parsed.sidebarOpen
     }
 
     if (
@@ -487,13 +492,14 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
   const viewStateRef = useRef<PdfViewState>({
     activePage,
     scale,
+    sidebarOpen,
     viewMode,
     spreadLead,
     spreadGapMode
   })
   // Keep viewStateRef current on every render so the unmount-save cleanup always
   // reads the latest values without needing to be a dep of that effect.
-  viewStateRef.current = { activePage, scale, viewMode, spreadLead, spreadGapMode }
+  viewStateRef.current = { activePage, scale, sidebarOpen, viewMode, spreadLead, spreadGapMode }
 
   const inkBinding = useMemo<InkPdfSurfaceBinding>(
     () => ({
@@ -576,6 +582,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
           setScale(saved.scale)
           setRenderScale(saved.scale)
         }
+        if (saved.sidebarOpen !== undefined) setSidebarOpen(saved.sidebarOpen)
         if (saved.viewMode !== undefined) setViewMode(saved.viewMode)
         if (saved.spreadLead !== undefined) setSpreadLead(saved.spreadLead)
         if (saved.spreadGapMode !== undefined) setSpreadGapMode(saved.spreadGapMode)
@@ -981,7 +988,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
       )
     }, 800)
     return () => clearTimeout(timer)
-  }, [resource, workspaceRoot, activePage, scale, viewMode, spreadLead, spreadGapMode])
+  }, [resource, workspaceRoot, activePage, scale, sidebarOpen, viewMode, spreadLead, spreadGapMode])
 
   // Immediate save on close or resource change. The debounced effect's cleanup
   // only cancels the timer — this one guarantees the last position is written
