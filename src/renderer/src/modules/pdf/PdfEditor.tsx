@@ -142,6 +142,12 @@ type PdfRenderScheduler = {
   schedule: (job: () => Promise<void>, priority: number) => () => void
 }
 
+function isEditableShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  return target.closest('input, textarea, select, [contenteditable="true"]') !== null
+}
+
 function createPdfRenderScheduler(maxConcurrent: number): PdfRenderScheduler {
   type QueueItem = {
     id: number
@@ -477,9 +483,12 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
   const [viewMode, setViewMode] = useState<ViewMode>('single-continuous')
   const [spreadLead, setSpreadLead] = useState<SpreadLead>('odd')
   const [spreadGapMode, setSpreadGapMode] = useState<SpreadGapMode>('open')
+  const [fitPageMode, setFitPageMode] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
   const [basePageLayouts, setBasePageLayouts] = useState<Record<number, PageLayout>>({})
   const pageRefs = useRef<Record<number, HTMLElement | null>>({})
   const scrollViewportRef = useRef<HTMLDivElement | null>(null)
+  const wheelStepLockedRef = useRef(false)
   const pendingZoomAnchorRef = useRef<{
     previousScale: number
     centerX: number
@@ -712,6 +721,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
     setActivePage(1)
     setAcetateStrokes([])
     setBasePageLayouts({})
+    setFitPageMode(false)
 
     void task.promise
       .then((doc) => {
@@ -1006,11 +1016,11 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
     }
   }, [resource, workspaceRoot])
 
-  function scrollToPage(pageNumber: number): void {
+  function scrollToPage(pageNumber: number, behavior: ScrollBehavior = 'smooth'): void {
     pageRefs.current[pageNumber]?.scrollIntoView({
       block: 'start',
       inline: 'nearest',
-      behavior: 'smooth'
+      behavior
     })
     setActivePage(pageNumber)
   }
@@ -1031,18 +1041,150 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
   }
 
   function handleSetScale(nextScale: number): void {
+    setFitPageMode(false)
     queueZoom(Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale)))
   }
 
-  function handleFitPage(): void {
-    const viewport = scrollViewportRef.current
-    const baseLayout = basePageLayouts[activePage]
-    if (!viewport || !baseLayout) return
-    const available = viewport.clientHeight - 24
-    if (available <= 0) return
-    const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, available / baseLayout.height))
-    queueZoom(Math.round(nextScale * 100) / 100)
+  function getFitPageNumbers(): number[] {
+    if (viewMode === 'facing' || viewMode === 'facing-continuous') {
+      return activeSpread?.pages.filter((page): page is number => page !== null) ?? []
+    }
+
+    return [activePage]
   }
+
+  function getFitPageScale(): number | null {
+    const viewport = scrollViewportRef.current
+    if (!viewport) return null
+
+    const layouts = getFitPageNumbers()
+      .map((pageNumber) => basePageLayouts[pageNumber])
+      .filter((layout): layout is PageLayout => layout !== undefined)
+    if (layouts.length === 0) return null
+
+    const available = viewport.clientHeight - 24
+    if (available <= 0) return null
+
+    const largestVisiblePageHeight = Math.max(...layouts.map((layout) => layout.height))
+    const nextScale = Math.min(
+      MAX_SCALE,
+      Math.max(MIN_SCALE, available / largestVisiblePageHeight)
+    )
+    return Math.round(nextScale * 100) / 100
+  }
+
+  function applyFitPageScale(): void {
+    const nextScale = getFitPageScale()
+    if (nextScale === null) return
+    queueZoom(nextScale)
+  }
+
+  function getPageStepTarget(direction: -1 | 1): number {
+    if (viewMode === 'facing' || viewMode === 'facing-continuous') {
+      const nextSpreadIndex = Math.min(
+        Math.max(0, activeSpreadIndex + direction),
+        Math.max(0, facingSpreads.length - 1)
+      )
+      const nextSpread = facingSpreads[nextSpreadIndex]
+      return nextSpread?.pages.find((page): page is number => page !== null) ?? activePage
+    }
+
+    return Math.min(Math.max(1, activePage + direction), pageCount)
+  }
+
+  function stepFitPage(direction: -1 | 1): void {
+    const nextPage = getPageStepTarget(direction)
+    if (nextPage === activePage) return
+    scrollToPage(nextPage, 'instant')
+  }
+
+  function handleFitPage(): void {
+    setFitPageMode(true)
+    applyFitPageScale()
+  }
+
+  useEffect(() => {
+    if (!fitPageMode) return
+
+    const viewport = scrollViewportRef.current
+    if (!viewport) return
+
+    const syncFitScale = (): void => {
+      const nextScale = getFitPageScale()
+      if (nextScale === null) return
+      setScale((currentScale) =>
+        Math.abs(currentScale - nextScale) < 0.001 ? currentScale : nextScale
+      )
+    }
+
+    const frame = requestAnimationFrame(syncFitScale)
+    const resizeObserver = new ResizeObserver(syncFitScale)
+    resizeObserver.observe(viewport)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      resizeObserver.disconnect()
+    }
+  }, [
+    activePage,
+    activeSpreadIndex,
+    basePageLayouts,
+    facingSpreads,
+    fitPageMode,
+    pageCount,
+    viewMode
+  ])
+
+  useEffect(() => {
+    const viewport = scrollViewportRef.current
+    if (!viewport || !fitPageMode || pageCount === 0) return
+
+    const handleWheel = (event: WheelEvent): void => {
+      if (event.ctrlKey) return
+
+      const primaryDelta =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+      if (primaryDelta === 0) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (wheelStepLockedRef.current) return
+      wheelStepLockedRef.current = true
+      stepFitPage(primaryDelta > 0 ? 1 : -1)
+      window.setTimeout(() => {
+        wheelStepLockedRef.current = false
+      }, 160)
+    }
+
+    viewport.addEventListener('wheel', handleWheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', handleWheel)
+  }, [activePage, activeSpreadIndex, facingSpreads, fitPageMode, pageCount, viewMode])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (isEditableShortcutTarget(event.target)) return
+
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'f') {
+        event.preventDefault()
+        setFocusMode((current) => !current)
+        return
+      }
+
+      if (!fitPageMode || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        stepFitPage(1)
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        stepFitPage(-1)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activePage, activeSpreadIndex, facingSpreads, fitPageMode, pageCount, viewMode])
 
   const discretePages =
     viewMode === 'single'
@@ -1051,7 +1193,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
 
   return (
     <div
-      className={`pdf-editor pdf-editor--${viewMode} pdf-editor--spread-gap-${spreadGapMode}${activeTool === 'ink' ? ' pdf-editor--tool-ink' : ''}`}
+      className={`pdf-editor pdf-editor--${viewMode} pdf-editor--spread-gap-${spreadGapMode}${activeTool === 'ink' ? ' pdf-editor--tool-ink' : ''}${focusMode ? ' pdf-editor--focus-mode' : ''}`}
     >
       <div className="pdf-editor__title-bar">
         <span className="pdf-editor__title">
@@ -1123,6 +1265,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
             scale={scale}
             minScale={MIN_SCALE}
             maxScale={MAX_SCALE}
+            fitPageActive={fitPageMode}
             onScaleChange={handleSetScale}
             onFitPage={handleFitPage}
           />
@@ -1222,7 +1365,6 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                           className="pdf-editor__page"
                           data-page-number={pageNumber}
                         >
-                          <div className="pdf-editor__page-meta">{pageNumber}</div>
                           <VirtualizedPdfPage
                             doc={documentProxy}
                             pageNumber={pageNumber}
@@ -1234,6 +1376,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                             viewportRef={scrollViewportRef}
                             renderScheduler={renderScheduler}
                           />
+                          <div className="pdf-editor__page-meta">{pageNumber}</div>
                         </section>
                       )
                     })
@@ -1249,9 +1392,6 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                         className="pdf-editor__spread"
                         data-page-number={spread.pages.find((page) => page !== null) ?? undefined}
                       >
-                        <div className="pdf-editor__spread-meta">
-                          {spread.pages[0] ?? '—'} · {spread.pages[1] ?? '—'}
-                        </div>
                         <div className="pdf-editor__spread-pages">
                           {spread.pages.map((pageNumber, slotIndex) =>
                             pageNumber !== null ? (
@@ -1276,6 +1416,9 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                             )
                           )}
                         </div>
+                        <div className="pdf-editor__spread-meta">
+                          {spread.pages[0] ?? '\u2014'} {'\u00b7'} {spread.pages[1] ?? '\u2014'}
+                        </div>
                       </section>
                     ))}
               </div>
@@ -1289,7 +1432,6 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                       key={pageNumber}
                       className="pdf-editor__page pdf-editor__page--discrete"
                     >
-                      <div className="pdf-editor__page-meta">{pageNumber}</div>
                       <MemoizedPdfPageCanvas
                         doc={documentProxy}
                         pageNumber={pageNumber}
@@ -1301,13 +1443,11 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                         renderPriority={0}
                         renderScheduler={renderScheduler}
                       />
+                      <div className="pdf-editor__page-meta">{pageNumber}</div>
                     </section>
                   ))
                 ) : (
                   <section className="pdf-editor__spread pdf-editor__spread--discrete">
-                    <div className="pdf-editor__spread-meta">
-                      {activeSpread?.pages[0] ?? '—'} · {activeSpread?.pages[1] ?? '—'}
-                    </div>
                     <div className="pdf-editor__spread-pages">
                       {(activeSpread?.pages ?? [null, null]).map((pageNumber, slotIndex) =>
                         pageNumber !== null ? (
@@ -1331,6 +1471,10 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
                           />
                         )
                       )}
+                    </div>
+                    <div className="pdf-editor__spread-meta">
+                      {activeSpread?.pages[0] ?? '\u2014'} {'\u00b7'}{' '}
+                      {activeSpread?.pages[1] ?? '\u2014'}
                     </div>
                   </section>
                 )}

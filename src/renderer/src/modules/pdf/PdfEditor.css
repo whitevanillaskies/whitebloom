@@ -15,6 +15,15 @@
   --pdf-spread-gap: 0px;
 }
 
+.pdf-editor--focus-mode {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.pdf-editor--focus-mode > .pdf-editor__title-bar,
+.pdf-editor--focus-mode > .petal-shelf {
+  display: none;
+}
+
 .pdf-editor__title-bar {
   display: flex;
   align-items: center;
@@ -272,10 +281,12 @@
 }
 
 .pdf-editor--spread-gap-flush .pdf-editor__spread-pages > :nth-child(odd) .pdf-editor__page-shell {
+  margin-right: -6px;
   padding-right: 0;
 }
 
 .pdf-editor--spread-gap-flush .pdf-editor__spread-pages > :nth-child(even) .pdf-editor__page-shell {
+  margin-left: -6px;
   padding-left: 0;
 }
 

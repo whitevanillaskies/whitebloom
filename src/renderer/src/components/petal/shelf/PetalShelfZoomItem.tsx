@@ -8,6 +8,7 @@ type PetalShelfZoomItemProps = {
   maxScale: number
   onScaleChange: (scale: number) => void
   onFitPage: () => void
+  fitPageActive?: boolean
   presets?: number[]
   label?: string
 }
@@ -18,6 +19,7 @@ export function PetalShelfZoomItem({
   maxScale,
   onScaleChange,
   onFitPage,
+  fitPageActive = false,
   presets = [0.5, 1, 2],
   label = 'Zoom'
 }: PetalShelfZoomItemProps): React.JSX.Element {
@@ -48,7 +50,13 @@ export function PetalShelfZoomItem({
     <div ref={rootRef} className="petal-shelf-zoom">
       <button
         type="button"
-        className={`petal-shelf-zoom__trigger${open ? ' petal-shelf-zoom__trigger--open' : ''}`}
+        className={[
+          'petal-shelf-zoom__trigger',
+          open ? 'petal-shelf-zoom__trigger--open' : null,
+          fitPageActive ? 'petal-shelf-zoom__trigger--fit-active' : null
+        ]
+          .filter(Boolean)
+          .join(' ')}
         aria-label={label}
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -91,7 +99,12 @@ export function PetalShelfZoomItem({
             ))}
             <button
               type="button"
-              className="petal-shelf-zoom__preset"
+              className={[
+                'petal-shelf-zoom__preset',
+                fitPageActive ? 'petal-shelf-zoom__preset--active' : null
+              ]
+                .filter(Boolean)
+                .join(' ')}
               onClick={() => {
                 onFitPage()
               }}
