@@ -67,6 +67,8 @@ type PdfViewState = {
 const PDF_VIEW_MODES: ViewMode[] = ['single', 'single-continuous', 'facing', 'facing-continuous']
 const PDF_SPREAD_LEADS: SpreadLead[] = ['odd', 'even']
 const PDF_SPREAD_GAP_MODES: SpreadGapMode[] = ['open', 'flush']
+const RENDER_SCALE_DEBOUNCE_MS = 160
+const PDF_RENDER_CONCURRENCY = 2
 
 function getPdfStateResource(resource: string): string {
   const stem = resource
@@ -131,25 +133,95 @@ type Spread = {
   pages: [number | null, number | null]
 }
 
+type PdfRenderScheduler = {
+  schedule: (job: () => Promise<void>, priority: number) => () => void
+}
+
+function createPdfRenderScheduler(maxConcurrent: number): PdfRenderScheduler {
+  type QueueItem = {
+    id: number
+    priority: number
+    cancelled: boolean
+    job: () => Promise<void>
+  }
+
+  let nextId = 1
+  let activeCount = 0
+  let queue: QueueItem[] = []
+
+  function pump(): void {
+    queue = queue.filter((item) => !item.cancelled)
+    queue.sort((a, b) => a.priority - b.priority || a.id - b.id)
+
+    while (activeCount < maxConcurrent && queue.length > 0) {
+      const item = queue.shift()
+      if (!item || item.cancelled) continue
+
+      activeCount += 1
+      void item
+        .job()
+        .catch(() => {
+          // Page-level render jobs handle their own errors so they can include
+          // page and scale context. The scheduler only controls ordering.
+        })
+        .finally(() => {
+          activeCount -= 1
+          pump()
+        })
+    }
+  }
+
+  return {
+    schedule(job, priority) {
+      const item: QueueItem = {
+        id: nextId,
+        priority,
+        cancelled: false,
+        job
+      }
+      nextId += 1
+      queue.push(item)
+      pump()
+
+      return () => {
+        item.cancelled = true
+        queue = queue.filter((queuedItem) => queuedItem !== item)
+      }
+    }
+  }
+}
+
+function isPdfRenderCancellation(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return error.name === 'RenderingCancelledException' || error.message.includes('cancelled')
+}
+
 type PageCanvasProps = {
   doc: PDFDocumentProxy
   pageNumber: number
   scale: number
+  renderScale: number
   layout: PageLayout | null
   acetateVisible: boolean
   acetateStrokes: PdfInkStroke[]
+  renderPriority: number
+  renderScheduler: PdfRenderScheduler
 }
 
 function PdfPageCanvas({
   doc,
   pageNumber,
   scale,
+  renderScale,
   layout,
   acetateVisible,
-  acetateStrokes
-}: PageCanvasProps) {
+  acetateStrokes,
+  renderPriority,
+  renderScheduler
+}: PageCanvasProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [renderError, setRenderError] = useState<string | null>(null)
+  const [paintedScale, setPaintedScale] = useState(renderScale)
 
   useEffect(() => {
     let cancelled = false
@@ -159,53 +231,63 @@ function PdfPageCanvas({
       const page = await doc.getPage(pageNumber)
       if (cancelled) return
 
-      const viewport = page.getViewport({ scale })
+      const viewport = page.getViewport({ scale: renderScale })
       const devicePixelRatio = window.devicePixelRatio || 1
-      const canvas = canvasRef.current
-      if (!canvas) return
-
-      const context = canvas.getContext('2d')
+      const renderCanvas = document.createElement('canvas')
+      const context = renderCanvas.getContext('2d')
       if (!context) return
 
       setRenderError(null)
-      const reservedWidth = layout?.width ?? viewport.width
-      const reservedHeight = layout?.height ?? viewport.height
-
-      canvas.width = Math.floor(viewport.width * devicePixelRatio)
-      canvas.height = Math.floor(viewport.height * devicePixelRatio)
-      canvas.style.width = `${reservedWidth}px`
-      canvas.style.height = `${reservedHeight}px`
+      renderCanvas.width = Math.floor(viewport.width * devicePixelRatio)
+      renderCanvas.height = Math.floor(viewport.height * devicePixelRatio)
 
       const transform =
         devicePixelRatio === 1 ? undefined : [devicePixelRatio, 0, 0, devicePixelRatio, 0, 0]
       renderTask = page.render({
-        canvas,
+        canvas: renderCanvas,
         canvasContext: context,
         transform,
         viewport
       })
 
       await renderTask.promise
+      if (cancelled) return
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const visibleContext = canvas.getContext('2d')
+      if (!visibleContext) return
+
+      canvas.width = renderCanvas.width
+      canvas.height = renderCanvas.height
+      canvas.style.width = `${viewport.width}px`
+      canvas.style.height = `${viewport.height}px`
+      visibleContext.drawImage(renderCanvas, 0, 0)
+      setPaintedScale(renderScale)
     }
 
-    void renderPage().catch((error: unknown) => {
-      if (!cancelled) {
+    const cancelScheduledRender = renderScheduler.schedule(async () => {
+      try {
+        await renderPage()
+      } catch (error: unknown) {
+        if (cancelled || isPdfRenderCancellation(error)) return
         const message = error instanceof Error ? error.message : String(error)
         logger.error('page render failed', {
           pageNumber,
-          scale,
+          scale: renderScale,
           workerSrc: GlobalWorkerOptions.workerSrc,
           message
         })
         setRenderError(`Page ${pageNumber} failed to render: ${message}`)
       }
-    })
+    }, renderPriority)
 
     return () => {
       cancelled = true
+      cancelScheduledRender()
       renderTask?.cancel()
     }
-  }, [doc, layout, pageNumber, scale])
+  }, [doc, pageNumber, renderPriority, renderScale, renderScheduler])
 
   const shellStyle =
     layout !== null
@@ -226,7 +308,14 @@ function PdfPageCanvas({
         data-pdf-page-frame={pageNumber}
       >
         {renderError ? <div className="pdf-editor__page-error">{renderError}</div> : null}
-        <canvas ref={canvasRef} className="pdf-editor__page-canvas" />
+        <canvas
+          ref={canvasRef}
+          className="pdf-editor__page-canvas"
+          style={{
+            transform: `scale(${scale / paintedScale})`,
+            transformOrigin: 'top left'
+          }}
+        />
         {layout ? (
           <PdfAcetateCanvas
             pageWidth={layout.width}
@@ -246,24 +335,28 @@ type VirtualizedPdfPageProps = {
   doc: PDFDocumentProxy
   pageNumber: number
   scale: number
+  renderScale: number
   layout: PageLayout | null
   acetateVisible: boolean
   acetateStrokes: PdfInkStroke[]
   viewportRef: { current: HTMLDivElement | null }
+  renderScheduler: PdfRenderScheduler
 }
 
 function VirtualizedPdfPage({
   doc,
   pageNumber,
   scale,
+  renderScale,
   layout,
   acetateVisible,
   acetateStrokes,
-  viewportRef
-}: VirtualizedPdfPageProps) {
+  viewportRef,
+  renderScheduler
+}: VirtualizedPdfPageProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [isNearViewport, setIsNearViewport] = useState(false)
-  const [hasRendered, setHasRendered] = useState(false)
+  const [renderPriority, setRenderPriority] = useState(pageNumber)
 
   useEffect(() => {
     const element = containerRef.current
@@ -275,8 +368,11 @@ function VirtualizedPdfPage({
         const entry = entries[0]
         const nextVisible = entry?.isIntersecting === true
         setIsNearViewport(nextVisible)
-        if (nextVisible) {
-          setHasRendered(true)
+        if (entry && nextVisible) {
+          const rootCenter = root.clientHeight / 2
+          const pageCenter = entry.boundingClientRect.top + entry.boundingClientRect.height / 2
+          const rootTop = entry.rootBounds?.top ?? root.getBoundingClientRect().top
+          setRenderPriority(Math.abs(pageCenter - rootTop - rootCenter))
         }
       },
       {
@@ -290,7 +386,7 @@ function VirtualizedPdfPage({
     return () => observer.disconnect()
   }, [viewportRef])
 
-  const shouldRender = isNearViewport || hasRendered
+  const shouldRender = isNearViewport
   const shellStyle =
     layout !== null
       ? {
@@ -306,9 +402,12 @@ function VirtualizedPdfPage({
           doc={doc}
           pageNumber={pageNumber}
           scale={scale}
+          renderScale={renderScale}
           layout={layout}
           acetateVisible={acetateVisible}
           acetateStrokes={acetateStrokes}
+          renderPriority={renderPriority}
+          renderScheduler={renderScheduler}
         />
       ) : (
         <div
@@ -357,10 +456,11 @@ function buildFacingSpreads(pageCount: number, lead: SpreadLead): Spread[] {
   return spreads
 }
 
-export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEditorProps) {
+export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JSX.Element {
   const [documentProxy, setDocumentProxy] = useState<PDFDocumentProxy | null>(null)
   const [pageCount, setPageCount] = useState(0)
   const [scale, setScale] = useState(DEFAULT_SCALE)
+  const [renderScale, setRenderScale] = useState(DEFAULT_SCALE)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [thumbnails, setThumbnails] = useState<ThumbnailState[]>([])
   const [activePage, setActivePage] = useState(1)
@@ -472,7 +572,10 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
         if (cancelled) return
         const saved = parsePersistedPdfViewState(data)
         if (!saved) return
-        if (saved.scale !== undefined) setScale(saved.scale)
+        if (saved.scale !== undefined) {
+          setScale(saved.scale)
+          setRenderScale(saved.scale)
+        }
         if (saved.viewMode !== undefined) setViewMode(saved.viewMode)
         if (saved.spreadLead !== undefined) setSpreadLead(saved.spreadLead)
         if (saved.spreadGapMode !== undefined) setSpreadGapMode(saved.spreadGapMode)
@@ -501,7 +604,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
 
   // Ctrl+Z / Ctrl+Shift+Z for undo/redo.
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
       if (!event.ctrlKey) return
       if (event.key === 'z' && !event.shiftKey) {
         event.preventDefault()
@@ -530,6 +633,16 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
     return nextLayouts
   }, [basePageLayouts, scale])
 
+  useEffect(() => {
+    if (Math.abs(renderScale - scale) < 0.001) return
+
+    const timer = setTimeout(() => {
+      setRenderScale(scale)
+    }, RENDER_SCALE_DEBOUNCE_MS)
+
+    return () => clearTimeout(timer)
+  }, [renderScale, scale])
+
   const facingSpreads = useMemo(
     () => buildFacingSpreads(pageCount, spreadLead),
     [pageCount, spreadLead]
@@ -540,7 +653,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
     for (const stroke of acetateStrokes) {
       let currentRun: typeof stroke.samples = []
 
-      const pushRun = () => {
+      const pushRun = (): void => {
         if (currentRun.length === 0) return
         const pageNumber = currentRun[0].pageIndex
         grouped[pageNumber] ??= []
@@ -572,6 +685,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
   )
   const activeSpread = facingSpreads[activeSpreadIndex] ?? null
   const isContinuousMode = viewMode === 'single-continuous' || viewMode === 'facing-continuous'
+  const renderScheduler = useMemo(() => createPdfRenderScheduler(PDF_RENDER_CONCURRENCY), [])
 
   useEffect(() => {
     let cancelled = false
@@ -801,7 +915,7 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
     }
 
     return () => observer.disconnect()
-  }, [isContinuousMode, pageCount, documentProxy, scale, viewMode])
+  }, [isContinuousMode, pageCount, documentProxy, viewMode])
 
   useEffect(() => {
     const viewport = scrollViewportRef.current
@@ -1036,29 +1150,33 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
                   ? Math.round(76 * (baseLayout.height / baseLayout.width))
                   : undefined
                 return (
-                <button
-                  key={thumbnail.pageNumber}
-                  type="button"
-                  className={`pdf-editor__thumbnail${thumbnail.pageNumber === activePage ? ' pdf-editor__thumbnail--active' : ''}`}
-                  onClick={() => scrollToPage(thumbnail.pageNumber)}
-                >
-                  <div
-                    className="pdf-editor__thumbnail-frame"
-                    style={frameHeight !== undefined ? { height: frameHeight, minHeight: frameHeight } : undefined}
+                  <button
+                    key={thumbnail.pageNumber}
+                    type="button"
+                    className={`pdf-editor__thumbnail${thumbnail.pageNumber === activePage ? ' pdf-editor__thumbnail--active' : ''}`}
+                    onClick={() => scrollToPage(thumbnail.pageNumber)}
                   >
-                    {thumbnail.dataUrl ? (
-                      <img
-                        src={thumbnail.dataUrl}
-                        alt=""
-                        className="pdf-editor__thumbnail-image"
-                        draggable={false}
-                      />
-                    ) : (
-                      <div className="pdf-editor__thumbnail-placeholder" />
-                    )}
-                  </div>
-                  <span className="pdf-editor__thumbnail-label">{thumbnail.pageNumber}</span>
-                </button>
+                    <div
+                      className="pdf-editor__thumbnail-frame"
+                      style={
+                        frameHeight !== undefined
+                          ? { height: frameHeight, minHeight: frameHeight }
+                          : undefined
+                      }
+                    >
+                      {thumbnail.dataUrl ? (
+                        <img
+                          src={thumbnail.dataUrl}
+                          alt=""
+                          className="pdf-editor__thumbnail-image"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="pdf-editor__thumbnail-placeholder" />
+                      )}
+                    </div>
+                    <span className="pdf-editor__thumbnail-label">{thumbnail.pageNumber}</span>
+                  </button>
                 )
               })}
             </div>
@@ -1102,10 +1220,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
                             doc={documentProxy}
                             pageNumber={pageNumber}
                             scale={scale}
+                            renderScale={renderScale}
                             layout={pageLayouts[pageNumber] ?? null}
                             acetateVisible={acetateVisible}
                             acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
                             viewportRef={scrollViewportRef}
+                            renderScheduler={renderScheduler}
                           />
                         </section>
                       )
@@ -1133,10 +1253,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
                                   doc={documentProxy}
                                   pageNumber={pageNumber}
                                   scale={scale}
+                                  renderScale={renderScale}
                                   layout={pageLayouts[pageNumber] ?? null}
                                   acetateVisible={acetateVisible}
                                   acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
                                   viewportRef={scrollViewportRef}
+                                  renderScheduler={renderScheduler}
                                 />
                               </div>
                             ) : (
@@ -1165,9 +1287,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
                         doc={documentProxy}
                         pageNumber={pageNumber}
                         scale={scale}
+                        renderScale={renderScale}
                         layout={pageLayouts[pageNumber] ?? null}
                         acetateVisible={acetateVisible}
                         acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
+                        renderPriority={0}
+                        renderScheduler={renderScheduler}
                       />
                     </section>
                   ))
@@ -1184,9 +1309,12 @@ export function PdfEditor({ resource, workspaceRoot, onClose: _onClose }: BudEdi
                               doc={documentProxy}
                               pageNumber={pageNumber}
                               scale={scale}
+                              renderScale={renderScale}
                               layout={pageLayouts[pageNumber] ?? null}
                               acetateVisible={acetateVisible}
                               acetateStrokes={acetateStrokesByPage[pageNumber] ?? []}
+                              renderPriority={slotIndex}
+                              renderScheduler={renderScheduler}
                             />
                           </div>
                         ) : (

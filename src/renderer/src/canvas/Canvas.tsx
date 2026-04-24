@@ -611,6 +611,47 @@ function getWorkspaceRelativeBoardPath(boardPath: string, workspaceRoot: string)
   return normalizedBoardPath
 }
 
+function normalizePathSeparators(filePath: string): string {
+  return filePath.trim().replace(/\\/g, '/').replace(/\/+$/, '')
+}
+
+function normalizePathForContainment(filePath: string): string {
+  const normalizedPath = normalizePathSeparators(filePath)
+  return /^[a-zA-Z]:\//.test(normalizedPath) ? normalizedPath.toLowerCase() : normalizedPath
+}
+
+function isPathInsideWorkspace(filePath: string, workspaceRoot: string | null): boolean {
+  if (!workspaceRoot) return false
+
+  const normalizedPath = normalizePathForContainment(filePath)
+  const normalizedWorkspaceRoot = normalizePathForContainment(workspaceRoot)
+  if (!normalizedPath || !normalizedWorkspaceRoot) return false
+
+  return (
+    normalizedPath === normalizedWorkspaceRoot ||
+    normalizedPath.startsWith(`${normalizedWorkspaceRoot}/`)
+  )
+}
+
+function toWorkspaceResource(filePath: string, workspaceRoot: string | null): string | null {
+  if (!workspaceRoot) return null
+
+  const normalizedPath = normalizePathSeparators(filePath)
+  const normalizedWorkspaceRoot = normalizePathSeparators(workspaceRoot)
+  const comparablePath = normalizePathForContainment(filePath)
+  const comparableWorkspaceRoot = normalizePathForContainment(workspaceRoot)
+  const rootPrefix = `${comparableWorkspaceRoot}/`
+
+  if (comparablePath !== comparableWorkspaceRoot && !comparablePath.startsWith(rootPrefix)) {
+    return null
+  }
+
+  const relativePath = normalizedPath.slice(normalizedWorkspaceRoot.length).replace(/^\/+/, '')
+  if (!relativePath) return null
+
+  return `wloc:${relativePath}`
+}
+
 function getFileNameFromPath(filePath: string): string {
   const normalized = filePath.replace(/\\/g, '/')
   return normalized.slice(normalized.lastIndexOf('/') + 1) || filePath
@@ -3196,6 +3237,7 @@ export function Canvas({
     }): Promise<'link' | 'import'> => {
       if (workspaceRoot === null) return 'link'
       if (input.preferredBehavior === 'link') return 'link'
+      if (isPathInsideWorkspace(input.filePath, workspaceRoot)) return 'link'
       if (input.module?.id === boardBloomModule.id) return 'link'
       if (input.preferredBehavior === 'import') {
         return input.module?.importable === false ? 'link' : 'import'
@@ -3281,14 +3323,25 @@ export function Canvas({
         }
       }
 
-      const behavior =
-        input.preferredBehavior ??
-        (await decideExternalResourceBehavior({
-          filePath: input.filePath,
-          fileName: input.fileName,
-          module,
-          preferredBehavior: input.preferredBehavior
-        }))
+      const localWorkspaceResource = toWorkspaceResource(input.filePath, workspaceRoot)
+      if (localWorkspaceResource) {
+        return {
+          resource: localWorkspaceResource,
+          moduleType,
+          size: await computeDroppedBudSize({
+            file: input.file,
+            filePath: input.filePath,
+            module
+          })
+        }
+      }
+
+      const behavior = await decideExternalResourceBehavior({
+        filePath: input.filePath,
+        fileName: input.fileName,
+        module,
+        preferredBehavior: input.preferredBehavior
+      })
 
       const resource =
         behavior === 'import'
