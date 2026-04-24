@@ -41,6 +41,8 @@ const THUMBNAIL_SCALE = 0.18
 const DEFAULT_SCALE = 1.1
 const MIN_SCALE = 0.5
 const MAX_SCALE = 2.4
+const FIT_PAGE_NORMAL_VERTICAL_MARGIN = 24
+const FIT_PAGE_FOCUS_VERTICAL_MARGIN = 72
 
 type ThumbnailState = {
   pageNumber: number
@@ -63,6 +65,7 @@ type PdfViewState = {
   viewMode: ViewMode
   spreadLead: SpreadLead
   spreadGapMode: SpreadGapMode
+  fitPageMode: boolean
 }
 
 const PDF_VIEW_MODES: ViewMode[] = ['single', 'single-continuous', 'facing', 'facing-continuous']
@@ -101,6 +104,10 @@ function parsePersistedPdfViewState(data: string): Partial<PdfViewState> | null 
 
     if (typeof parsed.sidebarOpen === 'boolean') {
       nextState.sidebarOpen = parsed.sidebarOpen
+    }
+
+    if (typeof parsed.fitPageMode === 'boolean') {
+      nextState.fitPageMode = parsed.fitPageMode
     }
 
     if (
@@ -504,11 +511,20 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
     sidebarOpen,
     viewMode,
     spreadLead,
-    spreadGapMode
+    spreadGapMode,
+    fitPageMode
   })
   // Keep viewStateRef current on every render so the unmount-save cleanup always
   // reads the latest values without needing to be a dep of that effect.
-  viewStateRef.current = { activePage, scale, sidebarOpen, viewMode, spreadLead, spreadGapMode }
+  viewStateRef.current = {
+    activePage,
+    scale,
+    sidebarOpen,
+    viewMode,
+    spreadLead,
+    spreadGapMode,
+    fitPageMode
+  }
 
   const inkBinding = useMemo<InkPdfSurfaceBinding>(
     () => ({
@@ -595,6 +611,7 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
         if (saved.viewMode !== undefined) setViewMode(saved.viewMode)
         if (saved.spreadLead !== undefined) setSpreadLead(saved.spreadLead)
         if (saved.spreadGapMode !== undefined) setSpreadGapMode(saved.spreadGapMode)
+        if (saved.fitPageMode !== undefined) setFitPageMode(saved.fitPageMode)
         if (saved.activePage !== undefined) {
           setActivePage(saved.activePage)
           pendingInitialPageRef.current = saved.activePage
@@ -998,7 +1015,17 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
       )
     }, 800)
     return () => clearTimeout(timer)
-  }, [resource, workspaceRoot, activePage, scale, sidebarOpen, viewMode, spreadLead, spreadGapMode])
+  }, [
+    resource,
+    workspaceRoot,
+    activePage,
+    scale,
+    sidebarOpen,
+    viewMode,
+    spreadLead,
+    spreadGapMode,
+    fitPageMode
+  ])
 
   // Immediate save on close or resource change. The debounced effect's cleanup
   // only cancels the timer — this one guarantees the last position is written
@@ -1062,7 +1089,10 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
       .filter((layout): layout is PageLayout => layout !== undefined)
     if (layouts.length === 0) return null
 
-    const available = viewport.clientHeight - 24
+    const verticalMargin = focusMode
+      ? FIT_PAGE_FOCUS_VERTICAL_MARGIN
+      : FIT_PAGE_NORMAL_VERTICAL_MARGIN
+    const available = viewport.clientHeight - verticalMargin
     if (available <= 0) return null
 
     const largestVisiblePageHeight = Math.max(...layouts.map((layout) => layout.height))
@@ -1131,9 +1161,30 @@ export function PdfEditor({ resource, workspaceRoot }: BudEditorProps): React.JS
     basePageLayouts,
     facingSpreads,
     fitPageMode,
+    focusMode,
     pageCount,
     viewMode
   ])
+
+  useEffect(() => {
+    if (!fitPageMode) return
+
+    let secondFrame = 0
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        pageRefs.current[activePageRef.current]?.scrollIntoView({
+          block: 'start',
+          inline: 'nearest',
+          behavior: 'instant'
+        })
+      })
+    })
+
+    return () => {
+      cancelAnimationFrame(firstFrame)
+      cancelAnimationFrame(secondFrame)
+    }
+  }, [focusMode, fitPageMode])
 
   useEffect(() => {
     const viewport = scrollViewportRef.current
