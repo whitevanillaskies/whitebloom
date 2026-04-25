@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
 import { mkdir, stat } from 'fs/promises'
 import { normalizeAppSettings, type AppSettings } from '../../shared/app-settings'
 import { changeMainLanguage, t } from '../i18n'
@@ -87,6 +87,15 @@ export function registerAppIpc(context: MainProcessContext): void {
 
   ipcMain.handle('app-settings:get', async () => {
     return await readAppSettings()
+  })
+
+  ipcMain.handle('clipboard:read-text', () => {
+    return clipboard.readText()
+  })
+
+  ipcMain.handle('clipboard:write-text', (_event, text: string) => {
+    clipboard.writeText(text)
+    return { ok: true }
   })
 
   ipcMain.handle(

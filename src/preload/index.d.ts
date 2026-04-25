@@ -232,6 +232,8 @@ declare global {
       }>
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
+      readClipboardText: () => Promise<string>
+      writeClipboardText: (text: string) => Promise<{ ok: boolean }>
       onCloseRequested: (cb: () => void) => () => void
       confirmClose: () => void
       saveThumbnail: (

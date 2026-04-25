@@ -172,6 +172,8 @@ const SCREEN_RECORDING_MIME_CANDIDATES = [
   'video/webm;codecs=vp8',
   'video/webm'
 ]
+const CANVAS_CLIPBOARD_PREFIX = 'whitebloom:canvas-selection:v1\n'
+const CANVAS_CLIPBOARD_KIND = 'whitebloom.canvas-selection'
 
 type NodeBounds = {
   left: number
@@ -191,6 +193,13 @@ type BudPlacement = {
   moduleType: string | null
   size: { w: number; h: number }
   label?: string
+}
+type CanvasClipboardPayload = {
+  kind: typeof CANVAS_CLIPBOARD_KIND
+  version: 1
+  nodes: BoardNode[]
+  edges: BoardEdge[]
+  anchor: FlowPosition
 }
 type ExternalResourceInput = {
   filePath: string
@@ -584,6 +593,60 @@ function isEditableTarget(target: EventTarget | null): boolean {
   )
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function cloneJsonValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function serializeCanvasClipboardPayload(payload: CanvasClipboardPayload): string {
+  return `${CANVAS_CLIPBOARD_PREFIX}${JSON.stringify(payload)}`
+}
+
+function parseCanvasClipboardPayload(text: string): CanvasClipboardPayload | null {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+
+  const json = text.startsWith(CANVAS_CLIPBOARD_PREFIX)
+    ? text.slice(CANVAS_CLIPBOARD_PREFIX.length)
+    : trimmed.startsWith('{')
+      ? trimmed
+      : ''
+  if (!json) return null
+
+  try {
+    const parsed: unknown = JSON.parse(json)
+    if (!isPlainObject(parsed)) return null
+    if (parsed.kind !== CANVAS_CLIPBOARD_KIND || parsed.version !== 1) return null
+    if (!Array.isArray(parsed.nodes) || parsed.nodes.length === 0) return null
+    if (!Array.isArray(parsed.edges)) return null
+    if (!isPlainObject(parsed.anchor)) return null
+    const { x, y } = parsed.anchor
+    if (typeof x !== 'number' || typeof y !== 'number') return null
+
+    return {
+      kind: CANVAS_CLIPBOARD_KIND,
+      version: 1,
+      nodes: parsed.nodes as BoardNode[],
+      edges: parsed.edges as BoardEdge[],
+      anchor: { x, y }
+    }
+  } catch {
+    return null
+  }
+}
+
+function getNodeCopyBounds(node: BoardNode): NodeBounds {
+  return {
+    left: node.position.x,
+    top: node.position.y,
+    right: node.position.x + node.size.w,
+    bottom: node.position.y + node.size.h
+  }
+}
+
 function isPaneTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && target.closest('.react-flow__pane') !== null
 }
@@ -838,6 +901,8 @@ export function Canvas({
   const [activeShapePreset, setActiveShapePreset] = useState<ShapePreset>('rectangle')
   const [activePayloadPlacement, setActivePayloadPlacement] =
     useState<CanvasActivatePayloadPlacementArgs | null>(null)
+  const [activeClipboardPlacement, setActiveClipboardPlacement] =
+    useState<CanvasClipboardPayload | null>(null)
   const [acetateVisible, setAcetateVisible] = useState(true)
 
   useEffect(() => {
@@ -867,6 +932,7 @@ export function Canvas({
   const [imageDropError, setImageDropError] = useState<string | null>(null)
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null)
   const [pendingNodeSelectionId, setPendingNodeSelectionId] = useState<string | null>(null)
+  const [pendingNodeSelectionIds, setPendingNodeSelectionIds] = useState<string[] | null>(null)
   const [promoteInFlight, setPromoteInFlight] = useState(false)
   const [promoteSubboardModalOpen, setPromoteSubboardModalOpen] = useState(false)
   const [promoteSubboardName, setPromoteSubboardName] = useState('Subboard')
@@ -1620,6 +1686,15 @@ export function Canvas({
   }, [pendingNodeSelectionId, schemaNodes])
 
   useEffect(() => {
+    if (!pendingNodeSelectionIds) return
+    const pendingSelection = new Set(pendingNodeSelectionIds)
+    if (!pendingNodeSelectionIds.every((id) => schemaNodes.some((node) => node.id === id))) return
+
+    setNodes(schemaNodes.map((node) => ({ ...node, selected: pendingSelection.has(node.id) })))
+    setPendingNodeSelectionIds(null)
+  }, [pendingNodeSelectionIds, schemaNodes])
+
+  useEffect(() => {
     if (activeTool === 'pointer') return
 
     setNodes((prev) => {
@@ -1631,6 +1706,7 @@ export function Canvas({
   useEffect(() => {
     if (activeTool === 'payload') return
     setActivePayloadPlacement(null)
+    setActiveClipboardPlacement(null)
   }, [activeTool])
 
   const selectedClusterableNodes = useMemo(() => {
@@ -1786,6 +1862,52 @@ export function Canvas({
     return { deletedNodes, deletedEdges }
   }, [boardEdges, boardNodes, deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge])
 
+  const buildClipboardPayloadFromSelection = useCallback((): CanvasClipboardPayload | null => {
+    const selectedNodeIdSet = new Set(selectedNodeIds)
+    const copiedNodeIdSet = new Set(selectedNodeIds)
+
+    for (const node of boardNodes) {
+      if (!selectedNodeIdSet.has(node.id) || !isClusterNode(node)) continue
+      for (const childId of node.children) {
+        copiedNodeIdSet.add(childId)
+      }
+    }
+
+    const copiedNodes = boardNodes.filter((node) => copiedNodeIdSet.has(node.id))
+    if (copiedNodes.length === 0) return null
+
+    const copiedEdgeIds = new Set(selectedEdgeIds)
+    const copiedEdges = boardEdges.filter((edge) => {
+      if (!copiedNodeIdSet.has(edge.from) || !copiedNodeIdSet.has(edge.to)) return false
+      return selectedNodeIds.length > 0 || copiedEdgeIds.has(edge.id)
+    })
+    const bounds = copiedNodes.map(getNodeCopyBounds)
+    const anchor = {
+      x: Math.min(...bounds.map((bound) => bound.left)),
+      y: Math.min(...bounds.map((bound) => bound.top))
+    }
+
+    return {
+      kind: CANVAS_CLIPBOARD_KIND,
+      version: 1,
+      nodes: cloneJsonValue(copiedNodes),
+      edges: cloneJsonValue(copiedEdges),
+      anchor
+    }
+  }, [boardEdges, boardNodes, selectedEdgeIds, selectedNodeIds])
+
+  const pasteClipboardToCanvas = useCallback(async () => {
+    const text = await window.api.readClipboardText()
+    const payload = parseCanvasClipboardPayload(text)
+    if (!payload) return false
+
+    setActivePayloadPlacement(null)
+    setActiveClipboardPlacement(payload)
+    setActiveTool('payload')
+    blurToolbarButtonIfFocused()
+    return true
+  }, [])
+
   const bloomSelection = useCallback(async () => {
     if (!selectedBudNode || !selectedBudModule) return
     if (typeof selectedBudNode.resource !== 'string') return
@@ -1862,6 +1984,122 @@ export function Canvas({
       return { nodeId }
     },
     [createBudAtPoint]
+  )
+
+  const placeClipboardPayloadAtPosition = useCallback(
+    (payload: CanvasClipboardPayload, position: FlowPosition) => {
+      const idByOriginalId = new Map<string, string>()
+      const copiedNodeIds = new Set(payload.nodes.map((node) => node.id))
+      const offset = {
+        x: position.x - payload.anchor.x,
+        y: position.y - payload.anchor.y
+      }
+      const createdNodeIds: string[] = []
+
+      for (const node of payload.nodes) {
+        idByOriginalId.set(node.id, crypto.randomUUID())
+      }
+
+      for (const node of payload.nodes) {
+        if (isClusterNode(node)) continue
+        const id = idByOriginalId.get(node.id)
+        if (!id) continue
+        const nextPosition = {
+          x: Math.round(node.position.x + offset.x),
+          y: Math.round(node.position.y + offset.y)
+        }
+        createdNodeIds.push(id)
+
+        if (node.kind === 'bud') {
+          addNode({
+            id,
+            kind: 'bud',
+            type: node.type,
+            position: nextPosition,
+            size: { ...node.size },
+            ...(node.resource ? { resource: node.resource } : {}),
+            ...(node.label ? { label: node.label } : {})
+          })
+          if (node.resource) syncBudMaterialRecord(node.resource, node.label)
+          continue
+        }
+
+        if (isShapeLeafNode(node)) {
+          addNode({
+            id,
+            kind: 'leaf',
+            type: 'shape',
+            position: nextPosition,
+            size: { ...node.size },
+            shape: cloneJsonValue(node.shape),
+            ...(node.label ? { label: node.label } : {})
+          } as BoardNodeDraft)
+          continue
+        }
+
+        addNode({
+          id,
+          kind: 'leaf',
+          type: 'text',
+          position: nextPosition,
+          size: { ...node.size },
+          content: node.content ?? makeLexicalContent(node.label ?? ''),
+          ...(node.plain ? { plain: node.plain } : {}),
+          ...(node.label ? { label: node.label } : {}),
+          widthMode: node.widthMode ?? 'auto',
+          wrapWidth: node.wrapWidth ?? null
+        })
+      }
+
+      for (const node of payload.nodes) {
+        if (!isClusterNode(node)) continue
+        const id = idByOriginalId.get(node.id)
+        if (!id) continue
+        const nextPosition = {
+          x: Math.round(node.position.x + offset.x),
+          y: Math.round(node.position.y + offset.y)
+        }
+        const children = node.children
+          .map((childId) => idByOriginalId.get(childId))
+          .filter((childId): childId is string => typeof childId === 'string')
+        createdNodeIds.push(id)
+        addCluster({
+          id,
+          kind: 'cluster',
+          type: null,
+          position: nextPosition,
+          size: { ...node.size },
+          children,
+          color: node.color,
+          autofitToContents: node.autofitToContents === true,
+          ...(node.label ? { label: node.label } : {}),
+          ...(node.brief ? { brief: node.brief } : {})
+        })
+        for (const childId of children) {
+          addNodeToCluster(id, childId)
+        }
+      }
+
+      for (const edge of payload.edges) {
+        if (!copiedNodeIds.has(edge.from) || !copiedNodeIds.has(edge.to)) continue
+        const from = idByOriginalId.get(edge.from)
+        const to = idByOriginalId.get(edge.to)
+        if (!from || !to) continue
+        storeAddEdge({
+          ...cloneJsonValue(edge),
+          id: crypto.randomUUID(),
+          from,
+          to
+        })
+      }
+
+      setPendingNodeSelectionIds(createdNodeIds)
+      setActiveClipboardPlacement(null)
+      setActiveTool('pointer')
+
+      return { nodeIds: createdNodeIds }
+    },
+    [addCluster, addNode, addNodeToCluster, storeAddEdge, syncBudMaterialRecord]
   )
 
   // Refs for action callbacks defined later in this component. The useMemo
@@ -1944,6 +2182,7 @@ export function Canvas({
           setActiveTool('shape')
         },
         activatePayloadPlacement: (input) => {
+          setActiveClipboardPlacement(null)
           setActivePayloadPlacement(input)
           setActiveTool('payload')
         },
@@ -2087,6 +2326,28 @@ export function Canvas({
       return result.result
     },
     [canvasCommandContext]
+  )
+
+  const copySelectionToClipboard = useCallback(
+    async (options?: { cut?: boolean }) => {
+      const payload = buildClipboardPayloadFromSelection()
+      if (!payload) return false
+
+      const result = await window.api.writeClipboardText(serializeCanvasClipboardPayload(payload))
+      if (!result.ok) return false
+
+      if (options?.cut) {
+        await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection, undefined, {
+          source: 'shortcut',
+          metadata: {
+            key: 'cut'
+          }
+        })
+      }
+
+      return true
+    },
+    [buildClipboardPayloadFromSelection, runCanvasCommand]
   )
 
   const fitSelectedClusterToChildren = useCallback(() => {
@@ -2572,6 +2833,11 @@ export function Canvas({
         return
       }
 
+      if (activeTool === 'payload' && activeClipboardPlacement) {
+        placeClipboardPayloadAtPosition(activeClipboardPlacement, position)
+        return
+      }
+
       if (activeTool === 'payload' && activePayloadPlacement) {
         placePayloadAtPosition(activePayloadPlacement, position, {
           switchToPointer: true
@@ -2579,10 +2845,12 @@ export function Canvas({
       }
     },
     [
+      activeClipboardPlacement,
       activePayloadPlacement,
       activeShapePreset,
       activeTool,
       insertTextNodeAtPosition,
+      placeClipboardPayloadAtPosition,
       placePayloadAtPosition,
       placeShapeAtPosition,
       screenToFlowPosition
@@ -2617,6 +2885,11 @@ export function Canvas({
         return
       }
 
+      if (activeClipboardPlacement) {
+        placeClipboardPayloadAtPosition(activeClipboardPlacement, position)
+        return
+      }
+
       if (activePayloadPlacement) {
         placePayloadAtPosition(activePayloadPlacement, position, {
           switchToPointer: true
@@ -2624,10 +2897,12 @@ export function Canvas({
       }
     },
     [
+      activeClipboardPlacement,
       activePayloadPlacement,
       activeShapePreset,
       activeTool,
       insertTextNodeAtPosition,
+      placeClipboardPayloadAtPosition,
       placePayloadAtPosition,
       placeShapeAtPosition,
       screenToFlowPosition
@@ -3023,6 +3298,28 @@ export function Canvas({
         return
       }
 
+      if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+        const key = event.key.toLowerCase()
+
+        if (key === 'c' || key === 'x') {
+          if (isEditableTarget(event.target)) return
+          const hasNodeSelection = nodes.some((node) => node.selected)
+          if (!hasNodeSelection) return
+
+          event.preventDefault()
+          void copySelectionToClipboard({ cut: key === 'x' })
+          return
+        }
+
+        if (key === 'v') {
+          if (isEditableTarget(event.target)) return
+
+          event.preventDefault()
+          void pasteClipboardToCanvas()
+          return
+        }
+      }
+
       if (event.key.toLowerCase() === 'z' && (event.ctrlKey || event.metaKey) && !event.shiftKey) {
         if (isEditableTarget(event.target)) return
         event.preventDefault()
@@ -3077,11 +3374,13 @@ export function Canvas({
     boardNodes,
     boardPath,
     closePalette,
+    copySelectionToClipboard,
     edges,
     handleSave,
     imageDropError,
     nodes,
     paletteState,
+    pasteClipboardToCanvas,
     pendingDocumentAction,
     runCanvasCommand,
     setActiveInkTool,

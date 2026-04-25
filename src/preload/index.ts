@@ -250,6 +250,9 @@ const api = {
   loadAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
     ipcRenderer.invoke('app-settings:save', settings),
+  readClipboardText: (): Promise<string> => ipcRenderer.invoke('clipboard:read-text'),
+  writeClipboardText: (text: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('clipboard:write-text', text),
   onCloseRequested: (cb: () => void): (() => void) => {
     const listener = () => cb()
     ipcRenderer.on('app:close-requested', listener)
