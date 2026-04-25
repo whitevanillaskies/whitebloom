@@ -4,11 +4,21 @@ import { useTranslation } from 'react-i18next'
 import './FocusWriterEditor.css'
 
 const AUTOSAVE_DELAY_MS = 600
+const VIEW_STATE_STORAGE_PREFIX = 'whitebloom.focusWriter.viewState'
 const MODE_TRANSLATION_KEYS = {
   typewriter: 'focusWriter.typewriterMode',
   dynamic: 'focusWriter.dynamicMode',
   preview: 'focusWriter.previewMode',
 } as const
+
+type WritingMode = 'typewriter' | 'dynamic'
+type EditorMode = WritingMode | 'preview'
+
+type FocusWriterViewState = {
+  mode: EditorMode
+  paragraph: number
+  lastWritingMode: WritingMode
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -34,6 +44,74 @@ function getActiveParagraph(text: string, cursor: number): number {
     pos = end
   }
   return Math.max(0, paraIndex - 1)
+}
+
+function getParagraphStartOffset(text: string, targetParagraph: number): number {
+  const parts = text.split(/(\n\n+)/)
+  let pos = 0
+  let paraIndex = 0
+  for (const part of parts) {
+    if (/^\n\n+$/.test(part)) {
+      pos += part.length
+      continue
+    }
+    if (paraIndex >= targetParagraph) return pos
+    paraIndex++
+    pos += part.length
+  }
+  return text.length
+}
+
+function getPreviewParagraphs(text: string): Array<{ text: string; sourceIndex: number }> {
+  const parts = text.split(/(\n\n+)/)
+  const paragraphs: Array<{ text: string; sourceIndex: number }> = []
+  let paraIndex = 0
+  for (const part of parts) {
+    if (/^\n\n+$/.test(part)) continue
+    if (part.trim()) paragraphs.push({ text: part, sourceIndex: paraIndex })
+    paraIndex++
+  }
+  return paragraphs
+}
+
+type PreviewPage = {
+  paragraphs: string[]
+  startPara: number
+}
+
+function getViewStateStorageKey(workspaceRoot: string, resource: string): string {
+  return `${VIEW_STATE_STORAGE_PREFIX}:${workspaceRoot}:${resource}`
+}
+
+function loadViewState(workspaceRoot: string, resource: string): FocusWriterViewState | null {
+  try {
+    const raw = window.localStorage.getItem(getViewStateStorageKey(workspaceRoot, resource))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<FocusWriterViewState>
+    const mode = parsed.mode
+    const lastWritingMode = parsed.lastWritingMode
+    if (mode !== 'typewriter' && mode !== 'dynamic' && mode !== 'preview') return null
+    if (lastWritingMode !== 'typewriter' && lastWritingMode !== 'dynamic') return null
+    return {
+      mode,
+      lastWritingMode,
+      paragraph: Math.max(0, Math.floor(parsed.paragraph ?? 0))
+    }
+  } catch {
+    return null
+  }
+}
+
+function saveViewState(
+  workspaceRoot: string,
+  resource: string,
+  state: FocusWriterViewState
+): void {
+  try {
+    window.localStorage.setItem(getViewStateStorageKey(workspaceRoot, resource), JSON.stringify(state))
+  } catch {
+    // View state is a nicety; storage failures should never interrupt writing.
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +144,7 @@ function MirrorContent({
         const idx = paraIndex++
         const cls = allBright || idx === activePara ? 'fw-editor__para--active' : 'fw-editor__para--dim'
         return (
-          <span key={i} className={cls}>
+          <span key={i} className={cls} data-fw-para-index={idx}>
             {part}
           </span>
         )
@@ -82,20 +160,25 @@ function MirrorContent({
 function BookPreview({
   text,
   modeLabel,
+  initialPara,
   onClose,
   onExitPreview,
+  onPageChange,
 }: {
   text: string
   modeLabel: string
+  initialPara: number
   onClose: () => void
-  onExitPreview: () => void
+  onExitPreview: (targetPara: number) => void
+  onPageChange: (targetPara: number) => void
 }) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const pageAreaRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
-  const [pages, setPages] = useState<string[][]>([])
+  const [pages, setPages] = useState<PreviewPage[]>([])
   const [currentPage, setCurrentPage] = useState(0)
+  const didSyncInitialPageRef = useRef(false)
 
   const paginate = useCallback(() => {
     const pageArea = pageAreaRef.current
@@ -113,59 +196,72 @@ function BookPreview({
     measure.style.width = `${availableWidth}px`
     measure.style.height = `${availableHeight}px`
 
-    const paragraphs = text.split(/\n\n+/).filter((p) => p.trim())
+    const paragraphs = getPreviewParagraphs(text)
     if (paragraphs.length === 0) {
-      setPages([[]])
+      setPages([{ paragraphs: [], startPara: 0 }])
       setCurrentPage(0)
       return
     }
 
     while (measure.firstChild) measure.removeChild(measure.firstChild)
 
-    const result: string[][] = []
+    const result: PreviewPage[] = []
     let currentPageParas: string[] = []
+    let currentPageStartPara = paragraphs[0]?.sourceIndex ?? 0
 
     for (const para of paragraphs) {
       const el = document.createElement('p')
       el.className = 'fw-preview__para'
-      el.textContent = para
+      el.textContent = para.text
       measure.appendChild(el)
 
       if (measure.scrollHeight > availableHeight) {
         if (currentPageParas.length === 0) {
           // Paragraph alone is taller than the page — force it on its own page
-          result.push([para])
+          result.push({ paragraphs: [para.text], startPara: para.sourceIndex })
           measure.removeChild(el)
           while (measure.firstChild) measure.removeChild(measure.firstChild)
         } else {
           // Doesn't fit — push current page, start fresh
-          result.push(currentPageParas)
-          currentPageParas = [para]
+          result.push({ paragraphs: currentPageParas, startPara: currentPageStartPara })
+          currentPageParas = [para.text]
+          currentPageStartPara = para.sourceIndex
           while (measure.firstChild) measure.removeChild(measure.firstChild)
           const freshEl = document.createElement('p')
           freshEl.className = 'fw-preview__para'
-          freshEl.textContent = para
+          freshEl.textContent = para.text
           measure.appendChild(freshEl)
         }
       } else {
-        currentPageParas.push(para)
+        if (currentPageParas.length === 0) currentPageStartPara = para.sourceIndex
+        currentPageParas.push(para.text)
       }
     }
 
     if (currentPageParas.length > 0) {
-      result.push(currentPageParas)
+      result.push({ paragraphs: currentPageParas, startPara: currentPageStartPara })
     }
 
     setPages(result)
-    // Keep position but clamp to a valid spread-start (even) index
+    const maxLeft =
+      result.length <= 1 ? 0 : result.length % 2 === 0 ? result.length - 2 : result.length - 1
+
+    if (!didSyncInitialPageRef.current) {
+      didSyncInitialPageRef.current = true
+      const target = result.findLastIndex((page) => page.startPara <= initialPara)
+      const clampedTarget = Math.min(Math.max(target, 0), maxLeft)
+      const spreadStart = clampedTarget % 2 === 0 ? clampedTarget : Math.max(0, clampedTarget - 1)
+      setCurrentPage(spreadStart)
+      return
+    }
+
+    // Keep position but clamp to a valid spread-start (even) index.
     setCurrentPage((prev) => {
-      const maxLeft =
-        result.length <= 1 ? 0 : result.length % 2 === 0 ? result.length - 2 : result.length - 1
       const clamped = Math.min(prev, maxLeft)
       // Snap to nearest spread boundary (round down to even)
       return clamped % 2 === 0 ? clamped : Math.max(0, clamped - 1)
     })
-  }, [text])
+  }, [initialPara, text])
 
   useLayoutEffect(() => {
     paginate()
@@ -182,6 +278,11 @@ function BookPreview({
   useEffect(() => {
     containerRef.current?.focus()
   }, [])
+
+  useEffect(() => {
+    const page = pages[currentPage]
+    if (page) onPageChange(page.startPara)
+  }, [onPageChange, pages, currentPage])
 
   // Spreads advance two pages at a time. currentPage is always the left page (even index).
   const maxLeftPage =
@@ -211,7 +312,7 @@ function BookPreview({
       }
       if (isMod && e.key.toLowerCase() === 'p') {
         e.preventDefault()
-        onExitPreview()
+        onExitPreview(pages[currentPage]?.startPara ?? 0)
         return
       }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
@@ -225,12 +326,12 @@ function BookPreview({
         return
       }
     },
-    [onClose, onExitPreview, goNext, goPrev]
+    [onClose, onExitPreview, goNext, goPrev, pages, currentPage]
   )
 
   const isEmpty = text.trim() === ''
-  const leftParas = pages[currentPage] ?? []
-  const rightParas = pages[currentPage + 1] ?? null
+  const leftParas = pages[currentPage]?.paragraphs ?? []
+  const rightParas = pages[currentPage + 1]?.paragraphs ?? null
 
   return (
     <div
@@ -302,24 +403,41 @@ function BookPreview({
 // Editor component
 // ---------------------------------------------------------------------------
 
-export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorProps) {
+export function FocusWriterEditor({
+  resource,
+  workspaceRoot,
+  initialData,
+  onSave,
+  onClose
+}: BudEditorProps) {
   const { t } = useTranslation()
+  const initialViewStateRef = useRef(loadViewState(workspaceRoot, resource))
+  const initialViewState = initialViewStateRef.current
   const [text, setText] = useState(initialData)
-  const [mode, setMode] = useState<'typewriter' | 'dynamic' | 'preview'>('dynamic')
-  const [activePara, setActivePara] = useState(0)
+  const [mode, setMode] = useState<EditorMode>(initialViewState?.mode ?? 'dynamic')
+  const [activePara, setActivePara] = useState(initialViewState?.paragraph ?? 0)
+  const [previewStartPara, setPreviewStartPara] = useState(initialViewState?.paragraph ?? 0)
   // Dynamic mode: 'seek' = all bright, cursor free; 'focused' = active para bright, rest dim
   const [dynamicSubState, setDynamicSubState] = useState<'seek' | 'focused'>('seek')
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const columnRef = useRef<HTMLDivElement>(null)
   const mirrorRef = useRef<HTMLDivElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingTextRef = useRef(initialData)
   // Remembers the last writing mode so Ctrl+P returns to it
-  const lastWritingModeRef = useRef<'typewriter' | 'dynamic'>('dynamic')
+  const lastWritingModeRef = useRef<WritingMode>(
+    initialViewState?.mode === 'typewriter' || initialViewState?.mode === 'dynamic'
+      ? initialViewState.mode
+      : initialViewState?.lastWritingMode ?? 'dynamic'
+  )
   // Refs for values needed inside rAF callbacks (avoids stale closures)
-  const activeParaRef = useRef(0)
-  const modeRef = useRef<'typewriter' | 'dynamic' | 'preview'>('dynamic')
+  const activeParaRef = useRef(initialViewState?.paragraph ?? 0)
+  const modeRef = useRef<EditorMode>(initialViewState?.mode ?? 'dynamic')
+  const pendingRestoreParaRef = useRef<number | null>(
+    initialViewState && initialViewState.mode !== 'preview' ? initialViewState.paragraph : null
+  )
   const modeLabel = t(MODE_TRANSLATION_KEYS[mode])
 
   // ── Textarea auto-grow ──────────────────────────────────────────────────
@@ -330,6 +448,10 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     ta.style.height = 'auto'
     ta.style.height = `${ta.scrollHeight}px`
   }, [])
+
+  useLayoutEffect(() => {
+    resizeTextarea()
+  }, [text, resizeTextarea])
 
   // ── Autosave ────────────────────────────────────────────────────────────
 
@@ -345,20 +467,39 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     [onSave]
   )
 
+  const persistViewState = useCallback(
+    (override?: Partial<FocusWriterViewState>) => {
+      const currentMode = override?.mode ?? mode
+      const paragraph =
+        override?.paragraph ?? (currentMode === 'preview' ? previewStartPara : activePara)
+      saveViewState(workspaceRoot, resource, {
+        mode: currentMode,
+        paragraph,
+        lastWritingMode: override?.lastWritingMode ?? lastWritingModeRef.current
+      })
+    },
+    [activePara, mode, previewStartPara, resource, workspaceRoot]
+  )
+
   const flushAndClose = useCallback(() => {
+    persistViewState()
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
     onSave(pendingTextRef.current).catch(() => {})
     onClose()
-  }, [onSave, onClose])
+  }, [persistViewState, onSave, onClose])
 
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    persistViewState()
+  }, [persistViewState])
 
   // ── Cursor tracking ─────────────────────────────────────────────────────
 
@@ -368,6 +509,25 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     const next = getActiveParagraph(ta.value, ta.selectionStart)
     activeParaRef.current = next
     setActivePara(next)
+  }, [])
+
+  const enterPreviewMode = useCallback(() => {
+    const ta = textareaRef.current
+    const next = ta ? getActiveParagraph(ta.value, ta.selectionStart) : activeParaRef.current
+    activeParaRef.current = next
+    setActivePara(next)
+    setPreviewStartPara(next)
+    setMode('preview')
+  }, [])
+
+  const exitPreviewAtParagraph = useCallback((targetPara: number) => {
+    pendingRestoreParaRef.current = targetPara
+    setPreviewStartPara(targetPara)
+    setMode(lastWritingModeRef.current)
+  }, [])
+
+  const handlePreviewPageChange = useCallback((targetPara: number) => {
+    setPreviewStartPara(targetPara)
   }, [])
 
   // For click/select: also detect paragraph change → dynamic seek
@@ -410,7 +570,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
 
       if (isMod && e.key.toLowerCase() === 'p') {
         e.preventDefault()
-        setMode('preview')
+        enterPreviewMode()
         return
       }
 
@@ -443,7 +603,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
       // Update active paragraph on any key
       window.requestAnimationFrame(updateActivePara)
     },
-    [flushAndClose, updateActivePara, mode, dynamicSubState]
+    [flushAndClose, updateActivePara, enterPreviewMode, mode, dynamicSubState]
   )
 
   // ── Focus management ────────────────────────────────────────────────────
@@ -456,6 +616,25 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     resizeTextarea()
   }, [resizeTextarea])
 
+  // Keep the transparent textarea's hit box in sync with the visible mirror.
+  // Web font loading and column width changes can alter wrapping after the first
+  // auto-size pass, which otherwise leaves visible text outside the clickable
+  // textarea until another mode switch happens to resize it.
+  useEffect(() => {
+    const column = columnRef.current
+    if (!column) return
+
+    const resizeSoon = (): void => {
+      requestAnimationFrame(resizeTextarea)
+    }
+    const ro = new ResizeObserver(resizeSoon)
+    ro.observe(column)
+
+    document.fonts?.ready.then(resizeSoon).catch(() => {})
+
+    return () => ro.disconnect()
+  }, [resizeTextarea])
+
   // Refocus textarea when returning to a writing mode
   useEffect(() => {
     if (mode === 'preview') return
@@ -463,7 +642,34 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
     if (!ta) return
     ta.focus()
     resizeTextarea()
-  }, [mode, resizeTextarea])
+
+    const targetPara = pendingRestoreParaRef.current
+    if (targetPara === null) return
+    pendingRestoreParaRef.current = null
+
+    const offset = getParagraphStartOffset(text, targetPara)
+    ta.setSelectionRange(offset, offset)
+    activeParaRef.current = targetPara
+    setActivePara(targetPara)
+    if (mode === 'dynamic') setDynamicSubState('seek')
+
+    requestAnimationFrame(() => {
+      if (mode !== 'dynamic') return
+      const container = containerRef.current
+      const mirror = mirrorRef.current
+      if (!container || !mirror) return
+      const targetSpan = mirror.querySelector<HTMLSpanElement>(
+        `[data-fw-para-index="${targetPara}"]`
+      )
+      if (!targetSpan) return
+      const spanRect = targetSpan.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      container.scrollBy({
+        top: spanRect.top - containerRect.top - containerRect.height * 0.22,
+        behavior: 'instant'
+      })
+    })
+  }, [mode, resizeTextarea, text])
 
   // Keep modeRef in sync for rAF callbacks
   useEffect(() => {
@@ -510,8 +716,10 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
       <BookPreview
         text={text}
         modeLabel={modeLabel}
+        initialPara={previewStartPara}
         onClose={flushAndClose}
-        onExitPreview={() => setMode(lastWritingModeRef.current)}
+        onExitPreview={exitPreviewAtParagraph}
+        onPageChange={handlePreviewPageChange}
       />
     )
   }
@@ -521,7 +729,7 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
       ref={containerRef}
       className={`fw-editor${mode === 'typewriter' ? ' fw-editor--typewriter' : ''}`}
     >
-      <div className="fw-editor__column">
+      <div ref={columnRef} className="fw-editor__column">
         {/* Mirror: renders paragraph-dimmed text behind the transparent textarea */}
         <div ref={mirrorRef} className="fw-editor__mirror" aria-hidden="true">
           <MirrorContent
@@ -542,9 +750,14 @@ export function FocusWriterEditor({ initialData, onSave, onClose }: BudEditorPro
           autoCorrect="off"
           autoCapitalize="off"
         />
-        {mode === 'typewriter' && (
-          <div className="fw-editor__typewriter-spacer" aria-hidden="true" />
-        )}
+        <div
+          className={
+            mode === 'typewriter'
+              ? 'fw-editor__scroll-spacer fw-editor__scroll-spacer--typewriter'
+              : 'fw-editor__scroll-spacer fw-editor__scroll-spacer--dynamic'
+          }
+          aria-hidden="true"
+        />
       </div>
       <span className="fw-editor__mode-indicator" aria-hidden="true">{modeLabel}</span>
     </div>

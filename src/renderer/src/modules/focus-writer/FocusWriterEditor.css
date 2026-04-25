@@ -24,6 +24,7 @@
 .fw-editor__mirror {
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   user-select: none;
   font-family: 'Courier Prime', 'Courier New', monospace;
@@ -58,6 +59,7 @@
 
 .fw-editor__textarea {
   position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   min-height: 60vh;
@@ -89,10 +91,17 @@
 
 /* Spacer inside the column — padding-bottom on scroll containers is unreliable
    in Chromium, so we use a real element to extend scrollable height instead */
-.fw-editor__typewriter-spacer {
-  height: 50vh;
+.fw-editor__scroll-spacer {
   pointer-events: none;
   user-select: none;
+}
+
+.fw-editor__scroll-spacer--dynamic {
+  height: 80vh;
+}
+
+.fw-editor__scroll-spacer--typewriter {
+  height: 50vh;
 }
 
 /* ── Book preview mode ────────────────────────────────────────── */
