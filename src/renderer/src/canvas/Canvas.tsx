@@ -129,6 +129,7 @@ import {
   createCanvasCommandContext,
   executeCommandById,
   type CanvasActivatePayloadPlacementArgs,
+  type CanvasDeleteSelectionCommandArgs,
   type WhitebloomCommandExecutionOptions
 } from '@renderer/commands'
 import './Canvas.css'
@@ -1847,12 +1848,31 @@ export function Canvas({
     [selectedBudNode]
   )
 
-  const deleteSelection = useCallback(() => {
-    const deletedNodes = boardNodes.filter((n) => selectedNodeIds.includes(n.id))
-    const deletedEdges = boardEdges.filter((e) => selectedEdgeIds.includes(e.id))
+  const deleteSelection = useCallback((args?: CanvasDeleteSelectionCommandArgs) => {
+    const deletedNodeIdSet = new Set(selectedNodeIds)
 
-    if (selectedNodeIds.length > 0) {
-      deleteNodes(selectedNodeIds)
+    if (args?.includeClusterContents) {
+      for (const node of boardNodes) {
+        if (!deletedNodeIdSet.has(node.id) || !isClusterNode(node)) continue
+        for (const childId of node.children) {
+          deletedNodeIdSet.add(childId)
+        }
+      }
+    }
+
+    const deletedEdgeIdSet = new Set(selectedEdgeIds)
+    for (const edge of boardEdges) {
+      if (deletedNodeIdSet.has(edge.from) || deletedNodeIdSet.has(edge.to)) {
+        deletedEdgeIdSet.add(edge.id)
+      }
+    }
+
+    const deletedNodeIds = Array.from(deletedNodeIdSet)
+    const deletedNodes = boardNodes.filter((n) => deletedNodeIdSet.has(n.id))
+    const deletedEdges = boardEdges.filter((e) => deletedEdgeIdSet.has(e.id))
+
+    if (deletedNodeIds.length > 0) {
+      deleteNodes(deletedNodeIds)
     }
 
     for (const edgeId of selectedEdgeIds) {
@@ -2337,12 +2357,16 @@ export function Canvas({
       if (!result.ok) return false
 
       if (options?.cut) {
-        await runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection, undefined, {
-          source: 'shortcut',
-          metadata: {
-            key: 'cut'
+        await runCanvasCommand(
+          WHITEBLOOM_COMMAND_IDS.canvas.deleteSelection,
+          { includeClusterContents: true } satisfies CanvasDeleteSelectionCommandArgs,
+          {
+            source: 'shortcut',
+            metadata: {
+              key: 'cut'
+            }
           }
-        })
+        )
       }
 
       return true

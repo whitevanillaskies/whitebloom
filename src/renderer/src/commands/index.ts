@@ -20,6 +20,7 @@ export type {
   CanvasActivatePayloadPlacementArgs,
   CanvasBudPayload,
   CanvasDeletedSelection,
+  CanvasDeleteSelectionCommandArgs,
   WhitebloomCommand,
   WhitebloomCommandArgsSchema,
   WhitebloomCommandProvider,

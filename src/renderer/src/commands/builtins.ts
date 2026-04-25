@@ -39,6 +39,7 @@ import type {
   CanvasCommandContext,
   CanvasBudPayload,
   CanvasCreateBudCommandArgs,
+  CanvasDeleteSelectionCommandArgs,
   CanvasLinkableBoard,
   WhitebloomCommandForContext
 } from './types'
@@ -218,6 +219,17 @@ function parseCanvasBudArgs(args: unknown): CanvasCreateBudCommandArgs {
       h: parseNumber(size.h, 'size.h')
     },
     label: parseOptionalString(args.label)
+  }
+}
+
+function parseCanvasDeleteSelectionArgs(args: unknown): CanvasDeleteSelectionCommandArgs {
+  if (args === undefined || args === null) return {}
+  if (!isRecord(args)) {
+    throw new Error('Delete selection arguments must be an object.')
+  }
+
+  return {
+    includeClusterContents: args.includeClusterContents === true
   }
 }
 
@@ -955,15 +967,16 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
       kind: 'action',
       modeScope: 'canvas-mode',
       aliases: ['selection.remove'],
+      argsSchema: parseCanvasDeleteSelectionArgs,
       enabledWhen: (context) =>
         typeof context.actions.deleteSelection === 'function' &&
         context.subjectSnapshot.selectionShape !== 'none',
-      run: (_args, context) => {
+      run: (args, context) => {
         if (!context.actions.deleteSelection) {
           throw new Error('Canvas context cannot delete the current selection.')
         }
 
-        return context.actions.deleteSelection()
+        return context.actions.deleteSelection(args)
       },
       undo: (_args, result) => {
         const { deletedNodes, deletedEdges } = result as import('./types').CanvasDeletedSelection
@@ -971,6 +984,11 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
         for (const node of deletedNodes) {
           if (node.kind !== 'cluster') {
             store.addNode(node)
+          }
+        }
+        for (const node of deletedNodes) {
+          if (node.kind === 'cluster') {
+            store.addCluster(node)
           }
         }
         for (const edge of deletedEdges) {

@@ -63,6 +63,10 @@ export type CanvasDeletedSelection = {
   deletedEdges: BoardEdge[]
 }
 
+export type CanvasDeleteSelectionCommandArgs = {
+  includeClusterContents?: boolean
+}
+
 export type CanvasCommandSelection = {
   nodeIds: string[]
   edgeIds: string[]
@@ -107,7 +111,7 @@ export type CanvasCommandActions = {
   activateTool?: (tool: CanvasToolKind) => void
   activateShapeTool?: (preset: ShapePreset) => void
   activatePayloadPlacement?: (input: CanvasActivatePayloadPlacementArgs) => void
-  deleteSelection?: () => CanvasDeletedSelection
+  deleteSelection?: (args?: CanvasDeleteSelectionCommandArgs) => CanvasDeletedSelection
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
   openMaterials?: () => void
