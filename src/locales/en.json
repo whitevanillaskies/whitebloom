@@ -205,6 +205,7 @@
   "formatToolbar": {
     "boldLabel": "Bold",
     "italicLabel": "Italic",
+    "inlineCodeLabel": "Inline code",
     "textColorLabel": "Text color",
     "textColorDefault": "Default",
     "alignLeftLabel": "Align left",
@@ -239,6 +240,7 @@
     "bulletedListLabel": "Bulleted List",
     "numberedListLabel": "Numbered List",
     "quoteLabel": "Quote",
+    "codeBlockLabel": "Code Block",
     "noResults": "No results"
   },
   "textNode": {

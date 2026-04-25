@@ -17,6 +17,7 @@ import {
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list'
+import { $createCodeNode } from '@lexical/code-core'
 import '../components/petal/PetalMenu.css'
 
 // ── Block definitions ─────────────────────────────────────────────
@@ -81,6 +82,14 @@ const BLOCKS: BlockDef[] = [
     keywords: ['quote', 'blockquote'],
     kind: 'block',
     create: () => $createQuoteNode(),
+  },
+  {
+    id: 'code',
+    label: 'Code Block',
+    labelKey: 'slashCommand.codeBlockLabel',
+    keywords: ['code', 'pre', 'snippet'],
+    kind: 'block',
+    create: () => $createCodeNode(),
   },
 ]
 

@@ -21,6 +21,7 @@ import { $patchStyleText } from '@lexical/selection'
 import { TEXT_COLOR_COMMAND } from './textEditorCommands'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListNode, ListItemNode } from '@lexical/list'
+import { CodeHighlightNode, CodeNode } from '@lexical/code-core'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MoveHorizontal } from 'lucide-react'
@@ -31,7 +32,7 @@ import './TextNode.css'
 
 export { TEXT_COLOR_COMMAND } from './textEditorCommands'
 
-const RICH_TEXT_NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode]
+const RICH_TEXT_NODES = [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, CodeHighlightNode]
 
 const RICH_TEXT_THEME = {
   paragraph: 'tn-p',
@@ -47,9 +48,11 @@ const RICH_TEXT_THEME = {
     nested: { listitem: 'tn-li-nested' },
   },
   quote: 'tn-quote',
+  code: 'tn-code-block',
   text: {
     bold: 'tn-bold',
     italic: 'tn-italic',
+    code: 'tn-inline-code',
   },
 }
 

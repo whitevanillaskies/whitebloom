@@ -12,7 +12,7 @@ import {
   type ElementFormatType,
 } from 'lexical'
 import { $getSelectionStyleValueForProperty } from '@lexical/selection'
-import { AlignCenter, AlignLeft, AlignRight, Bold, Italic } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Terminal } from 'lucide-react'
 import { CanvasToolbar, CanvasToolbarBtn, CanvasToolbarSep, CanvasToolbarSwatch, useCanvasToolbarPopover } from './CanvasToolbar'
 import { CanvasPopover } from './CanvasPopover'
 import { WHITEBLOOM_DEFAULT_PALETTE, type PaletteSwatch } from './palette'
@@ -139,6 +139,7 @@ export function FormatToolbar() {
   const [editor] = useLexicalComposerContext()
   const [isBold, setIsBold] = useState(false)
   const [isItalic, setIsItalic] = useState(false)
+  const [isCode, setIsCode] = useState(false)
   const [selectionColor, setSelectionColor] = useState('')
   const [elementAlign, setElementAlign] = useState<ElementFormatType>('')
 
@@ -148,12 +149,14 @@ export function FormatToolbar() {
       if (!$isRangeSelection(selection)) {
         setIsBold(false)
         setIsItalic(false)
+        setIsCode(false)
         setSelectionColor('')
         setElementAlign('')
         return
       }
       setIsBold(selection.hasFormat('bold'))
       setIsItalic(selection.hasFormat('italic'))
+      setIsCode(selection.hasFormat('code'))
       setSelectionColor($getSelectionStyleValueForProperty(selection, 'color', ''))
       const anchorNode = selection.anchor.getNode()
       const element = anchorNode.getKey() === 'root'
@@ -190,6 +193,13 @@ export function FormatToolbar() {
         aria-label={t('formatToolbar.italicLabel')}
       >
         <Italic size={13} strokeWidth={2.5} />
+      </CanvasToolbarBtn>
+      <CanvasToolbarBtn
+        active={isCode}
+        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
+        aria-label={t('formatToolbar.inlineCodeLabel')}
+      >
+        <Terminal size={13} strokeWidth={2.5} />
       </CanvasToolbarBtn>
       <CanvasToolbarSep />
       <CanvasToolbarBtn
