@@ -124,12 +124,18 @@ import type { Tool } from './tools'
 import { createInkTargetId, type InkBoardSurfaceBinding } from '../../../shared/ink'
 import { planClusterPromotion } from '@renderer/stores/board'
 import type { BoardNodeDraft } from '@renderer/stores/board'
+import { alignNodes } from './layoutGeometry'
+import type { LayoutNode } from './layoutGeometry'
+import { SmartGuidesOverlay } from './SmartGuidesOverlay'
+import { useCanvasSnapping } from './useCanvasSnapping'
 import {
   WHITEBLOOM_COMMAND_IDS,
   createCommandExecutionGroupId,
   createCanvasCommandContext,
   executeCommandById,
   type CanvasActivatePayloadPlacementArgs,
+  type CanvasAlignedNodes,
+  type CanvasAlignmentKind,
   type CanvasDeleteSelectionCommandArgs,
   type WhitebloomCommandExecutionOptions
 } from '@renderer/commands'
@@ -847,6 +853,7 @@ export function Canvas({
   const boardViewport = useBoardStore((s) => s.viewport)
   const isDirty = useBoardStore((s) => s.isDirty)
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
+  const updateNodePositions = useBoardStore((s) => s.updateNodePositions)
   const updateClusterFrame = useBoardStore((s) => s.updateClusterFrame)
   const translateCluster = useBoardStore((s) => s.translateCluster)
   const updateNodeText = useBoardStore((s) => s.updateNodeText)
@@ -958,6 +965,7 @@ export function Canvas({
   )
   const transientAutosaveRef = useRef<string | null>(null)
   const consumedShellPaletteTokenRef = useRef<number | null>(null)
+  const lastSnappedNodePositionsRef = useRef<Map<string, FlowPosition>>(new Map())
   const isMaterialsCanvasDropActive = useArrangementsDragTargetActive(
     MATERIALS_CANVAS_DROP_TARGET_ID
   )
@@ -1682,6 +1690,20 @@ export function Canvas({
     })
   }, [schemaNodes])
 
+  const canvasLayoutNodes = useMemo<LayoutNode[]>(
+    () =>
+      boardNodes.map((node) => ({
+        id: node.id,
+        position: node.position,
+        size: node.size
+      })),
+    [boardNodes]
+  )
+  const canvasSnapping = useCanvasSnapping({
+    nodes: canvasLayoutNodes,
+    enabled: activeTool === 'pointer'
+  })
+
   useEffect(() => {
     if (!pendingNodeSelectionId) return
     if (!schemaNodes.some((node) => node.id === pendingNodeSelectionId)) return
@@ -1887,6 +1909,41 @@ export function Canvas({
       return { deletedNodes, deletedEdges }
     },
     [boardEdges, boardNodes, deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge]
+  )
+
+  const alignSelectedNodes = useCallback(
+    (alignment: CanvasAlignmentKind): CanvasAlignedNodes => {
+      const selectedNodeIdSet = new Set(selectedNodeIds)
+      const selectedBoardNodes = boardNodes.filter((node) => selectedNodeIdSet.has(node.id))
+      if (selectedBoardNodes.length < 2) {
+        return { previousPositions: [], nextPositions: [] }
+      }
+
+      const alignedPositions = alignNodes(selectedBoardNodes, alignment)
+      const nextPositions = selectedBoardNodes
+        .map((node) => {
+          const position = alignedPositions.get(node.id)
+          if (!position) return null
+          if (position.x === node.position.x && position.y === node.position.y) return null
+          return { id: node.id, position }
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+
+      const movedIds = new Set(nextPositions.map((entry) => entry.id))
+      const previousPositions = selectedBoardNodes
+        .filter((node) => movedIds.has(node.id))
+        .map((node) => ({
+          id: node.id,
+          position: { x: node.position.x, y: node.position.y }
+        }))
+
+      if (nextPositions.length > 0) {
+        updateNodePositions(nextPositions)
+      }
+
+      return { previousPositions, nextPositions }
+    },
+    [boardNodes, selectedNodeIds, updateNodePositions]
   )
 
   const buildClipboardPayloadFromSelection = useCallback((): CanvasClipboardPayload | null => {
@@ -2179,7 +2236,8 @@ export function Canvas({
           canImportResources: workspaceRoot !== null,
           canFitCluster: selectedCluster !== null && selectedCluster.children.length > 0,
           canToggleClusterAutofit: selectedCluster !== null,
-          canPromoteClusterToSubboard: selectedCluster !== null && workspaceRoot !== null
+          canPromoteClusterToSubboard: selectedCluster !== null && workspaceRoot !== null,
+          canAlignSelection: selectedNodeIds.length > 1
         },
         insertionPoint: getDefaultCanvasInsertionPoint(),
         linkableBoards:
@@ -2228,6 +2286,7 @@ export function Canvas({
           setActiveTool('payload')
         },
         deleteSelection,
+        alignSelectedNodes,
         bloomSelection,
         openSelectionInNativeEditor,
         openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined,
@@ -2319,6 +2378,7 @@ export function Canvas({
     })
   }, [
     arrangementsMaterials,
+    alignSelectedNodes,
     bloomSelection,
     boardInkBinding,
     createBudAtPoint,
@@ -2506,7 +2566,92 @@ export function Canvas({
         Boolean(change.position) &&
         clusterChildrenById.has(change.id)
 
-      const clusterPositionChanges = changes.filter(isClusterPositionChange)
+      const rawDraggingNodeChanges = changes.filter(
+        (change): change is Extract<NodeChange, { type: 'position' }> =>
+          change.type === 'position' &&
+          'id' in change &&
+          Boolean(change.position) &&
+          change.dragging === true &&
+          !clusterChildrenById.has(change.id)
+      )
+
+      let effectiveChanges = changes
+      if (rawDraggingNodeChanges.length > 0) {
+        const anchorChange = rawDraggingNodeChanges.find((change) => {
+          const node = boardNodesById.get(change.id)
+          return node !== undefined && !isClusterNode(node)
+        })
+        const anchorBoardNode = anchorChange ? boardNodesById.get(anchorChange.id) : undefined
+
+        if (anchorChange?.position && anchorBoardNode && !isClusterNode(anchorBoardNode)) {
+          const movingNodeIds = rawDraggingNodeChanges.map((change) => change.id)
+          const snapped = canvasSnapping.previewSnappingForNodes({
+            movingNodeIds,
+            proposedDelta: {
+              x: anchorChange.position.x - anchorBoardNode.position.x,
+              y: anchorChange.position.y - anchorBoardNode.position.y
+            }
+          })
+          const movingNodeIdSet = new Set(movingNodeIds)
+          const nextSnappedPositions = new Map<string, FlowPosition>()
+
+          effectiveChanges = changes.map((change) => {
+            if (
+              change.type !== 'position' ||
+              !('id' in change) ||
+              !change.position ||
+              change.dragging !== true ||
+              !movingNodeIdSet.has(change.id)
+            ) {
+              return change
+            }
+
+            const boardNode = boardNodesById.get(change.id)
+            if (!boardNode || isClusterNode(boardNode)) return change
+            const position = {
+              x: boardNode.position.x + snapped.delta.x,
+              y: boardNode.position.y + snapped.delta.y
+            }
+            nextSnappedPositions.set(change.id, position)
+
+            return {
+              ...change,
+              position
+            }
+          })
+          lastSnappedNodePositionsRef.current = nextSnappedPositions
+        } else {
+          lastSnappedNodePositionsRef.current.clear()
+          canvasSnapping.clearGuides()
+        }
+      } else if (
+        changes.some(
+          (change) => change.type === 'position' && 'dragging' in change && !change.dragging
+        )
+      ) {
+        const snappedPositions = lastSnappedNodePositionsRef.current
+        if (snappedPositions.size > 0) {
+          effectiveChanges = changes.map((change) => {
+            if (
+              change.type !== 'position' ||
+              !('id' in change) ||
+              change.dragging === true ||
+              !snappedPositions.has(change.id)
+            ) {
+              return change
+            }
+
+            return {
+              ...change,
+              position: snappedPositions.get(change.id)
+            }
+          })
+          snappedPositions.clear()
+        }
+        canvasSnapping.endSnapping()
+      }
+
+      const clusterPositionChanges = effectiveChanges.filter(isClusterPositionChange)
       const childIdsMovedByClusters = new Set<string>()
       for (const change of clusterPositionChanges) {
         for (const childId of clusterChildrenById.get(change.id) ?? []) {
@@ -2514,7 +2659,7 @@ export function Canvas({
         }
       }
 
-      const draggingNodeChanges = changes.filter(
+      const draggingNodeChanges = effectiveChanges.filter(
         (change): change is Extract<NodeChange, { type: 'position' }> =>
           change.type === 'position' &&
           'id' in change &&
@@ -2549,7 +2694,7 @@ export function Canvas({
       }
 
       setNodes((currentNodes) => {
-        const otherChanges = changes.filter(
+        const otherChanges = effectiveChanges.filter(
           (change) =>
             change.type !== 'position' ||
             !('id' in change) ||
@@ -2775,7 +2920,7 @@ export function Canvas({
       }
       hadPendingAcceptRef.current = hasPendingAccept
 
-      for (const change of changes) {
+      for (const change of effectiveChanges) {
         if (change.type === 'position' && change.position && !change.dragging) {
           if (clusterChildrenById.has(change.id)) {
             const cluster = boardNodes.find((node) => node.id === change.id && isClusterNode(node))
@@ -2799,6 +2944,7 @@ export function Canvas({
     [
       boardNodes,
       boardNodesById,
+      canvasSnapping,
       clusterChildrenById,
       clusterNodesById,
       owningClusterByNodeId,
@@ -3268,6 +3414,26 @@ export function Canvas({
       // All remaining shortcuts are canvas-only — skip them while any bloom is open
       if (activeBloom !== null) return
 
+      if (event.key.toLowerCase() === 'q' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (isEditableTarget(event.target)) return
+        if (selectedNodeIds.length < 2) return
+
+        event.preventDefault()
+        void runCanvasCommand(
+          event.shiftKey
+            ? WHITEBLOOM_COMMAND_IDS.canvas.alignVerticalCenter
+            : WHITEBLOOM_COMMAND_IDS.canvas.alignHorizontalCenter,
+          undefined,
+          {
+            source: 'shortcut',
+            metadata: {
+              key: event.shiftKey ? 'Shift+Q' : 'Q'
+            }
+          }
+        )
+        return
+      }
+
       if (
         event.key.toLowerCase() === 't' &&
         !event.ctrlKey &&
@@ -3438,6 +3604,7 @@ export function Canvas({
     pasteClipboardToCanvas,
     pendingDocumentAction,
     runCanvasCommand,
+    selectedNodeIds,
     setActiveInkTool,
     setAcetateVisible,
     settingsOpen,
@@ -4575,6 +4742,7 @@ export function Canvas({
                 isReconnecting={isReconnecting}
               />
               <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+              <SmartGuidesOverlay guides={canvasSnapping.guides} />
               <InkOverlay
                 active={activeTool === 'ink'}
                 activeTool={activeInkTool}

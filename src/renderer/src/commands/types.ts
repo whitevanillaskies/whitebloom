@@ -67,6 +67,18 @@ export type CanvasDeleteSelectionCommandArgs = {
   includeClusterContents?: boolean
 }
 
+export type CanvasAlignmentKind = 'horizontal-center' | 'vertical-center'
+
+export type CanvasAlignedNodePosition = {
+  id: string
+  position: WhitebloomCanvasPoint
+}
+
+export type CanvasAlignedNodes = {
+  previousPositions: CanvasAlignedNodePosition[]
+  nextPositions: CanvasAlignedNodePosition[]
+}
+
 export type CanvasCommandSelection = {
   nodeIds: string[]
   edgeIds: string[]
@@ -98,6 +110,8 @@ export type CanvasCommandCapabilities = {
   canPromoteClusterToSubboard?: boolean
   /** At least one selected node is a fixed-width text node. */
   canToggleTextAutoWidth?: boolean
+  /** At least two nodes are selected and can be aligned. */
+  canAlignSelection?: boolean
 }
 
 export type CanvasToolKind = 'pointer' | 'hand' | 'text' | 'shape' | 'payload' | 'ink'
@@ -117,6 +131,7 @@ export type CanvasCommandActions = {
   activateShapeTool?: (preset: ShapePreset) => void
   activatePayloadPlacement?: (input: CanvasActivatePayloadPlacementArgs) => void
   deleteSelection?: (args?: CanvasDeleteSelectionCommandArgs) => CanvasDeletedSelection
+  alignSelectedNodes?: (alignment: CanvasAlignmentKind) => CanvasAlignedNodes
   bloomSelection?: () => void | Promise<void>
   openSelectionInNativeEditor?: () => void | Promise<void>
   openMaterials?: () => void

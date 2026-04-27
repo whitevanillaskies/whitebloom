@@ -38,6 +38,7 @@ import type {
   ArrangementsSendMaterialsToTrashCommandArgs,
   CanvasAddEdgeCommandArgs,
   CanvasActivatePayloadPlacementArgs,
+  CanvasAlignedNodes,
   CanvasCommandContext,
   CanvasBudPayload,
   CanvasCreateBudCommandArgs,
@@ -75,6 +76,8 @@ export const WHITEBLOOM_COMMAND_IDS = {
     addFocusWriter: 'board.add-focus-writer',
     addSchemaBloom: 'board.add-schema-bloom',
     addEdge: 'board.add-edge',
+    alignHorizontalCenter: 'selection.align-horizontal-center',
+    alignVerticalCenter: 'selection.align-vertical-center',
     inkAppendStroke: 'ink.append-stroke',
     inkClearLayer: 'ink.clear-layer',
     inkEraseStrokes: 'ink.erase-strokes',
@@ -1319,6 +1322,68 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
         category: 'Canvas',
         subtitle: 'Future script command entrypoint (stub)',
         icon: Tag
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.alignHorizontalCenter,
+      kind: 'action',
+      modeScope: 'canvas-mode',
+      aliases: ['align.horizontal', 'selection.align-horizontal', 'align-x'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canAlignSelection === true &&
+        typeof context.actions.alignSelectedNodes === 'function',
+      run: (_args, context) => {
+        if (!context.actions.alignSelectedNodes) {
+          throw new Error('Canvas context cannot align the current selection.')
+        }
+
+        return context.actions.alignSelectedNodes('horizontal-center')
+      },
+      undo: (_args, result) => {
+        const { previousPositions } = result as CanvasAlignedNodes
+        useBoardStore.getState().updateNodePositions(previousPositions)
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Align Horizontally',
+        category: 'Selection',
+        subtitle: 'Align selected nodes along a horizontal center line',
+        hotkey: 'Q'
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.alignVerticalCenter,
+      kind: 'action',
+      modeScope: 'canvas-mode',
+      aliases: ['align.vertical', 'selection.align-vertical', 'align-y'],
+      enabledWhen: (context) =>
+        context.subjectSnapshot.capabilities.canAlignSelection === true &&
+        typeof context.actions.alignSelectedNodes === 'function',
+      run: (_args, context) => {
+        if (!context.actions.alignSelectedNodes) {
+          throw new Error('Canvas context cannot align the current selection.')
+        }
+
+        return context.actions.alignSelectedNodes('vertical-center')
+      },
+      undo: (_args, result) => {
+        const { previousPositions } = result as CanvasAlignedNodes
+        useBoardStore.getState().updateNodePositions(previousPositions)
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Align Vertically',
+        category: 'Selection',
+        subtitle: 'Align selected nodes along a vertical center line',
+        hotkey: 'Shift+Q'
       }
     ]
   },

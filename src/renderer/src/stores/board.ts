@@ -58,13 +58,27 @@ type BoardState = Board & {
   updateEdge: (
     id: string,
     patch: Partial<
-      Pick<BoardEdge, 'style' | 'color' | 'edgeStyle' | 'from' | 'to' | 'sourceHandle' | 'targetHandle' | 'label' | 'labelLayout'>
+      Pick<
+        BoardEdge,
+        | 'style'
+        | 'color'
+        | 'edgeStyle'
+        | 'from'
+        | 'to'
+        | 'sourceHandle'
+        | 'targetHandle'
+        | 'label'
+        | 'labelLayout'
+      >
     >
   ) => void
   updateEdgeStyle: (id: string, edgeStyle: EdgeStyle) => void
   patchEdgeStyles: (ids: string[], patch: Partial<EdgeStyle>) => void
   patchShapeStyles: (ids: string[], patch: Partial<ShapeStyle>) => void
   updateNodePosition: (id: string, x: number, y: number) => void
+  updateNodePositions: (
+    positions: Array<{ id: string; position: { x: number; y: number } }>
+  ) => void
   updateNodeSize: (id: string, w: number, h: number) => void
   updateClusterFrame: (
     id: string,
@@ -585,6 +599,76 @@ export const useBoardStore = create<BoardState>((set) => ({
         return { ...touchNode(n, timestamp, username), position: { x, y } }
       })
       return changed ? { nodes, isDirty: shouldMarkBoardDirty(state) } : state
+    }),
+
+  updateNodePositions: (positions) =>
+    set((state) => {
+      if (positions.length === 0) return state
+
+      const targetPositions = new Map(
+        positions.map(({ id, position }) => [id, { x: position.x, y: position.y }] as const)
+      )
+      const timestamp = new Date().toISOString()
+      const username = normalizeUsername(state.activeUsername)
+      const clusterTranslations = new Map<string, { dx: number; dy: number }>()
+
+      for (const node of state.nodes) {
+        if (!isClusterNode(node)) continue
+        const target = targetPositions.get(node.id)
+        if (!target) continue
+
+        const dx = target.x - node.position.x
+        const dy = target.y - node.position.y
+        if (dx !== 0 || dy !== 0) clusterTranslations.set(node.id, { dx, dy })
+      }
+
+      const clusterChildDeltas = new Map<string, { dx: number; dy: number }>()
+      for (const node of state.nodes) {
+        if (!isClusterNode(node)) continue
+        const translation = clusterTranslations.get(node.id)
+        if (!translation) continue
+
+        for (const childId of node.children) {
+          clusterChildDeltas.set(childId, translation)
+        }
+      }
+
+      let changed = false
+      const nodes = state.nodes.map((node) => {
+        const explicitTarget = targetPositions.get(node.id)
+        const inheritedDelta = clusterChildDeltas.get(node.id)
+        const nextPosition = explicitTarget
+          ? explicitTarget
+          : inheritedDelta
+            ? {
+                x: node.position.x + inheritedDelta.dx,
+                y: node.position.y + inheritedDelta.dy
+              }
+            : null
+
+        if (!nextPosition) return node
+        if (node.position.x === nextPosition.x && node.position.y === nextPosition.y) return node
+
+        changed = true
+        return { ...touchNode(node, timestamp, username), position: nextPosition }
+      })
+
+      if (!changed) return state
+
+      const movedNodeIds = Array.from(
+        new Set([...targetPositions.keys(), ...clusterChildDeltas.keys()])
+      )
+      const reconciledNodes = reconcileNodeClusterMemberships(
+        nodes,
+        movedNodeIds,
+        timestamp,
+        username
+      )
+
+      return {
+        nodes: reconciledNodes,
+        isDirty: shouldMarkBoardDirty(state)
+      }
     }),
 
   updateNodeSize: (id, w, h) =>
