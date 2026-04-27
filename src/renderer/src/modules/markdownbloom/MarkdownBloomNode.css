@@ -4,12 +4,7 @@
   min-height: 0;
   padding: 13px 15px 14px;
   border-radius: var(--radius-border-frame);
-  border: 1px solid color-mix(in srgb, var(--color-primary-fg) 10%, transparent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, white 94%, var(--color-accent-blue) 6%),
-    color-mix(in srgb, white 98%, var(--color-primary-bg) 2%)
-  );
+  background: var(--color-primary-bg);
   box-shadow:
     0 12px 24px color-mix(in srgb, var(--color-primary-fg) 10%, transparent),
     inset 0 1px 0 color-mix(in srgb, white 80%, transparent);
@@ -29,12 +24,25 @@
 
 .md-bloom-node__preview {
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
   color: var(--color-primary-fg);
   font-family: 'Source Serif 4', Georgia, serif;
   font-size: 11.5px;
   line-height: 1.45;
   overflow-wrap: break-word;
+}
+
+.md-bloom-node__preview::-webkit-scrollbar {
+  width: 7px;
+}
+
+.md-bloom-node__preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.md-bloom-node__preview::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary-fg) 18%, transparent);
 }
 
 .md-bloom-node__preview > :first-child {
