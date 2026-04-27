@@ -148,6 +148,24 @@ type ProjectFinderDirectoryListing = {
   entries: ProjectFinderDirectoryEntry[]
 }
 
+type ObsidianVaultSearchInput = {
+  resource: string
+  label?: string
+}
+
+type ObsidianVaultDocumentMatch = {
+  vaultResource: string
+  vaultLabel?: string
+  resource: string
+  title: string
+  relativePath: string
+}
+
+type ObsidianVaultSearchResult = {
+  ok: boolean
+  matches: ObsidianVaultDocumentMatch[]
+}
+
 const api = {
   openWorkspaceDialog: (): Promise<WorkspaceOpenDialogResult> =>
     ipcRenderer.invoke('workspace:open-dialog'),
@@ -238,6 +256,12 @@ const api = {
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke('url:open', url),
   isDirectory: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('path:is-directory', filePath),
+  searchObsidianVaultDocs: (
+    vaults: ObsidianVaultSearchInput[],
+    query: string,
+    limit?: number
+  ): Promise<ObsidianVaultSearchResult> =>
+    ipcRenderer.invoke('obsidian:search-docs', vaults, query, limit),
   confirmLargeImport: (fileName: string, sizeMb: number): Promise<boolean> =>
     ipcRenderer.invoke('file:confirm-large-import', fileName, sizeMb),
   askImportOrLink: (fileName: string): Promise<'import' | 'link'> =>
@@ -308,8 +332,12 @@ const api = {
     workspaceRoot: string,
     requestedName: string | null,
     bytes: Uint8Array
-  ): Promise<{ ok: boolean; filePath: string | null; fileName: string | null; relativePath: string | null }> =>
-    ipcRenderer.invoke('recording:save', workspaceRoot, requestedName, bytes)
+  ): Promise<{
+    ok: boolean
+    filePath: string | null
+    fileName: string | null
+    relativePath: string | null
+  }> => ipcRenderer.invoke('recording:save', workspaceRoot, requestedName, bytes)
 }
 
 if (process.contextIsolated) {

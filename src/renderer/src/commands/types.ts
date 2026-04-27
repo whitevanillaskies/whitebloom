@@ -78,6 +78,11 @@ export type CanvasLinkableBoard = {
   subtitle?: string
 }
 
+export type CanvasLinkedObsidianVault = {
+  resource: string
+  name: string
+}
+
 export type CanvasCommandCapabilities = {
   canBloomSelection?: boolean
   canOpenSelectionInNativeEditor?: boolean
@@ -179,6 +184,7 @@ export type CanvasSubjectSnapshot = {
   activePayloadPlacement?: CanvasActivatePayloadPlacementArgs | null
   insertionPoint?: WhitebloomCanvasPoint
   linkableBoards?: CanvasLinkableBoard[]
+  linkedObsidianVaults?: CanvasLinkedObsidianVault[]
 }
 
 /**
@@ -242,11 +248,10 @@ export type FocusWriterSubjectSnapshot = {
  */
 export type FocusWriterCommandActions = Record<string, never>
 
-export type FocusWriterCommandContext =
-  CommandContextBase<'module:com.whitebloom.focus-writer'> & {
-    subjectSnapshot: FocusWriterSubjectSnapshot
-    actions: FocusWriterCommandActions
-  }
+export type FocusWriterCommandContext = CommandContextBase<'module:com.whitebloom.focus-writer'> & {
+  subjectSnapshot: FocusWriterSubjectSnapshot
+  actions: FocusWriterCommandActions
+}
 
 // ---------------------------------------------------------------------------
 // Generic module fallback
@@ -526,6 +531,17 @@ export type WhitebloomCommandFlowInputHandler<
   | WhitebloomCommandFlowTransition<TContext, TArgs>
   | Promise<WhitebloomCommandFlowTransition<TContext, TArgs>>
 
+export type WhitebloomCommandFlowSearchHandler<
+  TContext extends AnyWhitebloomCommandContext,
+  TArgs = void
+> = (
+  query: string,
+  context: TContext,
+  interaction: WhitebloomCommandInteractionController
+) =>
+  | WhitebloomCommandFlowChoice<TContext, TArgs>[]
+  | Promise<WhitebloomCommandFlowChoice<TContext, TArgs>[]>
+
 export type WhitebloomCommandFlowChoice<
   TContext extends AnyWhitebloomCommandContext,
   TArgs = void
@@ -561,9 +577,27 @@ export type WhitebloomCommandFlowInputStep<
   onSubmit: WhitebloomCommandFlowInputHandler<TContext, TArgs>
 }
 
+export type WhitebloomCommandFlowSearchStep<
+  TContext extends AnyWhitebloomCommandContext,
+  TArgs = void
+> = {
+  kind: 'search'
+  id: WhitebloomCommandFlowStepId
+  title?: string
+  subtitle?: string
+  placeholder?: string
+  emptyLabel?: string
+  loadingLabel?: string
+  initialValue?: string
+  debounceMs?: number
+  minQueryLength?: number
+  search: WhitebloomCommandFlowSearchHandler<TContext, TArgs>
+}
+
 export type WhitebloomCommandFlowStep<TContext extends AnyWhitebloomCommandContext, TArgs = void> =
   | WhitebloomCommandFlowListStep<TContext, TArgs>
   | WhitebloomCommandFlowInputStep<TContext, TArgs>
+  | WhitebloomCommandFlowSearchStep<TContext, TArgs>
 
 /**
  * Optional self-contained argument-collection flow owned by a command.

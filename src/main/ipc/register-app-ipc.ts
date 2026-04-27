@@ -16,11 +16,22 @@ import {
   findBoardsReferencingMaterial,
   registerLinkedMaterials
 } from '../services/workspace-material'
-import { appendInkStroke, clearInkLayer, deleteInkStroke, loadInkAcetate, setInkStrokes } from '../services/ink-store'
+import {
+  appendInkStroke,
+  clearInkLayer,
+  deleteInkStroke,
+  loadInkAcetate,
+  setInkStrokes
+} from '../services/ink-store'
 import { saveWorkspaceRecording } from '../services/recordings-store'
 import { updateWorkspaceConfig } from '../services/workspace-files'
 import { probeNetwork } from '../services/network-probe'
 import { fetchPageTitle } from '../services/page-title-fetcher'
+import {
+  searchObsidianVaultDocuments,
+  type ObsidianVaultDocumentMatch,
+  type ObsidianVaultSearchInput
+} from '../services/obsidian-vault-search'
 import type { MainProcessContext } from '../state/main-process-context'
 import type { GardenState } from '../../shared/arrangements'
 import type { ArrangementsMaterial } from '../../shared/arrangements'
@@ -70,6 +81,11 @@ type ArrangementsReferenceIndexResult = {
 
 type ArrangementsRegisterLinkedMaterialsResult = {
   ok: boolean
+}
+
+type ObsidianVaultSearchResult = {
+  ok: boolean
+  matches: ObsidianVaultDocumentMatch[]
 }
 
 type InkReadResult = {
@@ -271,6 +287,22 @@ export function registerAppIpc(context: MainProcessContext): void {
       return false
     }
   })
+
+  ipcMain.handle(
+    'obsidian:search-docs',
+    async (
+      _event,
+      vaults: ObsidianVaultSearchInput[],
+      query: string,
+      limit?: number
+    ): Promise<ObsidianVaultSearchResult> => {
+      try {
+        return await searchObsidianVaultDocuments(vaults, query, undefined, limit)
+      } catch {
+        return { ok: false, matches: [] }
+      }
+    }
+  )
 
   ipcMain.handle('app:list-transient-boards', async (): Promise<ListTransientBoardsResult> => {
     try {

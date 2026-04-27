@@ -86,6 +86,7 @@ import { imageModule } from '../modules/image'
 import { videoModule } from '../modules/video'
 import { schemaBloomModule } from '../modules/schemabloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
+import { obsidianBloomModule } from '../modules/obsidianbloom'
 import type { WhitebloomModule } from '../modules/types'
 import {
   absolutePathToFileUri,
@@ -160,7 +161,10 @@ const DEFAULT_MATERIALS_GEOMETRY = {
   minHeight: 320
 } as const
 
-function getCenteredMaterialsGeometry(): typeof DEFAULT_MATERIALS_GEOMETRY & { x: number; y: number } {
+function getCenteredMaterialsGeometry(): typeof DEFAULT_MATERIALS_GEOMETRY & {
+  x: number
+  y: number
+} {
   const x = Math.round((window.innerWidth - DEFAULT_MATERIALS_GEOMETRY.width) / 2)
   const y = Math.round((window.innerHeight - DEFAULT_MATERIALS_GEOMETRY.height) / 2)
   return { ...DEFAULT_MATERIALS_GEOMETRY, x, y }
@@ -1848,39 +1852,42 @@ export function Canvas({
     [selectedBudNode]
   )
 
-  const deleteSelection = useCallback((args?: CanvasDeleteSelectionCommandArgs) => {
-    const deletedNodeIdSet = new Set(selectedNodeIds)
+  const deleteSelection = useCallback(
+    (args?: CanvasDeleteSelectionCommandArgs) => {
+      const deletedNodeIdSet = new Set(selectedNodeIds)
 
-    if (args?.includeClusterContents) {
-      for (const node of boardNodes) {
-        if (!deletedNodeIdSet.has(node.id) || !isClusterNode(node)) continue
-        for (const childId of node.children) {
-          deletedNodeIdSet.add(childId)
+      if (args?.includeClusterContents) {
+        for (const node of boardNodes) {
+          if (!deletedNodeIdSet.has(node.id) || !isClusterNode(node)) continue
+          for (const childId of node.children) {
+            deletedNodeIdSet.add(childId)
+          }
         }
       }
-    }
 
-    const deletedEdgeIdSet = new Set(selectedEdgeIds)
-    for (const edge of boardEdges) {
-      if (deletedNodeIdSet.has(edge.from) || deletedNodeIdSet.has(edge.to)) {
-        deletedEdgeIdSet.add(edge.id)
+      const deletedEdgeIdSet = new Set(selectedEdgeIds)
+      for (const edge of boardEdges) {
+        if (deletedNodeIdSet.has(edge.from) || deletedNodeIdSet.has(edge.to)) {
+          deletedEdgeIdSet.add(edge.id)
+        }
       }
-    }
 
-    const deletedNodeIds = Array.from(deletedNodeIdSet)
-    const deletedNodes = boardNodes.filter((n) => deletedNodeIdSet.has(n.id))
-    const deletedEdges = boardEdges.filter((e) => deletedEdgeIdSet.has(e.id))
+      const deletedNodeIds = Array.from(deletedNodeIdSet)
+      const deletedNodes = boardNodes.filter((n) => deletedNodeIdSet.has(n.id))
+      const deletedEdges = boardEdges.filter((e) => deletedEdgeIdSet.has(e.id))
 
-    if (deletedNodeIds.length > 0) {
-      deleteNodes(deletedNodeIds)
-    }
+      if (deletedNodeIds.length > 0) {
+        deleteNodes(deletedNodeIds)
+      }
 
-    for (const edgeId of selectedEdgeIds) {
-      storeDeleteEdge(edgeId)
-    }
+      for (const edgeId of selectedEdgeIds) {
+        storeDeleteEdge(edgeId)
+      }
 
-    return { deletedNodes, deletedEdges }
-  }, [boardEdges, boardNodes, deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge])
+      return { deletedNodes, deletedEdges }
+    },
+    [boardEdges, boardNodes, deleteNodes, selectedEdgeIds, selectedNodeIds, storeDeleteEdge]
+  )
 
   const buildClipboardPayloadFromSelection = useCallback((): CanvasClipboardPayload | null => {
     const selectedNodeIdSet = new Set(selectedNodeIds)
@@ -2140,17 +2147,18 @@ export function Canvas({
 
     const hasNodes = selectedNodeIds.length > 0
     const hasEdges = selectedEdgeIds.length > 0
-    const selectionShape = !hasNodes && !hasEdges
-      ? ('none' as const)
-      : hasNodes && !hasEdges
-        ? selectedNodeIds.length === 1
-          ? ('single-node' as const)
-          : ('multiple-nodes' as const)
-        : !hasNodes && hasEdges
-          ? selectedEdgeIds.length === 1
-            ? ('single-edge' as const)
-            : ('multiple-edges' as const)
-          : ('mixed' as const)
+    const selectionShape =
+      !hasNodes && !hasEdges
+        ? ('none' as const)
+        : hasNodes && !hasEdges
+          ? selectedNodeIds.length === 1
+            ? ('single-node' as const)
+            : ('multiple-nodes' as const)
+          : !hasNodes && hasEdges
+            ? selectedEdgeIds.length === 1
+              ? ('single-edge' as const)
+              : ('multiple-edges' as const)
+            : ('mixed' as const)
 
     return createCanvasCommandContext({
       majorMode: currentMajorMode.id,
@@ -2178,18 +2186,31 @@ export function Canvas({
           workspaceRoot === null
             ? []
             : workspaceBoards
-              .filter((path) => path !== boardPath)
-              .map((path) => {
-                const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
-                return {
-                  resource,
-                  name:
-                    (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
-                    getBoardNameFromPath(path),
-                  subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
-                }
-              })
-              .filter((board) => board.resource.length > 0)
+                .filter((path) => path !== boardPath)
+                .map((path) => {
+                  const resource = toWorkspaceBoardResource(path, workspaceRoot) ?? ''
+                  return {
+                    resource,
+                    name:
+                      (resource ? boardMaterialNamesByResource.get(resource) : undefined) ??
+                      getBoardNameFromPath(path),
+                    subtitle: getWorkspaceRelativeBoardPath(path, workspaceRoot)
+                  }
+                })
+                .filter((board) => board.resource.length > 0),
+        linkedObsidianVaults: boardNodes
+          .filter((node) => node.kind === 'bud' && node.type === obsidianBloomModule.id)
+          .map((node) => ({
+            resource: node.resource ?? '',
+            name:
+              node.label ??
+              (node.resource
+                ? getFileNameFromPath(
+                    resolveLinkedMaterialAbsolutePath(node.resource) ?? node.resource
+                  )
+                : 'Obsidian Vault')
+          }))
+          .filter((vault) => vault.resource.length > 0)
       },
       actions: {
         createBud: createBudAtPoint,
@@ -2210,8 +2231,15 @@ export function Canvas({
         bloomSelection,
         openSelectionInNativeEditor,
         openMaterials: workspaceRoot !== null ? handleOpenMaterials : undefined,
-        linkResources: async () => { await linkResourcesRef.current?.() },
-        importResources: workspaceRoot !== null ? async () => { await importResourcesRef.current?.() } : undefined,
+        linkResources: async () => {
+          await linkResourcesRef.current?.()
+        },
+        importResources:
+          workspaceRoot !== null
+            ? async () => {
+                await importResourcesRef.current?.()
+              }
+            : undefined,
         addTextNode: () => {
           const position = getDefaultCanvasInsertionPoint()
           const nodeId = insertTextNodeAtPosition(position)
@@ -2219,7 +2247,13 @@ export function Canvas({
         },
         addEdge: ({ from, to, sourceHandle, targetHandle }) => {
           const edgeId = crypto.randomUUID()
-          storeAddEdge({ id: edgeId, from, to, sourceHandle: sourceHandle ?? null, targetHandle: targetHandle ?? null })
+          storeAddEdge({
+            id: edgeId,
+            from,
+            to,
+            sourceHandle: sourceHandle ?? null,
+            targetHandle: targetHandle ?? null
+          })
           return { edgeId }
         },
         createCluster: createClusterFromSelection,
@@ -2238,48 +2272,48 @@ export function Canvas({
         appendInkStroke:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, stroke) => {
-              setBoardInkStrokes((existing) => {
-                const next = [...existing, stroke as BoardInkStroke]
-                next.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-                return next
-              })
-              await window.api.appendInkStroke(workspaceRoot, binding, stroke)
-              return { strokeId: stroke.id }
-            }
+                setBoardInkStrokes((existing) => {
+                  const next = [...existing, stroke as BoardInkStroke]
+                  next.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                  return next
+                })
+                await window.api.appendInkStroke(workspaceRoot, binding, stroke)
+                return { strokeId: stroke.id }
+              }
             : undefined,
         removeInkStroke:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, strokeId) => {
-              setBoardInkStrokes((existing) => existing.filter((s) => s.id !== strokeId))
-              await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
-            }
+                setBoardInkStrokes((existing) => existing.filter((s) => s.id !== strokeId))
+                await window.api.deleteInkStroke(workspaceRoot, binding, strokeId)
+              }
             : undefined,
         clearInkLayer:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding) => {
-              const result = await window.api.clearInkLayer(workspaceRoot, binding)
-              if (result.ok) setBoardInkStrokes([])
-              return { clearedStrokes: result.clearedStrokes }
-            }
+                const result = await window.api.clearInkLayer(workspaceRoot, binding)
+                if (result.ok) setBoardInkStrokes([])
+                return { clearedStrokes: result.clearedStrokes }
+              }
             : undefined,
         restoreInkStrokes:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, strokes) => {
-              await window.api.setInkStrokes(workspaceRoot, binding, strokes)
-              const next = [...(strokes as BoardInkStroke[])]
-              next.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-              setBoardInkStrokes(next)
-            }
+                await window.api.setInkStrokes(workspaceRoot, binding, strokes)
+                const next = [...(strokes as BoardInkStroke[])]
+                next.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                setBoardInkStrokes(next)
+              }
             : undefined,
         eraseInkStrokes:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, strokes) => {
-              const ids = new Set(strokes.map((s) => s.id))
-              setBoardInkStrokes((existing) => existing.filter((s) => !ids.has(s.id)))
-              for (const stroke of strokes) {
-                await window.api.deleteInkStroke(workspaceRoot, binding, stroke.id)
+                const ids = new Set(strokes.map((s) => s.id))
+                setBoardInkStrokes((existing) => existing.filter((s) => !ids.has(s.id)))
+                for (const stroke of strokes) {
+                  await window.api.deleteInkStroke(workspaceRoot, binding, stroke.id)
+                }
               }
-            }
             : undefined
       }
     })
@@ -2299,6 +2333,7 @@ export function Canvas({
     activeShapePreset,
     activePayloadPlacement,
     boardPath,
+    boardNodes,
     handleOpenMaterials,
     insertTextNodeAtPosition,
     openSelectionInNativeEditor,
@@ -2414,15 +2449,15 @@ export function Canvas({
       getRenderedNodeBounds(selectedCluster.id, screenToFlowPosition) ??
       (liveClusterNode
         ? getNodeBounds(
-          {
-            position: liveClusterNode.position,
-            width: liveClusterNode.width,
-            height: liveClusterNode.height
-          },
-          liveClusterNode.type === 'cluster'
-            ? (liveClusterNode.data as ClusterData).size
-            : undefined
-        )
+            {
+              position: liveClusterNode.position,
+              width: liveClusterNode.width,
+              height: liveClusterNode.height
+            },
+            liveClusterNode.type === 'cluster'
+              ? (liveClusterNode.data as ClusterData).size
+              : undefined
+          )
         : null)
 
     fitClusterToFrame(selectedCluster, nextFrame, {
@@ -3040,10 +3075,10 @@ export function Canvas({
 
       const saveResult = boardTransient
         ? await window.api.promoteBoard(
-          boardPath,
-          createBoardResult.boardPath,
-          JSON.stringify(snapshot, null, 2)
-        )
+            boardPath,
+            createBoardResult.boardPath,
+            JSON.stringify(snapshot, null, 2)
+          )
         : await window.api.saveBoard(createBoardResult.boardPath, JSON.stringify(snapshot, null, 2))
 
       if (!saveResult.ok) {
@@ -3353,11 +3388,7 @@ export function Canvas({
         return
       }
 
-      if (
-        event.key.toLowerCase() === 'z' &&
-        (event.ctrlKey || event.metaKey) &&
-        event.shiftKey
-      ) {
+      if (event.key.toLowerCase() === 'z' && (event.ctrlKey || event.metaKey) && event.shiftKey) {
         if (isEditableTarget(event.target)) return
         event.preventDefault()
         void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.historyRedo, undefined, {
@@ -3669,10 +3700,10 @@ export function Canvas({
       const resource =
         behavior === 'import'
           ? await importWorkspaceResource({
-            filePath: input.filePath,
-            fileName: input.fileName,
-            fileSize: input.file?.size ?? 0
-          })
+              filePath: input.filePath,
+              fileName: input.fileName,
+              fileSize: input.file?.size ?? 0
+            })
           : absolutePathToFileUri(input.filePath)
 
       if (resource === null) return null
@@ -3744,9 +3775,9 @@ export function Canvas({
                 size: isDirectory
                   ? (module?.defaultSize ?? { w: 88, h: 88 })
                   : await computeDroppedBudSize({
-                    filePath: absolutePath,
-                    module
-                  })
+                      filePath: absolutePath,
+                      module
+                    })
               }
             }
 
@@ -4064,10 +4095,10 @@ export function Canvas({
     () =>
       paletteState
         ? {
-          context: canvasCommandContext,
-          initialMode: paletteState.initialMode,
-          source: 'palette'
-        }
+            context: canvasCommandContext,
+            initialMode: paletteState.initialMode,
+            source: 'palette'
+          }
         : undefined,
     [canvasCommandContext, paletteState]
   )
@@ -4538,7 +4569,11 @@ export function Canvas({
               proOptions={{ hideAttribution: true }}
               data-board-capture="root"
             >
-              <ProximityTracker boardNodes={boardNodes} setNodes={setNodes} isReconnecting={isReconnecting} />
+              <ProximityTracker
+                boardNodes={boardNodes}
+                setNodes={setNodes}
+                isReconnecting={isReconnecting}
+              />
               <Background gap={25} size={1} color="var(--color-secondary-fg)" />
               <InkOverlay
                 active={activeTool === 'ink'}
@@ -4613,11 +4648,13 @@ export function Canvas({
                     activeTool={activeTool}
                     onToolChange={setActiveTool}
                     acetateVisible={acetateVisible}
-                    onAcetateToggle={() => setAcetateVisible((current) => {
-                      const next = !current
-                      if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, String(next))
-                      return next
-                    })}
+                    onAcetateToggle={() =>
+                      setAcetateVisible((current) => {
+                        const next = !current
+                        if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, String(next))
+                        return next
+                      })
+                    }
                     onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
                   />
                 </div>
@@ -4747,41 +4784,41 @@ export function Canvas({
 
         {overflowAnchor
           ? (() => {
-            const items: PetalMenuItem[] = [
-              {
-                id: 'settings',
-                label: t('canvas.boardSettingsMenuItem'),
-                icon: <Settings2 size={14} strokeWidth={1.8} />,
-                onActivate: () => setSettingsOpen(true)
-              },
-              ...(workspaceRoot === null
-                ? [
-                  {
-                    id: 'promote',
-                    label: t('canvas.promoteToWorkspaceMenuItem'),
-                    icon: <FolderPlus size={14} strokeWidth={1.8} />,
-                    onActivate: () => void handlePromoteToWorkspace(),
-                    disabled: promoteInFlight
-                  }
-                ]
-                : []),
-              {
-                id: 'trash',
-                label: t('canvas.moveToTrashMenuItem'),
-                icon: <Trash2 size={14} strokeWidth={1.8} />,
-                intent: 'destructive' as const,
-                onActivate: () => setTrashBoardConfirmOpen(true),
-                disabled: trashBoardInFlight
-              }
-            ]
-            return (
-              <PetalMenu
-                items={items}
-                anchor={overflowAnchor}
-                onClose={() => setOverflowAnchor(null)}
-              />
-            )
-          })()
+              const items: PetalMenuItem[] = [
+                {
+                  id: 'settings',
+                  label: t('canvas.boardSettingsMenuItem'),
+                  icon: <Settings2 size={14} strokeWidth={1.8} />,
+                  onActivate: () => setSettingsOpen(true)
+                },
+                ...(workspaceRoot === null
+                  ? [
+                      {
+                        id: 'promote',
+                        label: t('canvas.promoteToWorkspaceMenuItem'),
+                        icon: <FolderPlus size={14} strokeWidth={1.8} />,
+                        onActivate: () => void handlePromoteToWorkspace(),
+                        disabled: promoteInFlight
+                      }
+                    ]
+                  : []),
+                {
+                  id: 'trash',
+                  label: t('canvas.moveToTrashMenuItem'),
+                  icon: <Trash2 size={14} strokeWidth={1.8} />,
+                  intent: 'destructive' as const,
+                  onActivate: () => setTrashBoardConfirmOpen(true),
+                  disabled: trashBoardInFlight
+                }
+              ]
+              return (
+                <PetalMenu
+                  items={items}
+                  anchor={overflowAnchor}
+                  onClose={() => setOverflowAnchor(null)}
+                />
+              )
+            })()
           : null}
 
         {canvasContextMenu ? (

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react'
 import { boardBloomModule } from '../modules/boardbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
+import { markdownBloomModule } from '../modules/markdownbloom'
+import { obsidianBloomModule } from '../modules/obsidianbloom'
 import { normalizeWebPageUrl } from '../shared/web-page-url'
 import { fetchPageTitle } from '../shared/page-title'
 import type {
@@ -50,6 +52,7 @@ export const WHITEBLOOM_COMMAND_IDS = {
   canvas: {
     addBud: 'board.add-bud',
     addUrlPage: 'board.add-url-page',
+    linkObsidianDoc: 'obsidian.link-doc',
     linkBoard: 'board.link-board',
     shapeDrawRectangle: 'board.shape.draw-rectangle',
     shapeDrawSlantedRectangle: 'board.shape.draw-slanted-rectangle',
@@ -642,6 +645,97 @@ function createCanvasLinkBoardListStep(linkableBoards: CanvasLinkableBoard[]) {
   }
 }
 
+function createObsidianDocVaultListStep(
+  vaults: NonNullable<CanvasCommandContext['subjectSnapshot']['linkedObsidianVaults']>
+) {
+  return {
+    kind: 'list' as const,
+    id: 'obsidian.link-doc.select-vault',
+    title: 'Link Obsidian Document',
+    subtitle: 'Choose an Obsidian vault to search.',
+    placeholder: 'Choose a vault',
+    emptyLabel: 'No Obsidian vaults linked on this board',
+    items: [
+      ...(vaults.length > 1
+        ? [
+            {
+              id: 'all-vaults',
+              title: 'All Linked Vaults',
+              subtitle: `${vaults.length} vaults`,
+              icon: obsidianBloomModule.IconComponent,
+              onSelect: () => ({
+                type: 'step' as const,
+                step: createObsidianDocSearchStep(vaults, 'All linked vaults')
+              })
+            }
+          ]
+        : []),
+      ...vaults.map((vault) => ({
+        id: vault.resource,
+        title: vault.name,
+        subtitle: vault.resource,
+        icon: obsidianBloomModule.IconComponent,
+        onSelect: () => ({
+          type: 'step' as const,
+          step: createObsidianDocSearchStep([vault], vault.name)
+        })
+      }))
+    ]
+  }
+}
+
+function createObsidianDocSearchStep(
+  vaults: NonNullable<CanvasCommandContext['subjectSnapshot']['linkedObsidianVaults']>,
+  vaultLabel: string
+) {
+  return {
+    kind: 'search' as const,
+    id: 'obsidian.link-doc.search',
+    title: 'Link Obsidian Document',
+    subtitle: vaultLabel,
+    placeholder: 'Type a note name',
+    emptyLabel: 'No matching Markdown notes',
+    loadingLabel: 'Searching notes...',
+    debounceMs: 500,
+    minQueryLength: 1,
+    search: async (query: string) => {
+      const result = await window.api.searchObsidianVaultDocs(
+        vaults.map((vault) => ({ resource: vault.resource, label: vault.name })),
+        query,
+        40
+      )
+      if (!result.ok) return []
+
+      return result.matches.map((match) => ({
+        id: match.resource,
+        title: match.title,
+        subtitle: match.vaultLabel
+          ? `${match.vaultLabel} / ${match.relativePath}`
+          : match.relativePath,
+        icon: FileText,
+        onSelect: () => ({
+          type: 'submit' as const,
+          args: {
+            payload: {
+              moduleType: markdownBloomModule.id,
+              size: markdownBloomModule.defaultSize ?? { w: 248, h: 184 },
+              label: match.title,
+              resource: match.resource
+            },
+            preview: {
+              label: match.title,
+              icon: {
+                kind: 'icon-key' as const,
+                value: 'file-text'
+              }
+            }
+          } satisfies CanvasActivatePayloadPlacementCommandArgs
+        })
+      }))
+    }
+  }
+}
+
 function createArrangeCreateBinInputStep(initialValue = 'New Bin') {
   return {
     kind: 'input' as const,
@@ -958,6 +1052,50 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
         subtitle: 'Pick a board, then place its link on the canvas',
         category: 'Canvas',
         icon: PanelsTopLeft
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.linkObsidianDoc,
+      kind: 'tool',
+      modeScope: 'canvas-mode',
+      aliases: ['obsidian.link-note', 'obsidian.link-page'],
+      argsSchema: parseCanvasActivatePayloadPlacementArgs,
+      enabledWhen: (context) =>
+        typeof context.actions.activatePayloadPlacement === 'function' &&
+        (context.subjectSnapshot.linkedObsidianVaults?.length ?? 0) > 0,
+      run: (args, context) => {
+        if (!context.actions.activatePayloadPlacement) {
+          throw new Error('Canvas context cannot activate payload placement.')
+        }
+
+        context.actions.activatePayloadPlacement(args)
+      }
+    },
+    flow: {
+      start: async (context) => {
+        const vaults = context.subjectSnapshot.linkedObsidianVaults ?? []
+        if (vaults.length === 1) {
+          return {
+            type: 'step' as const,
+            step: createObsidianDocSearchStep(vaults, vaults[0].name)
+          }
+        }
+
+        return {
+          type: 'step' as const,
+          step: createObsidianDocVaultListStep(vaults)
+        }
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Link Obsidian Document',
+        subtitle: 'Search a linked vault and place a Markdown note reference',
+        category: 'Obsidian',
+        icon: FileText
       }
     ]
   },
@@ -1761,7 +1899,13 @@ const arrangementsCommands: WhitebloomCommandForContext<ArrangementsCommandConte
 
 export const whitebloomBuiltinCommandProvider = createBuiltinCommandProvider(
   'builtin:whitebloom-mutations',
-  [...canvasCommands, ...canvasContextualCommands, ...inkCommands, ...historyCommands, ...arrangementsCommands]
+  [
+    ...canvasCommands,
+    ...canvasContextualCommands,
+    ...inkCommands,
+    ...historyCommands,
+    ...arrangementsCommands
+  ]
 )
 
 registerCommandProvider(whitebloomBuiltinCommandProvider)

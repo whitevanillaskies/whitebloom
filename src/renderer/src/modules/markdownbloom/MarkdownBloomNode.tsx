@@ -74,11 +74,11 @@ export function MarkdownBloomNode({
   })
 
   useEffect(() => {
-    if (!workspaceRoot) return
+    if (!workspaceRoot && !resource.startsWith('file:///')) return
 
     let cancelled = false
     window.api
-      .readBlossom(workspaceRoot, resource)
+      .readBlossom(workspaceRoot ?? '', resource)
       .then((data) => {
         if (!cancelled) setPreview(data.trim())
       })

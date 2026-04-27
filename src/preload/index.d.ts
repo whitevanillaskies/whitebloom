@@ -148,6 +148,24 @@ type ProjectFinderDirectoryListing = {
   entries: ProjectFinderDirectoryEntry[]
 }
 
+type ObsidianVaultSearchInput = {
+  resource: string
+  label?: string
+}
+
+type ObsidianVaultDocumentMatch = {
+  vaultResource: string
+  vaultLabel?: string
+  resource: string
+  title: string
+  relativePath: string
+}
+
+type ObsidianVaultSearchResult = {
+  ok: boolean
+  matches: ObsidianVaultDocumentMatch[]
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -221,6 +239,11 @@ declare global {
       checkProtocol: (scheme: string) => Promise<boolean>
       openUrl: (url: string) => Promise<void>
       isDirectory: (filePath: string) => Promise<boolean>
+      searchObsidianVaultDocs: (
+        vaults: ObsidianVaultSearchInput[],
+        query: string,
+        limit?: number
+      ) => Promise<ObsidianVaultSearchResult>
       confirmLargeImport: (fileName: string, sizeMb: number) => Promise<boolean>
       askImportOrLink: (fileName: string) => Promise<'import' | 'link'>
       updateWorkspaceConfig: (

@@ -10,6 +10,7 @@ import {
   searchCoreCommands,
   searchPresentedCommands,
   type AnyWhitebloomCommandContext,
+  type WhitebloomCommandFlowChoice,
   type WhitebloomCommandFlowStep,
   type WhitebloomCommandFlowTransition,
   type WhitebloomCommandInteractionController,
@@ -39,6 +40,23 @@ export type PaletteInputMode = {
   onSubmit: (value: string) => PaletteActivation | void | Promise<PaletteActivation | void>
 }
 
+type PaletteSearchMode = {
+  id: string
+  type: 'search'
+  title?: string
+  subtitle?: string
+  placeholder?: string
+  emptyLabel?: string
+  loadingLabel?: string
+  initialValue?: string
+  debounceMs?: number
+  minQueryLength?: number
+  search: (
+    value: string,
+    interaction: WhitebloomCommandInteractionController
+  ) => Promise<PaletteItem[]>
+}
+
 type PaletteListMode = {
   id: string
   type?: 'list'
@@ -49,7 +67,7 @@ type PaletteListMode = {
   emptyLabel?: string
 }
 
-type PaletteAnyMode = PaletteListMode | PaletteInputMode
+type PaletteAnyMode = PaletteListMode | PaletteInputMode | PaletteSearchMode
 
 export type PaletteActivation =
   | { type: 'close' }
@@ -93,6 +111,11 @@ type PaletteLegacyNamespaceEntry = {
   hasDirectItem: boolean
 }
 
+type PaletteRegisteredCommand = WhitebloomRegisteredCommandForContext<AnyWhitebloomCommandContext>
+type PaletteFlowChoice = WhitebloomCommandFlowChoice<AnyWhitebloomCommandContext, unknown>
+type PaletteFlowStep = WhitebloomCommandFlowStep<AnyWhitebloomCommandContext, unknown>
+type PaletteFlowTransition = WhitebloomCommandFlowTransition<AnyWhitebloomCommandContext, unknown>
+
 type PetalPaletteProps = {
   items: PaletteItem[]
   onClose: () => void
@@ -104,6 +127,7 @@ type PetalPaletteProps = {
 const MAX_VISIBLE_ITEMS = 8
 const ITEM_HEIGHT_PX = 36
 const ABORT_GRACE_MS = 3000
+const DEFAULT_SEARCH_DEBOUNCE_MS = 500
 const NOOP_INTERACTION_CONTROLLER: WhitebloomCommandInteractionController = {
   signal: new AbortController().signal,
   setBusyState: () => {}
@@ -115,6 +139,7 @@ type ActivePaletteOperation = {
   abortController: AbortController
   interaction: WhitebloomCommandInteractionController
 }
+type PaletteSearchStatus = 'idle' | 'debouncing' | 'loading' | 'error'
 
 function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase()
@@ -134,7 +159,7 @@ function getParentNamespace(namespace: string | null): string | null {
   return segments.slice(0, -1).join('.')
 }
 
-function canPaletteLaunchCommand(entry: WhitebloomRegisteredCommandForContext<any>): boolean {
+function canPaletteLaunchCommand(entry: PaletteRegisteredCommand): boolean {
   return entry.command.flow !== undefined || entry.command.core.argsSchema === undefined
 }
 
@@ -153,7 +178,7 @@ function prettifyModuleCategory(moduleId: string): string {
 }
 
 function resolveCommandCategory(
-  entry: WhitebloomRegisteredCommandForContext<any>,
+  entry: PaletteRegisteredCommand,
   presentation?: { category?: string }
 ): string {
   const explicitCategory = presentation?.category?.trim()
@@ -281,6 +306,8 @@ export default function PetalPalette({
   const [commandNamespace, setCommandNamespace] = useState<string | null>(null)
   const [busyState, setBusyState] = useState<WhitebloomCommandLatentState | null>(null)
   const [abortPhase, setAbortPhase] = useState<PaletteAbortPhase>('idle')
+  const [searchItems, setSearchItems] = useState<PaletteItem[]>([])
+  const [searchStatus, setSearchStatus] = useState<PaletteSearchStatus>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -288,6 +315,9 @@ export default function PetalPalette({
   const operationTokenRef = useRef(0)
   const activeOperationRef = useRef<ActivePaletteOperation | null>(null)
   const abortTimerRef = useRef<number | null>(null)
+  const searchTimerRef = useRef<number | null>(null)
+  const searchTokenRef = useRef(0)
+  const searchAbortControllerRef = useRef<AbortController | null>(null)
   // Always tracks the latest commandSession so that closures baked into stored
   // flow-mode items read the current context rather than a stale snapshot.
   const commandSessionRef = useRef(commandSession)
@@ -307,6 +337,12 @@ export default function PetalPalette({
         window.clearTimeout(abortTimerRef.current)
         abortTimerRef.current = null
       }
+      if (searchTimerRef.current !== null) {
+        window.clearTimeout(searchTimerRef.current)
+        searchTimerRef.current = null
+      }
+      searchAbortControllerRef.current?.abort()
+      searchAbortControllerRef.current = null
     }
   }, [])
 
@@ -320,6 +356,18 @@ export default function PetalPalette({
       window.clearTimeout(abortTimerRef.current)
       abortTimerRef.current = null
     }
+  }, [])
+
+  const cancelSearch = useCallback(() => {
+    searchTokenRef.current += 1
+    if (searchTimerRef.current !== null) {
+      window.clearTimeout(searchTimerRef.current)
+      searchTimerRef.current = null
+    }
+    searchAbortControllerRef.current?.abort()
+    searchAbortControllerRef.current = null
+    setSearchStatus('idle')
+    setSearchItems([])
   }, [])
 
   const beginOperation = useCallback(() => {
@@ -378,13 +426,14 @@ export default function PetalPalette({
 
   const closePalette = useCallback(() => {
     invalidateActiveOperation()
+    cancelSearch()
     setMode(initialMode)
     setQuery('')
     setActiveIndex(0)
     setCommandBrowseMode(commandSession?.initialMode ?? 'visual')
     setCommandNamespace(null)
     onClose()
-  }, [commandSession, initialMode, invalidateActiveOperation, onClose])
+  }, [cancelSearch, commandSession, initialMode, invalidateActiveOperation, onClose])
 
   const requestAbortCurrentOperation = useCallback(() => {
     const activeOperation = activeOperationRef.current
@@ -456,9 +505,30 @@ export default function PetalPalette({
     [commandBrowseMode, commandNamespace, getActiveInteractionController]
   )
 
+  function createCommandFlowChoiceItem(
+    entry: PaletteRegisteredCommand,
+    stepId: string,
+    choice: PaletteFlowChoice
+  ): PaletteItem {
+    const Icon = choice.icon
+    return {
+      id: `command-flow:${entry.command.core.id}:${stepId}:${choice.id}`,
+      label: choice.title,
+      subtitle: choice.subtitle,
+      icon: Icon ? <Icon size={14} /> : undefined,
+      hint: choice.hotkey,
+      onActivate: async () => {
+        const session = commandSessionRef.current
+        if (!session) return { type: 'keep-open' as const }
+        const transition = await choice.onSelect(session.context, getActiveInteractionController())
+        return handleCommandFlowTransition(entry, transition)
+      }
+    }
+  }
+
   function createCommandFlowMode(
-    entry: WhitebloomRegisteredCommandForContext<any>,
-    step: WhitebloomCommandFlowStep<any, any>
+    entry: PaletteRegisteredCommand,
+    step: PaletteFlowStep
   ): PaletteAnyMode {
     if (step.kind === 'input') {
       return {
@@ -482,6 +552,27 @@ export default function PetalPalette({
       }
     }
 
+    if (step.kind === 'search') {
+      return {
+        id: `command-flow:${entry.command.core.id}:${step.id}`,
+        type: 'search',
+        title: step.title,
+        subtitle: step.subtitle,
+        placeholder: step.placeholder,
+        emptyLabel: step.emptyLabel,
+        loadingLabel: step.loadingLabel,
+        initialValue: step.initialValue,
+        debounceMs: step.debounceMs,
+        minQueryLength: step.minQueryLength,
+        search: async (value, interaction) => {
+          const session = commandSessionRef.current
+          if (!session) return []
+          const choices = await step.search(value, session.context, interaction)
+          return choices.map((choice) => createCommandFlowChoiceItem(entry, step.id, choice))
+        }
+      }
+    }
+
     return {
       id: `command-flow:${entry.command.core.id}:${step.id}`,
       type: 'list',
@@ -489,31 +580,13 @@ export default function PetalPalette({
       subtitle: step.subtitle,
       placeholder: step.placeholder,
       emptyLabel: step.emptyLabel,
-      items: step.items.map((choice) => {
-        const Icon = choice.icon
-        return {
-          id: `command-flow:${entry.command.core.id}:${step.id}:${choice.id}`,
-          label: choice.title,
-          subtitle: choice.subtitle,
-          icon: Icon ? <Icon size={14} /> : undefined,
-          hint: choice.hotkey,
-          onActivate: async () => {
-            const session = commandSessionRef.current
-            if (!session) return { type: 'keep-open' as const }
-            const transition = await choice.onSelect(
-              session.context,
-              getActiveInteractionController()
-            )
-            return handleCommandFlowTransition(entry, transition)
-          }
-        }
-      })
+      items: step.items.map((choice) => createCommandFlowChoiceItem(entry, step.id, choice))
     }
   }
 
   async function handleCommandFlowTransition(
-    entry: WhitebloomRegisteredCommandForContext<any>,
-    transition: WhitebloomCommandFlowTransition<any, any>
+    entry: PaletteRegisteredCommand,
+    transition: PaletteFlowTransition
   ): Promise<PaletteActivation | void> {
     switch (transition.type) {
       case 'cancel':
@@ -529,7 +602,7 @@ export default function PetalPalette({
   }
 
   const activateRegisteredCommand = useCallback(
-    async (entry: WhitebloomRegisteredCommandForContext<any>) => {
+    async (entry: PaletteRegisteredCommand) => {
       if (entry.command.flow) {
         const session = commandSessionRef.current
         if (!session) return { type: 'keep-open' as const }
@@ -547,6 +620,17 @@ export default function PetalPalette({
 
   const filtered = useMemo<PaletteRenderedEntry[]>(() => {
     if (mode.type === 'input') return []
+    if (mode.type === 'search') {
+      return searchItems.map<PaletteRenderedEntry>((item) => ({
+        id: item.id,
+        label: item.label,
+        subtitle: item.subtitle,
+        category: item.category,
+        icon: item.icon,
+        hint: item.hint,
+        onActivate: item.onActivate
+      }))
+    }
 
     const normalizedQuery = normalizeSearchValue(query)
     const shouldRenderModeItems =
@@ -729,7 +813,8 @@ export default function PetalPalette({
     commandNamespace,
     commandSession,
     mode,
-    query
+    query,
+    searchItems
   ])
 
   const inputPlaceholder = useMemo(() => {
@@ -760,6 +845,12 @@ export default function PetalPalette({
     abortPhase === 'idle' && typeof busyState?.progress === 'number'
       ? clampProgress(busyState.progress)
       : null
+  const searchFeedbackLabel =
+    mode.type === 'search' && (searchStatus === 'debouncing' || searchStatus === 'loading')
+      ? (mode.loadingLabel ?? 'Searching...')
+      : mode.type === 'search' && searchStatus === 'error'
+        ? 'Search failed'
+        : null
 
   // Reset active index when filtered list changes
   useEffect(() => {
@@ -767,9 +858,77 @@ export default function PetalPalette({
   }, [filtered.length])
 
   useEffect(() => {
-    setQuery(mode.type === 'input' ? (mode.initialValue ?? '') : '')
+    setQuery(mode.type === 'input' || mode.type === 'search' ? (mode.initialValue ?? '') : '')
     setActiveIndex(0)
   }, [mode])
+
+  useEffect(() => {
+    if (mode.type !== 'search') {
+      cancelSearch()
+      return
+    }
+
+    const minQueryLength = mode.minQueryLength ?? 0
+    const normalizedQuery = query.trim()
+    const searchToken = searchTokenRef.current + 1
+    searchTokenRef.current = searchToken
+
+    if (searchTimerRef.current !== null) {
+      window.clearTimeout(searchTimerRef.current)
+      searchTimerRef.current = null
+    }
+    searchAbortControllerRef.current?.abort()
+    searchAbortControllerRef.current = null
+
+    if (normalizedQuery.length < minQueryLength) {
+      setSearchStatus('idle')
+      setSearchItems([])
+      return
+    }
+
+    setSearchStatus('debouncing')
+    searchTimerRef.current = window.setTimeout(() => {
+      const abortController = new AbortController()
+      searchAbortControllerRef.current = abortController
+      const interaction: WhitebloomCommandInteractionController = {
+        signal: abortController.signal,
+        setBusyState: () => {}
+      }
+
+      setSearchStatus('loading')
+      void mode
+        .search(normalizedQuery, interaction)
+        .then((items) => {
+          if (!mountedRef.current) return
+          if (searchTokenRef.current !== searchToken) return
+          if (abortController.signal.aborted) return
+          setSearchItems(items)
+          setSearchStatus('idle')
+        })
+        .catch((error) => {
+          if (!mountedRef.current) return
+          if (searchTokenRef.current !== searchToken) return
+          if (abortController.signal.aborted) return
+          console.warn('[petal-palette] search step failed', error)
+          setSearchItems([])
+          setSearchStatus('error')
+        })
+        .finally(() => {
+          if (searchAbortControllerRef.current === abortController) {
+            searchAbortControllerRef.current = null
+          }
+        })
+    }, mode.debounceMs ?? DEFAULT_SEARCH_DEBOUNCE_MS)
+
+    return () => {
+      if (searchTimerRef.current !== null) {
+        window.clearTimeout(searchTimerRef.current)
+        searchTimerRef.current = null
+      }
+      searchAbortControllerRef.current?.abort()
+      searchAbortControllerRef.current = null
+    }
+  }, [cancelSearch, mode, query])
 
   // Scroll active item into view
   useEffect(() => {
@@ -1108,7 +1267,15 @@ export default function PetalPalette({
             style={{ maxHeight: listMaxHeight }}
             role="listbox"
           >
-            {filtered.length === 0 ? (
+            {searchFeedbackLabel ? (
+              <div className="petal-palette__search-status" role="status" aria-live="polite">
+                {searchStatus === 'loading' ? (
+                  <span className="petal-palette__search-spinner" aria-hidden="true" />
+                ) : null}
+                <span>{searchFeedbackLabel}</span>
+              </div>
+            ) : null}
+            {filtered.length === 0 && !searchFeedbackLabel ? (
               <div className="petal-palette__empty">
                 {mode.emptyLabel ?? emptyLabel ?? t('petalPalette.noResults')}
               </div>
@@ -1142,14 +1309,18 @@ export default function PetalPalette({
                           onMouseEnter={() => setActiveIndex(itemIndex)}
                           tabIndex={-1}
                         >
-                          {item.icon && <span className="petal-palette__item-icon">{item.icon}</span>}
+                          {item.icon && (
+                            <span className="petal-palette__item-icon">{item.icon}</span>
+                          )}
                           <span className="petal-palette__item-copy">
                             <span className="petal-palette__item-label">{item.label}</span>
                             {item.subtitle ? (
                               <span className="petal-palette__item-subtitle">{item.subtitle}</span>
                             ) : null}
                           </span>
-                          {item.hint && <span className="petal-palette__item-hint">{item.hint}</span>}
+                          {item.hint && (
+                            <span className="petal-palette__item-hint">{item.hint}</span>
+                          )}
                         </button>
                       )
                     })}
