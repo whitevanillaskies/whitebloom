@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { Size } from '../shared/types'
 import type { WhitebloomCommandsByContext } from '../commands/types'
+import type { ClipboardBudPlacement } from '../canvas/clipboard'
 
 export interface BudNodeProps {
   id: string
@@ -22,6 +23,19 @@ export interface BudEditorProps {
   initialData: string
   onSave: (data: string) => Promise<void>
   onClose: () => void
+}
+
+export type ModulePasteContext = {
+  workspaceRoot: string | null
+  event?: ClipboardEvent
+}
+
+export type ModulePasteResult = {
+  placement: ClipboardBudPlacement
+}
+
+export type ModuleClipboardHandler = {
+  paste(context: ModulePasteContext): Promise<ModulePasteResult | null>
 }
 
 export interface WhitebloomModule {
@@ -80,6 +94,12 @@ export interface WhitebloomModule {
    * override the shell entrypoints themselves.
    */
   commands?: WhitebloomCommandsByContext
+  /**
+   * Optional module-owned clipboard behavior. The canvas dispatches paste attempts
+   * to registered modules, and the module returns a generic bud placement when it
+   * recognizes the clipboard contents.
+   */
+  clipboard?: ModuleClipboardHandler
   /**
    * Controls how the bloom modal prepares editor data.
    * - `blossom` (default): load string content through blossom read/write IPC.

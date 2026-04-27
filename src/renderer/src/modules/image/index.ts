@@ -1,6 +1,7 @@
 import type { WhitebloomModule } from '../types'
 import { ImageNodeComponent } from './ImageNodeComponent'
 import { ImageIcon } from './ImageIcon'
+import { imageClipboardHandler } from './clipboard'
 
 export const imageModule: WhitebloomModule = {
   id: 'com.whitebloom.image',
@@ -9,5 +10,6 @@ export const imageModule: WhitebloomModule = {
   defaultRenderer: 'external',
   IconComponent: ImageIcon,
   accentColor: '--color-accent-purple',
+  clipboard: imageClipboardHandler,
   NodeComponent: ImageNodeComponent
 }

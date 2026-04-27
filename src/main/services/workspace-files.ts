@@ -231,6 +231,25 @@ export async function copyWorkspaceResource(
   return `wloc:${RES_DIRECTORY_NAME}/${basename(targetPath)}`
 }
 
+export async function writeWorkspaceResource(
+  workspaceRoot: string,
+  fileName: string,
+  data: Uint8Array
+): Promise<string> {
+  const configPath = getWorkspaceConfigPath(workspaceRoot)
+  if (!(await pathExists(configPath))) {
+    throw new Error(`Workspace config not found: ${configPath}`)
+  }
+
+  const resourceDirectory = join(workspaceRoot, RES_DIRECTORY_NAME)
+  await mkdir(resourceDirectory, { recursive: true })
+
+  const targetPath = await ensureUniqueFilePath(resourceDirectory, basename(fileName))
+  await writeFile(targetPath, data)
+
+  return `wloc:${RES_DIRECTORY_NAME}/${basename(targetPath)}`
+}
+
 export async function createQuickboard(boardPath: string): Promise<void> {
   await mkdir(dirname(boardPath), { recursive: true })
   await writeFile(boardPath, JSON.stringify(createEmptyBoard(), null, 2), 'utf-8')

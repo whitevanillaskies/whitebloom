@@ -15,6 +15,7 @@ import {
   findWorkspaceRootForBoard,
   readBoard,
   readWorkspace,
+  writeWorkspaceResource,
   writeBoard
 } from '../services/workspace-files'
 import { discardThumbnail, getThumbnailUri, writeThumbnail } from '../services/board-thumbnails'
@@ -278,6 +279,26 @@ export function registerBoardIpc(context: MainProcessContext): void {
 
       try {
         const resource = await copyWorkspaceResource(workspaceRoot, srcPath)
+        context.setActiveWorkspaceRoot(workspaceRoot)
+        return { ok: true, resource }
+      } catch {
+        return { ok: false }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'workspace:write-to-res',
+    async (
+      _event,
+      workspaceRoot: string,
+      fileName: string,
+      data: Uint8Array
+    ): Promise<WorkspaceCopyToResResult> => {
+      if (!workspaceRoot || !fileName || !data) return { ok: false }
+
+      try {
+        const resource = await writeWorkspaceResource(workspaceRoot, fileName, data)
         context.setActiveWorkspaceRoot(workspaceRoot)
         return { ok: true, resource }
       } catch {

@@ -40,7 +40,12 @@ import type { BoardInkStroke } from './InkOverlay'
 import { InkToolbar } from './InkToolbar'
 import type { InkTool } from './InkToolbar'
 import '../modules/index'
-import { dispatchDirectory, dispatchModule, resolveModuleById } from '../modules/registry'
+import {
+  dispatchDirectory,
+  dispatchModule,
+  getAllModules,
+  resolveModuleById
+} from '../modules/registry'
 import CanvasToolbar from '@renderer/components/canvas-toolbar/CanvasToolbar'
 import BoardContextBar from '@renderer/components/board-context-bar/BoardContextBar'
 import SettingsModal from '@renderer/components/settings-modal/SettingsModal'
@@ -139,6 +144,12 @@ import {
   type CanvasDeleteSelectionCommandArgs,
   type WhitebloomCommandExecutionOptions
 } from '@renderer/commands'
+import {
+  CANVAS_CLIPBOARD_KIND,
+  parseCanvasClipboardPayload,
+  serializeCanvasClipboardPayload,
+  type CanvasClipboardPayload
+} from './clipboard'
 import './Canvas.css'
 
 const nodeTypes = { text: TextNode, bud: BudNode, shape: ShapeNode, cluster: ClusterNode }
@@ -183,9 +194,6 @@ const SCREEN_RECORDING_MIME_CANDIDATES = [
   'video/webm;codecs=vp8',
   'video/webm'
 ]
-const CANVAS_CLIPBOARD_PREFIX = 'whitebloom:canvas-selection:v1\n'
-const CANVAS_CLIPBOARD_KIND = 'whitebloom.canvas-selection'
-
 type NodeBounds = {
   left: number
   top: number
@@ -204,13 +212,6 @@ type BudPlacement = {
   moduleType: string | null
   size: { w: number; h: number }
   label?: string
-}
-type CanvasClipboardPayload = {
-  kind: typeof CANVAS_CLIPBOARD_KIND
-  version: 1
-  nodes: BoardNode[]
-  edges: BoardEdge[]
-  anchor: FlowPosition
 }
 type ExternalResourceInput = {
   filePath: string
@@ -604,49 +605,8 @@ function isEditableTarget(target: EventTarget | null): boolean {
   )
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function cloneJsonValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
-}
-
-function serializeCanvasClipboardPayload(payload: CanvasClipboardPayload): string {
-  return `${CANVAS_CLIPBOARD_PREFIX}${JSON.stringify(payload)}`
-}
-
-function parseCanvasClipboardPayload(text: string): CanvasClipboardPayload | null {
-  const trimmed = text.trim()
-  if (!trimmed) return null
-
-  const json = text.startsWith(CANVAS_CLIPBOARD_PREFIX)
-    ? text.slice(CANVAS_CLIPBOARD_PREFIX.length)
-    : trimmed.startsWith('{')
-      ? trimmed
-      : ''
-  if (!json) return null
-
-  try {
-    const parsed: unknown = JSON.parse(json)
-    if (!isPlainObject(parsed)) return null
-    if (parsed.kind !== CANVAS_CLIPBOARD_KIND || parsed.version !== 1) return null
-    if (!Array.isArray(parsed.nodes) || parsed.nodes.length === 0) return null
-    if (!Array.isArray(parsed.edges)) return null
-    if (!isPlainObject(parsed.anchor)) return null
-    const { x, y } = parsed.anchor
-    if (typeof x !== 'number' || typeof y !== 'number') return null
-
-    return {
-      kind: CANVAS_CLIPBOARD_KIND,
-      version: 1,
-      nodes: parsed.nodes as BoardNode[],
-      edges: parsed.edges as BoardEdge[],
-      anchor: { x, y }
-    }
-  } catch {
-    return null
-  }
 }
 
 function getNodeCopyBounds(node: BoardNode): NodeBounds {
@@ -1980,17 +1940,43 @@ export function Canvas({
     }
   }, [boardEdges, boardNodes, selectedEdgeIds, selectedNodeIds])
 
-  const pasteClipboardToCanvas = useCallback(async () => {
-    const text = await window.api.readClipboardText()
-    const payload = parseCanvasClipboardPayload(text)
-    if (!payload) return false
+  const pasteClipboardToCanvas = useCallback(
+    async (event?: ClipboardEvent) => {
+      const text =
+        event?.clipboardData?.getData('text/plain') ?? (await window.api.readClipboardText())
+      const payload = parseCanvasClipboardPayload(text)
+      if (payload) {
+        setActivePayloadPlacement(null)
+        setActiveClipboardPlacement(payload)
+        setActiveTool('payload')
+        blurToolbarButtonIfFocused()
+        return true
+      }
 
-    setActivePayloadPlacement(null)
-    setActiveClipboardPlacement(payload)
-    setActiveTool('payload')
-    blurToolbarButtonIfFocused()
-    return true
-  }, [])
+      for (const module of getAllModules()) {
+        const result = await module.clipboard?.paste({
+          workspaceRoot,
+          event
+        })
+        if (!result) continue
+
+        setActiveClipboardPlacement(null)
+        setActivePayloadPlacement({
+          payload: result.placement,
+          preview: {
+            label: result.placement.label,
+            icon: { kind: 'resource', value: result.placement.resource }
+          }
+        })
+        setActiveTool('payload')
+        blurToolbarButtonIfFocused()
+        return true
+      }
+
+      return false
+    },
+    [workspaceRoot]
+  )
 
   const bloomSelection = useCallback(async () => {
     if (!selectedBudNode || !selectedBudModule) return
@@ -3538,9 +3524,6 @@ export function Canvas({
 
         if (key === 'v') {
           if (isEditableTarget(event.target)) return
-
-          event.preventDefault()
-          void pasteClipboardToCanvas()
           return
         }
       }
@@ -3614,6 +3597,20 @@ export function Canvas({
     updateNodeText,
     workspaceActionError
   ])
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent): void => {
+      if (isEditableTarget(event.target)) return
+
+      event.preventDefault()
+      void pasteClipboardToCanvas(event)
+    }
+
+    window.addEventListener('paste', onPaste)
+    return () => {
+      window.removeEventListener('paste', onPaste)
+    }
+  }, [pasteClipboardToCanvas])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

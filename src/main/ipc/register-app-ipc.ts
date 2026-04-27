@@ -109,6 +109,12 @@ export function registerAppIpc(context: MainProcessContext): void {
     return clipboard.readText()
   })
 
+  ipcMain.handle('clipboard:read-image', () => {
+    const image = clipboard.readImage()
+    if (image.isEmpty()) return { ok: true, dataUrl: null }
+    return { ok: true, dataUrl: image.toDataURL() }
+  })
+
   ipcMain.handle('clipboard:write-text', (_event, text: string) => {
     clipboard.writeText(text)
     return { ok: true }

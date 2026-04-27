@@ -275,8 +275,16 @@ const api = {
   saveAppSettings: (settings: AppSettings): Promise<{ ok: boolean; settings: AppSettings }> =>
     ipcRenderer.invoke('app-settings:save', settings),
   readClipboardText: (): Promise<string> => ipcRenderer.invoke('clipboard:read-text'),
+  readClipboardImage: (): Promise<{ ok: boolean; dataUrl: string | null }> =>
+    ipcRenderer.invoke('clipboard:read-image'),
   writeClipboardText: (text: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('clipboard:write-text', text),
+  writeWorkspaceResource: (
+    workspaceRoot: string,
+    fileName: string,
+    data: Uint8Array
+  ): Promise<WorkspaceCopyToResResult> =>
+    ipcRenderer.invoke('workspace:write-to-res', workspaceRoot, fileName, data),
   onCloseRequested: (cb: () => void): (() => void) => {
     const listener = () => cb()
     ipcRenderer.on('app:close-requested', listener)

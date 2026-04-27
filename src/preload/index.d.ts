@@ -256,7 +256,13 @@ declare global {
       loadAppSettings: () => Promise<AppSettings>
       saveAppSettings: (settings: AppSettings) => Promise<{ ok: boolean; settings: AppSettings }>
       readClipboardText: () => Promise<string>
+      readClipboardImage: () => Promise<{ ok: boolean; dataUrl: string | null }>
       writeClipboardText: (text: string) => Promise<{ ok: boolean }>
+      writeWorkspaceResource: (
+        workspaceRoot: string,
+        fileName: string,
+        data: Uint8Array
+      ) => Promise<WorkspaceCopyToResResult>
       onCloseRequested: (cb: () => void) => () => void
       confirmClose: () => void
       saveThumbnail: (
