@@ -7,6 +7,7 @@ import { schemaBloomModule } from './schemabloom'
 import { obsidianBloomModule } from './obsidianbloom'
 import { webPageBloomModule } from './webpagebloom'
 import { pdfModule } from './pdf'
+import { markdownBloomModule } from './markdownbloom'
 
 registerModule(imageModule)
 registerModule(videoModule)
@@ -16,3 +17,4 @@ registerModule(schemaBloomModule)
 registerModule(obsidianBloomModule)
 registerModule(webPageBloomModule)
 registerModule(pdfModule)
+registerModule(markdownBloomModule)
