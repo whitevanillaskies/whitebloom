@@ -44,10 +44,10 @@ function getWebBloomSession(): Session {
   return session.fromPartition(WEBBLOOM_PARTITION)
 }
 
-function clampBounds(bounds: WebBloomBoundsInput): Rectangle {
+function normalizeBounds(bounds: WebBloomBoundsInput): Rectangle {
   return {
-    x: Math.max(0, Math.round(bounds.x)),
-    y: Math.max(0, Math.round(bounds.y)),
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
     width: Math.max(0, Math.round(bounds.width)),
     height: Math.max(0, Math.round(bounds.height))
   }
@@ -147,7 +147,9 @@ export function initializeWebBloomViewHost(): void {
     const owner = BrowserWindow.fromWebContents(event.sender)
     if (!record || !owner || record.ownerId !== owner.id) return { ok: false }
 
-    const nextBounds = bounds?.visible ? clampBounds(bounds) : { x: 0, y: 0, width: 0, height: 0 }
+    const nextBounds = bounds?.visible
+      ? normalizeBounds(bounds)
+      : { x: 0, y: 0, width: 0, height: 0 }
     record.view.setBounds(nextBounds)
     return { ok: true }
   })

@@ -6,11 +6,20 @@ import { useBoardStore } from '@renderer/stores/board'
 import { NodeResizeHandles } from '../../canvas/NodeResizeHandles'
 import { useFixedCornerResize } from '../../canvas/useFixedCornerResize'
 import type { BudNodeProps } from '../types'
+import { useWebBloomNativeViewsVisible } from './WebBloomVisibilityContext'
 import './WebBloomNode.css'
 
 const HEADER_HEIGHT = 32
 const MIN_WIDTH = 320
 const MIN_HEIGHT = 220
+const WHITEBLOOM_CHROME_SELECTOR = [
+  '.react-flow__panel',
+  '.petal-palette',
+  '.petal-menu',
+  '.petal-panel',
+  '.mica-window',
+  '.canvas-recording-indicator'
+].join(',')
 
 function getUrlLabel(resource: string): string {
   try {
@@ -19,6 +28,48 @@ function getUrlLabel(resource: string): string {
   } catch {
     return resource
   }
+}
+
+function rectIntersectsViewport(rect: DOMRect): boolean {
+  return (
+    rect.right > 0 &&
+    rect.bottom > 0 &&
+    rect.left < window.innerWidth &&
+    rect.top < window.innerHeight
+  )
+}
+
+function getSamplePoints(rect: DOMRect): Array<{ x: number; y: number }> {
+  const left = Math.max(0, Math.min(window.innerWidth - 1, rect.left))
+  const right = Math.max(0, Math.min(window.innerWidth - 1, rect.right - 1))
+  const top = Math.max(0, Math.min(window.innerHeight - 1, rect.top))
+  const bottom = Math.max(0, Math.min(window.innerHeight - 1, rect.bottom - 1))
+  const centerX = Math.round((left + right) / 2)
+  const centerY = Math.round((top + bottom) / 2)
+
+  return [
+    { x: left, y: top },
+    { x: centerX, y: top },
+    { x: right, y: top },
+    { x: left, y: centerY },
+    { x: centerX, y: centerY },
+    { x: right, y: centerY },
+    { x: left, y: bottom },
+    { x: centerX, y: bottom },
+    { x: right, y: bottom }
+  ]
+}
+
+function isRectOccludedByWhitebloomChrome(rect: DOMRect, nodeElement: HTMLElement): boolean {
+  if (!rectIntersectsViewport(rect)) return false
+
+  return getSamplePoints(rect).some((point) =>
+    document.elementsFromPoint(point.x, point.y).some((element) => {
+      if (!(element instanceof HTMLElement)) return false
+      if (nodeElement.contains(element)) return false
+      return element.closest(WHITEBLOOM_CHROME_SELECTOR) !== null
+    })
+  )
 }
 
 export function WebBloomNode({
@@ -38,69 +89,10 @@ export function WebBloomNode({
   const updateNodePosition = useBoardStore((s) => s.updateNodePosition)
   const updateNodeSize = useBoardStore((s) => s.updateNodeSize)
   const updateNodeInternals = useUpdateNodeInternals()
+  const nativeViewsVisible = useWebBloomNativeViewsVisible()
   const [localSize, setLocalSize] = useState(size)
   const [viewState, setViewState] = useState({ resource, ready: false })
   const viewReady = viewState.resource === resource && viewState.ready
-
-  const syncBounds = useCallback(
-    (visible: boolean): void => {
-      const element = bodyRef.current
-      if (!element) return
-
-      const rect = element.getBoundingClientRect()
-      const bounds = {
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
-        visible: visible && rect.width > 8 && rect.height > 8 && !dragging
-      }
-      const serialized = JSON.stringify({
-        x: Math.round(bounds.x),
-        y: Math.round(bounds.y),
-        width: Math.round(bounds.width),
-        height: Math.round(bounds.height),
-        visible: bounds.visible
-      })
-      if (serialized === lastBoundsRef.current) return
-
-      lastBoundsRef.current = serialized
-      void window.api.setWebBloomBounds(viewId, bounds)
-    },
-    [dragging, viewId]
-  )
-
-  useEffect(() => {
-    let disposed = false
-    lastBoundsRef.current = null
-
-    void window.api.createWebBloomView(viewId, resource).then((result) => {
-      if (disposed) return
-      setViewState({ resource, ready: result.ok })
-      syncBounds(result.ok)
-    })
-
-    return () => {
-      disposed = true
-      void window.api.destroyWebBloomView(viewId)
-    }
-  }, [resource, syncBounds, viewId])
-
-  useEffect(() => {
-    let animationFrame = 0
-    const tick = (): void => {
-      syncBounds(viewReady)
-      animationFrame = window.requestAnimationFrame(tick)
-    }
-    animationFrame = window.requestAnimationFrame(tick)
-    return () => window.cancelAnimationFrame(animationFrame)
-  }, [syncBounds, viewReady])
-
-  useEffect(() => {
-    if (dragging) {
-      syncBounds(false)
-    }
-  }, [dragging, syncBounds])
 
   const handleResizePreview = useCallback(
     ({
@@ -139,6 +131,74 @@ export function WebBloomNode({
     onCommitChange: handleResizeCommit
   })
   const renderedSize = isResizing ? localSize : size
+  const shouldShowNativeView = nativeViewsVisible && !dragging && !isResizing
+
+  const syncBounds = useCallback(
+    (visible: boolean): void => {
+      const element = bodyRef.current
+      if (!element) return
+
+      const rect = element.getBoundingClientRect()
+      const intersectsViewport = rectIntersectsViewport(rect)
+      const occludedByChrome = isRectOccludedByWhitebloomChrome(rect, element)
+      const bounds = {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+        visible:
+          visible &&
+          shouldShowNativeView &&
+          intersectsViewport &&
+          !occludedByChrome &&
+          rect.width > 8 &&
+          rect.height > 8
+      }
+      const serialized = JSON.stringify({
+        x: Math.round(bounds.x),
+        y: Math.round(bounds.y),
+        width: Math.round(bounds.width),
+        height: Math.round(bounds.height),
+        visible: bounds.visible
+      })
+      if (serialized === lastBoundsRef.current) return
+
+      lastBoundsRef.current = serialized
+      void window.api.setWebBloomBounds(viewId, bounds)
+    },
+    [shouldShowNativeView, viewId]
+  )
+
+  useEffect(() => {
+    let disposed = false
+    lastBoundsRef.current = null
+
+    void window.api.createWebBloomView(viewId, resource).then((result) => {
+      if (disposed) return
+      setViewState({ resource, ready: result.ok })
+    })
+
+    return () => {
+      disposed = true
+      void window.api.destroyWebBloomView(viewId)
+    }
+  }, [resource, viewId])
+
+  useEffect(() => {
+    let animationFrame = 0
+    const tick = (): void => {
+      syncBounds(viewReady)
+      animationFrame = window.requestAnimationFrame(tick)
+    }
+    animationFrame = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [syncBounds, viewReady])
+
+  useEffect(() => {
+    if (!shouldShowNativeView) {
+      syncBounds(false)
+    }
+  }, [shouldShowNativeView, syncBounds])
 
   useEffect(() => {
     updateNodeInternals(id)
@@ -180,7 +240,11 @@ export function WebBloomNode({
             void window.api.focusWebBloomView(viewId)
           }}
         >
-          {!viewReady ? <div className="webbloom-node__loading">Loading...</div> : null}
+          {!viewReady || !shouldShowNativeView ? (
+            <div className="webbloom-node__loading">
+              {viewReady ? 'Web view paused' : 'Loading...'}
+            </div>
+          ) : null}
         </div>
       </div>
       <NodeResizeHandles

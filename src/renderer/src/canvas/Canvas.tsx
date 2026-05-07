@@ -91,6 +91,7 @@ import { imageModule } from '../modules/image'
 import { videoModule } from '../modules/video'
 import { schemaBloomModule } from '../modules/schemabloom'
 import { webBloomModule } from '../modules/webbloom'
+import { WebBloomVisibilityContext } from '../modules/webbloom/WebBloomVisibilityContext'
 import { webPageBloomModule } from '../modules/webpagebloom'
 import { obsidianBloomModule } from '../modules/obsidianbloom'
 import type { WhitebloomModule } from '../modules/types'
@@ -1166,6 +1167,35 @@ export function Canvas({
     []
   )
   const materialsMica = useMicaHost(materialsMicaPolicy)
+  const webBloomNativeViewsVisible = useMemo(
+    () =>
+      activeBloom === null &&
+      paletteState === null &&
+      !settingsOpen &&
+      !imageDropError &&
+      !workspaceActionError &&
+      pendingDocumentAction === null &&
+      !promoteSubboardModalOpen &&
+      !trashBoardConfirmOpen &&
+      canvasContextMenu === null &&
+      shapeMenuAnchor === null &&
+      overflowAnchor === null &&
+      materialsMica.windows.every((win) => win.visibility !== 'open'),
+    [
+      activeBloom,
+      canvasContextMenu,
+      imageDropError,
+      materialsMica.windows,
+      overflowAnchor,
+      paletteState,
+      pendingDocumentAction,
+      promoteSubboardModalOpen,
+      settingsOpen,
+      shapeMenuAnchor,
+      trashBoardConfirmOpen,
+      workspaceActionError
+    ]
+  )
 
   useEffect(() => {
     return () => {
@@ -4715,147 +4745,150 @@ export function Canvas({
     >
       <BloomContext.Provider value={handleBloom}>
         {activeBloom === null && (
-          <div
-            ref={canvasDropTargetRef}
-            className={[
-              'canvas__drop-surface',
-              isMaterialsCanvasDropActive ? 'canvas__drop-surface--materials-over' : ''
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              zIndexMode="manual"
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onReconnect={onReconnect}
-              onReconnectStart={onReconnectStart}
-              onReconnectEnd={onReconnectEnd}
-              isValidConnection={isValidEdgeHandlePair}
-              onPaneClick={onPaneClick}
-              onNodeClick={onNodeClick}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              onMouseDown={onMouseDown}
-              onMouseMove={onMouseMove}
-              onMouseUp={onMouseUp}
-              onPaneContextMenu={onPaneContextMenu}
-              onMoveEnd={onMoveEnd}
-              className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
-              elementsSelectable={activeTool === 'pointer'}
-              nodesDraggable={activeTool === 'pointer'}
-              nodesConnectable={activeTool === 'pointer'}
-              selectNodesOnDrag={false}
-              selectionOnDrag={activeTool === 'pointer'}
-              selectionKeyCode={activeTool === 'pointer' ? 'Alt' : null}
-              elevateNodesOnSelect={false}
-              panOnDrag={panOnDragButtons}
-              connectionMode={ConnectionMode.Loose}
-              connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
-              {...(boardViewport
-                ? { defaultViewport: boardViewport }
-                : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
-              proOptions={{ hideAttribution: true }}
-              data-board-capture="root"
+          <WebBloomVisibilityContext.Provider value={webBloomNativeViewsVisible}>
+            <div
+              ref={canvasDropTargetRef}
+              className={[
+                'canvas__drop-surface',
+                isMaterialsCanvasDropActive ? 'canvas__drop-surface--materials-over' : ''
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
-              <ProximityTracker
-                boardNodes={boardNodes}
-                setNodes={setNodes}
-                isReconnecting={isReconnecting}
-              />
-              <Background gap={25} size={1} color="var(--color-secondary-fg)" />
-              <SmartGuidesOverlay guides={canvasSnapping.guides} />
-              <InkOverlay
-                active={activeTool === 'ink'}
-                activeTool={activeInkTool}
-                acetateVisible={acetateVisible}
-                acetateStrokes={boardInkStrokes}
-                onTransfer={(stroke) => {
-                  if (!boardInkBinding) return
-                  setAcetateVisible((current) => {
-                    if (current) return current
-                    if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
-                    return true
-                  })
-                  void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
-                    binding: boardInkBinding,
-                    stroke
-                  })
-                }}
-                onEraseComplete={(erasedStrokes) => {
-                  if (!boardInkBinding) return
-                  setAcetateVisible((current) => {
-                    if (current) return current
-                    if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
-                    return true
-                  })
-                  void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes, {
-                    binding: boardInkBinding,
-                    erasedStrokes
-                  })
-                }}
-              />
-              <div data-board-capture="exclude">
-                <MiniMap nodeStrokeWidth={1} zoomable pannable />
-              </div>
-              <Panel position="top-left">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                zIndexMode="manual"
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onReconnect={onReconnect}
+                onReconnectStart={onReconnectStart}
+                onReconnectEnd={onReconnectEnd}
+                isValidConnection={isValidEdgeHandlePair}
+                onPaneClick={onPaneClick}
+                onNodeClick={onNodeClick}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
+                onPaneContextMenu={onPaneContextMenu}
+                onMoveEnd={onMoveEnd}
+                className={`canvas--tool-${activeTool}${singleSelectedNodeId !== null ? ' canvas--single-select' : ''}`}
+                elementsSelectable={activeTool === 'pointer'}
+                nodesDraggable={activeTool === 'pointer'}
+                nodesConnectable={activeTool === 'pointer'}
+                selectNodesOnDrag={false}
+                selectionOnDrag={activeTool === 'pointer'}
+                selectionKeyCode={activeTool === 'pointer' ? 'Alt' : null}
+                elevateNodesOnSelect={false}
+                panOnDrag={panOnDragButtons}
+                connectionMode={ConnectionMode.Loose}
+                connectionLineStyle={{ stroke: 'var(--color-secondary-fg)', strokeWidth: 1.5 }}
+                {...(boardViewport
+                  ? { defaultViewport: boardViewport }
+                  : { fitView: true, fitViewOptions: { padding: 0.25, maxZoom: 0.75 } })}
+                proOptions={{ hideAttribution: true }}
+                data-board-capture="root"
+              >
+                <ProximityTracker
+                  boardNodes={boardNodes}
+                  setNodes={setNodes}
+                  isReconnecting={isReconnecting}
+                />
+                <Background gap={25} size={1} color="var(--color-secondary-fg)" />
+                <SmartGuidesOverlay guides={canvasSnapping.guides} />
+                <InkOverlay
+                  active={activeTool === 'ink'}
+                  activeTool={activeInkTool}
+                  acetateVisible={acetateVisible}
+                  acetateStrokes={boardInkStrokes}
+                  onTransfer={(stroke) => {
+                    if (!boardInkBinding) return
+                    setAcetateVisible((current) => {
+                      if (current) return current
+                      if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
+                      return true
+                    })
+                    void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkAppendStroke, {
+                      binding: boardInkBinding,
+                      stroke
+                    })
+                  }}
+                  onEraseComplete={(erasedStrokes) => {
+                    if (!boardInkBinding) return
+                    setAcetateVisible((current) => {
+                      if (current) return current
+                      if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, 'true')
+                      return true
+                    })
+                    void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkEraseStrokes, {
+                      binding: boardInkBinding,
+                      erasedStrokes
+                    })
+                  }}
+                />
                 <div data-board-capture="exclude">
-                  <BoardContextBar
-                    name={boardName}
-                    workspaceRoot={workspaceRoot}
-                    workspaceName={workspaceConfig?.name}
-                    isDirty={isDirty}
-                    onNameChange={(name) => updateBoardMeta({ name })}
-                    onSave={() => void handleSaveWithCapture()}
-                    onGoHome={onGoHome}
-                    onGoToWorkspaceHome={onGoToWorkspaceHome}
-                    onNewBoard={handleNewBoard}
-                    onOverflow={setOverflowAnchor}
-                  />
+                  <MiniMap nodeStrokeWidth={1} zoomable pannable />
                 </div>
-              </Panel>
-
-              {activeTool === 'ink' && (
-                <Panel position="bottom-center" style={{ marginBottom: '62px' }}>
+                <Panel position="top-left">
                   <div data-board-capture="exclude">
-                    <InkToolbar
-                      activeTool={activeInkTool}
-                      onToolChange={setActiveInkTool}
-                      onClearLayer={() => {
-                        if (!boardInkBinding) return
-                        void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkClearLayer, {
-                          binding: boardInkBinding
-                        })
-                      }}
-                      onMouseDown={(e) => e.stopPropagation()}
+                    <BoardContextBar
+                      name={boardName}
+                      workspaceRoot={workspaceRoot}
+                      workspaceName={workspaceConfig?.name}
+                      isDirty={isDirty}
+                      onNameChange={(name) => updateBoardMeta({ name })}
+                      onSave={() => void handleSaveWithCapture()}
+                      onGoHome={onGoHome}
+                      onGoToWorkspaceHome={onGoToWorkspaceHome}
+                      onNewBoard={handleNewBoard}
+                      onOverflow={setOverflowAnchor}
                     />
                   </div>
                 </Panel>
-              )}
-              <Panel position="bottom-center">
-                <div data-board-capture="exclude">
-                  <CanvasToolbar
-                    activeTool={activeTool}
-                    onToolChange={setActiveTool}
-                    acetateVisible={acetateVisible}
-                    onAcetateToggle={() =>
-                      setAcetateVisible((current) => {
-                        const next = !current
-                        if (boardPath) localStorage.setItem(`wb:acetate:${boardPath}`, String(next))
-                        return next
-                      })
-                    }
-                    onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
-                  />
-                </div>
-              </Panel>
-            </ReactFlow>
-          </div>
+
+                {activeTool === 'ink' && (
+                  <Panel position="bottom-center" style={{ marginBottom: '62px' }}>
+                    <div data-board-capture="exclude">
+                      <InkToolbar
+                        activeTool={activeInkTool}
+                        onToolChange={setActiveInkTool}
+                        onClearLayer={() => {
+                          if (!boardInkBinding) return
+                          void runCanvasCommand(WHITEBLOOM_COMMAND_IDS.canvas.inkClearLayer, {
+                            binding: boardInkBinding
+                          })
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </Panel>
+                )}
+                <Panel position="bottom-center">
+                  <div data-board-capture="exclude">
+                    <CanvasToolbar
+                      activeTool={activeTool}
+                      onToolChange={setActiveTool}
+                      acetateVisible={acetateVisible}
+                      onAcetateToggle={() =>
+                        setAcetateVisible((current) => {
+                          const next = !current
+                          if (boardPath)
+                            localStorage.setItem(`wb:acetate:${boardPath}`, String(next))
+                          return next
+                        })
+                      }
+                      onShapesClick={(anchor) => setShapeMenuAnchor(anchor)}
+                    />
+                  </div>
+                </Panel>
+              </ReactFlow>
+            </div>
+          </WebBloomVisibilityContext.Provider>
         )}
 
         {activeBloom === null && <EdgeToolbar />}
