@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   computeSmartGuideSnap,
+  getLayoutBounds,
   type LayoutNode,
+  type LayoutBounds,
   type LayoutPoint,
   type SmartGuide,
   type SmartGuideSnap
@@ -17,6 +19,7 @@ export type CanvasSnappingInput = {
   nodes: LayoutNode[]
   enabled?: boolean
   threshold?: number
+  getVisibleBounds?: () => LayoutBounds | null
 }
 
 export type CanvasSnappingPreviewInput = {
@@ -46,7 +49,8 @@ const EMPTY_SNAP: SmartGuideSnap = {
 export function useCanvasSnapping({
   nodes,
   enabled = true,
-  threshold
+  threshold,
+  getVisibleBounds
 }: CanvasSnappingInput): CanvasSnappingState {
   const [guides, setGuides] = useState<SmartGuide[]>([])
   const [activeSession, setActiveSession] = useState<CanvasSnappingSession | null>(null)
@@ -68,13 +72,17 @@ export function useCanvasSnapping({
 
       if (movingNodes.length === 0) return null
 
+      const visibleBounds = getVisibleBounds?.()
       return {
         movingNodeIds,
         movingNodes,
-        stationaryNodes: nodesRef.current.filter((node) => !movingIdSet.has(node.id))
+        stationaryNodes: nodesRef.current.filter((node) => {
+          if (movingIdSet.has(node.id)) return false
+          return !visibleBounds || boundsIntersect(getLayoutBounds(node), visibleBounds)
+        })
       }
     },
-    [nodeById]
+    [getVisibleBounds, nodeById]
   )
 
   const beginSnapping = useCallback(
@@ -129,4 +137,13 @@ export function useCanvasSnapping({
     clearGuides,
     endSnapping
   }
+}
+
+function boundsIntersect(left: LayoutBounds, right: LayoutBounds): boolean {
+  return (
+    left.right >= right.left &&
+    left.left <= right.right &&
+    left.bottom >= right.top &&
+    left.top <= right.bottom
+  )
 }

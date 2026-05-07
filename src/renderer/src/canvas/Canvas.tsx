@@ -129,8 +129,8 @@ import type { Tool } from './tools'
 import { createInkTargetId, type InkBoardSurfaceBinding } from '../../../shared/ink'
 import { planClusterPromotion } from '@renderer/stores/board'
 import type { BoardNodeDraft } from '@renderer/stores/board'
-import { alignNodes } from './layoutGeometry'
-import type { LayoutNode } from './layoutGeometry'
+import { alignNodes, normalizeBounds } from './layoutGeometry'
+import type { LayoutBounds, LayoutNode } from './layoutGeometry'
 import { SmartGuidesOverlay } from './SmartGuidesOverlay'
 import { useCanvasSnapping } from './useCanvasSnapping'
 import {
@@ -1659,9 +1659,28 @@ export function Canvas({
       })),
     [boardNodes]
   )
+  const getCanvasVisibleBounds = useCallback((): LayoutBounds | null => {
+    const rect = canvasDropTargetRef.current?.getBoundingClientRect()
+    const left = rect?.left ?? 0
+    const top = rect?.top ?? 0
+    const right = rect?.right ?? window.innerWidth
+    const bottom = rect?.bottom ?? window.innerHeight
+    if (right <= left || bottom <= top) return null
+
+    const topLeft = screenToFlowPosition({ x: left, y: top })
+    const bottomRight = screenToFlowPosition({ x: right, y: bottom })
+
+    return normalizeBounds({
+      left: topLeft.x,
+      top: topLeft.y,
+      right: bottomRight.x,
+      bottom: bottomRight.y
+    })
+  }, [screenToFlowPosition])
   const canvasSnapping = useCanvasSnapping({
     nodes: canvasLayoutNodes,
-    enabled: activeTool === 'pointer'
+    enabled: activeTool === 'pointer',
+    getVisibleBounds: getCanvasVisibleBounds
   })
 
   useEffect(() => {
