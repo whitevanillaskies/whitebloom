@@ -68,20 +68,104 @@ function getParagraphStartOffset(text: string, targetParagraph: number): number 
   return text.length
 }
 
-function getPreviewParagraphs(text: string): Array<{ text: string; sourceIndex: number }> {
+type PreviewBlockKind = 'title' | 'author' | 'heading-1' | 'heading-2' | 'heading-3' | 'para'
+
+type PreviewBlock = {
+  kind: PreviewBlockKind
+  text: string
+  sourceIndex: number
+}
+
+function getPlaintextPreviewBlocks(text: string): PreviewBlock[] {
   const parts = text.split(/(\n\n+)/)
-  const paragraphs: Array<{ text: string; sourceIndex: number }> = []
+  const blocks: PreviewBlock[] = []
   let paraIndex = 0
   for (const part of parts) {
     if (/^\n\n+$/.test(part)) continue
-    if (part.trim()) paragraphs.push({ text: part, sourceIndex: paraIndex })
+    if (part.trim()) blocks.push({ kind: 'para', text: part, sourceIndex: paraIndex })
     paraIndex++
   }
-  return paragraphs
+  return blocks
+}
+
+function getBookPreviewBlocks(
+  document: Extract<BookMarkupDocument, { mode: 'book' }>
+): PreviewBlock[] {
+  const blocks: PreviewBlock[] = []
+  const titleBlock = document.blocks.find(
+    (block): block is Extract<BookMarkupBlock, { kind: 'metadata' }> =>
+      block.kind === 'metadata' && block.name === 'title'
+  )
+  const authorBlock = document.blocks.find(
+    (block): block is Extract<BookMarkupBlock, { kind: 'metadata' }> =>
+      block.kind === 'metadata' && block.name === 'author'
+  )
+
+  if (document.metadata.title) {
+    blocks.push({
+      kind: 'title',
+      text: document.metadata.title,
+      sourceIndex: titleBlock ? getActiveParagraph(document.text, titleBlock.range.start) : 0
+    })
+  }
+
+  if (document.metadata.author) {
+    blocks.push({
+      kind: 'author',
+      text: document.metadata.author,
+      sourceIndex: authorBlock ? getActiveParagraph(document.text, authorBlock.range.start) : 0
+    })
+  }
+
+  for (const block of document.blocks) {
+    if (block.kind === 'heading') {
+      blocks.push({
+        kind: `heading-${block.depth}` as PreviewBlockKind,
+        text: block.text,
+        sourceIndex: getActiveParagraph(document.text, block.range.start)
+      })
+      continue
+    }
+
+    if (block.kind === 'paragraph') {
+      blocks.push({
+        kind: 'para',
+        text: block.text,
+        sourceIndex: getActiveParagraph(document.text, block.range.start)
+      })
+    }
+  }
+
+  return blocks
+}
+
+function getPreviewBlocks(text: string): PreviewBlock[] {
+  const document = parseBookMarkup(text)
+  return document.mode === 'book' ? getBookPreviewBlocks(document) : getPlaintextPreviewBlocks(text)
+}
+
+function getPreviewBlockClassName(block: PreviewBlock): string {
+  if (block.kind === 'title') return 'fw-preview__book-title'
+  if (block.kind === 'author') return 'fw-preview__book-author'
+  if (block.kind.startsWith('heading-')) return `fw-preview__heading fw-preview__${block.kind}`
+  return 'fw-preview__para'
+}
+
+function getPreviewBlockTagName(block: PreviewBlock): 'h1' | 'h2' | 'p' {
+  if (block.kind === 'title') return 'h1'
+  if (block.kind.startsWith('heading-')) return 'h2'
+  return 'p'
+}
+
+function createPreviewBlockElement(block: PreviewBlock): HTMLElement {
+  const el = document.createElement(getPreviewBlockTagName(block))
+  el.className = getPreviewBlockClassName(block)
+  el.textContent = block.text
+  return el
 }
 
 type PreviewPage = {
-  paragraphs: string[]
+  blocks: PreviewBlock[]
   startPara: number
 }
 
@@ -307,9 +391,9 @@ function BookPreview({
     measure.style.width = `${availableWidth}px`
     measure.style.height = `${availableHeight}px`
 
-    const paragraphs = getPreviewParagraphs(text)
-    if (paragraphs.length === 0) {
-      setPages([{ paragraphs: [], startPara: 0 }])
+    const previewBlocks = getPreviewBlocks(text)
+    if (previewBlocks.length === 0) {
+      setPages([{ blocks: [], startPara: 0 }])
       setCurrentPage(0)
       return
     }
@@ -317,40 +401,35 @@ function BookPreview({
     while (measure.firstChild) measure.removeChild(measure.firstChild)
 
     const result: PreviewPage[] = []
-    let currentPageParas: string[] = []
-    let currentPageStartPara = paragraphs[0]?.sourceIndex ?? 0
+    let currentPageBlocks: PreviewBlock[] = []
+    let currentPageStartPara = previewBlocks[0]?.sourceIndex ?? 0
 
-    for (const para of paragraphs) {
-      const el = document.createElement('p')
-      el.className = 'fw-preview__para'
-      el.textContent = para.text
+    for (const block of previewBlocks) {
+      const el = createPreviewBlockElement(block)
       measure.appendChild(el)
 
       if (measure.scrollHeight > availableHeight) {
-        if (currentPageParas.length === 0) {
+        if (currentPageBlocks.length === 0) {
           // Paragraph alone is taller than the page — force it on its own page
-          result.push({ paragraphs: [para.text], startPara: para.sourceIndex })
+          result.push({ blocks: [block], startPara: block.sourceIndex })
           measure.removeChild(el)
           while (measure.firstChild) measure.removeChild(measure.firstChild)
         } else {
           // Doesn't fit — push current page, start fresh
-          result.push({ paragraphs: currentPageParas, startPara: currentPageStartPara })
-          currentPageParas = [para.text]
-          currentPageStartPara = para.sourceIndex
+          result.push({ blocks: currentPageBlocks, startPara: currentPageStartPara })
+          currentPageBlocks = [block]
+          currentPageStartPara = block.sourceIndex
           while (measure.firstChild) measure.removeChild(measure.firstChild)
-          const freshEl = document.createElement('p')
-          freshEl.className = 'fw-preview__para'
-          freshEl.textContent = para.text
-          measure.appendChild(freshEl)
+          measure.appendChild(createPreviewBlockElement(block))
         }
       } else {
-        if (currentPageParas.length === 0) currentPageStartPara = para.sourceIndex
-        currentPageParas.push(para.text)
+        if (currentPageBlocks.length === 0) currentPageStartPara = block.sourceIndex
+        currentPageBlocks.push(block)
       }
     }
 
-    if (currentPageParas.length > 0) {
-      result.push({ paragraphs: currentPageParas, startPara: currentPageStartPara })
+    if (currentPageBlocks.length > 0) {
+      result.push({ blocks: currentPageBlocks, startPara: currentPageStartPara })
     }
 
     setPages(result)
@@ -446,9 +525,18 @@ function BookPreview({
     [onClose, onExitPreview, goNext, goPrev, pages, currentPage]
   )
 
-  const isEmpty = text.trim() === ''
-  const leftParas = pages[currentPage]?.paragraphs ?? []
-  const rightParas = pages[currentPage + 1]?.paragraphs ?? null
+  const isEmpty = (pages[0]?.blocks.length ?? 0) === 0
+  const leftBlocks = pages[currentPage]?.blocks ?? []
+  const rightBlocks = pages[currentPage + 1]?.blocks ?? null
+
+  const renderBlock = (block: PreviewBlock, index: number): React.ReactNode => {
+    const TagName = getPreviewBlockTagName(block)
+    return (
+      <TagName key={index} className={getPreviewBlockClassName(block)}>
+        {block.text}
+      </TagName>
+    )
+  }
 
   return (
     <div ref={containerRef} className="fw-preview" tabIndex={0} onKeyDown={handleKeyDown}>
@@ -461,25 +549,15 @@ function BookPreview({
           {isEmpty ? (
             <p className="fw-preview__empty">{t('focusWriter.emptyPreview')}</p>
           ) : (
-            leftParas.map((para, i) => (
-              <p key={i} className="fw-preview__para">
-                {para}
-              </p>
-            ))
+            leftBlocks.map(renderBlock)
           )}
         </div>
 
         {/* Right page — only rendered when there's a second page to show */}
-        {!isEmpty && rightParas !== null && (
+        {!isEmpty && rightBlocks !== null && (
           <>
             <div className="fw-preview__spine" aria-hidden="true" />
-            <div className="fw-preview__page-col">
-              {rightParas.map((para, i) => (
-                <p key={i} className="fw-preview__para">
-                  {para}
-                </p>
-              ))}
-            </div>
+            <div className="fw-preview__page-col">{rightBlocks.map(renderBlock)}</div>
           </>
         )}
       </div>

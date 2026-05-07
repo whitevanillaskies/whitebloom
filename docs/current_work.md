@@ -27,5 +27,5 @@ Implementation steps:
 
 - [x] Add a small book-markup parser for Focus Writer that detects `::type book`, extracts metadata, headings, body paragraphs, margin blocks, note blocks, inline notes, source ranges, and active-block lookup.
 - [x] Add book-mode rendering to Focus Writer writing modes, preserving current plaintext behavior when book mode is absent and showing raw source for the active directive/block.
-- [ ] Adapt preview mode for book documents so it renders the finished manuscript view and omits margins/notes.
+- [x] Adapt preview mode for book documents so it renders the finished manuscript view and omits margins/notes.
 - [ ] Polish layout and verify with at least one sample `.blt` covering title, author, three heading levels, margin, inline note, block note, and normal plaintext fallback.
