@@ -133,7 +133,11 @@ function isBookTypeLine(line: SourceLine | null): boolean {
   return directive?.name === 'type' && directive.value?.toLowerCase() === 'book'
 }
 
-function parseMetadataBlock(line: SourceLine, name: BookMarkupMetadataName, value: string): BookMarkupMetadataBlock {
+function parseMetadataBlock(
+  line: SourceLine,
+  name: BookMarkupMetadataName,
+  value: string
+): BookMarkupMetadataBlock {
   const contentStart = valueStartOffset(line, value)
   return {
     kind: 'metadata',
@@ -212,7 +216,10 @@ function parseDirectiveBlock(
   }
 }
 
-function parseParagraphBlock(lines: SourceLine[], index: number): { block: BookMarkupParagraphBlock; nextIndex: number } {
+function parseParagraphBlock(
+  lines: SourceLine[],
+  index: number
+): { block: BookMarkupParagraphBlock; nextIndex: number } {
   let endIndex = index + 1
 
   while (endIndex < lines.length) {
@@ -224,7 +231,10 @@ function parseParagraphBlock(lines: SourceLine[], index: number): { block: BookM
   }
 
   const paragraphLines = lines.slice(index, endIndex)
-  const text = paragraphLines.map((line) => line.content).join('\n').trimEnd()
+  const text = paragraphLines
+    .map((line) => line.content)
+    .join('\n')
+    .trimEnd()
 
   return {
     block: {
@@ -317,7 +327,8 @@ export function findBookMarkupBlockAtOffset(
 
   const clampedOffset = Math.max(0, Math.min(offset, document.text.length))
   return (
-    document.blocks.find((block) => block.range.start <= clampedOffset && clampedOffset <= block.range.end) ??
-    null
+    document.blocks.find(
+      (block) => block.range.start <= clampedOffset && clampedOffset <= block.range.end
+    ) ?? null
   )
 }

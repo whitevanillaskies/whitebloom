@@ -19,6 +19,10 @@
   max-width: 640px;
 }
 
+.fw-editor__column--book {
+  max-width: 640px;
+}
+
 /* ── Mirror (behind textarea, renders styled paragraphs) ─────── */
 
 .fw-editor__mirror {
@@ -34,6 +38,127 @@
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+.fw-editor__mirror--book {
+  left: 50%;
+  right: auto;
+  width: min(960px, calc(100vw - 96px));
+  transform: translateX(-50%);
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+.fw-book {
+  display: grid;
+  grid-template-columns: minmax(116px, 160px) minmax(0, 640px) minmax(80px, 120px);
+  column-gap: 44px;
+  align-items: start;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--color-primary-fg);
+}
+
+.fw-book__masthead {
+  grid-column: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 42px;
+  margin: 0 0 56px;
+}
+
+.fw-book__title {
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.fw-book__author {
+  font-size: 15px;
+  color: var(--color-secondary-fg);
+}
+
+.fw-book__heading,
+.fw-book__para,
+.fw-book__note,
+.fw-book__raw {
+  grid-column: 2;
+}
+
+.fw-book__heading {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--color-primary-fg);
+}
+
+.fw-book__heading--1 {
+  font-size: 24px;
+  line-height: 1.25;
+  margin: 0 0 26px;
+}
+
+.fw-book__heading--2 {
+  font-size: 21px;
+  line-height: 1.3;
+  margin: 0 0 22px;
+}
+
+.fw-book__heading--3 {
+  font-size: 17px;
+  line-height: 1.4;
+  margin: 0 0 18px;
+}
+
+.fw-book__para {
+  margin: 0 0 28px;
+  white-space: pre-wrap;
+}
+
+.fw-book__margin {
+  grid-column: 1;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-muted-fg);
+  margin: 0 0 28px;
+  white-space: pre-wrap;
+}
+
+.fw-book__note {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-muted-fg);
+  margin: -16px 0 28px;
+  white-space: pre-wrap;
+}
+
+.fw-book__raw {
+  margin: 0 0 28px;
+  white-space: pre-wrap;
+  color: var(--color-primary-fg);
+}
+
+@media (max-width: 860px) {
+  .fw-editor__mirror--book {
+    width: min(640px, calc(100vw - 64px));
+  }
+
+  .fw-book {
+    display: block;
+  }
+
+  .fw-book__masthead {
+    display: block;
+  }
+
+  .fw-book__author {
+    margin-top: 8px;
+  }
+
+  .fw-book__margin {
+    margin: -8px 0 28px;
+    padding-left: 18px;
+    border-left: 1px solid var(--color-border, rgba(128, 128, 128, 0.24));
+  }
 }
 
 /* ── Paragraph dimming ───────────────────────────────────────── */
