@@ -10,6 +10,7 @@ import {
 } from './protocol/register-wloc-protocol'
 import { ensureAppStorageDirectories } from './services/app-storage'
 import { readAppSettings } from './services/app-settings-store'
+import { initializeWebBloomViewHost } from './services/webbloom-view-host'
 import { createMainProcessContext } from './state/main-process-context'
 
 registerResourceSchemes()
@@ -57,6 +58,7 @@ app.whenReady().then(async () => {
   registerResourceProtocols(context)
   registerBoardIpc(context)
   registerAppIpc(context)
+  initializeWebBloomViewHost()
   createMainWindow()
 
   app.on('activate', function () {

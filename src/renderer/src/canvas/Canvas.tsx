@@ -90,6 +90,7 @@ import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
 import { videoModule } from '../modules/video'
 import { schemaBloomModule } from '../modules/schemabloom'
+import { webBloomModule } from '../modules/webbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
 import { obsidianBloomModule } from '../modules/obsidianbloom'
 import type { WhitebloomModule } from '../modules/types'
@@ -2001,7 +2002,10 @@ export function Canvas({
     if (!selectedBudNode || !selectedBudModule) return
     if (typeof selectedBudNode.resource !== 'string') return
 
-    if (selectedBudModule.id === webPageBloomModule.id) {
+    if (
+      selectedBudModule.id === webPageBloomModule.id ||
+      selectedBudModule.id === webBloomModule.id
+    ) {
       await window.api.openUrl(selectedBudNode.resource)
       return
     }
@@ -2014,7 +2018,12 @@ export function Canvas({
   }, [handleBloom, selectedBudModule, selectedBudNode])
 
   const openSelectionInNativeEditor = useCallback(async () => {
-    if (!selectedBudNode || selectedBudNode.type === webPageBloomModule.id) return
+    if (
+      !selectedBudNode ||
+      selectedBudNode.type === webPageBloomModule.id ||
+      selectedBudNode.type === webBloomModule.id
+    )
+      return
     if (typeof selectedBudNode.resource !== 'string') return
     await window.api.openFile(selectedBudNode.resource)
   }, [selectedBudNode])
@@ -2236,7 +2245,9 @@ export function Canvas({
         capabilities: {
           canBloomSelection: selectedBudNode !== null && selectedBudModule !== undefined,
           canOpenSelectionInNativeEditor:
-            selectedBudNode !== null && selectedBudNode.type !== webPageBloomModule.id,
+            selectedBudNode !== null &&
+            selectedBudNode.type !== webPageBloomModule.id &&
+            selectedBudNode.type !== webBloomModule.id,
           canLinkResources: true,
           canImportResources: workspaceRoot !== null,
           canFitCluster: selectedCluster !== null && selectedCluster.children.length > 0,

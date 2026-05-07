@@ -24,7 +24,8 @@ import { boardBloomModule } from '../modules/boardbloom'
 import { webPageBloomModule } from '../modules/webpagebloom'
 import { markdownBloomModule } from '../modules/markdownbloom'
 import { obsidianBloomModule } from '../modules/obsidianbloom'
-import { normalizeWebPageUrl } from '../shared/web-page-url'
+import { webBloomModule } from '../modules/webbloom'
+import { normalizeEmbeddableWebUrl, normalizeWebPageUrl } from '../shared/web-page-url'
 import { fetchPageTitle } from '../shared/page-title'
 import type {
   ArrangementsAssignMaterialsToBinCommandArgs,
@@ -52,6 +53,7 @@ import type { InkStroke, InkSurfaceBinding } from '../../../shared/ink'
 export const WHITEBLOOM_COMMAND_IDS = {
   canvas: {
     addBud: 'board.add-bud',
+    embedUrl: 'board.add-url.embed',
     addUrlPage: 'board.add-url-page',
     linkObsidianDoc: 'obsidian.link-doc',
     linkBoard: 'board.link-board',
@@ -491,6 +493,45 @@ function createCanvasUrlPageInputStep(initialValue = '') {
       return {
         type: 'step' as const,
         step: createUrlPageLabelStrategyStep(resource)
+      }
+    }
+  }
+}
+
+function createCanvasEmbedUrlInputStep(initialValue = '') {
+  return {
+    kind: 'input' as const,
+    id: 'board.add-url.embed.input',
+    title: 'Embed URL',
+    subtitle: 'Paste a secure URL to browse it inside the board.',
+    placeholder: 'Paste a URL',
+    submitLabel: 'Embed',
+    initialValue,
+    onSubmit: (value: string) => {
+      const resource = normalizeEmbeddableWebUrl(value)
+      if (!resource) {
+        return {
+          type: 'step' as const,
+          step: createCanvasEmbedUrlInputStep(value)
+        }
+      }
+
+      return {
+        type: 'submit' as const,
+        args: {
+          payload: {
+            moduleType: webBloomModule.id,
+            size: webBloomModule.defaultSize ?? { w: 640, h: 420 },
+            resource
+          },
+          preview: {
+            label: resource,
+            icon: {
+              kind: 'icon-key',
+              value: 'globe'
+            }
+          }
+        } satisfies CanvasActivatePayloadPlacementCommandArgs
       }
     }
   }
@@ -990,6 +1031,40 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
   ),
   {
     core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.embedUrl,
+      kind: 'tool',
+      modeScope: 'canvas-mode',
+      aliases: ['board.embed-url', 'webbloom.embed-url', 'embed-url'],
+      enabledWhen: (context) => typeof context.actions.activatePayloadPlacement === 'function',
+      argsSchema: parseCanvasActivatePayloadPlacementArgs,
+      run: (args, context) => {
+        if (!context.actions.activatePayloadPlacement) {
+          throw new Error('Canvas context cannot activate payload placement.')
+        }
+
+        context.actions.activatePayloadPlacement(args)
+      }
+    },
+    flow: {
+      start: async () => {
+        return {
+          type: 'step' as const,
+          step: createCanvasEmbedUrlInputStep()
+        }
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Embed URL',
+        subtitle: 'Browse a web page inside the board',
+        category: 'Add URL',
+        icon: Globe
+      }
+    ]
+  },
+  {
+    core: {
       id: WHITEBLOOM_COMMAND_IDS.canvas.addUrlPage,
       kind: 'tool',
       modeScope: 'canvas-mode',
@@ -1017,7 +1092,7 @@ const canvasCommands: WhitebloomCommandForContext<CanvasCommandContext>[] = [
         mode: 'canvas-mode',
         title: 'Add URL Page',
         subtitle: 'Paste a URL, then place the page link on the canvas',
-        category: 'Canvas',
+        category: 'Add URL',
         icon: Globe
       }
     ]

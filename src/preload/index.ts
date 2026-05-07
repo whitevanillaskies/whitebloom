@@ -166,6 +166,14 @@ type ObsidianVaultSearchResult = {
   matches: ObsidianVaultDocumentMatch[]
 }
 
+type WebBloomBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+  visible: boolean
+}
+
 const api = {
   openWorkspaceDialog: (): Promise<WorkspaceOpenDialogResult> =>
     ipcRenderer.invoke('workspace:open-dialog'),
@@ -308,6 +316,14 @@ const api = {
   probeNetwork: (): Promise<{ reachable: boolean }> => ipcRenderer.invoke('network:probe'),
   fetchPageTitle: (url: string): Promise<{ ok: boolean; title: string | null }> =>
     ipcRenderer.invoke('page:fetch-title', url),
+  createWebBloomView: (id: string, url: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('webbloom:create', { id, url }),
+  setWebBloomBounds: (id: string, bounds: WebBloomBounds): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('webbloom:set-bounds', id, bounds),
+  destroyWebBloomView: (id: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('webbloom:destroy', id),
+  focusWebBloomView: (id: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('webbloom:focus', id),
   readInkAcetate: (
     workspaceRoot: string,
     binding: InkSurfaceBinding

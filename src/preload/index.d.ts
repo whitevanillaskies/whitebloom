@@ -166,6 +166,14 @@ type ObsidianVaultSearchResult = {
   matches: ObsidianVaultDocumentMatch[]
 }
 
+type WebBloomBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+  visible: boolean
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -278,6 +286,10 @@ declare global {
       setLanguage: (lang: string) => Promise<void>
       probeNetwork: () => Promise<{ reachable: boolean }>
       fetchPageTitle: (url: string) => Promise<{ ok: boolean; title: string | null }>
+      createWebBloomView: (id: string, url: string) => Promise<{ ok: boolean }>
+      setWebBloomBounds: (id: string, bounds: WebBloomBounds) => Promise<{ ok: boolean }>
+      destroyWebBloomView: (id: string) => Promise<{ ok: boolean }>
+      focusWebBloomView: (id: string) => Promise<{ ok: boolean }>
       readInkAcetate: (
         workspaceRoot: string,
         binding: InkSurfaceBinding

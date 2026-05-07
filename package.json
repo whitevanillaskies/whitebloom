@@ -68,10 +68,12 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@ghostery/adblocker-electron": "^2.15.0",
     "@lexical/code-core": "^0.42.0",
     "@lexical/react": "^0.42.0",
     "@videojs/react": "^10.0.0-beta.15",
     "@xyflow/react": "^12.10.2",
+    "cross-fetch": "^4.1.0",
     "html-to-image": "^1.11.13",
     "i18next": "^26.0.3",
     "lexical": "^0.42.0",
