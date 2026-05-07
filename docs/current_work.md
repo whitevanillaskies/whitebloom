@@ -2,30 +2,56 @@
 
 Reference `whitebloom.md`, `open_whitebloom.md`, `whitebloom_ideas.md` and `deferred_work.md` for authoritative guidelines and rules when implementing these work units. Ideas should be taken as tentative only. Keep `design_language.md` in mind when implementing new user-facing features.
 
-## Focus Writer Book Mode MVP
+## Focus Writer Book Mode: Lexical Manuscript Surface
 
-Prototype a minimal Whitebloom-native book markup mode inside Focus Writer. Existing `.blt` files remain plaintext unless the first meaningful line is `::type book`.
+Move book mode away from the transparent textarea/mirror prototype and toward a continuous manuscript editor backed by a real editable document model. The editor should still feel like one quiet writing surface, not a block editor. Book syntax remains Whitebloom-native source text, with preview mode as the only mode that hides metadata, notes, and margins. In writing modes, metadata should remain visible but muted.
 
-Syntax for the MVP:
+### Phase 1: Parser Contract
 
-- `::type book` enables book mode.
-- `::title Some Title` sets the work title.
-- `::author Some Author` sets the author metadata.
-- `#`, `##`, and `###` are generic nested heading levels chosen by the author.
-- `::margin` starts a margin block that continues until the next blank line.
-- `::note` can be inline (`::note Remember this`) or block-style; notes render muted at their source position.
+Formalize the book markup parser as the source contract before deep editor work.
 
-Rendering rules for the MVP:
+- Preserve the `.blt` source file as the source of truth.
+- Parse source into a stable AST for metadata, headings, paragraphs, margin blocks, note blocks, separators, and unknown/raw source.
+- Preserve unknown directives or unsupported syntax as raw nodes rather than dropping or normalizing them.
+- Keep source ranges and enough whitespace/separator information to serialize safely.
+- Define canonical serialization from AST back to `.blt`.
 
-- Metadata directives are hidden in book rendering, except while the caret is on the directive line.
-- Directives generally render styled or hidden when inactive, but show raw source while the caret is inside that directive line or block.
-- Writing modes render title, author, headings, body text, margin blocks, and notes.
-- Preview mode hides margin blocks and notes, leaving title, author, headings, and body text.
-- Add the parser and renderer in a modular way so later document types such as screenplay can share directive parsing without inheriting book-specific rendering.
+### Phase 2: Read-Only Lexical Rendering
 
-Implementation steps:
+Create a Lexical-backed book editor surface for `::type book` documents, initially read-only.
 
-- [x] Add a small book-markup parser for Focus Writer that detects `::type book`, extracts metadata, headings, body paragraphs, margin blocks, note blocks, inline notes, source ranges, and active-block lookup.
-- [x] Add book-mode rendering to Focus Writer writing modes, preserving current plaintext behavior when book mode is absent and showing raw source for the active directive/block.
-- [x] Adapt preview mode for book documents so it renders the finished manuscript view and omits margins/notes.
-- [ ] Polish layout and verify with at least one sample `.blt` covering title, author, three heading levels, margin, inline note, block note, and normal plaintext fallback.
+- Keep the existing plaintext Focus Writer path for non-book `.blt` files.
+- Render title and author as muted/quiet metadata in writing modes.
+- Render headings, paragraphs, notes, and margins through Lexical nodes.
+- Keep notes and margins visible in writing modes.
+- Make the manuscript surface feel continuous, with no block handles, cards, slash-menu feel, or Notion-like chrome.
+
+### Phase 3: Editable Paragraphs And Headings
+
+Enable editing for the main manuscript flow first.
+
+- Make paragraphs and headings editable in the Lexical book surface.
+- Serialize paragraph and heading edits back to `.blt`.
+- Preserve metadata, notes, margins, unknown nodes, and surrounding whitespace during edits.
+- Keep caret movement and selection feeling like a continuous document.
+- Leave metadata, notes, and margins read-only if needed until the core edit/save loop feels good.
+
+### Phase 4: Editable Notes And Margins
+
+Make annotations editable without turning the interface into a block editor.
+
+- Add editable custom nodes for `::note` and `::margin`.
+- Render notes muted at their source position in writing modes.
+- Render margins spatially in the margin while keeping editing graceful.
+- Avoid visible block controls unless they become truly necessary.
+- Preserve directive syntax on serialization.
+
+### Phase 5: Raw Mode And Preview Mode
+
+Make the escape hatches and final rendered view first-class.
+
+- Add a raw mode that shows and edits the exact `.blt` source text.
+- Keep raw mode available for correcting syntax, unsupported structures, or serialization edge cases.
+- Adapt preview mode to render the finished manuscript view.
+- In preview mode, hide metadata directives, notes, and margins; show title, author if desired, headings, and body text.
+- Keep dynamic/typewriter writing modes focused on live manuscript editing with visible muted metadata, notes, and margins.
