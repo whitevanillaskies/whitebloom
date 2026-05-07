@@ -324,6 +324,8 @@ const api = {
     ipcRenderer.invoke('webbloom:destroy', id),
   focusWebBloomView: (id: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('webbloom:focus', id),
+  captureWebBloomView: (id: string): Promise<{ ok: boolean; dataUrl: string | null }> =>
+    ipcRenderer.invoke('webbloom:capture', id),
   readInkAcetate: (
     workspaceRoot: string,
     binding: InkSurfaceBinding

@@ -290,6 +290,7 @@ declare global {
       setWebBloomBounds: (id: string, bounds: WebBloomBounds) => Promise<{ ok: boolean }>
       destroyWebBloomView: (id: string) => Promise<{ ok: boolean }>
       focusWebBloomView: (id: string) => Promise<{ ok: boolean }>
+      captureWebBloomView: (id: string) => Promise<{ ok: boolean; dataUrl: string | null }>
       readInkAcetate: (
         workspaceRoot: string,
         binding: InkSurfaceBinding

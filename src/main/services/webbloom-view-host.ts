@@ -167,4 +167,17 @@ export function initializeWebBloomViewHost(): void {
     record.view.webContents.focus()
     return { ok: true }
   })
+
+  ipcMain.handle('webbloom:capture', async (event, id: string) => {
+    const record = typeof id === 'string' ? views.get(id) : undefined
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    if (!record || !owner || record.ownerId !== owner.id) return { ok: false, dataUrl: null }
+
+    try {
+      const image = await record.view.webContents.capturePage()
+      return { ok: !image.isEmpty(), dataUrl: image.isEmpty() ? null : image.toDataURL() }
+    } catch {
+      return { ok: false, dataUrl: null }
+    }
+  })
 }

@@ -12,6 +12,8 @@ import './WebBloomNode.css'
 const HEADER_HEIGHT = 32
 const MIN_WIDTH = 320
 const MIN_HEIGHT = 220
+const MOTION_PAUSE_MS = 180
+const MOTION_THRESHOLD_PX = 1.5
 const WHITEBLOOM_CHROME_SELECTOR = [
   '.react-flow__panel',
   '.petal-palette',
@@ -72,6 +74,32 @@ function isRectOccludedByWhitebloomChrome(rect: DOMRect, nodeElement: HTMLElemen
   )
 }
 
+type RectSnapshot = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function getRectSnapshot(rect: DOMRect): RectSnapshot {
+  return {
+    x: rect.left,
+    y: rect.top,
+    width: rect.width,
+    height: rect.height
+  }
+}
+
+function didRectMove(left: RectSnapshot | null, right: RectSnapshot): boolean {
+  if (!left) return false
+  return (
+    Math.abs(left.x - right.x) > MOTION_THRESHOLD_PX ||
+    Math.abs(left.y - right.y) > MOTION_THRESHOLD_PX ||
+    Math.abs(left.width - right.width) > MOTION_THRESHOLD_PX ||
+    Math.abs(left.height - right.height) > MOTION_THRESHOLD_PX
+  )
+}
+
 export function WebBloomNode({
   id,
   resource,
@@ -83,6 +111,10 @@ export function WebBloomNode({
   const viewId = `webbloom:${id}`
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const lastBoundsRef = useRef<string | null>(null)
+  const lastRectRef = useRef<RectSnapshot | null>(null)
+  const motionPauseUntilRef = useRef(0)
+  const captureInFlightRef = useRef(false)
+  const nativeViewVisibleRef = useRef(false)
   const internalNode = useInternalNode(id)
   const positionAbsoluteX = internalNode?.internals.positionAbsolute.x ?? 0
   const positionAbsoluteY = internalNode?.internals.positionAbsolute.y ?? 0
@@ -92,6 +124,8 @@ export function WebBloomNode({
   const nativeViewsVisible = useWebBloomNativeViewsVisible()
   const [localSize, setLocalSize] = useState(size)
   const [viewState, setViewState] = useState({ resource, ready: false })
+  const [motionPaused, setMotionPaused] = useState(false)
+  const [snapshotDataUrl, setSnapshotDataUrl] = useState<string | null>(null)
   const viewReady = viewState.resource === resource && viewState.ready
 
   const handleResizePreview = useCallback(
@@ -131,7 +165,34 @@ export function WebBloomNode({
     onCommitChange: handleResizeCommit
   })
   const renderedSize = isResizing ? localSize : size
-  const shouldShowNativeView = nativeViewsVisible && !dragging && !isResizing
+  const shouldShowNativeView = nativeViewsVisible && !dragging && !isResizing && !motionPaused
+
+  const captureSnapshot = useCallback((): void => {
+    if (!viewReady || captureInFlightRef.current) return
+
+    captureInFlightRef.current = true
+    void window.api
+      .captureWebBloomView(viewId)
+      .then((result) => {
+        if (result.ok && result.dataUrl) {
+          setSnapshotDataUrl(result.dataUrl)
+        }
+      })
+      .finally(() => {
+        captureInFlightRef.current = false
+      })
+  }, [viewId, viewReady])
+
+  const setNativeViewVisible = useCallback(
+    (visible: boolean): void => {
+      if (nativeViewVisibleRef.current === visible) return
+      if (nativeViewVisibleRef.current && !visible) {
+        captureSnapshot()
+      }
+      nativeViewVisibleRef.current = visible
+    },
+    [captureSnapshot]
+  )
 
   const syncBounds = useCallback(
     (visible: boolean): void => {
@@ -139,8 +200,23 @@ export function WebBloomNode({
       if (!element) return
 
       const rect = element.getBoundingClientRect()
+      const rectSnapshot = getRectSnapshot(rect)
+      const now = window.performance.now()
+
+      if (visible && didRectMove(lastRectRef.current, rectSnapshot)) {
+        motionPauseUntilRef.current = now + MOTION_PAUSE_MS
+        if (!motionPaused) {
+          captureSnapshot()
+          setMotionPaused(true)
+        }
+      } else if (motionPaused && now >= motionPauseUntilRef.current) {
+        setMotionPaused(false)
+      }
+      lastRectRef.current = rectSnapshot
+
       const intersectsViewport = rectIntersectsViewport(rect)
       const occludedByChrome = isRectOccludedByWhitebloomChrome(rect, element)
+      const pausedByMotion = now < motionPauseUntilRef.current
       const bounds = {
         x: rect.left,
         y: rect.top,
@@ -149,11 +225,13 @@ export function WebBloomNode({
         visible:
           visible &&
           shouldShowNativeView &&
+          !pausedByMotion &&
           intersectsViewport &&
           !occludedByChrome &&
           rect.width > 8 &&
           rect.height > 8
       }
+      setNativeViewVisible(bounds.visible)
       const serialized = JSON.stringify({
         x: Math.round(bounds.x),
         y: Math.round(bounds.y),
@@ -166,12 +244,15 @@ export function WebBloomNode({
       lastBoundsRef.current = serialized
       void window.api.setWebBloomBounds(viewId, bounds)
     },
-    [shouldShowNativeView, viewId]
+    [captureSnapshot, motionPaused, setNativeViewVisible, shouldShowNativeView, viewId]
   )
 
   useEffect(() => {
     let disposed = false
     lastBoundsRef.current = null
+    lastRectRef.current = null
+    motionPauseUntilRef.current = 0
+    nativeViewVisibleRef.current = false
 
     void window.api.createWebBloomView(viewId, resource).then((result) => {
       if (disposed) return
@@ -195,16 +276,11 @@ export function WebBloomNode({
   }, [syncBounds, viewReady])
 
   useEffect(() => {
-    if (!shouldShowNativeView) {
-      syncBounds(false)
-    }
-  }, [shouldShowNativeView, syncBounds])
-
-  useEffect(() => {
     updateNodeInternals(id)
   }, [id, renderedSize.h, renderedSize.w, updateNodeInternals])
 
   const title = label ?? getUrlLabel(resource)
+  const showSnapshot = viewReady && !shouldShowNativeView && snapshotDataUrl !== null
 
   return (
     <>
@@ -240,9 +316,24 @@ export function WebBloomNode({
             void window.api.focusWebBloomView(viewId)
           }}
         >
+          {showSnapshot ? (
+            <img
+              className="webbloom-node__snapshot"
+              src={snapshotDataUrl}
+              alt=""
+              draggable={false}
+            />
+          ) : null}
           {!viewReady || !shouldShowNativeView ? (
-            <div className="webbloom-node__loading">
-              {viewReady ? 'Web view paused' : 'Loading...'}
+            <div
+              className={[
+                'webbloom-node__loading',
+                showSnapshot ? 'webbloom-node__loading--over-snapshot' : ''
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {viewReady && !showSnapshot ? 'Web view paused' : !viewReady ? 'Loading...' : ''}
             </div>
           ) : null}
         </div>
