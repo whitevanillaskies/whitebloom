@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   findBookMarkupBlockAtOffset,
-  parseBookMarkup
+  parseBookMarkup,
+  serializeBookMarkup
 } from '../src/renderer/src/modules/focus-writer/bookMarkup'
 
 describe('focus writer book markup parser', () => {
@@ -99,5 +100,71 @@ describe('focus writer book markup parser', () => {
     expect(findBookMarkupBlockAtOffset(document, noteOffset)).toMatchObject({ kind: 'note' })
     expect(findBookMarkupBlockAtOffset(document, blankOffset)).toBe(null)
     expect(findBookMarkupBlockAtOffset(document, bodyOffset)).toMatchObject({ kind: 'paragraph' })
+  })
+
+  it('preserves separators in the full AST stream', () => {
+    const document = parseBookMarkup('::type book\n\n\n# One\n\nBody.')
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(document.nodes).toMatchObject([
+      { kind: 'metadata', name: 'type' },
+      { kind: 'separator', source: '\n\n' },
+      { kind: 'heading', text: 'One' },
+      { kind: 'separator', source: '\n' },
+      { kind: 'paragraph', text: 'Body.' }
+    ])
+  })
+
+  it('keeps unknown directives as raw nodes outside the semantic block list', () => {
+    const document = parseBookMarkup('::type book\n\n::dedication\nFor A.\n\nBody.')
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(document.blocks).toMatchObject([
+      { kind: 'metadata', name: 'type' },
+      { kind: 'paragraph', text: 'Body.' }
+    ])
+    expect(document.nodes).toMatchObject([
+      { kind: 'metadata', name: 'type' },
+      { kind: 'separator' },
+      { kind: 'raw', reason: 'unknown-directive', text: '::dedication\nFor A.' },
+      { kind: 'separator' },
+      { kind: 'paragraph', text: 'Body.' }
+    ])
+  })
+
+  it('serializes parsed book markup back to source text', () => {
+    const source = [
+      '::type book',
+      '::title My Book',
+      '',
+      '# One',
+      '',
+      '::margin',
+      'Side thought.',
+      '',
+      'Body text.',
+      '::unknown Preserve me.',
+      '',
+      '::note Inline note.'
+    ].join('\n')
+
+    expect(serializeBookMarkup(parseBookMarkup(source))).toBe(source)
+  })
+
+  it('serializes semantic field edits canonically while preserving separators and raw nodes', () => {
+    const document = parseBookMarkup('::type book\n\n# One\n\n::unknown Preserve me.\n')
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const heading = document.blocks.find((block) => block.kind === 'heading')
+    if (!heading || heading.kind !== 'heading') return
+    heading.text = 'Two'
+
+    expect(serializeBookMarkup(document)).toBe('::type book\n\n# Two\n\n::unknown Preserve me.\n')
   })
 })

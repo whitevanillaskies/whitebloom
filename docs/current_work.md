@@ -8,6 +8,8 @@ Move book mode away from the transparent textarea/mirror prototype and toward a 
 
 ### Phase 1: Parser Contract
 
+Status: complete.
+
 Formalize the book markup parser as the source contract before deep editor work.
 
 - Preserve the `.blt` source file as the source of truth.

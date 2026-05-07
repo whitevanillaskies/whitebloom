@@ -3,6 +3,11 @@ export type BookMarkupRange = {
   end: number
 }
 
+type BookMarkupSource = {
+  source: string
+  sourceRange: BookMarkupRange
+}
+
 export type BookMarkupMetadataName = 'type' | 'title' | 'author'
 
 export type BookMarkupMetadata = {
@@ -11,7 +16,7 @@ export type BookMarkupMetadata = {
   author?: string
 }
 
-export type BookMarkupMetadataBlock = {
+export type BookMarkupMetadataBlock = BookMarkupSource & {
   kind: 'metadata'
   name: BookMarkupMetadataName
   value: string
@@ -20,7 +25,7 @@ export type BookMarkupMetadataBlock = {
   contentRange: BookMarkupRange
 }
 
-export type BookMarkupHeadingBlock = {
+export type BookMarkupHeadingBlock = BookMarkupSource & {
   kind: 'heading'
   depth: 1 | 2 | 3
   text: string
@@ -29,7 +34,7 @@ export type BookMarkupHeadingBlock = {
   contentRange: BookMarkupRange
 }
 
-export type BookMarkupParagraphBlock = {
+export type BookMarkupParagraphBlock = BookMarkupSource & {
   kind: 'paragraph'
   text: string
   range: BookMarkupRange
@@ -37,7 +42,7 @@ export type BookMarkupParagraphBlock = {
 
 export type BookMarkupDirectiveName = 'margin' | 'note'
 
-export type BookMarkupDirectiveBlock = {
+export type BookMarkupDirectiveBlock = BookMarkupSource & {
   kind: BookMarkupDirectiveName
   value: string
   form: 'inline' | 'block'
@@ -52,6 +57,20 @@ export type BookMarkupBlock =
   | BookMarkupParagraphBlock
   | BookMarkupDirectiveBlock
 
+export type BookMarkupSeparatorNode = BookMarkupSource & {
+  kind: 'separator'
+  range: BookMarkupRange
+}
+
+export type BookMarkupRawNode = BookMarkupSource & {
+  kind: 'raw'
+  text: string
+  reason: 'unknown-directive' | 'unsupported-syntax'
+  range: BookMarkupRange
+}
+
+export type BookMarkupNode = BookMarkupBlock | BookMarkupSeparatorNode | BookMarkupRawNode
+
 export type BookMarkupDocument =
   | {
       mode: 'plaintext'
@@ -62,6 +81,7 @@ export type BookMarkupDocument =
       text: string
       metadata: BookMarkupMetadata
       blocks: BookMarkupBlock[]
+      nodes: BookMarkupNode[]
     }
 
 type SourceLine = {
@@ -144,6 +164,8 @@ function parseMetadataBlock(
     name,
     value,
     range: { start: line.start, end: line.end },
+    source: line.text,
+    sourceRange: { start: line.start, end: line.fullEnd },
     directiveRange: { start: line.start, end: line.end },
     contentRange: { start: contentStart, end: contentStart + value.length }
   }
@@ -163,6 +185,8 @@ function parseHeadingBlock(line: SourceLine): BookMarkupHeadingBlock | null {
     depth,
     text,
     range: { start: line.start, end: line.end },
+    source: line.text,
+    sourceRange: { start: line.start, end: line.fullEnd },
     markerRange: { start: line.start + markerStart, end: line.start + markerStart + depth },
     contentRange: { start: line.start + contentStart, end: line.start + contentStart + text.length }
   }
@@ -184,6 +208,8 @@ function parseDirectiveBlock(
         value,
         form: 'inline',
         range: { start: line.start, end: line.end },
+        source: line.text,
+        sourceRange: { start: line.start, end: line.fullEnd },
         directiveRange: { start: line.start, end: line.end },
         contentRange: { start: contentStart, end: contentStart + value.length }
       },
@@ -198,6 +224,7 @@ function parseDirectiveBlock(
 
   const contentStart = lines[index + 1]?.start ?? line.end
   const contentEnd = lines[endIndex - 1]?.end ?? line.end
+  const sourceEnd = lines[endIndex - 1]?.fullEnd ?? line.fullEnd
   const rawContent = lines
     .slice(index + 1, endIndex)
     .map((contentLine) => contentLine.content)
@@ -209,6 +236,11 @@ function parseDirectiveBlock(
       value: rawContent.trimEnd(),
       form: 'block',
       range: { start: line.start, end: contentEnd },
+      source: lines
+        .slice(index, endIndex)
+        .map((sourceLine) => sourceLine.text)
+        .join(''),
+      sourceRange: { start: line.start, end: sourceEnd },
       directiveRange: { start: line.start, end: line.end },
       contentRange: { start: contentStart, end: contentEnd }
     },
@@ -240,10 +272,72 @@ function parseParagraphBlock(
     block: {
       kind: 'paragraph',
       text,
+      source: paragraphLines.map((line) => line.text).join(''),
+      sourceRange: {
+        start: lines[index].start,
+        end: paragraphLines[paragraphLines.length - 1].fullEnd
+      },
       range: {
         start: lines[index].start,
         end: paragraphLines[paragraphLines.length - 1].end
       }
+    },
+    nextIndex: endIndex
+  }
+}
+
+function parseSeparatorNode(
+  lines: SourceLine[],
+  index: number
+): { node: BookMarkupSeparatorNode; nextIndex: number } {
+  let endIndex = index + 1
+  while (endIndex < lines.length && isBlank(lines[endIndex])) {
+    endIndex++
+  }
+
+  const separatorLines = lines.slice(index, endIndex)
+  return {
+    node: {
+      kind: 'separator',
+      range: {
+        start: separatorLines[0].start,
+        end: separatorLines[separatorLines.length - 1].end
+      },
+      source: separatorLines.map((line) => line.text).join(''),
+      sourceRange: {
+        start: separatorLines[0].start,
+        end: separatorLines[separatorLines.length - 1].fullEnd
+      }
+    },
+    nextIndex: endIndex
+  }
+}
+
+function parseRawNode(
+  lines: SourceLine[],
+  index: number,
+  reason: BookMarkupRawNode['reason']
+): { node: BookMarkupRawNode; nextIndex: number } {
+  const line = lines[index]
+  const directive = parseDirective(line)
+  let endIndex = index + 1
+
+  if (reason === 'unknown-directive' && directive?.value === null) {
+    while (endIndex < lines.length && !isBlank(lines[endIndex])) {
+      endIndex++
+    }
+  }
+
+  const rawLines = lines.slice(index, endIndex)
+
+  return {
+    node: {
+      kind: 'raw',
+      text: rawLines.map((rawLine) => rawLine.content).join('\n'),
+      reason,
+      range: { start: line.start, end: rawLines[rawLines.length - 1].end },
+      source: rawLines.map((rawLine) => rawLine.text).join(''),
+      sourceRange: { start: line.start, end: rawLines[rawLines.length - 1].fullEnd }
     },
     nextIndex: endIndex
   }
@@ -259,13 +353,16 @@ export function parseBookMarkup(text: string): BookMarkupDocument {
 
   const metadata: BookMarkupMetadata = { type: 'book' }
   const blocks: BookMarkupBlock[] = []
+  const nodes: BookMarkupNode[] = []
   let index = 0
 
   while (index < lines.length) {
     const line = lines[index]
 
     if (isBlank(line)) {
-      index++
+      const parsed = parseSeparatorNode(lines, index)
+      nodes.push(parsed.node)
+      index = parsed.nextIndex
       continue
     }
 
@@ -278,6 +375,7 @@ export function parseBookMarkup(text: string): BookMarkupDocument {
         const name = directive.name as BookMarkupMetadataName
         const block = parseMetadataBlock(line, name, directive.value)
         blocks.push(block)
+        nodes.push(block)
 
         if (name === 'title') metadata.title = directive.value
         if (name === 'author') metadata.author = directive.value
@@ -294,20 +392,28 @@ export function parseBookMarkup(text: string): BookMarkupDocument {
           directive.value
         )
         blocks.push(parsed.block)
+        nodes.push(parsed.block)
         index = parsed.nextIndex
         continue
       }
+
+      const parsed = parseRawNode(lines, index, 'unknown-directive')
+      nodes.push(parsed.node)
+      index = parsed.nextIndex
+      continue
     }
 
     const heading = parseHeadingBlock(line)
     if (heading) {
       blocks.push(heading)
+      nodes.push(heading)
       index++
       continue
     }
 
     const paragraph = parseParagraphBlock(lines, index)
     blocks.push(paragraph.block)
+    nodes.push(paragraph.block)
     index = paragraph.nextIndex
   }
 
@@ -315,8 +421,42 @@ export function parseBookMarkup(text: string): BookMarkupDocument {
     mode: 'book',
     text,
     metadata,
-    blocks
+    blocks,
+    nodes
   }
+}
+
+function serializeMetadataNode(node: BookMarkupMetadataBlock): string {
+  return `::${node.name} ${node.value}`
+}
+
+function serializeHeadingNode(node: BookMarkupHeadingBlock): string {
+  return `${'#'.repeat(node.depth)} ${node.text}`
+}
+
+function serializeDirectiveNode(node: BookMarkupDirectiveBlock): string {
+  if (node.form === 'inline') return `::${node.kind} ${node.value}`
+  return `::${node.kind}\n${node.value}`
+}
+
+function serializeNodeWithoutTrailingSource(node: BookMarkupNode): string {
+  if (node.kind === 'metadata') return serializeMetadataNode(node)
+  if (node.kind === 'heading') return serializeHeadingNode(node)
+  if (node.kind === 'paragraph') return node.text
+  if (node.kind === 'margin' || node.kind === 'note') return serializeDirectiveNode(node)
+  return node.source
+}
+
+export function serializeBookMarkup(document: BookMarkupDocument): string {
+  if (document.mode === 'plaintext') return document.text
+  return document.nodes
+    .map((node) => {
+      if (node.kind === 'separator' || node.kind === 'raw') return node.source
+      const serialized = serializeNodeWithoutTrailingSource(node)
+      const trailingSource = node.source.slice(node.range.end - node.sourceRange.start)
+      return serialized + trailingSource
+    })
+    .join('')
 }
 
 export function findBookMarkupBlockAtOffset(
