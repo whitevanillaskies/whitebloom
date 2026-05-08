@@ -10,11 +10,20 @@ const VIEW_STATE_STORAGE_PREFIX = 'whitebloom.focusWriter.viewState'
 const MODE_TRANSLATION_KEYS = {
   typewriter: 'focusWriter.typewriterMode',
   dynamic: 'focusWriter.dynamicMode',
-  preview: 'focusWriter.previewMode'
+  preview: 'focusWriter.previewMode',
+  raw: 'focusWriter.rawMode'
 } as const
 
 type WritingMode = 'typewriter' | 'dynamic'
-type EditorMode = WritingMode | 'preview'
+type EditorMode = WritingMode | 'preview' | 'raw'
+
+type BookNodeStructure = {
+  depth?: number
+  form?: string
+  kind: string
+  name?: string
+  reason?: string
+}
 
 type FocusWriterViewState = {
   mode: EditorMode
@@ -176,7 +185,9 @@ function loadViewState(workspaceRoot: string, resource: string): FocusWriterView
     const parsed = JSON.parse(raw) as Partial<FocusWriterViewState>
     const mode = parsed.mode
     const lastWritingMode = parsed.lastWritingMode
-    if (mode !== 'typewriter' && mode !== 'dynamic' && mode !== 'preview') return null
+    if (mode !== 'typewriter' && mode !== 'dynamic' && mode !== 'preview' && mode !== 'raw') {
+      return null
+    }
     if (lastWritingMode !== 'typewriter' && lastWritingMode !== 'dynamic') return null
     return {
       mode,
@@ -197,6 +208,49 @@ function saveViewState(workspaceRoot: string, resource: string, state: FocusWrit
   } catch {
     // View state is a nicety; storage failures should never interrupt writing.
   }
+}
+
+function getModeLabel(t: (key: string) => string, mode: EditorMode): string {
+  const translated = t(MODE_TRANSLATION_KEYS[mode])
+  if (translated !== MODE_TRANSLATION_KEYS[mode]) return translated
+  if (mode === 'typewriter') return 'typewriter'
+  if (mode === 'dynamic') return 'dynamic'
+  if (mode === 'preview') return 'preview'
+  return 'raw'
+}
+
+function getBookStructureSignature(document: BookMarkupDocument): BookNodeStructure[] {
+  if (document.mode !== 'book') return []
+
+  return document.nodes.map((node) => {
+    if (node.kind === 'heading') return { kind: node.kind, depth: node.depth }
+    if (node.kind === 'metadata') return { kind: node.kind, name: node.name }
+    if (node.kind === 'margin' || node.kind === 'note') {
+      return { kind: node.kind, form: node.form }
+    }
+    if (node.kind === 'raw') return { kind: node.kind, reason: node.reason }
+    return { kind: node.kind }
+  })
+}
+
+function findFirstStructureChange(
+  previousDocument: BookMarkupDocument,
+  nextDocument: BookMarkupDocument
+): number | null {
+  const previous = getBookStructureSignature(previousDocument)
+  const next = getBookStructureSignature(nextDocument)
+  const length = Math.max(previous.length, next.length)
+
+  for (let index = 0; index < length; index++) {
+    if (JSON.stringify(previous[index] ?? null) !== JSON.stringify(next[index] ?? null)) {
+      if (nextDocument.mode === 'book' && nextDocument.nodes[index]?.kind === 'separator') {
+        return nextDocument.nodes[index + 1] ? index + 1 : index
+      }
+      return index
+    }
+  }
+
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +303,7 @@ function BookPreview({
   initialPara,
   onClose,
   onExitPreview,
+  onEnterRaw,
   onPageChange
 }: {
   text: string
@@ -256,6 +311,7 @@ function BookPreview({
   initialPara: number
   onClose: () => void
   onExitPreview: (targetPara: number) => void
+  onEnterRaw: (targetPara: number) => void
   onPageChange: (targetPara: number) => void
 }) {
   const { t } = useTranslation()
@@ -395,6 +451,11 @@ function BookPreview({
         onExitPreview(pages[currentPage]?.startPara ?? 0)
         return
       }
+      if (isMod && e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        onEnterRaw(pages[currentPage]?.startPara ?? 0)
+        return
+      }
       if (
         e.key === 'ArrowRight' ||
         e.key === 'ArrowDown' ||
@@ -411,7 +472,7 @@ function BookPreview({
         return
       }
     },
-    [onClose, onExitPreview, goNext, goPrev, pages, currentPage]
+    [onClose, onExitPreview, onEnterRaw, goNext, goPrev, pages, currentPage]
   )
 
   const isEmpty = (pages[0]?.blocks.length ?? 0) === 0
@@ -502,6 +563,8 @@ export function FocusWriterEditor({
   const [mode, setMode] = useState<EditorMode>(initialViewState?.mode ?? 'dynamic')
   const [activePara, setActivePara] = useState(initialViewState?.paragraph ?? 0)
   const [previewStartPara, setPreviewStartPara] = useState(initialViewState?.paragraph ?? 0)
+  const [bookSurfaceVersion, setBookSurfaceVersion] = useState(0)
+  const [bookFocusNodeIndex, setBookFocusNodeIndex] = useState<number | null>(null)
   // Dynamic mode: 'seek' = all bright, cursor free; 'focused' = active para bright, rest dim
   const [dynamicSubState, setDynamicSubState] = useState<'seek' | 'focused'>('seek')
 
@@ -523,7 +586,8 @@ export function FocusWriterEditor({
   const pendingRestoreParaRef = useRef<number | null>(
     initialViewState && initialViewState.mode !== 'preview' ? initialViewState.paragraph : null
   )
-  const modeLabel = t(MODE_TRANSLATION_KEYS[mode])
+  const lastFocusedModeRef = useRef<EditorMode | null>(null)
+  const modeLabel = getModeLabel(t, mode)
   const parsedDocument = useMemo(() => parseBookMarkup(text), [text])
 
   // ── Textarea auto-grow ──────────────────────────────────────────────────
@@ -531,8 +595,13 @@ export function FocusWriterEditor({
   const resizeTextarea = useCallback(() => {
     const ta = textareaRef.current
     if (!ta) return
+    const container = containerRef.current
+    const preserveScrollTop = modeRef.current === 'raw' ? container?.scrollTop : undefined
     ta.style.height = 'auto'
     ta.style.height = `${ta.scrollHeight}px`
+    if (preserveScrollTop !== undefined && container) {
+      container.scrollTop = preserveScrollTop
+    }
   }, [])
 
   useLayoutEffect(() => {
@@ -612,6 +681,18 @@ export function FocusWriterEditor({
     setMode(lastWritingModeRef.current)
   }, [])
 
+  const enterRawModeAtParagraph = useCallback((targetPara?: number) => {
+    if (typeof targetPara === 'number') {
+      pendingRestoreParaRef.current = targetPara
+      setPreviewStartPara(targetPara)
+    }
+    setMode('raw')
+  }, [])
+
+  const exitRawMode = useCallback(() => {
+    setMode(lastWritingModeRef.current)
+  }, [])
+
   const handlePreviewPageChange = useCallback((targetPara: number) => {
     setPreviewStartPara(targetPara)
   }, [])
@@ -644,6 +725,22 @@ export function FocusWriterEditor({
     [scheduleSave, resizeTextarea, updateActivePara]
   )
 
+  const handleBookTextChange = useCallback(
+    (value: string) => {
+      const structureChangeIndex = findFirstStructureChange(
+        parseBookMarkup(text),
+        parseBookMarkup(value)
+      )
+      if (structureChangeIndex !== null) {
+        setBookFocusNodeIndex(structureChangeIndex)
+        setBookSurfaceVersion((version) => version + 1)
+      }
+      setText(value)
+      scheduleSave(value)
+    },
+    [scheduleSave, text]
+  )
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       const isMod = e.ctrlKey || e.metaKey
@@ -657,6 +754,16 @@ export function FocusWriterEditor({
       if (isMod && e.key.toLowerCase() === 'p') {
         e.preventDefault()
         enterPreviewMode()
+        return
+      }
+
+      if (isMod && e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        if (mode === 'raw') {
+          exitRawMode()
+        } else {
+          enterRawModeAtParagraph(activeParaRef.current)
+        }
         return
       }
 
@@ -689,7 +796,15 @@ export function FocusWriterEditor({
       // Update active paragraph on any key
       window.requestAnimationFrame(updateActivePara)
     },
-    [flushAndClose, updateActivePara, enterPreviewMode, mode, dynamicSubState]
+    [
+      flushAndClose,
+      updateActivePara,
+      enterPreviewMode,
+      enterRawModeAtParagraph,
+      exitRawMode,
+      mode,
+      dynamicSubState
+    ]
   )
 
   // ── Focus management ────────────────────────────────────────────────────
@@ -724,12 +839,16 @@ export function FocusWriterEditor({
   // Refocus textarea when returning to a writing mode
   useEffect(() => {
     if (mode === 'preview') return
+    const targetPara = pendingRestoreParaRef.current
+    const justEnteredMode = lastFocusedModeRef.current !== mode
+    lastFocusedModeRef.current = mode
+    if (!justEnteredMode && targetPara === null) return
+
     const ta = textareaRef.current
     if (!ta) return
     ta.focus()
     resizeTextarea()
 
-    const targetPara = pendingRestoreParaRef.current
     if (targetPara === null) return
     pendingRestoreParaRef.current = null
 
@@ -808,8 +927,33 @@ export function FocusWriterEditor({
         initialPara={previewStartPara}
         onClose={flushAndClose}
         onExitPreview={exitPreviewAtParagraph}
+        onEnterRaw={enterRawModeAtParagraph}
         onPageChange={handlePreviewPageChange}
       />
+    )
+  }
+
+  if (mode === 'raw') {
+    return (
+      <div ref={containerRef} className="fw-raw-editor">
+        <div className="fw-raw-editor__column">
+          <textarea
+            ref={textareaRef}
+            className="fw-raw-editor__textarea"
+            value={text}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            onSelect={handleSelectOrClick}
+            onClick={handleSelectOrClick}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+          />
+        </div>
+        <span className="fw-editor__mode-indicator" aria-hidden="true">
+          {modeLabel}
+        </span>
+      </div>
     )
   }
 
@@ -817,10 +961,14 @@ export function FocusWriterEditor({
     return (
       <FocusWriterBookSurface
         document={parsedDocument}
+        editorKey={bookSurfaceVersion}
+        focusNodeIndex={bookFocusNodeIndex}
         modeLabel={modeLabel}
         typewriter={mode === 'typewriter'}
         onClose={flushAndClose}
         onPreview={enterPreviewMode}
+        onRaw={() => enterRawModeAtParagraph(activeParaRef.current)}
+        onTextChange={handleBookTextChange}
         onSetDynamic={() => {
           lastWritingModeRef.current = 'dynamic'
           setMode('dynamic')

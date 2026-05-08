@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   findBookMarkupBlockAtOffset,
   parseBookMarkup,
-  serializeBookMarkup
+  serializeBookMarkup,
+  serializeBookMarkupFromLiveNodes,
+  serializeBookMarkupWithTextEdits
 } from '../src/renderer/src/modules/focus-writer/bookMarkup'
 
 describe('focus writer book markup parser', () => {
@@ -166,5 +168,234 @@ describe('focus writer book markup parser', () => {
     heading.text = 'Two'
 
     expect(serializeBookMarkup(document)).toBe('::type book\n\n# Two\n\n::unknown Preserve me.\n')
+  })
+
+  it('serializes heading and paragraph text edits without touching metadata or raw nodes', () => {
+    const document = parseBookMarkup(
+      ['::type book', '', '# One', '', 'Body.', '', '::note Keep this.', '', 'Tail.'].join('\n')
+    )
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const headingIndex = document.nodes.findIndex((node) => node.kind === 'heading')
+    const bodyIndex = document.nodes.findIndex(
+      (node) => node.kind === 'paragraph' && node.text === 'Body.'
+    )
+    const noteIndex = document.nodes.findIndex((node) => node.kind === 'note')
+    const edits = new Map([
+      [headingIndex, 'Two'],
+      [bodyIndex, 'Edited body.'],
+      [-1, 'Ignored missing node edit.']
+    ])
+
+    expect(serializeBookMarkupWithTextEdits(document, edits)).toBe(
+      ['::type book', '', '# Two', '', 'Edited body.', '', '::note Keep this.', '', 'Tail.'].join(
+        '\n'
+      )
+    )
+    expect(noteIndex).toBeGreaterThan(-1)
+  })
+
+  it('serializes note and margin edits while preserving directive form', () => {
+    const document = parseBookMarkup(
+      ['::type book', '', '::margin', 'Side thought.', '', '::note Inline note.', '', 'Body.'].join(
+        '\n'
+      )
+    )
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const marginIndex = document.nodes.findIndex((node) => node.kind === 'margin')
+    const noteIndex = document.nodes.findIndex((node) => node.kind === 'note')
+    const edits = new Map([
+      [marginIndex, 'Edited margin.'],
+      [noteIndex, 'Edited note.']
+    ])
+
+    expect(serializeBookMarkupWithTextEdits(document, edits)).toBe(
+      [
+        '::type book',
+        '',
+        '::margin',
+        'Edited margin.',
+        '',
+        '::note Edited note.',
+        '',
+        'Body.'
+      ].join('\n')
+    )
+  })
+
+  it('serializes text inserted into separators at the blank-line position', () => {
+    const document = parseBookMarkup(['::type book', '', 'First.', '', 'Second.'].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const separatorIndex = document.nodes.findIndex(
+      (node, index) => index > 1 && node.kind === 'separator'
+    )
+    const edits = new Map([[separatorIndex, 'Inserted.']])
+
+    expect(serializeBookMarkupWithTextEdits(document, edits)).toBe(
+      ['::type book', '', 'First.', '', 'Inserted.', '', 'Second.'].join('\n')
+    )
+  })
+
+  it('serializes live node order so deleted separators stay deleted', () => {
+    const document = parseBookMarkup(['::type book', '', 'First.', '', 'Second.'].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const firstIndex = document.nodes.findIndex(
+      (node) => node.kind === 'paragraph' && node.text === 'First.'
+    )
+    const secondIndex = document.nodes.findIndex(
+      (node) => node.kind === 'paragraph' && node.text === 'Second.'
+    )
+
+    expect(
+      serializeBookMarkupFromLiveNodes(document, [
+        { nodeIndex: 0, text: '::type book' },
+        { nodeIndex: 1, text: '' },
+        { nodeIndex: firstIndex, text: 'First.' },
+        { nodeIndex: secondIndex, text: 'Second.' }
+      ])
+    ).toBe(['::type book', '', 'First.', 'Second.'].join('\n'))
+  })
+
+  it('serializes merged live paragraph text without restoring removed nodes', () => {
+    const document = parseBookMarkup(['::type book', '', 'First.', '', 'Second.'].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const firstIndex = document.nodes.findIndex(
+      (node) => node.kind === 'paragraph' && node.text === 'First.'
+    )
+
+    expect(
+      serializeBookMarkupFromLiveNodes(document, [
+        { nodeIndex: 0, text: '::type book' },
+        { nodeIndex: 1, text: '' },
+        { nodeIndex: firstIndex, text: 'First. Second.' }
+      ])
+    ).toBe(['::type book', '', 'First. Second.'].join('\n'))
+  })
+
+  it('serializes text typed into the synthetic draft line after metadata', () => {
+    const document = parseBookMarkup('::type book')
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(
+      serializeBookMarkupFromLiveNodes(document, [
+        { nodeIndex: 0, text: '::type book' },
+        { nodeIndex: -1, text: 'First paragraph.' }
+      ])
+    ).toBe(['::type book', 'First paragraph.'].join('\n'))
+  })
+
+  it('ignores an empty synthetic draft line when serializing live nodes', () => {
+    const document = parseBookMarkup('::type book')
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(
+      serializeBookMarkupFromLiveNodes(document, [
+        { nodeIndex: 0, text: '::type book' },
+        { nodeIndex: -1, text: '' }
+      ])
+    ).toBe('::type book')
+  })
+
+  it('serializes synthetic draft text as the next visible line', () => {
+    const document = parseBookMarkup(['::type book', '', 'First.'].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    const firstIndex = document.nodes.findIndex(
+      (node) => node.kind === 'paragraph' && node.text === 'First.'
+    )
+
+    expect(
+      serializeBookMarkupFromLiveNodes(document, [
+        { nodeIndex: 0, text: '::type book' },
+        { nodeIndex: 1, text: '' },
+        { nodeIndex: firstIndex, text: 'First.' },
+        { nodeIndex: -1, text: 'Second.' }
+      ])
+    ).toBe(['::type book', '', 'First.', 'Second.'].join('\n'))
+  })
+
+  it('preserves intentional empty synthetic draft lines before typed text', () => {
+    const document = parseBookMarkup('::type book')
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(
+      serializeBookMarkupFromLiveNodes(document, [
+        { nodeIndex: 0, text: '::type book' },
+        { nodeIndex: -1, text: '' },
+        { nodeIndex: -1, text: '#' }
+      ])
+    ).toBe(['::type book', '', '#'].join('\n'))
+  })
+
+  it('recognizes directive tokens immediately after the directive space', () => {
+    const document = parseBookMarkup(['::type book', '', '::note '].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(document.nodes.at(-1)).toMatchObject({
+      kind: 'note',
+      form: 'inline',
+      value: ''
+    })
+  })
+
+  it('keeps partial directive tokens as editable paragraphs while typing', () => {
+    const document = parseBookMarkup(['::type book', '', '::m'].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(document.nodes.at(-1)).toMatchObject({
+      kind: 'paragraph',
+      text: '::m'
+    })
+  })
+
+  it('keeps bare recognized directive names editable until they have content intent', () => {
+    const document = parseBookMarkup(['::type book', '', '::margin'].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(document.nodes.at(-1)).toMatchObject({
+      kind: 'paragraph',
+      text: '::margin'
+    })
+  })
+
+  it('recognizes heading tokens immediately after the heading space', () => {
+    const document = parseBookMarkup(['::type book', '', '## '].join('\n'))
+
+    expect(document.mode).toBe('book')
+    if (document.mode !== 'book') return
+
+    expect(document.nodes.at(-1)).toMatchObject({
+      kind: 'heading',
+      depth: 2,
+      text: ''
+    })
   })
 })

@@ -1,20 +1,41 @@
-import { useMemo, type JSX } from 'react'
+import { useEffect, useMemo, useRef, type JSX } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { $createTextNode, $getRoot, type InitialEditorStateType } from 'lexical'
-import { BOOK_LEXICAL_NODES, $createBookElementNode } from './bookLexicalNodes'
-import type { BookMarkupDocument, BookMarkupNode } from './bookMarkup'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
+import {
+  $createTextNode,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  COMMAND_PRIORITY_HIGH,
+  KEY_ENTER_COMMAND,
+  type EditorState,
+  type InitialEditorStateType
+} from 'lexical'
+import { BOOK_LEXICAL_NODES, $createBookElementNode, $isBookElementNode } from './bookLexicalNodes'
+import {
+  serializeBookMarkupFromLiveNodes,
+  serializeBookMarkupWithTextEdits,
+  type BookMarkupDocument,
+  type BookMarkupLiveNodeText,
+  type BookMarkupNode
+} from './bookMarkup'
 
 type BookDocument = Extract<BookMarkupDocument, { mode: 'book' }>
 
 type FocusWriterBookSurfaceProps = {
   document: BookDocument
+  editorKey: number
+  focusNodeIndex: number | null
   modeLabel: string
   typewriter: boolean
   onClose: () => void
   onPreview: () => void
+  onRaw: () => void
+  onTextChange: (value: string) => void
   onSetDynamic: () => void
   onSetTypewriter: () => void
 }
@@ -22,6 +43,8 @@ type FocusWriterBookSurfaceProps = {
 const BOOK_LEXICAL_THEME = {
   root: 'fw-book-lexical__root'
 }
+
+const SYNTHETIC_DRAFT_NODE_INDEX = -1
 
 function getNodeClassName(node: BookMarkupNode): string {
   if (node.kind === 'metadata') return 'fw-book-lexical__metadata'
@@ -50,41 +73,159 @@ function getNodeText(node: BookMarkupNode): string {
   return ''
 }
 
-function createEditorState(document: BookDocument): InitialEditorStateType {
+function isEditableNode(node: BookMarkupNode): boolean {
+  return (
+    node.kind === 'heading' ||
+    node.kind === 'paragraph' ||
+    node.kind === 'margin' ||
+    node.kind === 'note' ||
+    node.kind === 'separator'
+  )
+}
+
+function createEditorState(
+  document: BookDocument,
+  focusNodeIndex: number | null
+): InitialEditorStateType {
   return () => {
     const root = $getRoot()
     root.clear()
 
-    for (const node of document.nodes) {
-      const elementNode = $createBookElementNode(getNodeClassName(node), getNodeTagName(node))
+    document.nodes.forEach((node, index) => {
+      const elementNode = $createBookElementNode(
+        getNodeClassName(node),
+        getNodeTagName(node),
+        index,
+        isEditableNode(node)
+      )
       const text = getNodeText(node)
-      if (text) elementNode.append($createTextNode(text))
+      if (text || isEditableNode(node)) elementNode.append($createTextNode(text))
       root.append(elementNode)
-    }
+      if (index === focusNodeIndex) elementNode.selectEnd()
+    })
+
+    const draftNode = $createBookElementNode(
+      'fw-book-lexical__separator fw-book-lexical__draft-line',
+      'div',
+      SYNTHETIC_DRAFT_NODE_INDEX,
+      true
+    )
+    draftNode.append($createTextNode(''))
+    root.append(draftNode)
+    if (focusNodeIndex === SYNTHETIC_DRAFT_NODE_INDEX) draftNode.selectEnd()
   }
+}
+
+function serializeEditorState(document: BookDocument, editorState: EditorState): string {
+  const edits = new Map<number, string>()
+  const liveNodes: BookMarkupLiveNodeText[] = []
+
+  editorState.read(() => {
+    for (const child of $getRoot().getChildren()) {
+      if (!$isBookElementNode(child)) continue
+
+      const nodeIndex = child.getNodeIndex()
+      if (nodeIndex === SYNTHETIC_DRAFT_NODE_INDEX) {
+        const draftText = child.getTextContent()
+        liveNodes.push({ nodeIndex, text: draftText })
+        continue
+      }
+
+      const sourceNode = document.nodes[nodeIndex]
+      if (!sourceNode) continue
+
+      const nextText = child.getTextContent()
+      liveNodes.push({ nodeIndex, text: nextText })
+
+      if (!isEditableNode(sourceNode)) continue
+
+      if (sourceNode.kind === 'separator') {
+        if (nextText) edits.set(nodeIndex, nextText)
+        continue
+      }
+
+      if (nextText !== getNodeText(sourceNode)) {
+        edits.set(nodeIndex, nextText)
+      }
+    }
+  })
+
+  const liveText = serializeBookMarkupFromLiveNodes(document, liveNodes)
+  if (liveText !== document.text) return liveText
+  if (edits.size === 0) return document.text
+  return serializeBookMarkupWithTextEdits(document, edits)
+}
+
+function BookOnChangePlugin({
+  document,
+  onTextChange
+}: {
+  document: BookDocument
+  onTextChange: (value: string) => void
+}): JSX.Element {
+  const baseDocumentRef = useRef(document)
+
+  return (
+    <OnChangePlugin
+      ignoreSelectionChange
+      onChange={(editorState) => {
+        const baseDocument = baseDocumentRef.current
+        const nextText = serializeEditorState(baseDocument, editorState)
+        if (nextText !== baseDocument.text) onTextChange(nextText)
+      }}
+    />
+  )
+}
+
+function BookEnterPlugin(): null {
+  const [editor] = useLexicalComposerContext()
+
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event) => {
+        event?.preventDefault()
+        const selection = $getSelection()
+        if (!$isRangeSelection(selection)) return false
+
+        const topLevelElement = selection.anchor.getNode().getTopLevelElement()
+        if (!$isBookElementNode(topLevelElement)) return false
+
+        selection.insertLineBreak()
+        return true
+      },
+      COMMAND_PRIORITY_HIGH
+    )
+  }, [editor])
+
+  return null
 }
 
 export function FocusWriterBookSurface({
   document,
+  editorKey,
+  focusNodeIndex,
   modeLabel,
   typewriter,
   onClose,
   onPreview,
+  onRaw,
+  onTextChange,
   onSetDynamic,
   onSetTypewriter
 }: FocusWriterBookSurfaceProps): JSX.Element {
   const editorConfig = useMemo(
     () => ({
-      namespace: 'focus-writer-book-readonly',
-      editable: false,
+      namespace: 'focus-writer-book',
+      editable: true,
       theme: BOOK_LEXICAL_THEME,
       nodes: BOOK_LEXICAL_NODES,
-      editorState: createEditorState(document),
+      editorState: createEditorState(document, focusNodeIndex),
       onError: (error: Error) => {
         throw error
       }
     }),
-    [document]
+    [document, focusNodeIndex]
   )
 
   return (
@@ -105,6 +246,12 @@ export function FocusWriterBookSurface({
           return
         }
 
+        if (isMod && event.key.toLowerCase() === 'e') {
+          event.preventDefault()
+          onRaw()
+          return
+        }
+
         if (isMod && event.key.toLowerCase() === 'd') {
           event.preventDefault()
           onSetDynamic()
@@ -118,12 +265,16 @@ export function FocusWriterBookSurface({
       }}
     >
       <div className="fw-book-lexical__shell">
-        <LexicalComposer key={document.text} initialConfig={editorConfig}>
+        <LexicalComposer key={editorKey} initialConfig={editorConfig}>
           <RichTextPlugin
-            contentEditable={<ContentEditable className="fw-book-lexical__content" />}
+            contentEditable={
+              <ContentEditable className="fw-book-lexical__content" spellCheck={false} />
+            }
             placeholder={null}
             ErrorBoundary={LexicalErrorBoundary}
           />
+          <BookOnChangePlugin document={document} onTextChange={onTextChange} />
+          <BookEnterPlugin />
         </LexicalComposer>
       </div>
       <span className="fw-editor__mode-indicator" aria-hidden="true">

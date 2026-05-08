@@ -84,6 +84,11 @@ export type BookMarkupDocument =
       nodes: BookMarkupNode[]
     }
 
+export type BookMarkupLiveNodeText = {
+  nodeIndex: number
+  text: string
+}
+
 type SourceLine = {
   text: string
   content: string
@@ -92,8 +97,8 @@ type SourceLine = {
   fullEnd: number
 }
 
-const DIRECTIVE_PATTERN = /^\s*::([A-Za-z][A-Za-z0-9_-]*)(?:\s+(\S.*))?\s*$/
-const HEADING_PATTERN = /^(#{1,3})\s+(.+?)\s*$/
+const DIRECTIVE_PATTERN = /^\s*::([A-Za-z][A-Za-z0-9_-]*)(?:\s+(.*))?$/
+const HEADING_PATTERN = /^(#{1,3})\s+(.*?)\s*$/
 
 function getSourceLines(text: string): SourceLine[] {
   if (!text) return []
@@ -134,11 +139,44 @@ function parseDirective(line: SourceLine): { name: string; value: string | null 
   if (!match) return null
   return {
     name: match[1].toLowerCase(),
-    value: match[2]?.trim() ?? null
+    value: match[2] === undefined ? null : match[2].trim()
   }
 }
 
+function hasFollowingContentLine(lines: SourceLine[], index: number): boolean {
+  const nextLine = lines[index + 1]
+  return nextLine !== undefined && !isBlank(nextLine)
+}
+
+function shouldParseUnknownDirectiveAsRaw(
+  lines: SourceLine[],
+  index: number,
+  directive: { value: string | null }
+): boolean {
+  return directive.value !== null || hasFollowingContentLine(lines, index)
+}
+
+function shouldParagraphStopAtLine(lines: SourceLine[], index: number): boolean {
+  const line = lines[index]
+  if (isBlank(line)) return true
+  if (parseHeadingBlock(line)) return true
+
+  const directive = parseDirective(line)
+  if (!directive) return false
+  if (
+    (directive.name === 'type' || directive.name === 'title' || directive.name === 'author') &&
+    directive.value !== null
+  ) {
+    return true
+  }
+  if (directive.name === 'margin' || directive.name === 'note') {
+    return directive.value !== null || hasFollowingContentLine(lines, index)
+  }
+  return shouldParseUnknownDirectiveAsRaw(lines, index, directive)
+}
+
 function valueStartOffset(line: SourceLine, value: string): number {
+  if (!value) return line.end
   const valueIndex = line.content.indexOf(value)
   return valueIndex === -1 ? line.end : line.start + valueIndex
 }
@@ -178,7 +216,7 @@ function parseHeadingBlock(line: SourceLine): BookMarkupHeadingBlock | null {
   const depth = match[1].length as 1 | 2 | 3
   const text = match[2]
   const markerStart = line.content.indexOf(match[1])
-  const contentStart = line.content.indexOf(text, markerStart + match[1].length)
+  const contentStart = text ? line.content.indexOf(text, markerStart + match[1].length) : line.end
 
   return {
     kind: 'heading',
@@ -255,10 +293,7 @@ function parseParagraphBlock(
   let endIndex = index + 1
 
   while (endIndex < lines.length) {
-    const line = lines[endIndex]
-    if (isBlank(line)) break
-    if (parseDirective(line)) break
-    if (parseHeadingBlock(line)) break
+    if (shouldParagraphStopAtLine(lines, endIndex)) break
     endIndex++
   }
 
@@ -384,7 +419,10 @@ export function parseBookMarkup(text: string): BookMarkupDocument {
         continue
       }
 
-      if (directive.name === 'margin' || directive.name === 'note') {
+      if (
+        (directive.name === 'margin' || directive.name === 'note') &&
+        (directive.value !== null || hasFollowingContentLine(lines, index))
+      ) {
         const parsed = parseDirectiveBlock(
           lines,
           index,
@@ -397,10 +435,12 @@ export function parseBookMarkup(text: string): BookMarkupDocument {
         continue
       }
 
-      const parsed = parseRawNode(lines, index, 'unknown-directive')
-      nodes.push(parsed.node)
-      index = parsed.nextIndex
-      continue
+      if (shouldParseUnknownDirectiveAsRaw(lines, index, directive)) {
+        const parsed = parseRawNode(lines, index, 'unknown-directive')
+        nodes.push(parsed.node)
+        index = parsed.nextIndex
+        continue
+      }
     }
 
     const heading = parseHeadingBlock(line)
@@ -454,6 +494,95 @@ export function serializeBookMarkup(document: BookMarkupDocument): string {
       if (node.kind === 'separator' || node.kind === 'raw') return node.source
       const serialized = serializeNodeWithoutTrailingSource(node)
       const trailingSource = node.source.slice(node.range.end - node.sourceRange.start)
+      return serialized + trailingSource
+    })
+    .join('')
+}
+
+export function serializeBookMarkupWithTextEdits(
+  document: BookMarkupDocument,
+  edits: ReadonlyMap<number, string>
+): string {
+  if (document.mode === 'plaintext') return document.text
+
+  return document.nodes
+    .map((node, index) => {
+      if (node.kind === 'raw') return node.source
+
+      const editedText = edits.get(index)
+      if (editedText === undefined) {
+        if (node.kind === 'separator') return node.source
+        const serialized = serializeNodeWithoutTrailingSource(node)
+        const trailingSource = node.source.slice(node.range.end - node.sourceRange.start)
+        return serialized + trailingSource
+      }
+
+      if (node.kind === 'separator') {
+        return editedText ? `${node.source}${editedText}${node.source}${node.source}` : node.source
+      }
+
+      if (
+        node.kind !== 'heading' &&
+        node.kind !== 'paragraph' &&
+        node.kind !== 'margin' &&
+        node.kind !== 'note'
+      ) {
+        const serialized = serializeNodeWithoutTrailingSource(node)
+        const trailingSource = node.source.slice(node.range.end - node.sourceRange.start)
+        return serialized + trailingSource
+      }
+
+      const serialized = (() => {
+        if (node.kind === 'heading') return `${'#'.repeat(node.depth)} ${editedText}`
+        if (node.kind === 'margin' || node.kind === 'note') {
+          return serializeDirectiveNode({ ...node, value: editedText })
+        }
+        return editedText
+      })()
+      const trailingSource = node.source.slice(node.range.end - node.sourceRange.start)
+      return serialized + trailingSource
+    })
+    .join('')
+}
+
+export function serializeBookMarkupFromLiveNodes(
+  document: BookMarkupDocument,
+  liveNodes: readonly BookMarkupLiveNodeText[]
+): string {
+  if (document.mode === 'plaintext') return document.text
+
+  return liveNodes
+    .map(({ nodeIndex, text }, liveIndex) => {
+      const node = document.nodes[nodeIndex]
+      if (!node) {
+        if (!text) return liveNodes[liveIndex + 1] ? '\n' : ''
+        const separator = document.text.endsWith('\n\n')
+          ? ''
+          : document.text.endsWith('\n')
+            ? ''
+            : '\n'
+        return `${separator}${text}`
+      }
+      if (node.kind === 'raw') return node.source
+
+      if (node.kind === 'separator') {
+        return text ? `${node.source}${text}${node.source}${node.source}` : node.source
+      }
+
+      const serialized = (() => {
+        if (node.kind === 'heading') return `${'#'.repeat(node.depth)} ${text}`
+        if (node.kind === 'margin' || node.kind === 'note') {
+          return serializeDirectiveNode({ ...node, value: text })
+        }
+        if (node.kind === 'paragraph') return text
+        return serializeNodeWithoutTrailingSource(node)
+      })()
+      const nextLiveNode = liveNodes[liveIndex + 1]
+      const isOriginalDocumentEnd = node.sourceRange.end === document.text.length
+      const trailingSource =
+        nextLiveNode || isOriginalDocumentEnd
+          ? node.source.slice(node.range.end - node.sourceRange.start)
+          : ''
       return serialized + trailingSource
     })
     .join('')
