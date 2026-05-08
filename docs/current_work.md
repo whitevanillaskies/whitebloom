@@ -20,6 +20,8 @@ Formalize the book markup parser as the source contract before deep editor work.
 
 ### Phase 2: Read-Only Lexical Rendering
 
+Status: complete.
+
 Create a Lexical-backed book editor surface for `::type book` documents, initially read-only.
 
 - Keep the existing plaintext Focus Writer path for non-book `.blt` files.

@@ -1,12 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { BudEditorProps } from '../types'
 import { useTranslation } from 'react-i18next'
-import {
-  findBookMarkupBlockAtOffset,
-  parseBookMarkup,
-  type BookMarkupBlock,
-  type BookMarkupDocument
-} from './bookMarkup'
+import { parseBookMarkup, type BookMarkupBlock, type BookMarkupDocument } from './bookMarkup'
+import { FocusWriterBookSurface } from './FocusWriterBookSurface'
 import './FocusWriterEditor.css'
 
 const AUTOSAVE_DELAY_MS = 600
@@ -240,113 +236,6 @@ function MirrorContent({
         )
       })}
     </>
-  )
-}
-
-function getBookBlockSource(text: string, block: BookMarkupBlock): string {
-  return text.slice(block.range.start, block.range.end)
-}
-
-function getBookBlockClassName(base: string, isActive: boolean, allBright: boolean): string {
-  return `${base} ${allBright || isActive ? 'fw-editor__para--active' : 'fw-editor__para--dim'}`
-}
-
-function BookMirrorContent({
-  document,
-  activeBlock,
-  allBright
-}: {
-  document: Extract<BookMarkupDocument, { mode: 'book' }>
-  activeBlock: BookMarkupBlock | null
-  allBright: boolean
-}) {
-  const activeRange = activeBlock?.range
-  const isActiveBlock = (block: BookMarkupBlock): boolean =>
-    activeRange?.start === block.range.start && activeRange?.end === block.range.end
-
-  return (
-    <div className="fw-book">
-      {(document.metadata.title || document.metadata.author) && (
-        <header className="fw-book__masthead">
-          {document.metadata.title && (
-            <div className="fw-book__title">{document.metadata.title}</div>
-          )}
-          {document.metadata.author && (
-            <div className="fw-book__author">{document.metadata.author}</div>
-          )}
-        </header>
-      )}
-
-      {document.blocks.map((block, index) => {
-        const isActive = isActiveBlock(block)
-
-        if (block.kind === 'metadata') {
-          if (!isActive) return null
-          return (
-            <div key={index} className={getBookBlockClassName('fw-book__raw', true, allBright)}>
-              {getBookBlockSource(document.text, block)}
-            </div>
-          )
-        }
-
-        if ((block.kind === 'margin' || block.kind === 'note') && isActive) {
-          return (
-            <div key={index} className={getBookBlockClassName('fw-book__raw', true, allBright)}>
-              {getBookBlockSource(document.text, block)}
-            </div>
-          )
-        }
-
-        if (block.kind === 'heading') {
-          const HeadingTag = `h${Math.min(block.depth + 1, 4)}` as 'h2' | 'h3' | 'h4'
-          return (
-            <HeadingTag
-              key={index}
-              className={getBookBlockClassName(
-                `fw-book__heading fw-book__heading--${block.depth}`,
-                isActive,
-                allBright
-              )}
-            >
-              {block.text}
-            </HeadingTag>
-          )
-        }
-
-        if (block.kind === 'margin') {
-          return (
-            <aside
-              key={index}
-              className={getBookBlockClassName('fw-book__margin', isActive, allBright)}
-            >
-              {block.value}
-            </aside>
-          )
-        }
-
-        if (block.kind === 'note') {
-          return (
-            <p key={index} className={getBookBlockClassName('fw-book__note', isActive, allBright)}>
-              {block.value}
-            </p>
-          )
-        }
-
-        if (block.kind === 'paragraph') {
-          return (
-            <p
-              key={index}
-              className={getBookBlockClassName('fw-book__para', isActive, allBright)}
-              data-fw-para-index={index}
-            >
-              {block.text}
-            </p>
-          )
-        }
-
-        return null
-      })}
-    </div>
   )
 }
 
@@ -612,7 +501,6 @@ export function FocusWriterEditor({
   const [text, setText] = useState(initialData)
   const [mode, setMode] = useState<EditorMode>(initialViewState?.mode ?? 'dynamic')
   const [activePara, setActivePara] = useState(initialViewState?.paragraph ?? 0)
-  const [caretOffset, setCaretOffset] = useState(0)
   const [previewStartPara, setPreviewStartPara] = useState(initialViewState?.paragraph ?? 0)
   // Dynamic mode: 'seek' = all bright, cursor free; 'focused' = active para bright, rest dim
   const [dynamicSubState, setDynamicSubState] = useState<'seek' | 'focused'>('seek')
@@ -637,10 +525,6 @@ export function FocusWriterEditor({
   )
   const modeLabel = t(MODE_TRANSLATION_KEYS[mode])
   const parsedDocument = useMemo(() => parseBookMarkup(text), [text])
-  const activeBookBlock = useMemo(
-    () => findBookMarkupBlockAtOffset(parsedDocument, caretOffset),
-    [caretOffset, parsedDocument]
-  )
 
   // ── Textarea auto-grow ──────────────────────────────────────────────────
 
@@ -709,7 +593,6 @@ export function FocusWriterEditor({
     const ta = textareaRef.current
     if (!ta) return
     const next = getActiveParagraph(ta.value, ta.selectionStart)
-    setCaretOffset(ta.selectionStart)
     activeParaRef.current = next
     setActivePara(next)
   }, [])
@@ -740,7 +623,6 @@ export function FocusWriterEditor({
       const ta = textareaRef.current
       if (!ta) return
       const next = getActiveParagraph(ta.value, ta.selectionStart)
-      setCaretOffset(ta.selectionStart)
       activeParaRef.current = next
       setActivePara(next)
       if (modeRef.current === 'dynamic' && next !== prev) {
@@ -853,7 +735,6 @@ export function FocusWriterEditor({
 
     const offset = getParagraphStartOffset(text, targetPara)
     ta.setSelectionRange(offset, offset)
-    setCaretOffset(offset)
     activeParaRef.current = targetPara
     setActivePara(targetPara)
     if (mode === 'dynamic') setDynamicSubState('seek')
@@ -932,40 +813,39 @@ export function FocusWriterEditor({
     )
   }
 
+  if (parsedDocument.mode === 'book') {
+    return (
+      <FocusWriterBookSurface
+        document={parsedDocument}
+        modeLabel={modeLabel}
+        typewriter={mode === 'typewriter'}
+        onClose={flushAndClose}
+        onPreview={enterPreviewMode}
+        onSetDynamic={() => {
+          lastWritingModeRef.current = 'dynamic'
+          setMode('dynamic')
+        }}
+        onSetTypewriter={() => {
+          lastWritingModeRef.current = 'typewriter'
+          setMode('typewriter')
+        }}
+      />
+    )
+  }
+
   return (
     <div
       ref={containerRef}
-      className={`fw-editor${mode === 'typewriter' ? ' fw-editor--typewriter' : ''}${
-        parsedDocument.mode === 'book' ? ' fw-editor--book' : ''
-      }`}
+      className={`fw-editor${mode === 'typewriter' ? ' fw-editor--typewriter' : ''}`}
     >
-      <div
-        ref={columnRef}
-        className={`fw-editor__column${
-          parsedDocument.mode === 'book' ? ' fw-editor__column--book' : ''
-        }`}
-      >
+      <div ref={columnRef} className="fw-editor__column">
         {/* Mirror: renders paragraph-dimmed text behind the transparent textarea */}
-        <div
-          ref={mirrorRef}
-          className={`fw-editor__mirror${
-            parsedDocument.mode === 'book' ? ' fw-editor__mirror--book' : ''
-          }`}
-          aria-hidden="true"
-        >
-          {parsedDocument.mode === 'book' ? (
-            <BookMirrorContent
-              document={parsedDocument}
-              activeBlock={activeBookBlock}
-              allBright={mode === 'dynamic' && dynamicSubState === 'seek'}
-            />
-          ) : (
-            <MirrorContent
-              text={text}
-              activePara={activePara}
-              allBright={mode === 'dynamic' && dynamicSubState === 'seek'}
-            />
-          )}
+        <div ref={mirrorRef} className="fw-editor__mirror" aria-hidden="true">
+          <MirrorContent
+            text={text}
+            activePara={activePara}
+            allBright={mode === 'dynamic' && dynamicSubState === 'seek'}
+          />
         </div>
         <textarea
           ref={textareaRef}
