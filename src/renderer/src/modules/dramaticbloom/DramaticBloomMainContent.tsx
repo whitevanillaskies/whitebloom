@@ -5,7 +5,9 @@ import { isDramaticBloomContainer } from './model'
 type DramaticBloomMainContentProps = {
   project: DramaticBloomProject
   selectedId: string
+  surfaceId: string
   onSelect: (id: string) => void
+  onOpen: (id: string) => void
   onAddItem: (parentId: string, type: DramaticBloomItem['type']) => void
   onPatchItem: (id: string, patch: Partial<DramaticBloomItem>) => void
 }
@@ -21,12 +23,14 @@ function FolderSurface({
   project,
   selectedId,
   onSelect,
+  onOpen,
   onAddItem
 }: {
   item: Extract<DramaticBloomItem, { type: 'folder' | 'card' }>
   project: DramaticBloomProject
   selectedId: string
   onSelect: (id: string) => void
+  onOpen: (id: string) => void
   onAddItem: (parentId: string, type: DramaticBloomItem['type']) => void
 }) {
   return (
@@ -70,6 +74,7 @@ function FolderSurface({
               className={`drb-content-card${selectedId === child.id ? ' drb-content-card--selected' : ''}`}
               type="button"
               onClick={() => onSelect(child.id)}
+              onDoubleClick={() => onOpen(child.id)}
             >
               <span className="drb-content-card__handle">••</span>
               <span className="drb-content-card__icon">{getTileIcon(child)}</span>
@@ -87,23 +92,28 @@ function FolderSurface({
 export function DramaticBloomMainContent({
   project,
   selectedId,
+  surfaceId,
   onSelect,
+  onOpen,
   onAddItem,
   onPatchItem
 }: DramaticBloomMainContentProps) {
-  const selectedItem = project.items[selectedId] ?? project.items[project.rootId]
+  const surfaceItem = project.items[surfaceId] ?? project.items[project.rootId]
 
-  if (isDramaticBloomContainer(selectedItem)) {
+  if (isDramaticBloomContainer(surfaceItem)) {
     return (
       <FolderSurface
-        item={selectedItem}
+        item={surfaceItem}
         project={project}
         selectedId={selectedId}
         onSelect={onSelect}
+        onOpen={onOpen}
         onAddItem={onAddItem}
       />
     )
   }
+
+  const selectedItem = surfaceItem
 
   return (
     <section className="drb-main drb-main--note">

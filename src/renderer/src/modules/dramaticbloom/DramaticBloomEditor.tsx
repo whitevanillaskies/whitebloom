@@ -20,6 +20,7 @@ function touchItem<T extends DramaticBloomItem>(item: T): T {
 
 export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorProps) {
   const [project, setProject] = useState(() => parseDramaticBloomProject(initialData))
+  const [surfaceId, setSurfaceId] = useState(project.selectedId ?? project.rootId)
   const [chromeHidden, setChromeHidden] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingProjectRef = useRef(project)
@@ -97,6 +98,14 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
     [updateProject]
   )
 
+  const handleOpen = useCallback(
+    (id: string) => {
+      setSurfaceId(id)
+      updateProject((previous) => ({ ...previous, selectedId: id }))
+    },
+    [updateProject]
+  )
+
   const handleAddItem = useCallback(
     (parentId: string, type: DramaticBloomItem['type']) => {
       updateProject((previous) => {
@@ -159,14 +168,16 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
         <DramaticBloomSidebar
           project={project}
           selectedId={selectedId}
-          onSelect={handleSelect}
+          onSelect={handleOpen}
           onAddItem={handleAddItem}
         />
       ) : null}
       <DramaticBloomMainContent
         project={project}
         selectedId={selectedId}
+        surfaceId={surfaceId}
         onSelect={handleSelect}
+        onOpen={handleOpen}
         onAddItem={handleAddItem}
         onPatchItem={handlePatchItem}
       />
