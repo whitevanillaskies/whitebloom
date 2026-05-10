@@ -115,6 +115,7 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
         if (!parent || parent.type === 'note') return previous
 
         const item = createDramaticBloomItem(type)
+        setSurfaceId(parent.id)
         return {
           ...previous,
           selectedId: item.id,
@@ -176,7 +177,7 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
       {!chromeHidden ? (
         <DramaticBloomSidebar
           project={project}
-          selectedId={selectedId}
+          selectedId={surfaceId}
           onSelect={handleOpen}
           onAddItem={handleAddItem}
           onMoveItem={handleMoveItem}
