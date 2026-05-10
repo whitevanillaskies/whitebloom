@@ -189,6 +189,7 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
         onSelect={handleSelect}
         onOpen={handleOpen}
         onAddItem={handleAddItem}
+        onMoveItem={handleMoveItem}
         onPatchItem={handlePatchItem}
       />
       {!chromeHidden ? (

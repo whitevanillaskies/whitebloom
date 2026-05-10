@@ -1,6 +1,11 @@
+import { useState, type DragEvent } from 'react'
 import { FileText, Folder, Plus, StickyNote } from 'lucide-react'
 import type { DramaticBloomItem, DramaticBloomProject } from './model'
-import { isDramaticBloomContainer } from './model'
+import {
+  canMoveDramaticBloomItem,
+  isDramaticBloomContainer,
+  type DramaticBloomMoveInput
+} from './model'
 
 type DramaticBloomMainContentProps = {
   project: DramaticBloomProject
@@ -9,8 +14,13 @@ type DramaticBloomMainContentProps = {
   onSelect: (id: string) => void
   onOpen: (id: string) => void
   onAddItem: (parentId: string, type: DramaticBloomItem['type']) => void
+  onMoveItem: (input: DramaticBloomMoveInput) => void
   onPatchItem: (id: string, patch: Partial<DramaticBloomItem>) => void
 }
+
+type ContentDropIntent = DramaticBloomMoveInput
+
+const CONTENT_DRAG_MIME = 'application/x-whitebloom-dramaticbloom-content-item'
 
 function getTileIcon(item: DramaticBloomItem) {
   if (item.type === 'folder') return <Folder size={34} strokeWidth={1.4} />
@@ -24,7 +34,8 @@ function FolderSurface({
   selectedId,
   onSelect,
   onOpen,
-  onAddItem
+  onAddItem,
+  onMoveItem
 }: {
   item: Extract<DramaticBloomItem, { type: 'folder' | 'card' }>
   project: DramaticBloomProject
@@ -32,7 +43,74 @@ function FolderSurface({
   onSelect: (id: string) => void
   onOpen: (id: string) => void
   onAddItem: (parentId: string, type: DramaticBloomItem['type']) => void
+  onMoveItem: (input: DramaticBloomMoveInput) => void
 }) {
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dropIntent, setDropIntent] = useState<ContentDropIntent | null>(null)
+
+  function getDropPosition(event: DragEvent): 'before' | 'after' {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const midpoint = rect.left + rect.width / 2
+    return event.clientX < midpoint ? 'before' : 'after'
+  }
+
+  function readDraggedId(event: DragEvent): string | null {
+    return draggedId || event.dataTransfer.getData(CONTENT_DRAG_MIME) || null
+  }
+
+  function isSameSurfaceChild(id: string): boolean {
+    return item.children.includes(id)
+  }
+
+  function handleDragStart(id: string, event: DragEvent): void {
+    setDraggedId(id)
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData(CONTENT_DRAG_MIME, id)
+  }
+
+  function handleDragEnd(): void {
+    setDraggedId(null)
+    setDropIntent(null)
+  }
+
+  function handleDragOver(targetId: string, event: DragEvent): void {
+    const nextDraggedId = readDraggedId(event)
+    if (!nextDraggedId || !isSameSurfaceChild(nextDraggedId) || !isSameSurfaceChild(targetId)) return
+
+    const intent = {
+      draggedId: nextDraggedId,
+      targetId,
+      position: getDropPosition(event)
+    }
+
+    if (!canMoveDramaticBloomItem(project, intent)) {
+      if (dropIntent?.targetId === targetId) setDropIntent(null)
+      return
+    }
+
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDropIntent(intent)
+  }
+
+  function handleDrop(targetId: string, event: DragEvent): void {
+    const nextDraggedId = readDraggedId(event)
+    if (!nextDraggedId || !isSameSurfaceChild(nextDraggedId) || !isSameSurfaceChild(targetId)) return
+
+    const intent = {
+      draggedId: nextDraggedId,
+      targetId,
+      position: getDropPosition(event)
+    }
+
+    if (!canMoveDramaticBloomItem(project, intent)) return
+
+    event.preventDefault()
+    onMoveItem(intent)
+    setDraggedId(null)
+    setDropIntent(null)
+  }
+
   return (
     <section className="drb-main">
       <header className="drb-main__header">
@@ -71,10 +149,24 @@ function FolderSurface({
           return (
             <button
               key={child.id}
-              className={`drb-content-card${selectedId === child.id ? ' drb-content-card--selected' : ''}`}
+              className={[
+                'drb-content-card',
+                selectedId === child.id ? 'drb-content-card--selected' : '',
+                draggedId === child.id ? 'drb-content-card--dragging' : '',
+                dropIntent?.targetId === child.id
+                  ? `drb-content-card--drop-${dropIntent.position}`
+                  : ''
+              ]
+                .filter(Boolean)
+                .join(' ')}
               type="button"
+              draggable
               onClick={() => onSelect(child.id)}
               onDoubleClick={() => onOpen(child.id)}
+              onDragStart={(event) => handleDragStart(child.id, event)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(event) => handleDragOver(child.id, event)}
+              onDrop={(event) => handleDrop(child.id, event)}
             >
               <span className="drb-content-card__handle">••</span>
               <span className="drb-content-card__icon">{getTileIcon(child)}</span>
@@ -96,6 +188,7 @@ export function DramaticBloomMainContent({
   onSelect,
   onOpen,
   onAddItem,
+  onMoveItem,
   onPatchItem
 }: DramaticBloomMainContentProps) {
   const surfaceItem = project.items[surfaceId] ?? project.items[project.rootId]
@@ -109,6 +202,7 @@ export function DramaticBloomMainContent({
         onSelect={onSelect}
         onOpen={onOpen}
         onAddItem={onAddItem}
+        onMoveItem={onMoveItem}
       />
     )
   }
