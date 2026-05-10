@@ -44,6 +44,7 @@ export type DramaticBloomCard = DramaticBloomBaseItem & {
 export type DramaticBloomNote = DramaticBloomBaseItem & {
   type: 'note'
   noteType: DramaticBloomNoteType
+  description: string
   content: string
 }
 
@@ -297,6 +298,13 @@ export function parseDramaticBloomProject(raw: string): DramaticBloomProject {
       }
     }
 
+    items = Object.fromEntries(
+      Object.entries(items).map(([id, item]) => [
+        id,
+        item.type === 'note' ? { ...item, description: item.description ?? '' } : item
+      ])
+    ) as Record<string, DramaticBloomItem>
+
     return {
       schemaVersion: DRAMATIC_BLOOM_SCHEMA_VERSION,
       project: {
@@ -352,6 +360,7 @@ export function createDramaticBloomItem(type: DramaticBloomItemType): DramaticBl
     type,
     noteType: 'plain',
     title: 'New Note',
+    description: '',
     content: '',
     tags: [],
     createdAt: timestamp,

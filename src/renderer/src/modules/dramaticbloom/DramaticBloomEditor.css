@@ -469,6 +469,90 @@
   min-height: 180px;
 }
 
+.drb-card-editor__note-tray {
+  display: grid;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.drb-card-editor__add-note {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
+  color: var(--color-primary-fg);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-border-inner);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.drb-card-note-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.drb-card-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 70px;
+  padding: 12px;
+  color: var(--color-primary-fg);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-border-frame);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font: inherit;
+}
+
+.drb-card-note--selected {
+  border-color: rgba(124, 53, 255, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(124, 53, 255, 0.16),
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.drb-card-note svg {
+  margin-top: 2px;
+  color: var(--color-secondary-fg);
+}
+
+.drb-card-note span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.drb-card-note strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drb-card-note small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-secondary-fg);
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .drb-note-title {
   width: 100%;
   box-sizing: border-box;

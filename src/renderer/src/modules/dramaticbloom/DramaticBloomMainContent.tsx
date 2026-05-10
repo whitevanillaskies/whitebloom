@@ -5,6 +5,7 @@ import {
   canMoveDramaticBloomItem,
   isDramaticBloomContainer,
   type DramaticBloomCard,
+  type DramaticBloomNote,
   type DramaticBloomMoveInput
 } from './model'
 
@@ -184,21 +185,27 @@ function FolderSurface({
 
 function CardSurface({
   item,
+  project,
+  selectedId,
+  onSelect,
+  onOpen,
   onAddItem,
   onPatchItem
 }: {
   item: DramaticBloomCard
+  project: DramaticBloomProject
+  selectedId: string
+  onSelect: (id: string) => void
+  onOpen: (id: string) => void
   onAddItem: (parentId: string, type: DramaticBloomItem['type']) => void
   onPatchItem: (id: string, patch: Partial<DramaticBloomItem>) => void
 }) {
+  const childNotes = item.children
+    .map((childId) => project.items[childId])
+    .filter((child): child is DramaticBloomNote => child?.type === 'note')
+
   return (
     <section className="drb-main drb-main--card">
-      <div className="drb-card-editor__actions">
-        <button type="button" onClick={() => onAddItem(item.id, 'note')}>
-          <Plus size={15} strokeWidth={1.8} />
-          Note
-        </button>
-      </div>
       <div className="drb-card-editor">
         <input
           className="drb-card-editor__title"
@@ -224,6 +231,35 @@ function CardSurface({
             onChange={(event) => onPatchItem(item.id, { notes: event.target.value })}
           />
         </label>
+        <section className="drb-card-editor__note-tray">
+          <button
+            className="drb-card-editor__add-note"
+            type="button"
+            onClick={() => onAddItem(item.id, 'note')}
+          >
+            <Plus size={15} strokeWidth={1.8} />
+            Note
+          </button>
+          {childNotes.length > 0 ? (
+            <div className="drb-card-note-list">
+              {childNotes.map((note) => (
+                <button
+                  key={note.id}
+                  className={`drb-card-note${selectedId === note.id ? ' drb-card-note--selected' : ''}`}
+                  type="button"
+                  onClick={() => onSelect(note.id)}
+                  onDoubleClick={() => onOpen(note.id)}
+                >
+                  <FileText size={16} strokeWidth={1.6} />
+                  <span>
+                    <strong>{note.title}</strong>
+                    <small>{note.description || 'Simple note for ideas, outlines, and freeform writing.'}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
       </div>
     </section>
   )
@@ -242,7 +278,17 @@ export function DramaticBloomMainContent({
   const surfaceItem = project.items[surfaceId] ?? project.items[project.rootId]
 
   if (surfaceItem.type === 'card') {
-    return <CardSurface item={surfaceItem} onAddItem={onAddItem} onPatchItem={onPatchItem} />
+    return (
+      <CardSurface
+        item={surfaceItem}
+        project={project}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        onOpen={onOpen}
+        onAddItem={onAddItem}
+        onPatchItem={onPatchItem}
+      />
+    )
   }
 
   if (isDramaticBloomContainer(surfaceItem)) {

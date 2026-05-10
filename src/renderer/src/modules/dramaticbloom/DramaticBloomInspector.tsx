@@ -106,18 +106,29 @@ export function DramaticBloomInspector({
         </>
       ) : null}
       {selectedItem.type === 'note' ? (
-        <label>
-          Note type
-          <select
-            value={selectedItem.noteType}
-            onChange={(event) =>
-              onPatchItem(selectedItem.id, { noteType: event.target.value as 'plain' | 'book' })
-            }
-          >
-            <option value="plain">Plain text</option>
-            <option value="book">Book</option>
-          </select>
-        </label>
+        <>
+          <label>
+            Description
+            <textarea
+              value={selectedItem.description}
+              onChange={(event) =>
+                onPatchItem(selectedItem.id, { description: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            Note type
+            <select
+              value={selectedItem.noteType}
+              onChange={(event) =>
+                onPatchItem(selectedItem.id, { noteType: event.target.value as 'plain' | 'book' })
+              }
+            >
+              <option value="plain">Plain text</option>
+              <option value="book">Book</option>
+            </select>
+          </label>
+        </>
       ) : null}
     </aside>
   )
