@@ -9,6 +9,7 @@ import { webBloomModule } from './webbloom'
 import { webPageBloomModule } from './webpagebloom'
 import { pdfModule } from './pdf'
 import { markdownBloomModule } from './markdownbloom'
+import { dramaticBloomModule } from './dramaticbloom'
 
 registerModule(imageModule)
 registerModule(videoModule)
@@ -20,3 +21,4 @@ registerModule(webBloomModule)
 registerModule(webPageBloomModule)
 registerModule(pdfModule)
 registerModule(markdownBloomModule)
+registerModule(dramaticBloomModule)

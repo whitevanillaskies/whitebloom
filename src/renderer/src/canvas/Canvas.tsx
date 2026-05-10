@@ -90,6 +90,7 @@ import { focusWriterModule } from '../modules/focus-writer'
 import { imageModule } from '../modules/image'
 import { videoModule } from '../modules/video'
 import { schemaBloomModule } from '../modules/schemabloom'
+import { dramaticBloomModule } from '../modules/dramaticbloom'
 import { webBloomModule } from '../modules/webbloom'
 import { WebBloomVisibilityContext } from '../modules/webbloom/WebBloomVisibilityContext'
 import { webPageBloomModule } from '../modules/webpagebloom'
@@ -1365,6 +1366,20 @@ export function Canvas({
     setActiveBloom({ nodeId: id, module: schemaBloomModule, resource })
   }, [workspaceRoot, getDefaultCanvasInsertionPoint, createBudAtPoint])
 
+  const createDramaticBloomBud = useCallback(async () => {
+    if (!workspaceRoot) return
+    const resource = `wloc:blossoms/manuscript-${Date.now()}.drb`
+    const position = getDefaultCanvasInsertionPoint()
+    await window.api.writeBlossom(workspaceRoot, resource, dramaticBloomModule.createDefault!())
+    const id = createBudAtPoint({
+      position,
+      resource,
+      moduleType: dramaticBloomModule.id,
+      size: dramaticBloomModule.defaultSize ?? { w: 260, h: 180 }
+    })
+    setActiveBloom({ nodeId: id, module: dramaticBloomModule, resource })
+  }, [workspaceRoot, getDefaultCanvasInsertionPoint, createBudAtPoint])
+
   const insertTextNodeAtPosition = useCallback(
     (
       position: FlowPosition,
@@ -2374,6 +2389,7 @@ export function Canvas({
             : undefined,
         addFocusWriterBud: workspaceRoot !== null ? createFocusWriterBud : undefined,
         addSchemaBloomBud: workspaceRoot !== null ? createSchemaBloomBud : undefined,
+        addDramaticBloomBud: workspaceRoot !== null ? createDramaticBloomBud : undefined,
         appendInkStroke:
           workspaceRoot !== null && boardInkBinding !== null
             ? async (binding, stroke) => {

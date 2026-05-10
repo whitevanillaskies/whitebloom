@@ -8,6 +8,7 @@ import {
   Circle,
   Database,
   Diamond,
+  Drama,
   Download,
   FileText,
   Globe,
@@ -77,6 +78,7 @@ export const WHITEBLOOM_COMMAND_IDS = {
     toggleTextAutoWidth: 'node.text.toggle-auto-width',
     addFocusWriter: 'board.add-focus-writer',
     addSchemaBloom: 'board.add-schema-bloom',
+    addDramaticBloom: 'board.add-dramatic-bloom',
     addEdge: 'board.add-edge',
     alignHorizontalCenter: 'selection.align-horizontal-center',
     alignVerticalCenter: 'selection.align-vertical-center',
@@ -1638,6 +1640,31 @@ const canvasContextualCommands: WhitebloomCommandForContext<CanvasCommandContext
         category: 'Schema Bloom',
         subtitle: 'Add a Schema Bloom bud node to the board',
         icon: Database
+      }
+    ]
+  },
+  {
+    core: {
+      id: WHITEBLOOM_COMMAND_IDS.canvas.addDramaticBloom,
+      kind: 'action',
+      modeScope: 'canvas-mode',
+      aliases: ['board.manuscript', 'add-manuscript', 'dramatic-bloom'],
+      enabledWhen: (context) => typeof context.actions.addDramaticBloomBud === 'function',
+      run: async (_args, context) => {
+        if (!context.actions.addDramaticBloomBud) {
+          throw new Error('Canvas context cannot add a Manuscript bud.')
+        }
+
+        await context.actions.addDramaticBloomBud()
+      }
+    },
+    presentations: [
+      {
+        mode: 'canvas-mode',
+        title: 'Add Manuscript',
+        category: 'DramaticBloom',
+        subtitle: 'Add a DramaticBloom manuscript to the board',
+        icon: Drama
       }
     ]
   },

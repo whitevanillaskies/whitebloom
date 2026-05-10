@@ -178,6 +178,11 @@ export type CanvasCommandActions = {
    * Absent when no workspace is open.
    */
   addSchemaBloomBud?: () => Promise<void>
+  /**
+   * Create a new DramaticBloom manuscript bud at the insertion point and open it.
+   * Absent when no workspace is open.
+   */
+  addDramaticBloomBud?: () => Promise<void>
   /** Persist an ink stroke to the acetate for the current board surface. Returns the stroke id. */
   appendInkStroke?: (binding: InkSurfaceBinding, stroke: InkStroke) => Promise<{ strokeId: string }>
   /** Remove an ink stroke from the acetate. */
