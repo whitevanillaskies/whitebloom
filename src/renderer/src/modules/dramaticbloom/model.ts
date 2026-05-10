@@ -212,9 +212,6 @@ export function moveDramaticBloomItem(
 export function createDefaultDramaticBloomProject(): DramaticBloomProject {
   const timestamp = now()
   const rootId = createId('root')
-  const draftId = createId('folder')
-  const cardId = createId('card')
-  const noteId = createId('note')
 
   return {
     schemaVersion: DRAMATIC_BLOOM_SCHEMA_VERSION,
@@ -231,40 +228,7 @@ export function createDefaultDramaticBloomProject(): DramaticBloomProject {
         type: 'folder',
         title: '',
         description: '',
-        children: [draftId],
-        tags: [],
-        createdAt: timestamp,
-        updatedAt: timestamp
-      },
-      [draftId]: {
-        id: draftId,
-        type: 'folder',
-        title: 'Draft',
-        description: 'Scenes, cards, and notes that shape the story.',
-        children: [cardId, noteId],
-        tags: [],
-        createdAt: timestamp,
-        updatedAt: timestamp
-      },
-      [cardId]: {
-        id: cardId,
-        type: 'card',
-        cardType: 'generic',
-        code: '1.1',
-        title: 'Opening Scene',
-        outline: 'A first dramatic unit waiting to become specific.',
-        notes: '',
         children: [],
-        tags: [],
-        createdAt: timestamp,
-        updatedAt: timestamp
-      },
-      [noteId]: {
-        id: noteId,
-        type: 'note',
-        noteType: 'plain',
-        title: 'Notes',
-        content: '',
         tags: [],
         createdAt: timestamp,
         updatedAt: timestamp
@@ -310,6 +274,27 @@ export function parseDramaticBloomProject(raw: string): DramaticBloomProject {
         updatedAt: now()
       }
       rootId = newRootId
+    }
+
+    const nextRootItem = items[rootId]
+    if (nextRootItem && nextRootItem.type === 'folder' && nextRootItem.children.length === 1) {
+      const onlyChildId = nextRootItem.children[0]
+      const onlyChild = items[onlyChildId]
+      if (
+        onlyChild?.type === 'folder' &&
+        onlyChild.title === 'Draft' &&
+        onlyChild.description === 'Scenes, cards, and notes that shape the story.'
+      ) {
+        items = {
+          ...items,
+          [rootId]: {
+            ...nextRootItem,
+            children: [...onlyChild.children],
+            updatedAt: now()
+          }
+        }
+        delete items[onlyChildId]
+      }
     }
 
     return {
