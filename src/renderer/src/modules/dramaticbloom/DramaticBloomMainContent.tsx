@@ -4,6 +4,7 @@ import type { DramaticBloomItem, DramaticBloomProject } from './model'
 import {
   canMoveDramaticBloomItem,
   isDramaticBloomContainer,
+  type DramaticBloomCard,
   type DramaticBloomMoveInput
 } from './model'
 
@@ -181,6 +182,53 @@ function FolderSurface({
   )
 }
 
+function CardSurface({
+  item,
+  onAddItem,
+  onPatchItem
+}: {
+  item: DramaticBloomCard
+  onAddItem: (parentId: string, type: DramaticBloomItem['type']) => void
+  onPatchItem: (id: string, patch: Partial<DramaticBloomItem>) => void
+}) {
+  return (
+    <section className="drb-main drb-main--card">
+      <div className="drb-card-editor__actions">
+        <button type="button" onClick={() => onAddItem(item.id, 'note')}>
+          <Plus size={15} strokeWidth={1.8} />
+          Note
+        </button>
+      </div>
+      <div className="drb-card-editor">
+        <input
+          className="drb-card-editor__title"
+          value={item.title}
+          onChange={(event) => onPatchItem(item.id, { title: event.target.value })}
+        />
+        <textarea
+          className="drb-card-editor__outline"
+          value={item.outline}
+          spellCheck
+          placeholder="Outline"
+          onChange={(event) => onPatchItem(item.id, { outline: event.target.value })}
+        />
+        <section className="drb-card-editor__metadata">
+          <p>Metadata</p>
+        </section>
+        <label className="drb-card-editor__notes">
+          <span>Writer's Notes</span>
+          <textarea
+            value={item.notes}
+            spellCheck
+            placeholder="Loose notes"
+            onChange={(event) => onPatchItem(item.id, { notes: event.target.value })}
+          />
+        </label>
+      </div>
+    </section>
+  )
+}
+
 export function DramaticBloomMainContent({
   project,
   selectedId,
@@ -192,6 +240,10 @@ export function DramaticBloomMainContent({
   onPatchItem
 }: DramaticBloomMainContentProps) {
   const surfaceItem = project.items[surfaceId] ?? project.items[project.rootId]
+
+  if (surfaceItem.type === 'card') {
+    return <CardSurface item={surfaceItem} onAddItem={onAddItem} onPatchItem={onPatchItem} />
+  }
 
   if (isDramaticBloomContainer(surfaceItem)) {
     return (

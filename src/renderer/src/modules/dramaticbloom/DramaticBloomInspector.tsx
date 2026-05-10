@@ -103,13 +103,6 @@ export function DramaticBloomInspector({
               onChange={(event) => onPatchItem(selectedItem.id, { outline: event.target.value })}
             />
           </label>
-          <label>
-            Stuff
-            <textarea
-              value={selectedItem.notes}
-              onChange={(event) => onPatchItem(selectedItem.id, { notes: event.target.value })}
-            />
-          </label>
         </>
       ) : null}
       {selectedItem.type === 'note' ? (

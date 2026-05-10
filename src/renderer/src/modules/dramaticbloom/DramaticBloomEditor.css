@@ -373,6 +373,102 @@
   padding-top: 56px;
 }
 
+.drb-main--card {
+  position: relative;
+  display: block;
+  padding-top: 30px;
+}
+
+.drb-card-editor__actions {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 112px;
+}
+
+.drb-card-editor__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
+  color: var(--color-primary-fg);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-border-inner);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.drb-card-editor {
+  display: grid;
+  gap: 34px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.drb-card-editor__title {
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--color-primary-fg);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 18px;
+  font-weight: 520;
+  line-height: 1.25;
+}
+
+.drb-card-editor__outline,
+.drb-card-editor__notes textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  color: var(--color-primary-fg);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-family: "Courier Prime", monospace;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.drb-card-editor__outline {
+  min-height: 96px;
+}
+
+.drb-card-editor__metadata {
+  min-height: 22px;
+  color: var(--color-muted-fg);
+}
+
+.drb-card-editor__metadata p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.drb-card-editor__notes {
+  display: grid;
+  gap: 10px;
+}
+
+.drb-card-editor__notes span {
+  color: var(--color-primary-fg);
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 520;
+}
+
+.drb-card-editor__notes textarea {
+  min-height: 180px;
+}
+
 .drb-note-title {
   width: 100%;
   box-sizing: border-box;
