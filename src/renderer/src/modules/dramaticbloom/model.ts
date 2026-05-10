@@ -49,6 +49,13 @@ export type DramaticBloomNote = DramaticBloomBaseItem & {
 
 export type DramaticBloomItem = DramaticBloomFolder | DramaticBloomCard | DramaticBloomNote
 export type DramaticBloomContainer = DramaticBloomFolder | DramaticBloomCard
+export type DramaticBloomDropPosition = 'before' | 'after' | 'inside'
+
+export type DramaticBloomMoveInput = {
+  draggedId: string
+  targetId: string
+  position: DramaticBloomDropPosition
+}
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -62,6 +69,144 @@ export function isDramaticBloomContainer(
   item: DramaticBloomItem | undefined
 ): item is DramaticBloomContainer {
   return item?.type === 'folder' || item?.type === 'card'
+}
+
+export function canDramaticBloomItemContain(
+  parent: DramaticBloomItem | undefined,
+  child: DramaticBloomItem | undefined
+): parent is DramaticBloomContainer {
+  if (!parent || !child) return false
+  if (parent.type === 'folder') return true
+  if (parent.type === 'card') return child.type === 'note'
+  return false
+}
+
+export function findDramaticBloomParentId(
+  project: DramaticBloomProject,
+  itemId: string
+): string | null {
+  for (const item of Object.values(project.items)) {
+    if (!isDramaticBloomContainer(item)) continue
+    if (item.children.includes(itemId)) return item.id
+  }
+  return null
+}
+
+export function isDramaticBloomDescendant(
+  project: DramaticBloomProject,
+  possibleDescendantId: string,
+  ancestorId: string
+): boolean {
+  const ancestor = project.items[ancestorId]
+  if (!isDramaticBloomContainer(ancestor)) return false
+
+  for (const childId of ancestor.children) {
+    if (childId === possibleDescendantId) return true
+    if (isDramaticBloomDescendant(project, possibleDescendantId, childId)) return true
+  }
+
+  return false
+}
+
+function resolveMoveDestination(
+  project: DramaticBloomProject,
+  input: DramaticBloomMoveInput
+): { parentId: string; index: number } | null {
+  const target = project.items[input.targetId]
+  if (!target) return null
+
+  if (input.position === 'inside') {
+    if (!isDramaticBloomContainer(target)) return null
+    return { parentId: target.id, index: target.children.length }
+  }
+
+  const parentId = findDramaticBloomParentId(project, target.id)
+  if (!parentId) return null
+  const parent = project.items[parentId]
+  if (!isDramaticBloomContainer(parent)) return null
+
+  const targetIndex = parent.children.indexOf(target.id)
+  if (targetIndex === -1) return null
+
+  return {
+    parentId,
+    index: input.position === 'before' ? targetIndex : targetIndex + 1
+  }
+}
+
+export function canMoveDramaticBloomItem(
+  project: DramaticBloomProject,
+  input: DramaticBloomMoveInput
+): boolean {
+  const dragged = project.items[input.draggedId]
+  if (!dragged || dragged.id === project.rootId || dragged.id === input.targetId) return false
+
+  const destination = resolveMoveDestination(project, input)
+  if (!destination) return false
+
+  const destinationParent = project.items[destination.parentId]
+  if (!canDramaticBloomItemContain(destinationParent, dragged)) return false
+  if (destination.parentId === dragged.id) return false
+  if (isDramaticBloomDescendant(project, destination.parentId, dragged.id)) return false
+
+  const sourceParentId = findDramaticBloomParentId(project, dragged.id)
+  if (!sourceParentId) return false
+
+  return true
+}
+
+export function moveDramaticBloomItem(
+  project: DramaticBloomProject,
+  input: DramaticBloomMoveInput
+): DramaticBloomProject {
+  if (!canMoveDramaticBloomItem(project, input)) return project
+
+  const dragged = project.items[input.draggedId]
+  const sourceParentId = findDramaticBloomParentId(project, dragged.id)
+  const destination = resolveMoveDestination(project, input)
+  if (!sourceParentId || !destination) return project
+
+  const sourceParent = project.items[sourceParentId]
+  const destinationParent = project.items[destination.parentId]
+  if (!isDramaticBloomContainer(sourceParent) || !isDramaticBloomContainer(destinationParent)) {
+    return project
+  }
+
+  const timestamp = now()
+  const sourceChildren = sourceParent.children.filter((childId) => childId !== dragged.id)
+  let destinationIndex = destination.index
+
+  if (sourceParent.id === destinationParent.id) {
+    const originalIndex = sourceParent.children.indexOf(dragged.id)
+    if (originalIndex !== -1 && originalIndex < destinationIndex) destinationIndex -= 1
+  }
+
+  const baseDestinationChildren =
+    sourceParent.id === destinationParent.id ? sourceChildren : destinationParent.children
+  const nextDestinationChildren = [
+    ...baseDestinationChildren.slice(0, destinationIndex),
+    dragged.id,
+    ...baseDestinationChildren.slice(destinationIndex)
+  ]
+
+  return {
+    ...project,
+    selectedId: dragged.id,
+    items: {
+      ...project.items,
+      [sourceParent.id]: {
+        ...sourceParent,
+        children:
+          sourceParent.id === destinationParent.id ? nextDestinationChildren : sourceChildren,
+        updatedAt: timestamp
+      },
+      [destinationParent.id]: {
+        ...destinationParent,
+        children: nextDestinationChildren,
+        updatedAt: timestamp
+      }
+    }
+  }
 }
 
 export function createDefaultDramaticBloomProject(): DramaticBloomProject {

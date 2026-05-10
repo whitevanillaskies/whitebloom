@@ -5,9 +5,11 @@ import { DramaticBloomMainContent } from './DramaticBloomMainContent'
 import { DramaticBloomSidebar } from './DramaticBloomSidebar'
 import {
   createDramaticBloomItem,
+  moveDramaticBloomItem,
   parseDramaticBloomProject,
   serializeDramaticBloomProject,
   type DramaticBloomItem,
+  type DramaticBloomMoveInput,
   type DramaticBloomProject
 } from './model'
 import './DramaticBloomEditor.css'
@@ -157,6 +159,13 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
     [updateProject]
   )
 
+  const handleMoveItem = useCallback(
+    (input: DramaticBloomMoveInput) => {
+      updateProject((previous) => moveDramaticBloomItem(previous, input))
+    },
+    [updateProject]
+  )
+
   const rootClassName = useMemo(
     () => `drb-editor${chromeHidden ? ' drb-editor--chrome-hidden' : ''}`,
     [chromeHidden]
@@ -170,6 +179,7 @@ export function DramaticBloomEditor({ initialData, onSave, onClose }: BudEditorP
           selectedId={selectedId}
           onSelect={handleOpen}
           onAddItem={handleAddItem}
+          onMoveItem={handleMoveItem}
         />
       ) : null}
       <DramaticBloomMainContent

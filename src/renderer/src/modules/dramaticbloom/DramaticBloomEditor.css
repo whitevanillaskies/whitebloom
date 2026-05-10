@@ -56,6 +56,8 @@
 }
 
 .drb-sidebar__project-title {
+  padding: 2px 4px;
+  border-radius: var(--radius-border-inner);
   cursor: pointer;
 }
 
@@ -65,6 +67,11 @@
 
 .drb-sidebar__project-title--selected {
   color: var(--color-accent-purple);
+}
+
+.drb-sidebar__project-title--drop-inside {
+  background: rgba(124, 53, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(124, 53, 255, 0.32);
 }
 
 .drb-icon-button,
@@ -99,6 +106,7 @@
 }
 
 .drb-sidebar__row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -109,6 +117,34 @@
 .drb-sidebar__row--selected {
   background: rgba(124, 53, 255, 0.1);
   color: var(--color-primary-fg);
+}
+
+.drb-sidebar__row--dragging {
+  opacity: 0.45;
+}
+
+.drb-sidebar__row--drop-inside {
+  background: rgba(124, 53, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(124, 53, 255, 0.32);
+}
+
+.drb-sidebar__row--drop-before::before,
+.drb-sidebar__row--drop-after::after {
+  position: absolute;
+  right: 4px;
+  left: 4px;
+  height: 1px;
+  content: "";
+  background: var(--color-accent-purple);
+  box-shadow: 0 0 0 1px rgba(124, 53, 255, 0.14);
+}
+
+.drb-sidebar__row--drop-before::before {
+  top: -1px;
+}
+
+.drb-sidebar__row--drop-after::after {
+  bottom: -1px;
 }
 
 .drb-sidebar__select {
