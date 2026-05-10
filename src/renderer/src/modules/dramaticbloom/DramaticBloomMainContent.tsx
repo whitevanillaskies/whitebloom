@@ -38,7 +38,7 @@ function FolderSurface({
       <header className="drb-main__header">
         <div className="drb-main__folder-mark">{item.type === 'folder' ? <Folder /> : <StickyNote />}</div>
         <div>
-          <h2>{item.title}</h2>
+          <h2>{item.id === project.rootId ? project.project.title : item.title}</h2>
           {'description' in item && item.description ? <p>{item.description}</p> : null}
         </div>
         <div className="drb-main__actions">

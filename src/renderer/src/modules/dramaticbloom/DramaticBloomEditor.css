@@ -55,6 +55,18 @@
   line-height: 1.2;
 }
 
+.drb-sidebar__project-title {
+  cursor: pointer;
+}
+
+.drb-sidebar__project-title:hover {
+  opacity: 0.8;
+}
+
+.drb-sidebar__project-title--selected {
+  color: var(--color-accent-purple);
+}
+
 .drb-icon-button,
 .drb-sidebar__row-action {
   display: inline-grid;

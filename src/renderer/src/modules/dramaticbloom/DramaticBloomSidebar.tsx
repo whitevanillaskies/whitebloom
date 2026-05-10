@@ -81,12 +81,19 @@ export function DramaticBloomSidebar({
   onSelect,
   onAddItem
 }: DramaticBloomSidebarProps) {
+  const rootItem = project.items[project.rootId]
+
   return (
     <aside className="drb-sidebar">
       <div className="drb-sidebar__header">
         <div>
           <p className="drb-sidebar__label">Work</p>
-          <h1>{project.project.title}</h1>
+          <h1
+            className={`drb-sidebar__project-title${selectedId === project.rootId ? ' drb-sidebar__project-title--selected' : ''}`}
+            onClick={() => onSelect(project.rootId)}
+          >
+            {project.project.title}
+          </h1>
         </div>
         <button
           className="drb-icon-button"
@@ -98,14 +105,19 @@ export function DramaticBloomSidebar({
         </button>
       </div>
       <ol className="drb-sidebar__tree">
-        <SidebarItem
-          id={project.rootId}
-          depth={0}
-          project={project}
-          selectedId={selectedId}
-          onSelect={onSelect}
-          onAddItem={onAddItem}
-        />
+        {rootItem && rootItem.type !== 'note'
+          ? rootItem.children.map((childId) => (
+              <SidebarItem
+                key={childId}
+                id={childId}
+                depth={0}
+                project={project}
+                selectedId={selectedId}
+                onSelect={onSelect}
+                onAddItem={onAddItem}
+              />
+            ))
+          : null}
       </ol>
       <div className="drb-sidebar__registries">
         <button type="button">

@@ -66,7 +66,8 @@ export function isDramaticBloomContainer(
 
 export function createDefaultDramaticBloomProject(): DramaticBloomProject {
   const timestamp = now()
-  const rootId = createId('folder')
+  const rootId = createId('root')
+  const draftId = createId('folder')
   const cardId = createId('card')
   const noteId = createId('note')
 
@@ -82,6 +83,16 @@ export function createDefaultDramaticBloomProject(): DramaticBloomProject {
     items: {
       [rootId]: {
         id: rootId,
+        type: 'folder',
+        title: '',
+        description: '',
+        children: [draftId],
+        tags: [],
+        createdAt: timestamp,
+        updatedAt: timestamp
+      },
+      [draftId]: {
+        id: draftId,
         type: 'folder',
         title: 'Draft',
         description: 'Scenes, cards, and notes that shape the story.',
@@ -135,6 +146,27 @@ export function parseDramaticBloomProject(raw: string): DramaticBloomProject {
       return createDefaultDramaticBloomProject()
     }
 
+    let rootId = parsed.rootId
+    let items = { ...parsed.items } as Record<string, DramaticBloomItem>
+
+    // Migration: old projects used a visible root folder. Wrap it in an
+    // invisible root so that top-level folders can be added as siblings.
+    const rootItem = items[rootId]
+    if (rootItem && rootItem.type === 'folder' && rootItem.title.trim() !== '') {
+      const newRootId = createId('root')
+      items[newRootId] = {
+        id: newRootId,
+        type: 'folder',
+        title: '',
+        description: '',
+        children: [rootId],
+        tags: [],
+        createdAt: rootItem.createdAt,
+        updatedAt: now()
+      }
+      rootId = newRootId
+    }
+
     return {
       schemaVersion: DRAMATIC_BLOOM_SCHEMA_VERSION,
       project: {
@@ -143,9 +175,9 @@ export function parseDramaticBloomProject(raw: string): DramaticBloomProject {
         notes: parsed.project?.notes ?? '',
         tags: Array.isArray(parsed.project?.tags) ? parsed.project.tags : []
       },
-      rootId: parsed.rootId,
-      selectedId: parsed.selectedId && parsed.items[parsed.selectedId] ? parsed.selectedId : parsed.rootId,
-      items: parsed.items as Record<string, DramaticBloomItem>
+      rootId,
+      selectedId: parsed.selectedId && items[parsed.selectedId] ? parsed.selectedId : rootId,
+      items
     }
   } catch {
     return createDefaultDramaticBloomProject()
